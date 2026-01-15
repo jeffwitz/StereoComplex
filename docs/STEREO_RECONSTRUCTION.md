@@ -24,13 +24,13 @@ For each frame (left/right pair):
    - `raw`: OpenCV “raw” ChArUco corners,
    - `rayfield_tps_robust`: corners predicted by `H + TPS (λ) + IRLS (Huber)`.
 3) Monocular calibration: `cv2.calibrateCamera` (left, then right).
-4) Stereo calibration: `cv2.stereoCalibrate` with fixed intrinsics, estimating a **single** :math:`(R,T)` over **all** selected pairs.
+4) Stereo calibration: `cv2.stereoCalibrate` with fixed intrinsics, estimating a **single** $(R,T)$ over **all** selected pairs.
 5) Triangulation: `cv2.triangulatePoints` after `cv2.undistortPoints`.
 6) Compare to the dataset 3D ground truth (`XYZ_world_mm` in `gt_charuco_corners.npz`).
 
 ### Used views (important)
 
-The stereo rig :math:`(R,T)` is not estimated from a single pair: OpenCV minimizes the error over a **list of views** (a view = a left/right pair with enough corners).
+The stereo rig $(R,T)$ is not estimated from a single pair: OpenCV minimizes the error over a **list of views** (a view = a left/right pair with enough corners).
 The exported JSON contains:
 
 - `n_views_left`, `n_views_right`: number of monocular views used by `calibrateCamera`,
@@ -40,14 +40,14 @@ The exported JSON contains:
 
 ## “Baseline error” in pixels (disparity-equivalent)
 
-The baseline is in mm, but its error can be expressed as an equivalent disparity error (px) at depth :math:`Z`:
+The baseline is in mm, but its error can be expressed as an equivalent disparity error (px) at depth $Z$:
 
 ```{math}
 :label: eq-baseline-px
 \Delta d\;(\mathrm{px}) \approx \frac{f_x\;(\mathrm{px})\;\Delta B\;(\mathrm{mm})}{Z\;(\mathrm{mm})}.
 ```
 
-In the results below, we report a summary of :math:`|\Delta d|` over GT points (RMS/P95), which provides a more intuitive “image-domain” unit.
+In the results below, we report a summary of $|\Delta d|$ over GT points (RMS/P95), which provides a more intuitive “image-domain” unit.
 
 ## Reproducible script
 
@@ -79,8 +79,8 @@ Extract (scene_0000, split `train`):
   - Mono RMS L (px)
   - Mono RMS R (px)
   - Stereo RMS (px)
-  - Baseline :math:`\Delta B` (mm)
-  - Baseline :math:`|\Delta d|` RMS (px)
+  - Baseline $\Delta B$ (mm)
+  - Baseline $|\Delta d|$ RMS (px)
   - Triangulation RMS (mm)
 * - raw
   - 0.306
@@ -104,11 +104,11 @@ The main result is Tab. {numref}`tab-stereo-calib-example`: the 2D method only c
 
 On synthetic data, we can also compare the estimated “physical” parameters (focal length and distortion) to ground truth. The script exports:
 
-- `mono.percent_vs_gt.left.K.fx` / `fy`: relative error (%) on :math:`f_x, f_y`,
-- relative errors (%) for each coefficient :math:`k_1,k_2,p_1,p_2,k_3`,
+- `mono.percent_vs_gt.left.K.fx` / `fy`: relative error (%) on $f_x, f_y$,
+- relative errors (%) for each coefficient $k_1,k_2,p_1,p_2,k_3$,
 - `mono.distortion_displacement_vs_gt.*`: distortion-field comparison in pixels (more robust/interpretable than comparing coefficients directly).
 
-In the example below, the RMS GT distortion displacement is :math:`\approx 1.404\,\mathrm{px}` (left) and :math:`\approx 0.947\,\mathrm{px}` (right) on the sampled circles.
+In the example below, the RMS GT distortion displacement is $\approx 1.404\,\mathrm{px}$ (left) and $\approx 0.947\,\mathrm{px}$ (right) on the sampled circles.
 
 ```{list-table} Relative errors (%) on focal length and distortion field (scene_0000, train).
 :name: tab-mono-percent-example
@@ -147,11 +147,11 @@ Note: these percentages must be interpreted carefully, because OpenCV can trade 
 
 ### Rectification: epipolar stability (vertical disparity)
 
-To quantify the impact on a dense-stereo pipeline, the script also computes **post-rectification** metrics from the estimated model :math:`(K_L,d_L,K_R,d_R,R,T)`:
+To quantify the impact on a dense-stereo pipeline, the script also computes **post-rectification** metrics from the estimated model $(K_L,d_L,K_R,d_R,R,T)$:
 
-- `vertical_disparity_measured_px`: :math:`|y_L^{rect}-y_R^{rect}|` on detected points,
+- `vertical_disparity_measured_px`: $|y_L^{rect}-y_R^{rect}|$ on detected points,
 - `vertical_disparity_gt_px`: same on GT points (same estimated rectification, hence “model error”),
-- `disparity_error_measured_px`: rectified disparity error :math:`|(x_L^{rect}-x_R^{rect})-(x_{L,GT}^{rect}-x_{R,GT}^{rect})|`.
+- `disparity_error_measured_px`: rectified disparity error $|(x_L^{rect}-x_R^{rect})-(x_{L,GT}^{rect}-x_{R,GT}^{rect})|$.
 
 ```{list-table} Rectification metrics (scene_0000, train).
 :name: tab-rectification-example
@@ -180,9 +180,9 @@ Tab. {numref}`tab-rectification-example` makes the key trade-off explicit: even 
 
 With planar targets and a limited number of poses, OpenCV optimization is known to exhibit couplings between:
 
-- intrinsics (:math:`f_x,f_y,c_x,c_y`),
-- distortion (e.g., Brown :math:`k_1,k_2,p_1,p_2,k_3`),
-- stereo relative pose (:math:`R,T`).
+- intrinsics ($f_x,f_y,c_x,c_y$),
+- distortion (e.g., Brown $k_1,k_2,p_1,p_2,k_3$),
+- stereo relative pose ($R,T$).
 
 The ray-field only changes the 2D observations, and can therefore shift the optimum towards a solution with more stable **epipolar geometry** (Tab. {numref}`tab-rectification-example`), without necessarily matching the GT Brown model coefficient-by-coefficient.
 
@@ -193,7 +193,7 @@ For reconstruction, the rectified stereo equation
 Z = \frac{f_x\,B}{d}
 ```
 
-shows that a relative error on :math:`f_x` (or :math:`B`) mainly yields a global scale error on :math:`Z`, whereas rectification errors (vertical disparity) and disparity errors :math:`d` directly affect matching quality and 3D noise.
+shows that a relative error on $f_x$ (or $B$) mainly yields a global scale error on $Z$, whereas rectification errors (vertical disparity) and disparity errors $d$ directly affect matching quality and 3D noise.
 
 ## Theory: from baseline to ray intersection
 
@@ -201,8 +201,8 @@ In metric stereo vision (robotics, dense stereo) as well as in metrology (stereo
 
 ### 1) Two 3D rays associated with a 2D correspondence
 
-Let a 2D correspondence be :math:`\mathbf u_L=(u_L,v_L)` in the left image and :math:`\mathbf u_R=(u_R,v_R)` in the right image.
-Define homogeneous coordinates :math:`\tilde{\mathbf u}=(u,v,1)^\top` and normalized coordinates:
+Let a 2D correspondence be $\mathbf u_L=(u_L,v_L)$ in the left image and $\mathbf u_R=(u_R,v_R)$ in the right image.
+Define homogeneous coordinates $\tilde{\mathbf u}=(u,v,1)^\top$ and normalized coordinates:
 
 ```{math}
 :label: eq-normalized-coords
@@ -218,8 +218,8 @@ In the left-camera frame, a ray can be written as a line:
 \mathcal D_R(\mu)=\mathbf C_R+\mu\,\mathbf d_R,
 ```
 
-where :math:`\mathbf C_L=(0,0,0)^\top`, :math:`\mathbf d_L` is the normalized :math:`\mathbf x_L`, and :math:`\mathbf d_R` is :math:`\mathbf x_R` expressed in the left frame.
-With OpenCV’s `stereoCalibrate` convention (:math:`\mathbf X_R=\mathbf R\,\mathbf X_L+\mathbf T`), the right-camera center in the left frame is:
+where $\mathbf C_L=(0,0,0)^\top$, $\mathbf d_L$ is the normalized $\mathbf x_L$, and $\mathbf d_R$ is $\mathbf x_R$ expressed in the left frame.
+With OpenCV’s `stereoCalibrate` convention ($\mathbf X_R=\mathbf R\,\mathbf X_L+\mathbf T$), the right-camera center in the left frame is:
 
 ```{math}
 :label: eq-right-center
@@ -228,12 +228,12 @@ With OpenCV’s `stereoCalibrate` convention (:math:`\mathbf X_R=\mathbf R\,\mat
 
 ### 2) The practical case: skew lines
 
-In a perfect world, :math:`\mathcal D_L` and :math:`\mathcal D_R` intersect exactly at the 3D point :math:`\mathbf X`.
+In a perfect world, $\mathcal D_L$ and $\mathcal D_R$ intersect exactly at the 3D point $\mathbf X$.
 In practice (imperfect calibration, residual 2D noise), the two lines are not intersecting: they are **skew**.
 
-Triangulation algorithms (e.g., `cv2.triangulatePoints`) then choose a best-fit point :math:`\hat{\mathbf X}`, typically by minimizing a reprojection criterion or by finding the point closest to both lines.
+Triangulation algorithms (e.g., `cv2.triangulatePoints`) then choose a best-fit point $\hat{\mathbf X}$, typically by minimizing a reprojection criterion or by finding the point closest to both lines.
 A useful geometric quantity is the **minimum distance between the two lines**, which directly measures “how much the rays miss each other”.
-For :math:`\mathbf C_L=\mathbf 0`, this distance (per point) can be written:
+For $\mathbf C_L=\mathbf 0$, this distance (per point) can be written:
 
 ```{math}
 :label: eq-skew-distance
@@ -244,7 +244,7 @@ The script exports this metric in mm: `stereo.ray_skew_distance_mm` (RMS/P95/max
 
 ### 3) Epipolar constraint and the role of the baseline
 
-The ideal condition for a pair :math:`(\mathbf x_L,\mathbf x_R)` to correspond to a common 3D point under a model :math:`(\mathbf R,\mathbf T)` is the **epipolar constraint**:
+The ideal condition for a pair $(\mathbf x_L,\mathbf x_R)$ to correspond to a common 3D point under a model $(\mathbf R,\mathbf T)$ is the **epipolar constraint**:
 
 ```{math}
 :label: eq-epipolar
@@ -252,7 +252,7 @@ The ideal condition for a pair :math:`(\mathbf x_L,\mathbf x_R)` to correspond t
 \qquad \mathbf E = [\mathbf T]_{\times}\mathbf R,
 ```
 
-where :math:`[\mathbf T]_{\times}` is the skew-symmetric matrix associated with the cross product. For :math:`\mathbf T=(t_x,t_y,t_z)^\top`:
+where $[\mathbf T]_{\times}$ is the skew-symmetric matrix associated with the cross product. For $\mathbf T=(t_x,t_y,t_z)^\top$:
 
 ```{math}
 :label: eq-cross-matrix
@@ -266,48 +266,48 @@ t_z & 0 & -t_x\\
 [\mathbf T]_{\times}\,\mathbf a = \mathbf T \times \mathbf a.
 ```
 
-An error on the baseline (or rotation) makes :math:`\mathbf E` inconsistent: observed pairs :math:`(\mathbf x_L,\mathbf x_R)` no longer satisfy the constraint, which manifests as more skew rays (higher :math:`d_{\mathrm{skew}}`) and less reliable rectification (higher :math:`|\Delta y|` and disparity errors; see Tab. {numref}`tab-rectification-example`).
+An error on the baseline (or rotation) makes $\mathbf E$ inconsistent: observed pairs $(\mathbf x_L,\mathbf x_R)$ no longer satisfy the constraint, which manifests as more skew rays (higher $d_{\mathrm{skew}}$) and less reliable rectification (higher $|\Delta y|$ and disparity errors; see Tab. {numref}`tab-rectification-example`).
 
 ### 4) Why this matters for robotics and stereo-DIC
 
-- **Robotics / dense stereo**: rectification assumes nearly horizontal correspondences. Reducing :math:`|\Delta y|` and the post-rectification disparity error facilitates “row-wise” matching and reduces depth noise.
-- **Metrology / stereo-DIC**: even if rectification is sometimes avoided (to limit interpolation), reconstruction still relies on triangulation with :math:`(K,d,R,T)`. Stabilizing epipolar geometry reduces ray inconsistency, hence 3D bias/noise induced by calibration.
+- **Robotics / dense stereo**: rectification assumes nearly horizontal correspondences. Reducing $|\Delta y|$ and the post-rectification disparity error facilitates “row-wise” matching and reduces depth noise.
+- **Metrology / stereo-DIC**: even if rectification is sometimes avoided (to limit interpolation), reconstruction still relies on triangulation with $(K,d,R,T)$. Stabilizing epipolar geometry reduces ray inconsistency, hence 3D bias/noise induced by calibration.
 
 ### Metric definitions (table columns)
 
-- **2D method**: how 2D corners :math:`(u,v)` are produced before being passed to OpenCV.
+- **2D method**: how 2D corners $(u,v)$ are produced before being passed to OpenCV.
   - `raw`: OpenCV raw ChArUco corners.
   - `rayfield_tps_robust`: corners predicted by `H + TPS (λ) + IRLS (Huber)` from ArUco corners.
 - **Mono RMS L (px)**: reprojection RMS (px) returned by `cv2.calibrateCamera` on the left camera using corners from the given method.
 - **Mono RMS R (px)**: same for the right camera.
 - **Stereo RMS (px)**: reprojection RMS (px) returned by `cv2.stereoCalibrate` (fixed intrinsics), using corners from the given method on left/right pairs.
-- **Baseline :math:`\Delta B` (mm)**: error on the norm of the estimated translation,
+- **Baseline $\Delta B$ (mm)**: error on the norm of the estimated translation,
 
   ```{math}
   :label: eq-baseline-mm
   \Delta B = \lVert \mathbf T\rVert - B_{\mathrm{GT}}.
   ```
 
-- **Baseline :math:`|\Delta d|` RMS (px)**: converts baseline error into an “equivalent disparity” error (px) at GT depths,
+- **Baseline $|\Delta d|$ RMS (px)**: converts baseline error into an “equivalent disparity” error (px) at GT depths,
 
   ```{math}
   :label: eq-baseline-px-abs
   |\Delta d| = \left|\frac{f_x\,\Delta B}{Z}\right|,
   ```
 
-  then summarizes :math:`|\Delta d|` over GT points (RMS/P95/max). This is the most intuitive unit for reconstruction impact.
-- **Triangulation RMS (mm)**: RMS 3D error :math:`\lVert \hat{\mathbf X}-\mathbf X_{\mathrm{GT}}\rVert` (mm) after `cv2.triangulatePoints` (on undistorted points), summarized over all triangulated corners.
+  then summarizes $|\Delta d|$ over GT points (RMS/P95/max). This is the most intuitive unit for reconstruction impact.
+- **Triangulation RMS (mm)**: RMS 3D error $\lVert \hat{\mathbf X}-\mathbf X_{\mathrm{GT}}\rVert$ (mm) after `cv2.triangulatePoints` (on undistorted points), summarized over all triangulated corners.
 
 To make this value interpretable, the script also exports:
 
-- **depth\_mm**: depth distribution :math:`Z` (mm) of used GT points (P05/P50/P95),
-- **triangulation\_error\_rel\_z\_percent**: relative error :math:`100\,\lVert \hat{\mathbf X}-\mathbf X_{\mathrm{GT}}\rVert/Z` (RMS/P95/max).
+- **depth\_mm**: depth distribution $Z$ (mm) of used GT points (P05/P50/P95),
+- **triangulation\_error\_rel\_z\_percent**: relative error $100\,\lVert \hat{\mathbf X}-\mathbf X_{\mathrm{GT}}\rVert/Z$ (RMS/P95/max).
 
-Thus, a “RMS = 7.4 mm” can be read as “:math:`\approx 0.55\%` at :math:`Z \approx 1.3\,\mathrm{m}`” for this scene.
+Thus, a “RMS = 7.4 mm” can be read as “$\approx 0.55\%$ at $Z \approx 1.3\,\mathrm{m}$” for this scene.
 
 ### Interpreting triangulation (mm) vs working distance
 
-Absolute errors (mm) depend strongly on working distance: for a constant disparity error :math:`\sigma_d` (px), the classic stereo approximation yields:
+Absolute errors (mm) depend strongly on working distance: for a constant disparity error $\sigma_d$ (px), the classic stereo approximation yields:
 
 ```{math}
 :label: eq-depth-error
@@ -316,8 +316,8 @@ Absolute errors (mm) depend strongly on working distance: for a constant dispari
 \frac{\sigma_Z}{Z} \approx \frac{Z}{f_x\,B}\,\sigma_d \approx \frac{\sigma_d}{d},
 ```
 
-where :math:`Z` is depth, :math:`B` the baseline, :math:`f_x` the focal length (px), :math:`d` the disparity (px).
-We therefore also report a relative metric (% of :math:`Z`), which enables comparisons across scenes with different distances.
+where $Z$ is depth, $B$ the baseline, $f_x$ the focal length (px), $d$ the disparity (px).
+We therefore also report a relative metric (% of $Z$), which enables comparisons across scenes with different distances.
 
 On the example of Tab. {numref}`tab-stereo-calib-example`:
 
@@ -342,7 +342,7 @@ On the example of Tab. {numref}`tab-stereo-calib-example`:
   - 0.589
 ```
 
-Tab. {numref}`tab-stereo-triang-interpret` shows that, despite “visually large” mm errors, the relative error is on the order of :math:`10^{-2}` (percent), and that the ray-field improvement is consistent with the strong drop in baseline error in pixel units.
+Tab. {numref}`tab-stereo-triang-interpret` shows that, despite “visually large” mm errors, the relative error is on the order of $10^{-2}$ (percent), and that the ray-field improvement is consistent with the strong drop in baseline error in pixel units.
 
 Note: on synthetic datasets v0, `gt_charuco_corners.npz` provides `XYZ_world_mm`. The script assumes that this 3D is consistent with the triangulation convention (left-camera frame), which holds for `dataset/v0_png/train/scene_0000` (verified by reprojection).
 

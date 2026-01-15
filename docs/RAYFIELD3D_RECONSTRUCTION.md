@@ -11,11 +11,11 @@ In this chapter, we start from **GT correspondences** (already perfect) and comp
 
 We use dataset v0 (see `DATASET_SPEC.md`). For a given scene, we load `gt_points.npz` (or `gt_charuco_corners.npz`):
 
-- :math:`P_i = (X_i, Y_i, Z_i)^\top`: 3D coordinates (mm) in the left-camera frame,
-- :math:`p^L_i = (u^L_i, v^L_i)^\top` and :math:`p^R_i = (u^R_i, v^R_i)^\top`: distorted pixel projections (left/right),
-- baseline :math:`B` (mm) from `meta.json` → `sim_params.baseline_mm`.
+- $P_i = (X_i, Y_i, Z_i)^\top$: 3D coordinates (mm) in the left-camera frame,
+- $p^L_i = (u^L_i, v^L_i)^\top$ and $p^R_i = (u^R_i, v^R_i)^\top$: distorted pixel projections (left/right),
+- baseline $B$ (mm) from `meta.json` → `sim_params.baseline_mm`.
 
-We adopt the synthetic convention: the left camera center is :math:`C_L=(0,0,0)^\top` and the right camera center expressed in the left frame is:
+We adopt the synthetic convention: the left camera center is $C_L=(0,0,0)^\top$ and the right camera center expressed in the left frame is:
 
 ```{math}
 C_R = (B,0,0)^\top.
@@ -23,7 +23,7 @@ C_R = (B,0,0)^\top.
 
 ## Central 3D ray-field model
 
-A pixel :math:`p=(u,v)` defines a 3D **ray**:
+A pixel $p=(u,v)$ defines a 3D **ray**:
 
 ```{math}
 \ell_p(t) = C + t\,\hat d(u,v), \quad t\ge 0
@@ -31,8 +31,8 @@ A pixel :math:`p=(u,v)` defines a 3D **ray**:
 
 where:
 
-- :math:`C` is a **constant** origin (central model),
-- :math:`\hat d(u,v)\in\mathbb{R}^3` is a unit direction.
+- $C$ is a **constant** origin (central model),
+- $\hat d(u,v)\in\mathbb{R}^3$ is a unit direction.
 
 We parametrize direction via “normalized” coordinates:
 
@@ -42,7 +42,7 @@ We parametrize direction via “normalized” coordinates:
 \hat d(u,v)=\frac{\tilde d(u,v)}{\lVert\tilde d(u,v)\rVert}.
 ```
 
-The learning problem is therefore to estimate the two scalar fields :math:`x(u,v)` and :math:`y(u,v)`.
+The learning problem is therefore to estimate the two scalar fields $x(u,v)$ and $y(u,v)$.
 
 ## Zernike basis (unit disk)
 
@@ -52,9 +52,9 @@ We map the image plane to the unit disk using:
 \tilde u = \frac{u-u_0}{R},\qquad \tilde v = \frac{v-v_0}{R},
 ```
 
-where :math:`u_0,v_0` are the image center coordinates and :math:`R` is a radius covering the full image (circumscribed circle).
+where $u_0,v_0$ are the image center coordinates and $R$ is a radius covering the full image (circumscribed circle).
 
-We use real Zernike polynomials :math:`Z_k(\rho,\theta)` (defined for :math:`\rho\in[0,1]`) and approximate:
+We use real Zernike polynomials $Z_k(\rho,\theta)$ (defined for $\rho\in[0,1]$) and approximate:
 
 ```{math}
 x(u,v) = \sum_{k=1}^{K} a_k Z_k(\tilde u,\tilde v),
@@ -62,17 +62,17 @@ x(u,v) = \sum_{k=1}^{K} a_k Z_k(\tilde u,\tilde v),
 y(u,v) = \sum_{k=1}^{K} b_k Z_k(\tilde u,\tilde v).
 ```
 
-In the implementation (`CentralRayFieldZernike`), :math:`K` is set by the maximum radial order `nmax` (modes up to :math:`n\le n_{\max}`).
+In the implementation (`CentralRayFieldZernike`), $K$ is set by the maximum radial order `nmax` (modes up to $n\le n_{\max}$).
 
 ## GT fit (ridge / Tikhonov regression)
 
-With GT data, each 3D point :math:`P_i` lies on the ray defined by its pixel. In normalized coordinates:
+With GT data, each 3D point $P_i$ lies on the ray defined by its pixel. In normalized coordinates:
 
 ```{math}
 x_i = \frac{X_i}{Z_i},\qquad y_i = \frac{Y_i}{Z_i}.
 ```
 
-We build a design matrix :math:`A\in\mathbb{R}^{N\times K}` with :math:`A_{ik}=Z_k(\tilde u_i,\tilde v_i)`, and estimate coefficients with **ridge** regression (also called :math:`L^2` regularization or **Tikhonov**):
+We build a design matrix $A\in\mathbb{R}^{N\times K}$ with $A_{ik}=Z_k(\tilde u_i,\tilde v_i)$, and estimate coefficients with **ridge** regression (also called $L^2$ regularization or **Tikhonov**):
 
 ```{math}
 \hat a = \arg\min_a\ \lVert Aa-x\rVert^2 + \lambda\lVert a\rVert^2,
@@ -84,7 +84,7 @@ This is an **MVP** (*minimum viable prototype*): it yields a compact ray-field w
 
 ## Triangulation and metrics
 
-For a pair :math:`(p^L_i, p^R_i)` we obtain two rays:
+For a pair $(p^L_i, p^R_i)$ we obtain two rays:
 
 ```{math}
 \ell^L_i(t)= C_L + t\,\hat d_L(p^L_i),
@@ -92,25 +92,25 @@ For a pair :math:`(p^L_i, p^R_i)` we obtain two rays:
 \ell^R_i(s)= C_R + s\,\hat d_R(p^R_i).
 ```
 
-We reconstruct :math:`\hat P_i` using midpoint triangulation (midpoint of the common perpendicular segment). We report:
+We reconstruct $\hat P_i$ using midpoint triangulation (midpoint of the common perpendicular segment). We report:
 
-- **3D error**: :math:`e_i = \lVert \hat P_i - P_i\rVert` (mm),
-- **skew-ray distance**: :math:`d^{\mathrm{skew}}_i = \mathrm{dist}(\ell^L_i,\ell^R_i)` (mm), i.e., the length of the common perpendicular segment.
+- **3D error**: $e_i = \lVert \hat P_i - P_i\rVert$ (mm),
+- **skew-ray distance**: $d^{\mathrm{skew}}_i = \mathrm{dist}(\ell^L_i,\ell^R_i)$ (mm), i.e., the length of the common perpendicular segment.
 
 ## Pinhole “oracle” baseline (reference)
 
 On a synthetic pinhole dataset, we know the exact parameters:
 
-- focal length :math:`f` (via `sim_params.f_um`),
+- focal length $f$ (via `sim_params.f_um`),
 - Brown distortion (via `sim_params.distortion_left/right`),
 - pixel pitch (via `meta.json`).
 
 We can therefore map a distorted pixel to an undistorted ray as:
 
-1. pixel :math:`(u,v)` → sensor coordinates :math:`(x_{\mu m},y_{\mu m})`,
-2. distorted normalization: :math:`x_d=x_{\mu m}/f_{\mu m}`, :math:`y_d=y_{\mu m}/f_{\mu m}`,
-3. Brown inversion: :math:`(x,y)=\mathrm{undistort}(x_d,y_d)`,
-4. direction: :math:`\hat d = \mathrm{normalize}([x,y,1])`.
+1. pixel $(u,v)$ → sensor coordinates $(x_{\mu m},y_{\mu m})$,
+2. distorted normalization: $x_d=x_{\mu m}/f_{\mu m}$, $y_d=y_{\mu m}/f_{\mu m}$,
+3. Brown inversion: $(x,y)=\mathrm{undistort}(x_d,y_d)$,
+4. direction: $\hat d = \mathrm{normalize}([x,y,1])$.
 
 This is not a “fit”: it is an **oracle** (expected lower bound on this dataset).
 
@@ -130,9 +130,9 @@ Command:
 
 We report:
 
-- triangulation error in mm: :math:`e_i = \lVert \hat P_i - P_i\rVert`,
-- relative error (order-of-magnitude): :math:`100\,e_i / \bar Z` (%) where :math:`\bar Z` is mean depth,
-- reprojection error in pixels (left/right), by reprojecting :math:`\hat P_i` through the **GT Brown pinhole model** and comparing to GT :math:`(u,v)`.
+- triangulation error in mm: $e_i = \lVert \hat P_i - P_i\rVert$,
+- relative error (order-of-magnitude): $100\,e_i / \bar Z$ (%) where $\bar Z$ is mean depth,
+- reprojection error in pixels (left/right), by reprojecting $\hat P_i$ through the **GT Brown pinhole model** and comparing to GT $(u,v)$.
 
 Outputs (summary, order-of-magnitude):
 
@@ -148,7 +148,7 @@ Outputs (summary, order-of-magnitude):
 Quick reading:
 
 - On **pinhole** data, the pinhole oracle is nearly perfect (as expected).
-- The central 3D ray-field is a compact approximation: its performance depends strongly on `nmax` (capacity) and :math:`\lambda` (smoothness). It mainly serves as a stepping stone towards future “complex optics” models.
+- The central 3D ray-field is a compact approximation: its performance depends strongly on `nmax` (capacity) and $\lambda$ (smoothness). It mainly serves as a stepping stone towards future “complex optics” models.
 
 ## Code references
 
@@ -164,7 +164,7 @@ This section connects the 3D ray-field chapter to the 2D identification pipeline
 2. center correction using the **2D ray-field** (`rayfield_tps_robust`),
 3. 3D reconstruction by triangulation, with two 3D methods:
    - **pinhole oracle**: rays by Brown inversion using GT synthesis parameters,
-   - **central 3D ray-field**: fit Zernike on :math:`(u,v)\leftrightarrow P` (GT) then triangulate.
+   - **central 3D ray-field**: fit Zernike on $(u,v)\leftrightarrow P$ (GT) then triangulate.
 
 ### Script
 
@@ -197,18 +197,18 @@ Note: the “3D ray-field” used here is a central prototype (constant origin) 
 
 This section replaces the “GT-assisted 3D fit” by a full calibration from:
 
-- multi-pose board correspondences :math:`(u,v)\leftrightarrow (X,Y,0)`,
-- a compact central ray-field :math:`d(u,v)` (Zernike),
-- per-frame board poses :math:`(R_i,t_i)`.
+- multi-pose board correspondences $(u,v)\leftrightarrow (X,Y,0)$,
+- a compact central ray-field $d(u,v)$ (Zernike),
+- per-frame board poses $(R_i,t_i)$.
 
 ### Geometric residual
 
-For an observation :math:`(u_{ij},v_{ij})` of board point :math:`P_j` in image :math:`i`:
+For an observation $(u_{ij},v_{ij})$ of board point $P_j$ in image $i$:
 
-- camera-frame point: :math:`P^{\mathrm{cam}}_{ij}=R_i P_j + t_i`,
-- unit direction: :math:`\hat d_{ij}=\hat d(u_{ij},v_{ij})`.
+- camera-frame point: $P^{\mathrm{cam}}_{ij}=R_i P_j + t_i$,
+- unit direction: $\hat d_{ij}=\hat d(u_{ij},v_{ij})$.
 
-The ray is :math:`\ell_{ij}(t)=C+t\hat d_{ij}` (here :math:`C` is constant, and we fix :math:`C=(0,0,0)^\top`).
+The ray is $\ell_{ij}(t)=C+t\hat d_{ij}$ (here $C$ is constant, and we fix $C=(0,0,0)^\top$).
 
 We minimize the point↔ray distance using the vector residual:
 
@@ -216,17 +216,17 @@ We minimize the point↔ray distance using the vector residual:
 r_{ij} = (I - \hat d_{ij}\hat d_{ij}^\top)\,P^{\mathrm{cam}}_{ij}.
 ```
 
-This residual is minimized with a robust loss (Huber) and an :math:`L^2` regularization on Zernike coefficients.
+This residual is minimized with a robust loss (Huber) and an $L^2$ regularization on Zernike coefficients.
 
 ### Joint optimization (stereo)
 
 In the stereo version, we optimize **simultaneously**:
 
-- Zernike coefficients of :math:`d_L(u,v)` and :math:`d_R(u,v)`,
-- a single rigid pose of the rig :math:`(R_{RL},t_{RL})` such that :math:`P_R = R_{RL}P_L+t_{RL}`,
-- board poses per image in the left-camera frame :math:`(R_i,t_i)`.
+- Zernike coefficients of $d_L(u,v)$ and $d_R(u,v)$,
+- a single rigid pose of the rig $(R_{RL},t_{RL})$ such that $P_R = R_{RL}P_L+t_{RL}$,
+- board poses per image in the left-camera frame $(R_i,t_i)$.
 
-We solve with `scipy.optimize.least_squares` (robust Gauss-Newton/LM) using Huber loss and :math:`L^2` coefficient regularization.
+We solve with `scipy.optimize.least_squares` (robust Gauss-Newton/LM) using Huber loss and $L^2$ coefficient regularization.
 
 ### Script (images → 2D ray-field → 3D ray-field BA → stereo)
 
@@ -250,7 +250,7 @@ Output: JSON (default: `paper/tables/rayfield3d_ba_from_images.json`) with:
 
 ### Results (example)
 
-On `scene_0000` (5 frames), the “pinhole oracle” remains a lower bound (pinhole + GT Brown). The central 3D ray-field BA (Zernike, central model) is calibrated **without solvePnP** and **without a known** :math:`K`: initial board poses are obtained from homographies (Zhang-style) only as an *initialization*, and the solver then directly optimizes the point↔ray cost (robust Gauss-Newton via SciPy).
+On `scene_0000` (5 frames), the “pinhole oracle” remains a lower bound (pinhole + GT Brown). The central 3D ray-field BA (Zernike, central model) is calibrated **without solvePnP** and **without a known** $K$: initial board poses are obtained from homographies (Zhang-style) only as an *initialization*, and the solver then directly optimizes the point↔ray cost (robust Gauss-Newton via SciPy).
 
 ```{table} Central ray-based calibration from images: comparison to the pinhole oracle (example).
 :name: tab-rayfield3d-ba-example
@@ -268,11 +268,11 @@ Note: for the “3D ray-field BA” row, the 3D RMS and reprojections are comput
 
 The table highlights three important points:
 
-1. **Baseline is now better with the ray-field.** Here, ray-based calibration yields a smaller baseline error than OpenCV pinhole calibration (mm and px-equivalent). This is consistent with the fact that the ray-based optimization is constrained by a single rig :math:`(R_{RL},t_{RL})` and a geometric point↔ray cost over all observations, which limits the “intrinsics ↔ distortion ↔ extrinsics” compensations typical of pinhole calibration on planar targets.
+1. **Baseline is now better with the ray-field.** Here, ray-based calibration yields a smaller baseline error than OpenCV pinhole calibration (mm and px-equivalent). This is consistent with the fact that the ray-based optimization is constrained by a single rig $(R_{RL},t_{RL})$ and a geometric point↔ray cost over all observations, which limits the “intrinsics ↔ distortion ↔ extrinsics” compensations typical of pinhole calibration on planar targets.
 
-2. **Baseline: norm vs direction.** A small error on :math:`\lVert C_R\rVert` does not guarantee a perfect direction. In this example, both methods produce a slightly off-axis baseline (non-zero :math:`y,z` components), so the script also reports the angle to the :math:`x` axis and the off-axis norm (see the script JSON).
+2. **Baseline: norm vs direction.** A small error on $\lVert C_R\rVert$ does not guarantee a perfect direction. In this example, both methods produce a slightly off-axis baseline (non-zero $y,z$ components), so the script also reports the angle to the $x$ axis and the off-axis norm (see the script JSON).
 
-   For example on `scene_0000`: the angle is about :math:`3.38^\circ` (ray-field) versus :math:`2.62^\circ` (OpenCV), despite a smaller norm error on the ray-field side. This illustrates why both baseline norm and baseline direction matter.
+   For example on `scene_0000`: the angle is about $3.38^\circ$ (ray-field) versus $2.62^\circ$ (OpenCV), despite a smaller norm error on the ray-field side. This illustrates why both baseline norm and baseline direction matter.
 
 3. **Why “non-GT pinhole” can have a decent baseline but poor reprojection/3D vs GT.** OpenCV minimizes its own image error, but the errors reported here are measured **against the GT model** (synthetic pinhole + Brown). A pinhole calibration can thus be self-consistent (low `mono_rms_*`) while still far from the GT parameters (high GT reprojection error), especially due to identifiability couplings on planar targets.
 
@@ -289,7 +289,7 @@ The point↔ray cost
 r_{ij}=(I-\hat d_{ij}\hat d_{ij}^\top)\,P^{\mathrm{cam}}_{ij}
 ```
 
-is invariant to a global Euclidean transformation of the camera frame (rotation) and, to some extent, to a scale factor coupled to depth (limited identifiability on planar targets). In other words: **the calibration is defined up to a gauge**, while GT enforces an absolute reference frame (left camera, :math:`x` axis aligned with the baseline, etc.). To avoid conflating “bad geometry” with “different frame”, we report:
+is invariant to a global Euclidean transformation of the camera frame (rotation) and, to some extent, to a scale factor coupled to depth (limited identifiability on planar targets). In other words: **the calibration is defined up to a gauge**, while GT enforces an absolute reference frame (left camera, $x$ axis aligned with the baseline, etc.). To avoid conflating “bad geometry” with “different frame”, we report:
 
 - an “aligned” 3D RMS (rotation + scale),
 - an “aligned” reprojection RMS (GT projection after alignment).
@@ -305,15 +305,15 @@ This section clarifies what is required and what it costs to use a ray-field mod
 To reconstruct a 3D field from a stereo pair (left/right), one needs:
 
 - **Stereo model (calibration)**:
-  - rig :math:`(R_{RL},t_{RL})`,
-  - left ray-field :math:`d_L(u,v)` and right ray-field :math:`d_R(u,v)` (Zernike coefficients, central model).
+  - rig $(R_{RL},t_{RL})$,
+  - left ray-field $d_L(u,v)$ and right ray-field $d_R(u,v)$ (Zernike coefficients, central model).
 - **2D correspondences**:
-  - either pairs :math:`(u_L,v_L)\leftrightarrow(u_R,v_R)`,
-  - or a disparity map :math:`d(u,v)` on a rectified image (classic robotics case).
+  - either pairs $(u_L,v_L)\leftrightarrow(u_R,v_R)$,
+  - or a disparity map $d(u,v)$ on a rectified image (classic robotics case).
 
 Outputs:
 
-- a point cloud (or field) :math:`\hat P` in mm in the left-camera frame,
+- a point cloud (or field) $\hat P$ in mm in the left-camera frame,
 - optionally a per-point quality metric (skew-ray distance).
 
 ### Per-point computation and algorithmic cost
@@ -321,28 +321,28 @@ Outputs:
 For each correspondence:
 
 1. **Pixel → ray** (left and right):
-   - pinhole: normalization + (un)distortion + normalization → :math:`\hat d`,
-   - ray-field: evaluate :math:`x(u,v),y(u,v)` (Zernike), then :math:`\hat d=\mathrm{normalize}([x,y,1])`.
+   - pinhole: normalization + (un)distortion + normalization → $\hat d$,
+   - ray-field: evaluate $x(u,v),y(u,v)$ (Zernike), then $\hat d=\mathrm{normalize}([x,y,1])$.
 2. **Triangulation** (least-squares intersection):
    - midpoint of the common perpendicular segment (a few vector operations).
 
-In terms of complexity for :math:`N` correspondences:
+In terms of complexity for $N$ correspondences:
 
-- pinhole: :math:`\mathcal{O}(N)` (small constant cost),
-- Zernike ray-field: :math:`\mathcal{O}(N\,K)` if evaluating :math:`K` modes explicitly (e.g., :math:`K=45` for `nmax=8`), plus :math:`\mathcal{O}(N)` for triangulation.
+- pinhole: $\mathcal{O}(N)$ (small constant cost),
+- Zernike ray-field: $\mathcal{O}(N\,K)$ if evaluating $K$ modes explicitly (e.g., $K=45$ for `nmax=8`), plus $\mathcal{O}(N)$ for triangulation.
 
 In practice, **runtime can be brought to the same order as pinhole** by precomputing a ray-direction map:
 
-- precompute once: :math:`d(u,v)` for all image pixels (amortized cost),
-- real-time: lookup :math:`d` + triangulation → :math:`\mathcal{O}(N)`.
+- precompute once: $d(u,v)$ for all image pixels (amortized cost),
+- real-time: lookup $d$ + triangulation → $\mathcal{O}(N)$.
 
-This precompute can store a :math:`(H\times W\times 3)` `float32` array (a few MiB), which is typically acceptable in robotics.
+This precompute can store a $(H\times W\times 3)$ `float32` array (a few MiB), which is typically acceptable in robotics.
 
 ### Real-time pipeline (robotics)
 
 For dense stereo in robotics (depth map), a realistic pipeline is:
 
-1. precompute :math:`d_L(u,v)` and :math:`d_R(u,v)` (ray directions) over the image grid,
+1. precompute $d_L(u,v)$ and $d_R(u,v)$ (ray directions) over the image grid,
 2. compute correspondences (stereo matching):
    - either by rectifying to a virtual (pinhole) camera then using standard disparity,
    - or directly on non-rectified images using a more general matcher,
@@ -354,9 +354,9 @@ If rectifying to a virtual camera, the additional step compared to pinhole is bu
 
 With two stereo pairs (reference + deformed), a 3D displacement field can be obtained by:
 
-1. identifying stereo correspondences at :math:`t_0` and :math:`t_1` (or tracking points between :math:`t_0\to t_1`),
-2. triangulating :math:`\hat P(t_0)` and :math:`\hat P(t_1)` with the same stereo model,
-3. computing :math:`\Delta \hat P = \hat P(t_1)-\hat P(t_0)`.
+1. identifying stereo correspondences at $t_0$ and $t_1$ (or tracking points between $t_0\to t_1$),
+2. triangulating $\hat P(t_0)$ and $\hat P(t_1)$ with the same stereo model,
+3. computing $\Delta \hat P = \hat P(t_1)-\hat P(t_0)$.
 
 Again, the ray-field overhead relative to pinhole is concentrated in pixel→ray evaluation; with a precomputed map, reconstruction remains compatible with high frame rates.
 
@@ -364,8 +364,8 @@ Again, the ray-field overhead relative to pinhole is concentrated in pixel→ray
 
 A central Zernike ray-field remains compact:
 
-- per camera: :math:`2K` coefficients (for :math:`x` and :math:`y`), e.g. :math:`2\times 45=90` scalars at `nmax=8`,
-- stereo: +6 rig parameters :math:`(R_{RL},t_{RL})`.
+- per camera: $2K$ coefficients (for $x$ and $y$), e.g. $2\times 45=90$ scalars at `nmax=8`,
+- stereo: +6 rig parameters $(R_{RL},t_{RL})$.
 
 This is on the same order of magnitude as a pinhole model (focal length, principal point, distortion), but the representation is more flexible (it does not enforce a particular polynomial distortion form).
 
