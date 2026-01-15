@@ -2,7 +2,7 @@
 
 This page introduces a first “ray-based 3D” building block targeting optical systems **more complex than a global pinhole model** (e.g., CMO), while deliberately starting validation on **synthetic pinhole** data to provide a clear “oracle” reference.
 
-In this chapter, we **do not** address ChArUco *denoising*: we start from **GT correspondences** (already perfect) and compare:
+In this chapter, we start from **GT correspondences** (already perfect) and compare the 3D models below. The ChArUco *denoising* pipeline (2D ray-field) and its impact on OpenCV stereo calibration are fully described in the stereo documentation: [Stereo 3D reconstruction (OpenCV)](STEREO_RECONSTRUCTION.md).
 
 - an “oracle” reconstruction using **pinhole + Brown distortion** (exact synthesis parameters),
 - a reconstruction using a **central 3D ray-field** represented with a **Zernike basis**.
@@ -373,4 +373,3 @@ This is on the same order of magnitude as a pinhole model (focal length, princip
 
 - Central stereo point↔ray BA: `src/stereocomplex/ray3d/central_stereo_ba.py`
 - Experimental driver (images → BA): `paper/experiments/calibrate_central_rayfield3d_from_images.py`
-
