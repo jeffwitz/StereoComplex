@@ -9,6 +9,13 @@ from typing import Any, Literal
 import numpy as np
 
 from stereocomplex.core.geometry import triangulate_midpoint
+from stereocomplex.core.pinhole_fit import (
+    BrownPinholeParams,
+    distortion_displacement_metrics,
+    fit_brown_pinhole_from_camera_points,
+    project_brown_pinhole,
+    project_brown_pinhole_with_rvec,
+)
 from stereocomplex.ray3d.central_ba import FrameObservations
 from stereocomplex.ray3d.central_stereo_ba import StereoFrameObservations, fit_central_stereo_rayfield_ba
 
@@ -39,6 +46,23 @@ def _stats(x: np.ndarray) -> dict[str, float]:
         "p50": float(np.quantile(x, 0.50)),
         "p95": float(np.quantile(x, 0.95)),
         "max": float(np.max(x)),
+    }
+
+
+def _rel_percent_abs(est: float, gt: float, *, eps: float = 1e-12) -> float:
+    if not np.isfinite(gt) or abs(gt) <= eps:
+        return float("nan")
+    return float(100.0 * abs(est - gt) / abs(gt))
+
+
+def _percent_vs_gt_K(K_est: np.ndarray, K_gt: np.ndarray) -> dict[str, float]:
+    K_est = np.asarray(K_est, dtype=np.float64).reshape(3, 3)
+    K_gt = np.asarray(K_gt, dtype=np.float64).reshape(3, 3)
+    return {
+        "fx": _rel_percent_abs(float(K_est[0, 0]), float(K_gt[0, 0])),
+        "fy": _rel_percent_abs(float(K_est[1, 1]), float(K_gt[1, 1])),
+        "cx": _rel_percent_abs(float(K_est[0, 2]), float(K_gt[0, 2])),
+        "cy": _rel_percent_abs(float(K_est[1, 2]), float(K_gt[1, 2])),
     }
 
 
@@ -919,6 +943,8 @@ def main() -> int:
     repr_L_pinhole_cal: list[float] = []
     repr_R_pinhole_cal: list[float] = []
     XYZ_hat_rf_all: list[np.ndarray] = []
+    uv_obs_L_all: list[np.ndarray] = []
+    uv_obs_R_all: list[np.ndarray] = []
     XYZ_gt_all: list[np.ndarray] = []
     uv_gt_L_all: list[np.ndarray] = []
     uv_gt_R_all: list[np.ndarray] = []
@@ -980,6 +1006,8 @@ def main() -> int:
         err3d_pin.extend(np.linalg.norm(XYZ_hat_pin - XYZ_gt, axis=-1).tolist())
         err3d_rf.extend(np.linalg.norm(XYZ_hat_rf - XYZ_gt, axis=-1).tolist())
         XYZ_hat_rf_all.append(np.asarray(XYZ_hat_rf, dtype=np.float64))
+        uv_obs_L_all.append(np.asarray(frL.uv_px, dtype=np.float64))
+        uv_obs_R_all.append(np.asarray(frR.uv_px, dtype=np.float64))
         XYZ_gt_all.append(np.asarray(XYZ_gt, dtype=np.float64))
         uv_gt_L_all.append(np.asarray(uv_gt_L, dtype=np.float64))
         uv_gt_R_all.append(np.asarray(uv_gt_R, dtype=np.float64))
@@ -1075,6 +1103,74 @@ def main() -> int:
         else float("nan")
     )
 
+    # Fit a Brown pinhole model from the ray-field 3D reconstruction (post-hoc identification).
+    # The reconstructed 3D points are in left camera coordinates. For the right camera we map
+    # them to right coordinates using the estimated rig: P_R = R_RL P_L + t_RL.
+    XYZ_rf_cat = np.concatenate(XYZ_hat_rf_all, axis=0) if XYZ_hat_rf_all else np.zeros((0, 3), dtype=np.float64)
+    uvL_cat = np.concatenate(uv_obs_L_all, axis=0) if uv_obs_L_all else np.zeros((0, 2), dtype=np.float64)
+    uvR_cat = np.concatenate(uv_obs_R_all, axis=0) if uv_obs_R_all else np.zeros((0, 2), dtype=np.float64)
+    if XYZ_rf_cat.shape[0] >= 12:
+        init_L = BrownPinholeParams(
+            fx=float(K_L_est[0, 0]),
+            fy=float(K_L_est[1, 1]),
+            cx=float(K_L_est[0, 2]),
+            cy=float(K_L_est[1, 2]),
+            k1=float(dL_est[0]),
+            k2=float(dL_est[1]),
+            p1=float(dL_est[2]),
+            p2=float(dL_est[3]),
+            k3=float(dL_est[4]) if dL_est.size >= 5 else 0.0,
+        )
+        pinL, pinL_diag = fit_brown_pinhole_from_camera_points(
+            XYZ_cam=XYZ_rf_cat,
+            uv_px=uvL_cat,
+            image_size=image_size,
+            init=init_L,
+            fit_rotation=True,
+            loss="huber",
+            f_scale_px=2.0,
+            max_nfev=4000,
+        )
+        XYZ_rf_R = (R_RL @ XYZ_rf_cat.T).T + t_RL.reshape(1, 3)
+        init_R = BrownPinholeParams(
+            fx=float(K_R_est[0, 0]),
+            fy=float(K_R_est[1, 1]),
+            cx=float(K_R_est[0, 2]),
+            cy=float(K_R_est[1, 2]),
+            k1=float(dR_est[0]),
+            k2=float(dR_est[1]),
+            p1=float(dR_est[2]),
+            p2=float(dR_est[3]),
+            k3=float(dR_est[4]) if dR_est.size >= 5 else 0.0,
+        )
+        pinR, pinR_diag = fit_brown_pinhole_from_camera_points(
+            XYZ_cam=XYZ_rf_R,
+            uv_px=uvR_cat,
+            image_size=image_size,
+            init=init_R,
+            fit_rotation=True,
+            loss="huber",
+            f_scale_px=2.0,
+            max_nfev=4000,
+        )
+        K_L_from3d = pinL.K()
+        dL_from3d = pinL.dist()
+        K_R_from3d = pinR.K()
+        dR_from3d = pinR.dist()
+        rvecL = np.asarray(pinL_diag.get("rvec", [0.0, 0.0, 0.0]), dtype=np.float64).reshape(3)
+        rvecR = np.asarray(pinR_diag.get("rvec", [0.0, 0.0, 0.0]), dtype=np.float64).reshape(3)
+        reproj_L_from3d = np.linalg.norm((project_brown_pinhole_with_rvec(pinL, XYZ_rf_cat, rvecL) - uvL_cat), axis=1)
+        reproj_R_from3d = np.linalg.norm((project_brown_pinhole_with_rvec(pinR, XYZ_rf_R, rvecR) - uvR_cat), axis=1)
+    else:  # pragma: no cover
+        K_L_from3d = np.full((3, 3), np.nan, dtype=np.float64)
+        dL_from3d = np.full((5,), np.nan, dtype=np.float64)
+        K_R_from3d = np.full((3, 3), np.nan, dtype=np.float64)
+        dR_from3d = np.full((5,), np.nan, dtype=np.float64)
+        pinL_diag = {"opt_cost": float("nan"), "opt_nfev": float("nan"), "opt_success": float("nan")}
+        pinR_diag = {"opt_cost": float("nan"), "opt_nfev": float("nan"), "opt_success": float("nan")}
+        reproj_L_from3d = np.asarray([], dtype=np.float64)
+        reproj_R_from3d = np.asarray([], dtype=np.float64)
+
     out = {
         "dataset_root": str(Path(args.dataset_root).resolve()),
         "split": str(args.split),
@@ -1110,6 +1206,14 @@ def main() -> int:
             "reprojection_error_left_px": _stats(np.asarray(repr_L_pinhole_cal)),
             "reprojection_error_right_px": _stats(np.asarray(repr_R_pinhole_cal)),
         },
+        "pinhole_from_rayfield3d": {
+            "left": {"K": K_L_from3d.tolist(), "dist": dL_from3d.tolist()},
+            "right": {"K": K_R_from3d.tolist(), "dist": dR_from3d.tolist()},
+            "reprojection_error_left_px": _stats(np.asarray(reproj_L_from3d)),
+            "reprojection_error_right_px": _stats(np.asarray(reproj_R_from3d)),
+            "opt_diagnostics_left": pinL_diag,
+            "opt_diagnostics_right": pinR_diag,
+        },
         "depth_mm": {"mean": Z_mean},
         "pinhole_oracle": {
             "triangulation_error_mm": _stats(np.asarray(err3d_pin)),
@@ -1139,6 +1243,37 @@ def main() -> int:
             "diagnostics": res.diagnostics,
         },
     }
+
+    # Parameter-level comparison vs GT (synthetic datasets only).
+    if np.isfinite(f_um):
+        K_L_gt, dist_L_gt = _camera_params_from_meta(meta["stereo"]["left"], f_um=f_um, brown=dist_L)
+        K_R_gt, dist_R_gt = _camera_params_from_meta(meta["stereo"]["right"], f_um=f_um, brown=dist_R)
+        out["pinhole_vs_gt"] = {
+            "opencv_pinhole_calib": {
+                "left": {"K_percent": _percent_vs_gt_K(K_L_est, K_L_gt)},
+                "right": {"K_percent": _percent_vs_gt_K(K_R_est, K_R_gt)},
+                "distortion_displacement_vs_gt": {
+                    "left": distortion_displacement_metrics(
+                        K_gt=K_L_gt, dist_gt=dist_L_gt, dist_est=dL_est, image_size=image_size
+                    ),
+                    "right": distortion_displacement_metrics(
+                        K_gt=K_R_gt, dist_gt=dist_R_gt, dist_est=dR_est, image_size=image_size
+                    ),
+                },
+            },
+            "pinhole_from_rayfield3d": {
+                "left": {"K_percent": _percent_vs_gt_K(K_L_from3d, K_L_gt)},
+                "right": {"K_percent": _percent_vs_gt_K(K_R_from3d, K_R_gt)},
+                "distortion_displacement_vs_gt": {
+                    "left": distortion_displacement_metrics(
+                        K_gt=K_L_gt, dist_gt=dist_L_gt, dist_est=dL_from3d, image_size=image_size
+                    ),
+                    "right": distortion_displacement_metrics(
+                        K_gt=K_R_gt, dist_gt=dist_R_gt, dist_est=dR_from3d, image_size=image_size
+                    ),
+                },
+            },
+        }
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2), encoding="utf-8")

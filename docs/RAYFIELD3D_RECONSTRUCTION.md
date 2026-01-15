@@ -296,6 +296,47 @@ is invariant to a global Euclidean transformation of the camera frame (rotation)
 
 These metrics reflect practical reconstruction interest (coherence and stability), while baseline (mm and px-equivalent) remains a directly interpretable stereo-vision quantity.
 
+## Post-hoc pinhole identification from the ray-field 3D reconstruction
+
+To assess whether a ray-based 3D reconstruction can *help* identify a conventional pinhole model, the script also performs a post-hoc pinhole fit:
+
+- input: reconstructed 3D points (left-camera frame) from the ray-field 3D model, and the corresponding observed pixels,
+- model: Brown pinhole $(K, d)$ per camera,
+- solver: `scipy.optimize.least_squares` (Huber loss), with an additional per-camera global rotation (gauge correction).
+
+This produces a new JSON block:
+
+- `pinhole_from_rayfield3d` (estimated $K,d$ + reprojection RMS on the same correspondences),
+- `pinhole_vs_gt` (relative parameter errors vs GT for synthetic datasets).
+
+On the same example (`scene_0000`, 5 frames), the distortion-field error relative to GT decreases compared to the direct OpenCV pinhole calibration:
+
+```{list-table} Pinhole parameter identification vs GT (example; lower is better).
+:name: tab-rayfield3d-posthoc-pinhole
+:header-rows: 1
+
+* - Method
+  - dist err L (% of GT)
+  - dist err R (% of GT)
+  - fx err L (%)
+  - fx err R (%)
+* - OpenCV pinhole calib (images → pinhole)
+  - 18.81
+  - 19.26
+  - 0.94
+  - 0.44
+* - Pinhole from ray-field 3D (images → ray-field 3D → pinhole)
+  - 13.55
+  - 13.43
+  - 0.75
+  - 0.85
+```
+
+Notes:
+
+- The “dist err (% of GT)” is computed in pixel space via distortion-displacement vectors on sampled circles (see `pinhole_vs_gt.*.distortion_displacement_vs_gt` in the script JSON).
+- The post-hoc reprojection RMS reported under `pinhole_from_rayfield3d.reprojection_error_*` is a **self-consistency** metric on the same correspondences used to reconstruct the 3D points, and should not be interpreted as a standalone accuracy guarantee.
+
 ## Usage after identification (robotics / stereo-DIC)
 
 This section clarifies what is required and what it costs to use a ray-field model **once calibrated**, i.e., “after identification” of 2D correspondences (ChArUco, dense stereo matching, optical flow, DIC correlation, etc.).
