@@ -243,7 +243,8 @@ $\{(x_i,y_i)\leftrightarrow \mathbf{u}_i\}_{i=1}^N$ with $\mathbf{u}_i=(u_i,v_i)
 \end{equation}
 expressed in pixels. The residual field $\mathbf{r}(x,y)$ provides a smooth interpolation/denoising of these residuals over
 the board domain. This ``ray-field'' is restricted to the calibration plane (a 2D warp); extending it to a full per-pixel 3D
-ray-field requires additional constraints (e.g., multiple board poses and/or multiple planes).
+ray-field requires additional constraints (e.g., multiple board poses and/or multiple planes), and naturally connects to
+general imaging models and ray-based calibration formulations~\cite{miraldo2011pointbased}.
 
 \paragraph{Why this reduces point uncertainty without an optical model.}
 The goal of this second pass is to reduce the measurement uncertainty of ChArUco corner locations by exploiting only two
@@ -487,7 +488,7 @@ Immediate next steps toward a complete paper include:
   \item Amortized calibration learning (CalibNet) with set-based encoders and uncertainty outputs.
   \item Compact decoder benchmarks: ray-field vs.\ direct mapping, speed/accuracy trade-offs, conditioning and confidence metrics.
   \item Extension from plane-only non-parametric warps to a full 3D per-pixel ray-field (and stereo triangulation) using multiple
-        target poses and/or multiple calibration planes.
+        target poses and/or multiple calibration planes, following ray-based general imaging model parameterizations~\cite{miraldo2011pointbased}.
   \item Real-world validation protocol and sim-to-real ablations.
 \end{itemize}
 

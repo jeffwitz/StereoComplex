@@ -201,6 +201,21 @@ This section replaces the “GT-assisted 3D fit” by a full calibration from:
 - a compact central ray-field $d(u,v)$ (Zernike),
 - per-frame board poses $(R_i,t_i)$.
 
+### Connection to the general imaging model (non-central cameras)
+
+The long-term goal (complex/non-central optics) is to represent each pixel by a **3D line** rather than by a single
+central ray (constant origin). A standard way to represent a 3D line is via **Plücker coordinates**, typically written as a
+stacking of direction and moment vectors $(\mathbf d,\mathbf m)$, with the orthogonality constraint $\langle \mathbf d,\mathbf m\rangle=0$.
+This is precisely the “general imaging model” viewpoint (pixel $\rightarrow$ 3D line) and enables non-central cameras.
+
+Miraldo et al. propose a compact, continuous version of the general imaging model by interpolating the line parameters with
+radial basis functions (RBF), and derive a linear calibration procedure from point↔line incidence constraints
+(`Point-based Calibration using a Parametric Representation of the General Imaging Model`, ICCV 2011, DOI: `10.1109/ICCV.2011.6126511`).
+
+Our current BA formulation is a *central* specialization: lines pass through a constant origin $C$, so a pixel maps to a
+unit direction $\hat{\mathbf d}(u,v)$ only. Extending the current code to non-central optics can follow the same structure
+(compact interpolation + global regularization), but with a per-pixel line representation (e.g., Plücker) instead of a single origin.
+
 ### Geometric residual
 
 For an observation $(u_{ij},v_{ij})$ of board point $P_j$ in image $i$:
@@ -338,6 +353,8 @@ Notes:
 
 - The “dist err (% of GT)” is computed in pixel space via distortion-displacement vectors on sampled circles (see `pinhole_vs_gt.*.distortion_displacement_vs_gt` in the script JSON).
 - The post-hoc reprojection RMS reported under `pinhole_from_rayfield3d.reprojection_error_*` is a **self-consistency** metric on the same correspondences used to reconstruct the 3D points, and should not be interpreted as a standalone accuracy guarantee.
+-
+Reference: Miraldo, P., Araujo, H., Queiro, J., “Point-based Calibration using a Parametric Representation of the General Imaging Model”, *ICCV 2011*. DOI: `10.1109/ICCV.2011.6126511`.
 
 ## Usage after identification (robotics / stereo-DIC)
 
