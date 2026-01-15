@@ -332,6 +332,8 @@ On the same example (`scene_0000`, 5 frames), the distortion-field error relativ
   - 0.85
 ```
 
+Commentary (Tab. {numref}`tab-rayfield3d-posthoc-pinhole`): the distortion-field error (measured in pixel space) is reduced by about **28%** on the left camera (18.81 → 13.55) and about **30%** on the right camera (19.26 → 13.43) compared to the direct OpenCV pinhole calibration. This suggests that, even on synthetic pinhole data, reconstructing a geometrically consistent 3D first (ray-based) can improve the *identification* of a conventional pinhole + Brown model when compared to fitting pinhole parameters directly from noisy 2D detections.
+
 Notes:
 
 - The “dist err (% of GT)” is computed in pixel space via distortion-displacement vectors on sampled circles (see `pinhole_vs_gt.*.distortion_displacement_vs_gt` in the script JSON).
