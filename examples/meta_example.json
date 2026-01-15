@@ -1,0 +1,18 @@
+{
+  "schema_version": "stereocomplex.meta.v0",
+  "sensor": {
+    "pixel_pitch_um": 3.45,
+    "binning_xy": [1, 1]
+  },
+  "preprocess": {
+    "crop_xywh_px": [0, 0, 640, 480],
+    "resize_xy": [1.0, 1.0]
+  },
+  "image": {
+    "width_px": 640,
+    "height_px": 480,
+    "bit_depth": 8,
+    "gamma": 1.0
+  }
+}
+

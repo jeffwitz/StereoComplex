@@ -1,0 +1,16 @@
+/* Place equation numbers on the right of the equation block (HTML),
+   not above it (Sphinx default inserts <span.eqno> before the MathJax block). */
+div.math {
+  position: relative;
+  padding-right: 4.0em; /* reserve space for (n) */
+}
+
+div.math > span.eqno {
+  float: none;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
