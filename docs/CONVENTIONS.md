@@ -1,16 +1,16 @@
 # Conventions
 
-## Repères
+## Coordinate frames
 
-- Image : `u` vers la droite, `v` vers le bas (coordonnées pixels).
-- Capteur : `x_um` vers la droite, `y_um` vers le bas, origine au centre du **crop** (avant resize).
-- Monde (synthèse) : unités en **mm**.
+- Image: `u` to the right, `v` down (pixel coordinates).
+- Sensor: `x_um` to the right, `y_um` down, origin at the center of the **crop** (before resize).
+- World (simulation): units in **mm**.
 
-## Pixels (centres)
+## Pixel centers
 
-Les coordonnées `(u_px, v_px)` sont des indices de pixel au centre du pixel. La conversion
-interne utilise `(u + 0.5, v + 0.5)` pour passer en coordonnées continues.
+Coordinates `(u_px, v_px)` refer to pixel *centers*. Internally, we use `(u + 0.5, v + 0.5)`
+to convert indices to continuous coordinates.
 
-Note pratique : certaines APIs OpenCV retournent des coordonnées de coins dans une convention
-effectivement décalée de 0.5 px. Lorsqu’on compare à la GT du dataset, l’évaluation applique
-la correction appropriée selon la méthode (voir `docs/CHARUCO_IDENTIFICATION.md`).
+Practical note: some OpenCV APIs return corner coordinates in a convention that is effectively
+shifted by 0.5 px. When comparing against dataset GT, the evaluation applies the appropriate
+correction depending on the method (see `docs/CHARUCO_IDENTIFICATION.md`).

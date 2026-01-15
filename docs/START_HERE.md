@@ -1,33 +1,33 @@
 # Start Here
 
-Objectif du démarrage : avoir une base **reproductible** et **mesurable** avant d’attaquer OptiX et le ML.
+Goal: establish a **reproducible** and **measurable** baseline before moving to OptiX and ML.
 
-## Pourquoi cette structuration
+## Why this structure
 
-- Le cahier des charges demande un modèle amorti (CalibNet) et un décodage compact, mais **le risque #1** est
-  le sim→réel et le conditionnement. Donc on met en premier :
-  1) un format dataset stable,
-  2) une géométrie canonique (µm),
-  3) des métriques automatiques.
+- The specification targets an amortized model (CalibNet) with a compact decoder, but the #1 risk is
+  sim→real transfer and numerical conditioning. Therefore we start with:
+  1) a stable dataset format,
+  2) a canonical geometry convention (µm),
+  3) automated metrics.
 
-## Ce qui est déjà en place
+## What is already implemented
 
-- Dataset v0 : `docs/DATASET_SPEC.md` + validateur (`validate-dataset`).
-- Meta v0 (pitch obligatoire) : `src/stereocomplex/meta.py`.
-- Géométrie minimale : `src/stereocomplex/core/geometry.py` (pixel↔capteur µm, pinhole, triangulation).
-- Simulateur CPU MVP : `src/stereocomplex/sim/cpu/generate_dataset.py`.
-- Oracle eval : `src/stereocomplex/eval/oracle.py` (sert de “sanity check”).
-- Évaluation détection ChArUco (erreur 2D vs GT) : `docs/CHARUCO_IDENTIFICATION.md` + `eval-charuco-detection`.
-- Exemple pédagogique complet (OpenCV brut vs ray-field + courbes) : `docs/RAYFIELD_WORKED_EXAMPLE.md`.
+- Dataset v0: `docs/DATASET_SPEC.md` + validator (`validate-dataset`).
+- Meta v0 (pixel pitch is mandatory): `src/stereocomplex/meta.py`.
+- Minimal geometry core: `src/stereocomplex/core/geometry.py` (pixel↔sensor µm, pinhole, triangulation).
+- CPU simulator MVP: `src/stereocomplex/sim/cpu/generate_dataset.py`.
+- Oracle evaluation: `src/stereocomplex/eval/oracle.py` (sanity check).
+- ChArUco detection evaluation (2D error vs GT): `docs/CHARUCO_IDENTIFICATION.md` + `eval-charuco-detection`.
+- Full worked example (raw OpenCV vs ray-field + plots): `docs/RAYFIELD_WORKED_EXAMPLE.md`.
 
-## Les prochaines briques (ordre recommandé)
+## Next building blocks (recommended order)
 
-1. Ajouter le **blur** au générateur CPU (gaussien puis spatialement variable) en unités physiques via `pitch_um`.
-2. Définir la représentation compacte (bases) côté `core/model_compact/` (placeholder à créer ensuite).
-3. Créer un premier `api/` (calibrate/reconstruct) qui ne dépend pas d’OptiX.
-4. Remplacer la source des données par OptiX sans changer le dataset v0.
+1. Add **blur** to the CPU generator (Gaussian, then spatially varying) in physical units via `pitch_um`.
+2. Define the compact representation (bases) in `core/model_compact/`.
+3. Introduce a first `api/` (calibrate/reconstruct) that does not depend on OptiX.
+4. Replace the data source by OptiX without changing dataset v0.
 
-## Commandes utiles
+## Useful commands
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/charuco --pattern charuco --blur-fwhm-um 4

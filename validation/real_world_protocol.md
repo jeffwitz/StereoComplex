@@ -1,15 +1,14 @@
-# Protocole réel (MVP)
+# Real-world protocol (MVP)
 
-But : commencer la validation sim→réel le plus tôt possible avec un petit set, sans attendre OptiX/ML.
+Goal: start sim→real validation as early as possible with a small set, without waiting for OptiX/ML.
 
-## Capture
+## Acquisition
 
-- 10–30 paires stéréo d’une mire (ChArUco ou texture), poses variées (tilt + translation + distance).
-- Conserver les métadonnées par acquisition : `pitch_um`, W/H, binning, crop/ROI, resize, bit depth, gamma si connu.
+- 10–30 stereo pairs of a target (ChArUco or textured), with diverse poses (tilt + translation + distance).
+- Keep acquisition metadata: `pitch_um`, W/H, binning, crop/ROI, resize, bit depth, gamma if known.
 
-## Mesures à calculer (au début)
+## Metrics to compute (initially)
 
-- Erreur reprojection (px) sur points détectables (même si la calibration ML n’est pas prête).
-- Stabilité vs flou/bruit (au moins 2 niveaux de focus/ISO/expo).
-- Détection hors-domaine : score “qualité” minimal (à définir plus tard).
-
+- Reprojection error (px) on detectable points (even if the ML calibration is not ready).
+- Stability vs blur/noise (at least 2 levels of focus/ISO/exposure).
+- Out-of-domain detection: a minimal “quality” score (to be defined later).
