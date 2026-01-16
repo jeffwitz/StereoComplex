@@ -1,7 +1,7 @@
 StereoComplex
 =============
 
-Improve stereo calibration when OpenCV plateaus (blur, distortion, compression)
+Fix OpenCV calibration plateaus, and reconstruct 3D without a pinhole model
 -------------------------------------------------------------------------------
 
 StereoComplex is a practical toolkit to **refine ChArUco corners before calibration** using a geometric prior on the board plane
@@ -34,6 +34,21 @@ This simple “2D cleanup” step is often enough to make classic OpenCV calibra
    .venv/bin/python paper/experiments/compare_opencv_calibration_rayfield.py dataset/v0_png \
      --split train --scene scene_0000 \
      --out paper/tables/opencv_calibration_rayfield.json
+
+.. rubric:: Also: 3D reconstruction without a pinhole model (prototype)
+
+StereoComplex also includes a **ray-based stereo reconstruction** prototype: it calibrates a compact mapping
+pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment over multiple planar poses
+(**no solvePnP, no known** ``K``), then triangulates from the two rays.
+
+.. code-block:: bash
+
+   .venv/bin/python paper/experiments/calibrate_central_rayfield3d_from_images.py dataset/v0_png \
+     --split train --scene scene_0000 --max-frames 5 \
+     --method2d rayfield_tps_robust \
+     --nmax 10 --lam-coeff 1e-3 --outer-iters 3 \
+     --out paper/tables/rayfield3d_ba_scene0000.json \
+     --export-model models/scene0000_rayfield3d
 
 .. rubric:: Documentation map
 

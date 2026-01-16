@@ -2,6 +2,12 @@
 
 This page introduces a first “ray-based 3D” building block targeting optical systems **more complex than a global pinhole model** (e.g., CMO). The current implementation starts validation on **synthetic pinhole** data to provide a clear “oracle” reference and controlled ablations.
 
+## What this enables (and what it does not)
+
+- **Goal**: reconstruct 3D by intersecting **two rays** (left/right) without assuming a global pinhole model.
+- **Current prototype**: a *central* ray-field (single origin per camera) where only the ray **direction** varies with the pixel. The origin is constant ($o(u,v)=C$).
+- **Runtime**: once calibrated, evaluating a ray is “pinhole-like” cost (a small basis evaluation + a normalization), then triangulation is a closed-form two-line least squares.
+
 This chapter is organized in three parts:
 
 1. **GT baseline (ray-field 3D regression)**: learn a compact central ray-field from perfect GT correspondences.

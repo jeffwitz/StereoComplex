@@ -4,12 +4,14 @@ Stereo calibration and 3D reconstruction research prototype, built around:
 
 - a CPU synthetic-data generator (digital twins) for stereo + ChArUco,
 - a 2D “ray-field” correction (homography + smooth residual field) to improve ChArUco corner localization,
-- an experimental 3D ray-based calibration prototype (central ray-field, Zernike basis) designed as a stepping stone towards complex/non-pinhole optics.
+- an experimental **ray-based 3D reconstruction / calibration** prototype (central ray-field, Zernike basis) designed as a stepping stone towards complex/non-pinhole optics.
 
 ## Why would you use this?
 
-If your OpenCV calibration plateaus because of blur / distortion / compression, StereoComplex provides a practical lever:
-**refine the ChArUco corners before calibration** (without assuming a global pinhole model for the refinement).
+StereoComplex targets two practical pain points:
+
+- **Fix OpenCV calibration that plateaus** (blur / distortion / compression): refine ChArUco corners before calibration (without assuming a global pinhole model for the refinement).
+- **Reconstruct 3D without a pinhole model (prototype)**: calibrate a compact ray-based stereo model from multi-pose planar observations (**no solvePnP, no known** `K`) and triangulate from rays.
 
 Visual proof (green = GT, red = OpenCV raw, blue = ray-field):
 
@@ -20,6 +22,7 @@ Visual proof (green = GT, red = OpenCV raw, blue = ray-field):
 
 - **2D ChArUco accuracy improvement (example)**: RMS corner error drops from ~0.357 px → ~0.219 px (left) and ~0.356 px → ~0.153 px (right) with the 2D ray-field correction.
 - **OpenCV stereo calibration impact (example)**: feeding OpenCV with ray-field-corrected corners improves mono RMS (~0.306/0.302 px → ~0.079/0.061 px), improves stereo RMS (~0.381 px → ~0.163 px), and reduces baseline error in disparity-equivalent pixels (~0.424 px → ~0.205 px).
+- **3D without a pinhole model (prototype)**: a central ray-field can be calibrated from multi-pose planar observations by a point↔ray bundle adjustment (**no solvePnP, no known** `K`), then used to triangulate points.
 
 See `docs/RAYFIELD_WORKED_EXAMPLE.md` and `docs/STEREO_RECONSTRUCTION.md` for full methodology, plots, and definitions.
 
@@ -102,6 +105,27 @@ Export refined ChArUco corners (JSON + an OpenCV-ready NPZ):
   --method rayfield_tps_robust \
   --out-json paper/tables/refined_corners_scene0000.json \
   --out-npz paper/tables/refined_corners_scene0000_opencv.npz
+```
+
+## Quickstart (3D reconstruction without a pinhole model)
+
+Calibrate a central ray-field stereo model (point↔ray BA) and export it:
+
+```bash
+.venv/bin/python paper/experiments/calibrate_central_rayfield3d_from_images.py dataset/v0_png \
+  --split train --scene scene_0000 --max-frames 5 \
+  --method2d rayfield_tps_robust \
+  --nmax 10 --lam-coeff 1e-3 --outer-iters 3 \
+  --out paper/tables/rayfield3d_ba_scene0000.json \
+  --export-model models/scene0000_rayfield3d
+```
+
+Then triangulate with the exported model (API demo):
+
+```bash
+.venv/bin/python docs/examples/reconstruction_api_demo.py dataset/v0_png \
+  --split train --scene scene_0000 --max-frames 5 \
+  --model models/scene0000_rayfield3d
 ```
 
 ## Documentation
