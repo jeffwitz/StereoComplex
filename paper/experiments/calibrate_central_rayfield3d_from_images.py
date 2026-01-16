@@ -670,6 +670,18 @@ def main() -> int:
     ap.add_argument("--scene", default="scene_0000")
     ap.add_argument("--max-frames", type=int, default=0, help="Limit frames (0=all).")
     ap.add_argument("--method2d", default="rayfield_tps_robust", choices=["raw", "rayfield_tps_robust"])
+    ap.add_argument(
+        "--max-points-per-frame",
+        type=int,
+        default=0,
+        help="Optional cap on the number of ChArUco corners per frame (0=all).",
+    )
+    ap.add_argument(
+        "--subsample-seed",
+        type=int,
+        default=0,
+        help="Seed used for per-frame subsampling when --max-points-per-frame > 0.",
+    )
 
     ap.add_argument("--tps-lam", type=float, default=10.0)
     ap.add_argument("--tps-huber", type=float, default=3.0)
@@ -680,6 +692,12 @@ def main() -> int:
     ap.add_argument("--outer-iters", type=int, default=6)
     ap.add_argument("--fscale-mm", type=float, default=1.0)
     ap.add_argument("--out", type=Path, default=Path("paper/tables/rayfield3d_ba_from_images.json"))
+    ap.add_argument(
+        "--export-model",
+        type=Path,
+        default=None,
+        help="Optional directory to export a reusable stereo model (model.json + weights.npz).",
+    )
     args = ap.parse_args()
 
     scene_dir = Path(args.dataset_root) / str(args.split) / str(args.scene)
@@ -786,6 +804,11 @@ def main() -> int:
         ids_common = sorted(set(det_by_side["left"]).intersection(det_by_side["right"]).intersection(gt_frame))
         if len(ids_common) < 10:
             continue
+
+        if args.max_points_per_frame and int(args.max_points_per_frame) > 0 and len(ids_common) > int(args.max_points_per_frame):
+            rng = np.random.default_rng(int(args.subsample_seed) + int(fid))
+            take = rng.choice(len(ids_common), size=int(args.max_points_per_frame), replace=False)
+            ids_common = [ids_common[int(k)] for k in np.sort(take).tolist()]
 
         ids_by_frame[fid] = ids_common
 
@@ -1229,6 +1252,13 @@ def main() -> int:
                 "outer_iters_hint": int(args.outer_iters),
                 "f_scale_mm": float(args.fscale_mm),
             },
+            "model": {
+                "image_size_px": [int(w), int(h)],
+                "nmax": int(res.nmax),
+                "disk": [float(res.u0_px), float(res.v0_px), float(res.radius_px)],
+                "R_RL": R_RL.tolist(),
+                "t_RL": t_RL.reshape(3).tolist(),
+            },
             "triangulation_error_mm": _stats(np.asarray(err3d_rf)),
             "triangulation_error_mm_aligned_similarity": _stats(np.asarray(err3d_rf_aligned)),
             "triangulation_alignment_similarity": sim_info,
@@ -1279,6 +1309,29 @@ def main() -> int:
     args.out.write_text(json.dumps(out, indent=2), encoding="utf-8")
     print(f"Wrote {args.out}")
     print(json.dumps(out, indent=2))
+
+    if args.export_model is not None:
+        from stereocomplex.api.model_io import save_stereo_central_rayfield  # noqa: PLC0415
+        from stereocomplex.api.stereo_reconstruction import StereoCentralRayFieldModel  # noqa: PLC0415
+
+        model = StereoCentralRayFieldModel.from_coeffs(
+            image_width_px=int(w),
+            image_height_px=int(h),
+            nmax=int(res.nmax),
+            u0_px=float(res.u0_px),
+            v0_px=float(res.v0_px),
+            radius_px=float(res.radius_px),
+            coeffs_left_x=np.asarray(res.coeffs_left_x, dtype=np.float64),
+            coeffs_left_y=np.asarray(res.coeffs_left_y, dtype=np.float64),
+            coeffs_right_x=np.asarray(res.coeffs_right_x, dtype=np.float64),
+            coeffs_right_y=np.asarray(res.coeffs_right_y, dtype=np.float64),
+            R_RL=np.asarray(R_RL, dtype=np.float64),
+            t_RL=np.asarray(t_RL, dtype=np.float64).reshape(3),
+        )
+        model_json = save_stereo_central_rayfield(Path(args.export_model), model)
+        out["rayfield3d_ba"]["exported_model"] = str(model_json)
+        args.out.write_text(json.dumps(out, indent=2), encoding="utf-8")
+        print(f"Wrote {model_json}")
     return 0
 
 

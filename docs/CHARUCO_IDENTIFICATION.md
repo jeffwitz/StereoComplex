@@ -18,7 +18,7 @@ On synthetic datasets, the error is computed against the ground truth stored in 
 Command:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m stereocomplex.cli eval-charuco-detection dataset/v0 --method <METHOD>
+.venv/bin/python -m stereocomplex.cli eval-charuco-detection dataset/v0 --method <METHOD>
 ```
 
 ## Pixel-center convention (important)
@@ -78,6 +78,16 @@ Limitation:
 
 - this “ray-field” is **restricted to the plane** (a 2D warp); for a full 3D per-pixel ray field, calibration across multiple poses/planes is required.
 
+### 4b) `rayfield_tps` and `rayfield_tps_robust` (recommended in this repo)
+
+The current default used in the examples/paper is `rayfield_tps_robust`:
+
+- base homography `H`,
+- TPS residual field,
+- robustification by IRLS (Huber).
+
+Compared to the grid backend, TPS is usually more stable when the residual field is only observed sparsely (AruCo corners).
+
 ### 5) `kfield` (a “local K” field approximated by smoothed affines)
 
 This method was an intermediate step: the idea is to replace a global `K` by a spatially varying field, under a low-frequency assumption.
@@ -135,6 +145,7 @@ Summary of dependencies (as of the current code):
 - `pnp`: **requires** an optical model (pinhole + distortion) and its parameters (or a prior step estimating them).
 - `rayfield`: does not require `K`/distortion; assumes a low-frequency planar warp and uses only correspondences (Aruco) + regularization.
 - `rayfield_tps`: a `rayfield` variant where the residual is reconstructed by regularized TPS (instead of a bilinear grid + Laplacian).
+- `rayfield_tps_robust`: TPS residual + robust loss (recommended default).
 
 ## Photometric refinements (CLI `--refine`)
 
@@ -144,14 +155,14 @@ They should be considered as ablations/experiments rather than the recommended m
 ## Current recommendation
 
 - If the optics are well approximated by pinhole + distortion: prefer `pnp`.
-- If the optics are complex/non-central: prefer `rayfield` (low-frequency assumption) and increase regularization if needed.
+- If the optics are complex/non-central: prefer `rayfield_tps_robust` (low-frequency assumption) and increase regularization if needed.
 
 ## Paper comparison (reproducible script)
 
 The manuscript includes an automatically generated table (methods vs errors). To regenerate it:
 
 ```bash
-PYTHONPATH=src .venv/bin/python paper/experiments/compare_charuco_methods.py dataset/v0_png --splits train
+.venv/bin/python paper/experiments/compare_charuco_methods.py dataset/v0_png --splits train
 bash paper/build_pdflatex.sh
 ```
 

@@ -8,6 +8,7 @@ from stereocomplex.sim.dataset_validate import validate_dataset
 from stereocomplex.eval.oracle import eval_oracle_dataset
 from stereocomplex.eval.charuco_detection import eval_charuco_detection
 from stereocomplex.eval.compression_sweep import SweepCase, run_compression_sweep
+from stereocomplex.cli.refine_corners import run_refine_corners
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -56,6 +57,20 @@ def main(argv: list[str] | None = None) -> int:
     gen.add_argument("--blur-edge-power", type=float, default=2.0, help="Edge blur ramp exponent.")
     gen.add_argument("--noise-std", type=float, default=0.02, help="Additive Gaussian noise (image in [0,1]).")
     gen.add_argument("--seed", type=int, default=0)
+    gen.add_argument("--pitch-um", type=float, default=None, help="Override pixel pitch (µm).")
+    gen.add_argument("--f-um", type=float, default=None, help="Override focal length (µm).")
+    gen.add_argument("--tz-mm", type=float, default=None, help="Override nominal working distance (mm).")
+    gen.add_argument("--baseline-mm", type=float, default=None, help="Override stereo baseline (mm).")
+    gen.add_argument("--squares-x", type=int, default=None, help="Override ChArUco squares_x.")
+    gen.add_argument("--squares-y", type=int, default=None, help="Override ChArUco squares_y.")
+    gen.add_argument("--square-size-mm", type=float, default=None, help="Override ChArUco square size (mm).")
+    gen.add_argument("--marker-size-mm", type=float, default=None, help="Override ChArUco marker size (mm).")
+    gen.add_argument(
+        "--pixels-per-square",
+        type=int,
+        default=None,
+        help="Override texture resolution (pixels per square) for synthetic rendering.",
+    )
 
     val = sub.add_parser("validate-dataset", help="Validate dataset structure + basic consistency checks.")
     val.add_argument("dataset_root", type=Path)
@@ -73,7 +88,21 @@ def main(argv: list[str] | None = None) -> int:
         "--method",
         type=str,
         default="charuco",
-        choices=["charuco", "homography", "pnp", "mls", "mls_h", "pw_affine", "tps", "hybrid", "kfield", "rayfield"],
+        choices=[
+            "charuco",
+            "homography",
+            "pnp",
+            "mls",
+            "mls_affine",
+            "mls_h",
+            "pw_affine",
+            "tps",
+            "hybrid",
+            "kfield",
+            "rayfield",
+            "rayfield_tps",
+            "rayfield_tps_robust",
+        ],
     )
     ch.add_argument("--refine", type=str, default="none", choices=["none", "tensor", "lines", "lsq", "noble"])
     ch.add_argument("--tensor-sigma", type=float, default=1.5)
@@ -98,8 +127,37 @@ def main(argv: list[str] | None = None) -> int:
         "--method",
         type=str,
         default="charuco",
-        choices=["charuco", "homography", "pnp", "mls", "mls_h", "pw_affine", "tps", "hybrid", "kfield", "rayfield"],
+        choices=[
+            "charuco",
+            "homography",
+            "pnp",
+            "mls",
+            "mls_affine",
+            "mls_h",
+            "pw_affine",
+            "tps",
+            "hybrid",
+            "kfield",
+            "rayfield",
+            "rayfield_tps",
+            "rayfield_tps_robust",
+        ],
     )
+
+    refine = sub.add_parser(
+        "refine-corners",
+        help="Refine ChArUco corners on a dataset scene (exports JSON and optional NPZ for OpenCV calibration).",
+    )
+    refine.add_argument("dataset_root", type=Path)
+    refine.add_argument("--split", default="train")
+    refine.add_argument("--scene", default="scene_0000")
+    refine.add_argument("--max-frames", type=int, default=0, help="Limit frames (0=all).")
+    refine.add_argument("--method", type=str, default="rayfield_tps_robust", choices=["raw", "rayfield_tps_robust"])
+    refine.add_argument("--tps-lam", type=float, default=10.0)
+    refine.add_argument("--tps-huber", type=float, default=3.0)
+    refine.add_argument("--tps-iters", type=int, default=3)
+    refine.add_argument("--out-json", type=Path, default=Path("paper/tables/refined_corners.json"))
+    refine.add_argument("--out-npz", type=Path, default=Path("paper/tables/refined_corners_opencv.npz"))
 
     args = parser.parse_args(argv)
 
@@ -123,6 +181,15 @@ def main(argv: list[str] | None = None) -> int:
             blur_edge_power=args.blur_edge_power,
             noise_std=args.noise_std,
             seed=args.seed,
+            pitch_um_override=args.pitch_um,
+            f_um_override=args.f_um,
+            tz_nominal_mm_override=args.tz_mm,
+            baseline_mm_override=args.baseline_mm,
+            board_squares_x_override=args.squares_x,
+            board_squares_y_override=args.squares_y,
+            board_square_size_mm_override=args.square_size_mm,
+            board_marker_size_mm_override=args.marker_size_mm,
+            board_pixels_per_square_override=args.pixels_per_square,
         )
         return 0
 
@@ -169,6 +236,24 @@ def main(argv: list[str] | None = None) -> int:
             search_radius=args.search_radius,
         )
         print(f"Wrote {report_path}")
+        return 0
+
+    if args.cmd == "refine-corners":
+        run_refine_corners(
+            dataset_root=args.dataset_root,
+            split=args.split,
+            scene=args.scene,
+            method=args.method,
+            max_frames=args.max_frames,
+            tps_lam=args.tps_lam,
+            huber_c=args.tps_huber,
+            iters=args.tps_iters,
+            out_json=args.out_json,
+            out_npz=args.out_npz if args.out_npz else None,
+        )
+        print(f"Wrote {args.out_json}")
+        if args.out_npz:
+            print(f"Wrote {args.out_npz}")
         return 0
 
     raise AssertionError(f"Unhandled cmd: {args.cmd}")

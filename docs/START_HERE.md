@@ -1,37 +1,82 @@
 # Start Here
 
-Goal: establish a **reproducible** and **measurable** baseline before moving to OptiX and ML.
+Goal: establish a **reproducible** and **measurable** baseline for stereo calibration, ChArUco identification, and ray-based reconstruction.
 
-## Why this structure
+## Installation (recommended)
 
-- The specification targets an amortized model (CalibNet) with a compact decoder, but the #1 risk is
-  sim→real transfer and numerical conditioning. Therefore we start with:
-  1) a stable dataset format,
-  2) a canonical geometry convention (µm),
-  3) automated metrics.
+This repository is a Python package. For consistent CLI and imports, use an editable install:
+
+```bash
+.venv/bin/python -m pip install -e .
+```
+
+For ChArUco/ArUco features you also need OpenCV with `cv2.aruco`:
+
+```bash
+.venv/bin/python -m pip install opencv-contrib-python
+```
+
+Note: if you do not install the package, you can still run most commands by prefixing them with `PYTHONPATH=src`.
+
+## What StereoComplex does today
+
+StereoComplex is built around:
+
+- a synthetic stereo dataset generator (CPU) with GT correspondences,
+- ChArUco detection evaluation against GT,
+- a 2D “ray-field” correction (`rayfield_tps_robust`) to improve corner localization,
+- a stereo calibration / triangulation evaluation pipeline (OpenCV),
+- an experimental central 3D ray-field (Zernike) and point↔ray bundle adjustment.
 
 ## What is already implemented
 
-- Dataset v0: `docs/DATASET_SPEC.md` + validator (`validate-dataset`).
-- Meta v0 (pixel pitch is mandatory): `src/stereocomplex/meta.py`.
-- Minimal geometry core: `src/stereocomplex/core/geometry.py` (pixel↔sensor µm, pinhole, triangulation).
-- CPU simulator MVP: `src/stereocomplex/sim/cpu/generate_dataset.py`.
-- Oracle evaluation: `src/stereocomplex/eval/oracle.py` (sanity check).
-- ChArUco detection evaluation (2D error vs GT): `docs/CHARUCO_IDENTIFICATION.md` + `eval-charuco-detection`.
-- Full worked example (raw OpenCV vs ray-field + plots): `docs/RAYFIELD_WORKED_EXAMPLE.md`.
+- Dataset v0: `docs/DATASET_SPEC.md` + validator (`validate-dataset`)
+- Conventions (pixel centers, frames): `docs/CONVENTIONS.md`
+- CPU dataset generator: `src/stereocomplex/sim/cpu/generate_dataset.py`
+- Evaluations: `src/stereocomplex/eval/` and `paper/experiments/`
+- Worked example (end-to-end 2D ray-field): `docs/RAYFIELD_WORKED_EXAMPLE.md`
+- Stereo calibration + reconstruction study: `docs/STEREO_RECONSTRUCTION.md`
+- Robustness sweep: `docs/ROBUSTNESS_SWEEP.md`
+- Central 3D ray-field + BA: `docs/RAYFIELD3D_RECONSTRUCTION.md`
 
-## Next building blocks (recommended order)
+## Quickstart
 
-1. Add **blur** to the CPU generator (Gaussian, then spatially varying) in physical units via `pitch_um`.
-2. Define the compact representation (bases) in `core/model_compact/`.
-3. Introduce a first `api/` (calibrate/reconstruct) that does not depend on OptiX.
-4. Replace the data source by OptiX without changing dataset v0.
-
-## Useful commands
+Generate a minimal dataset and validate it:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/charuco --pattern charuco --blur-fwhm-um 4
-PYTHONPATH=src .venv/bin/python -m stereocomplex.cli validate-dataset dataset/charuco
-PYTHONPATH=src .venv/bin/python -m stereocomplex.cli eval-oracle dataset/charuco
-PYTHONPATH=src .venv/bin/python -m stereocomplex.cli eval-charuco-detection dataset/charuco --method rayfield
+.venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/charuco --pattern charuco --frames-per-scene 16
+.venv/bin/python -m stereocomplex.cli validate-dataset dataset/charuco
 ```
+
+Measure raw vs ray-field ChArUco identification against GT (synthetic datasets only):
+
+```bash
+.venv/bin/python -m stereocomplex.cli eval-charuco-detection dataset/charuco --method rayfield_tps_robust
+```
+
+Export refined corners for OpenCV calibration (JSON + NPZ):
+
+```bash
+.venv/bin/python -m stereocomplex.cli refine-corners dataset/v0_png --split train --scene scene_0000 --max-frames 5 \
+  --method rayfield_tps_robust \
+  --out-json paper/tables/refined_corners_scene0000.json \
+  --out-npz paper/tables/refined_corners_scene0000_opencv.npz
+```
+
+Run the end-to-end worked example (plots + overlays):
+
+```bash
+.venv/bin/python docs/examples/rayfield_charuco_end_to_end.py dataset/v0_png --split train --scene scene_0000 --out docs/assets/rayfield_worked_example --save-overlays
+```
+
+Run the stereo calibration/reconstruction comparison (OpenCV):
+
+```bash
+.venv/bin/python paper/experiments/compare_opencv_calibration_rayfield.py dataset/v0_png --split train --scene scene_0000 --out paper/tables/opencv_calibration_rayfield.json
+```
+
+## Next steps (recommended)
+
+- Extend the simulator and add more varied scenes/optics (including non-central behavior).
+- Generalize the 3D ray-field from **central** to **non-central** (pixel → 3D line).
+- Provide a stable high-level API for stereo reconstruction once calibration is validated.

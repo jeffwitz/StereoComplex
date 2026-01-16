@@ -289,7 +289,7 @@ For each `left` and `right` image:
 ### Where is the code?
 
 - Runnable script: `docs/examples/rayfield_charuco_end_to_end.py`
-- Ray-field implementation (used by the script): `src/stereocomplex/eval/charuco_detection.py` (`_predict_points_rayfield`)
+- Ray-field implementation (used by the script): `src/stereocomplex/eval/charuco_detection.py` (`_predict_points_rayfield_tps_robust`)
 
 ### Coordinate convention (important)
 
@@ -305,17 +305,17 @@ In the current implementation (and in the script):
 Command (on the reference dataset used in this repo):
 
 ```bash
-PYTHONPATH=src .venv/bin/python docs/examples/rayfield_charuco_end_to_end.py dataset/v0_png \
+.venv/bin/python docs/examples/rayfield_charuco_end_to_end.py dataset/v0_png \
   --split train --scene scene_0000 \
   --out docs/assets/rayfield_worked_example \
   --save-overlays
 ```
 
-By default, the example uses the best current variant: `ray-field (H + TPS on residuals)` with `tps_lam=10`.
+By default, the example uses the current recommended variant: `rayfield_tps_robust` (homography + TPS residual + IRLS/Huber) with `tps_lam=10`.
 To use the historical “bilinear grid + Laplacian + Huber/IRLS” backend:
 
 ```bash
-PYTHONPATH=src .venv/bin/python docs/examples/rayfield_charuco_end_to_end.py dataset/v0_png \
+.venv/bin/python docs/examples/rayfield_charuco_end_to_end.py dataset/v0_png \
   --split train --scene scene_0000 \
   --out docs/assets/rayfield_worked_example \
   --save-overlays \

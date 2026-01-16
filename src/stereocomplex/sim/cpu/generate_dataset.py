@@ -32,6 +32,15 @@ def generate_cpu_dataset(
     blur_edge_power: float = 2.0,
     noise_std: float = 0.02,
     seed: int = 0,
+    pitch_um_override: float | None = None,
+    f_um_override: float | None = None,
+    tz_nominal_mm_override: float | None = None,
+    baseline_mm_override: float | None = None,
+    board_squares_x_override: int | None = None,
+    board_squares_y_override: int | None = None,
+    board_square_size_mm_override: float | None = None,
+    board_marker_size_mm_override: float | None = None,
+    board_pixels_per_square_override: int | None = None,
 ) -> None:
     rng = np.random.default_rng(seed)
     out_root.mkdir(parents=True, exist_ok=True)
@@ -63,6 +72,15 @@ def generate_cpu_dataset(
             blur_edge_start,
             blur_edge_power,
             noise_std,
+            pitch_um_override,
+            f_um_override,
+            tz_nominal_mm_override,
+            baseline_mm_override,
+            board_squares_x_override,
+            board_squares_y_override,
+            board_square_size_mm_override,
+            board_marker_size_mm_override,
+            board_pixels_per_square_override,
             rng,
         )
 
@@ -84,6 +102,15 @@ def _generate_scene(
     blur_edge_start: float,
     blur_edge_power: float,
     noise_std: float,
+    pitch_um_override: float | None,
+    f_um_override: float | None,
+    tz_nominal_mm_override: float | None,
+    baseline_mm_override: float | None,
+    board_squares_x_override: int | None,
+    board_squares_y_override: int | None,
+    board_square_size_mm_override: float | None,
+    board_marker_size_mm_override: float | None,
+    board_pixels_per_square_override: int | None,
     rng: np.random.Generator,
 ) -> None:
     scene_dir.mkdir(parents=True, exist_ok=True)
@@ -93,7 +120,7 @@ def _generate_scene(
     right_dir.mkdir(exist_ok=True)
 
     # Meta: keep it explicit and compatible OptiX later.
-    pitch_um = float(rng.uniform(1.4, 6.5))
+    pitch_um = float(pitch_um_override) if pitch_um_override is not None else float(rng.uniform(1.4, 6.5))
     view = {
         "schema_version": "stereocomplex.meta.v0",
         "sensor": {"pixel_pitch_um": pitch_um, "binning_xy": [1, 1]},
@@ -103,33 +130,48 @@ def _generate_scene(
 
     stereo_meta = {"left": view, "right": view}
     # Camera model (pinhole in camera frame, sensor-plane in mm derived from meta).
-    f_um = float(rng.uniform(4000.0, 40000.0))
+    f_um = float(f_um_override) if f_um_override is not None else float(rng.uniform(4000.0, 40000.0))
 
     # Pick a nominal working distance, then size the board so it is actually visible.
-    tz_nominal = float(rng.uniform(200.0, 5000.0))
+    tz_nominal = (
+        float(tz_nominal_mm_override) if tz_nominal_mm_override is not None else float(rng.uniform(200.0, 5000.0))
+    )
     f_mm = f_um / 1000.0
     sensor_half_w_mm = ((width - 1) / 2.0) * (pitch_um / 1000.0)
     sensor_half_h_mm = ((height - 1) / 2.0) * (pitch_um / 1000.0)
     visible_w_mm = 2.0 * tz_nominal * (sensor_half_w_mm / f_mm)
     visible_h_mm = 2.0 * tz_nominal * (sensor_half_h_mm / f_mm)
 
-    cols = int(rng.integers(8, 20))
-    rows = int(rng.integers(6, 16))
-    fill = float(rng.uniform(0.45, 0.85))
-    board_w_mm = visible_w_mm * fill
-    board_h_mm = visible_h_mm * fill
-    square_size_mm = max(0.01, min(board_w_mm / cols, board_h_mm / rows))
+    if (
+        board_squares_x_override is not None
+        and board_squares_y_override is not None
+        and board_square_size_mm_override is not None
+    ):
+        cols = int(board_squares_x_override)
+        rows = int(board_squares_y_override)
+        square_size_mm = float(board_square_size_mm_override)
+    else:
+        cols = int(rng.integers(8, 20))
+        rows = int(rng.integers(6, 16))
+        fill = float(rng.uniform(0.45, 0.85))
+        board_w_mm = visible_w_mm * fill
+        board_h_mm = visible_h_mm * fill
+        square_size_mm = max(0.01, min(board_w_mm / cols, board_h_mm / rows))
 
     board: dict = {
         "type": "charuco",
         "square_size_mm": float(square_size_mm),
-        "marker_size_mm": float(0.70 * square_size_mm),
+        "marker_size_mm": float(board_marker_size_mm_override)
+        if board_marker_size_mm_override is not None
+        else float(0.70 * square_size_mm),
         "squares_x": cols,
         "squares_y": rows,
         "cols": cols,
         "rows": rows,
         "aruco_dictionary": "DICT_4X4_1000",
-        "pixels_per_square": 80,
+        "pixels_per_square": int(board_pixels_per_square_override)
+        if board_pixels_per_square_override is not None
+        else 80,
     }
 
     texture = _make_board_texture(board, pattern)
@@ -137,7 +179,11 @@ def _generate_scene(
         board["_texture_img"] = texture
     board["texture_interp"] = str(tex_interp)
 
-    baseline_mm = float(rng.uniform(0.02, 0.25) * visible_w_mm)
+    baseline_mm = (
+        float(baseline_mm_override)
+        if baseline_mm_override is not None
+        else float(rng.uniform(0.02, 0.25) * visible_w_mm)
+    )
 
     dist_left, dist_right = _make_distortion(distort, float(distort_strength), rng)
 

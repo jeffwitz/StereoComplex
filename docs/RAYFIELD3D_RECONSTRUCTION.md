@@ -1,8 +1,14 @@
-# 3D ray-field (central) on GT data
+# 3D ray-field (central) and ray-based calibration
 
-This page introduces a first “ray-based 3D” building block targeting optical systems **more complex than a global pinhole model** (e.g., CMO), while deliberately starting validation on **synthetic pinhole** data to provide a clear “oracle” reference.
+This page introduces a first “ray-based 3D” building block targeting optical systems **more complex than a global pinhole model** (e.g., CMO). The current implementation starts validation on **synthetic pinhole** data to provide a clear “oracle” reference and controlled ablations.
 
-In this chapter, we start from **GT correspondences** (already perfect) and compare the 3D models below. The ChArUco *denoising* pipeline (2D ray-field) and its impact on OpenCV stereo calibration are fully described in the stereo documentation: [Stereo 3D reconstruction (OpenCV)](STEREO_RECONSTRUCTION.md).
+This chapter is organized in three parts:
+
+1. **GT baseline (ray-field 3D regression)**: learn a compact central ray-field from perfect GT correspondences.
+2. **From images (GT-assisted)**: detect corners in images (optionally denoised by the 2D ray-field) and evaluate reconstruction; the 3D ray-field fit can still use GT 3D to isolate measurement effects.
+3. **From images (no GT 3D)**: calibrate a central 3D ray-field and stereo rig from multi-pose planar observations with a point↔ray bundle adjustment (no solvePnP, no known `K`).
+
+The ChArUco *denoising* pipeline (2D ray-field) and its impact on OpenCV stereo calibration are described in: [Stereo 3D reconstruction (OpenCV)](STEREO_RECONSTRUCTION.md).
 
 - an “oracle” reconstruction using **pinhole + Brown distortion** (exact synthesis parameters),
 - a reconstruction using a **central 3D ray-field** represented with a **Zernike basis**.
@@ -64,7 +70,7 @@ y(u,v) = \sum_{k=1}^{K} b_k Z_k(\tilde u,\tilde v).
 
 In the implementation (`CentralRayFieldZernike`), $K$ is set by the maximum radial order `nmax` (modes up to $n\le n_{\max}$).
 
-## GT fit (ridge / Tikhonov regression)
+## Part A — GT fit (ridge / Tikhonov regression)
 
 With GT data, each 3D point $P_i$ lies on the ray defined by its pixel. In normalized coordinates:
 
@@ -80,7 +86,7 @@ We build a design matrix $A\in\mathbb{R}^{N\times K}$ with $A_{ik}=Z_k(\tilde u_
 \hat b = \arg\min_b\ \lVert Ab-y\rVert^2 + \lambda\lVert b\rVert^2.
 ```
 
-This is an **MVP** (*minimum viable prototype*): it yields a compact ray-field without non-linear optimization.
+This baseline yields a compact ray-field without non-linear optimization (closed-form ridge regression).
 
 ## Triangulation and metrics
 
@@ -156,7 +162,7 @@ Quick reading:
 - Central model `CentralRayFieldZernike`: `src/stereocomplex/core/model_compact/central_rayfield.py`
 - Pinhole-oracle vs 3D ray-field GT comparison: `paper/experiments/compare_pinhole_vs_rayfield3d_gt.py`
 
-## From images: detection + 2D ray-field, then reconstruction
+## Part B — From images: detection + 2D ray-field, then reconstruction (GT-assisted)
 
 This section connects the 3D ray-field chapter to the 2D identification pipeline:
 
@@ -191,9 +197,9 @@ The table below illustrates a run on `scene_0000` (5 frames). On these synthetic
 | 2D ray-field (`rayfield_tps_robust`) | $\approx 0.23 / 0.14$ | $\approx 1.28$ | $\approx 1.33$ |
 ```
 
-Note: the “3D ray-field” used here is a central prototype (constant origin) and the fit uses GT 3D correspondences to start from a clean baseline. The longer-term goal is to replace this GT-assisted fit by a full ray-based calibration (multi-poses, non-central optics, etc.).
+Note: in this section the “3D ray-field” fit can use GT 3D correspondences to isolate the impact of 2D measurement noise. A full calibration without GT 3D is covered next.
 
-## Ray-based calibration (no GT 3D): point↔ray bundle adjustment
+## Part C — Ray-based calibration (no GT 3D): point↔ray bundle adjustment
 
 This section replaces the “GT-assisted 3D fit” by a full calibration from:
 
@@ -397,6 +403,8 @@ In practice, **runtime can be brought to the same order as pinhole** by precompu
 - real-time: lookup $d$ + triangulation → $\mathcal{O}(N)$.
 
 This precompute can store a $(H\times W\times 3)$ `float32` array (a few MiB), which is typically acceptable in robotics.
+
+For a robustness evaluation across board sizes/focal lengths/aberrations (OpenCV-only sweep), see: [Robustness sweep](ROBUSTNESS_SWEEP.md).
 
 ### Real-time pipeline (robotics)
 

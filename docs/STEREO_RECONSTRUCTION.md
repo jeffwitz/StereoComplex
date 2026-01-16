@@ -15,6 +15,8 @@ Even if images are generated from a pinhole model (with Brown distortion), the 2
 In this regime, OpenCV calibration is often limited by **2D localization quality** (more than by the projection model itself).
 The ray-field acts as a **geometric denoiser** on the board plane: OpenCV is fed with more coherent 2D observations.
 
+For a robustness study across board sizes/focal lengths/aberration levels, see: [Robustness sweep](ROBUSTNESS_SWEEP.md).
+
 ## Evaluated pipeline
 
 For each frame (left/right pair):
@@ -60,7 +62,7 @@ The script:
 Command:
 
 ```bash
-PYTHONPATH=src .venv/bin/python paper/experiments/compare_opencv_calibration_rayfield.py dataset/v0_png \
+.venv/bin/python paper/experiments/compare_opencv_calibration_rayfield.py dataset/v0_png \
   --split train --scene scene_0000 \
   --out docs/assets/stereo_reconstruction_example/scene_0000_calib.json
 ```
@@ -351,4 +353,3 @@ Reading guide:
 - The drop in reprojection RMS (mono + stereo) indicates that OpenCV absorbs much less localization error.
 - The baseline error in pixels (equivalent disparity) drops significantly, showing that stereo geometry (scale) becomes much more stable.
 - 3D triangulation improves as well, but it also depends on the quality of estimated intrinsics/distortion and on pose geometry.
-
