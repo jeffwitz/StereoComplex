@@ -1848,39 +1848,16 @@ def _predict_points_rayfield_tps_robust(
     """
     Ray-field variant: global homography + robust TPS-smoothed residuals (IRLS).
     """
-    obj_xy = np.asarray(obj_xy, dtype=np.float64)
-    img_uv = np.asarray(img_uv, dtype=np.float64)
-    query_xy = np.asarray(query_xy, dtype=np.float64)
-    if obj_xy.ndim != 2 or obj_xy.shape[1] != 2:
-        raise ValueError("obj_xy must be (N,2)")
-    if img_uv.ndim != 2 or img_uv.shape[1] != 2:
-        raise ValueError("img_uv must be (N,2)")
-    if query_xy.ndim != 2 or query_xy.shape[1] != 2:
-        raise ValueError("query_xy must be (M,2)")
-    if obj_xy.shape[0] != img_uv.shape[0]:
-        raise ValueError("obj_xy and img_uv must have same length")
+    from stereocomplex.core.rayfield2d import predict_points_rayfield_tps_robust  # noqa: PLC0415
 
-    import cv2  # type: ignore
-
-    N = int(obj_xy.shape[0])
-    if N < 8:
-        return _predict_points_mls_homography(obj_xy, img_uv, query_xy)
-
-    Hb, _mask = cv2.findHomography(obj_xy, img_uv, method=cv2.RANSAC, ransacReprojThreshold=3.0)
-    if Hb is None:
-        return _predict_points_mls_homography(obj_xy, img_uv, query_xy)
-
-    def proj(H: np.ndarray, pts: np.ndarray) -> np.ndarray:
-        ph = np.concatenate([pts, np.ones((pts.shape[0], 1), dtype=np.float64)], axis=1)
-        uvw = (H @ ph.T).T
-        return uvw[:, :2] / (uvw[:, 2:3] + 1e-12)
-
-    base_obs = proj(Hb, obj_xy)
-    res_obs = img_uv - base_obs
-
-    res_q = _predict_points_tps_irls(obj_xy, res_obs, query_xy, lam=float(lam), huber_c=float(huber_c), iters=int(iters))
-    base_q = proj(Hb, query_xy)
-    return (base_q + res_q).astype(np.float64)
+    return predict_points_rayfield_tps_robust(
+        obj_xy,
+        img_uv,
+        query_xy,
+        lam=float(lam),
+        huber_c=float(huber_c),
+        iters=int(iters),
+    )
 
 
 def _predict_points_mls_homography(

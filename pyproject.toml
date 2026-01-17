@@ -8,11 +8,15 @@ version = "0.1.0"
 description = "Stereo calibration + compact ray-field/mapping with CPU fallback simulator."
 readme = "README.md"
 requires-python = ">=3.10"
+keywords = ["stereo", "calibration", "charuco", "aruco", "computer-vision", "ray-field", "metrology"]
 dependencies = [
   "numpy>=1.24",
   "pillow>=10.0",
   "scipy>=1.10",
 ]
+
+[project.urls]
+Repository = "https://github.com/jeffwitz/StereoComplex"
 
 [project.optional-dependencies]
 docs = [

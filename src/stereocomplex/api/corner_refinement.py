@@ -57,7 +57,7 @@ def refine_charuco_corners(
     if method != "rayfield_tps_robust":
         raise ValueError(f"unknown method: {method}")
 
-    from stereocomplex.eval.charuco_detection import _predict_points_rayfield_tps_robust  # noqa: PLC0415
+    from stereocomplex.core.rayfield2d import predict_points_rayfield_tps_robust  # noqa: PLC0415
 
     marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
     board_ids = np.asarray(board.getIds(), dtype=np.int32).reshape(-1)
@@ -82,7 +82,7 @@ def refine_charuco_corners(
 
     chess2 = np.asarray(board.getChessboardCorners(), dtype=np.float64)[:, :2]
     target_xy = chess2[charuco_ids]
-    pred = _predict_points_rayfield_tps_robust(
+    pred = predict_points_rayfield_tps_robust(
         obj_xy,
         img_uv,
         target_xy,
@@ -91,4 +91,3 @@ def refine_charuco_corners(
         iters=int(iters),
     )
     return np.asarray(pred, dtype=np.float64).reshape(-1, 2)
-

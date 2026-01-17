@@ -33,6 +33,8 @@ The following code is a minimal, commented example using the public API:
 :end-before: def build_charuco_from_meta
 ```
 
+See also: `PUBLIC_API.md` for the stability contract and recommended imports.
+
 Optionally, precompute ray directions over the full image grid (useful for real-time pipelines):
 
 ```python

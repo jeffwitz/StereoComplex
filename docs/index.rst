@@ -55,7 +55,9 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 - I want a practical guide: :doc:`FIX_MY_CALIBRATION`
 - I want the full worked example (plots + overlays): :doc:`RAYFIELD_WORKED_EXAMPLE`
 - I want stereo/3D metrics and baseline-in-pixels: :doc:`STEREO_RECONSTRUCTION`
+- I want multi-case robustness results: :doc:`ROBUSTNESS_SWEEP`
 - I want to load/export models and reconstruct via an API: :doc:`RECONSTRUCTION_API`
+- I want the public API contract: :doc:`PUBLIC_API`
 - I want the math and ray-based calibration: :doc:`RAYFIELD3D_RECONSTRUCTION`
 
 .. toctree::
@@ -85,4 +87,5 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
    STEREO_RECONSTRUCTION
    ROBUSTNESS_SWEEP
    RECONSTRUCTION_API
+   PUBLIC_API
    RAYFIELD3D_RECONSTRUCTION

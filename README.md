@@ -15,8 +15,8 @@ StereoComplex targets two practical pain points:
 
 Visual proof (green = GT, red = OpenCV raw, blue = ray-field):
 
-- `docs/assets/rayfield_worked_example/micro_overlays/left_best_frame000000.png`
-- `docs/assets/rayfield_worked_example/micro_overlays/right_best_frame000000.png`
+![Micro overlay (left): GT (green), OpenCV raw (red), ray-field (blue)](docs/assets/rayfield_worked_example/micro_overlays/left_best_frame000000.png)
+![Micro overlay (right): GT (green), OpenCV raw (red), ray-field (blue)](docs/assets/rayfield_worked_example/micro_overlays/right_best_frame000000.png)
 
 ## Highlights (from the provided examples)
 
@@ -159,4 +159,16 @@ Build PDF (LaTeX):
 
 ```bash
 make -C docs latexpdf
+```
+
+## Minimal Python API (model → triangulation)
+
+```python
+import numpy as np
+import stereocomplex as sc
+
+model = sc.load_stereo_central_rayfield("models/scene0000_rayfield3d")
+uvL = np.array([[320.0, 240.0]], dtype=float)
+uvR = np.array([[318.5, 240.0]], dtype=float)
+XYZ_L_mm, skew_mm = model.triangulate(uvL, uvR)
 ```
