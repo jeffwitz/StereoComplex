@@ -136,7 +136,7 @@ def refine_dataset_scene(
     huber_c: float,
     iters: int,
 ) -> dict[str, Any]:
-    import cv2  # type: ignore
+    from stereocomplex.core.image_io import load_gray_u8
 
     scene_dir = Path(dataset_root) / str(split) / str(scene)
     meta = load_json(scene_dir / "meta.json")
@@ -152,9 +152,7 @@ def refine_dataset_scene(
         entry: dict[str, Any] = {"frame_id": fid}
         for side in ("left", "right"):
             img_path = scene_dir / side / str(fr[side])
-            img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)
-            if img is None:
-                continue
+            img = load_gray_u8(img_path)
             det = detect_view(cv2, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector, img)
             if det is None:
                 continue
@@ -283,4 +281,3 @@ def run_refine_corners(
     out_json.write_text(json.dumps(refined, indent=2, sort_keys=True), encoding="utf-8")
     if out_npz is not None:
         make_calibration_npz(refined=refined, out_npz=out_npz)
-

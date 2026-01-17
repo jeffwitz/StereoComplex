@@ -13,7 +13,14 @@ def validate_dataset(dataset_root: Path) -> None:
     dataset_root = dataset_root.resolve()
     manifest = dataset_root / "manifest.json"
     if not manifest.exists():
-        raise FileNotFoundError(f"Missing {manifest}")
+        # Convenience: allow validating a "collection" directory that contains
+        # multiple dataset roots (e.g. compression sweeps).
+        children = sorted(p for p in dataset_root.iterdir() if p.is_dir() and (p / "manifest.json").exists())
+        if not children:
+            raise FileNotFoundError(f"Missing {manifest}")
+        for child in children:
+            validate_dataset(child)
+        return
 
     meta = json.loads(manifest.read_text(encoding="utf-8"))
     if meta.get("schema_version") != "stereocomplex.dataset.v0":

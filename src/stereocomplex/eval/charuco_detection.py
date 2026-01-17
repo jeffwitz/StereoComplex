@@ -498,8 +498,10 @@ def _eval_one_image(
     camera_matrix: np.ndarray | None,
     dist_coeffs: np.ndarray | None,
 ) -> tuple[list[float], list[float], list[float], int, int]:
-    img = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
-    if img is None:
+    from stereocomplex.core.image_io import load_gray_u8
+
+    img = load_gray_u8(image_path)
+    if img.size == 0:
         raise FileNotFoundError(f"Could not read image: {image_path}")
 
     method = str(method)
