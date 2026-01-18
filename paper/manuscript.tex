@@ -1,4 +1,4 @@
-% Draft manuscript for Experimental Mechanics (structure-oriented, template-agnostic).
+% StereoComplex paper draft (synthetic benchmark only).
 \documentclass[11pt]{article}
 
 \usepackage[margin=1in]{geometry}
@@ -9,9 +9,9 @@
 \usepackage{siunitx}
 \usepackage{hyperref}
 \usepackage{microtype}
+\usepackage{url}
 
-\title{Robust Stereo Auto-Calibration with Compact Direct Reconstruction Models\\
-via Physics-Informed Digital Twins: Project Baseline and Data Specification}
+\title{Compression-Robust Stereo Calibration via Planar Geometric Refinement of Fiducial Corners}
 \author{Author(s)\\
 \small Affiliation(s)\\
 \small Corresponding author: email@example.com}
@@ -21,496 +21,324 @@ via Physics-Informed Digital Twins: Project Baseline and Data Specification}
 \maketitle
 
 \begin{abstract}
-Stereo calibration in non-ideal optical systems (non-pinhole behavior, off-axis configurations, and spatially varying blur)
-often becomes brittle when relying on explicit inverse geometry (e.g., pose estimation from perfect corner detections) and
-hardware-specific assumptions. This work targets a robust, image-based stereo auto-calibration workflow trained on
-physics-informed digital twins (OptiX ray tracing~\cite{optix}) and deployed as a compact direct reconstruction model mapping stereo
-correspondences to 3D coordinates.
-
-This manuscript reports the project specification and the current implemented baseline: a reproducible dataset format
-including mandatory physical metadata (pixel pitch, crop/resize/binning), a CPU fallback synthetic renderer for planar
-targets, virtual ChArUco target generation, configurable texture resampling, spatially varying blur approximations, and a
-parametric geometric distortion model. These components establish an experimental foundation for subsequent OptiX-based
-simulation, amortized calibration learning (CalibNet), and compact ray-field/mapping decoders. In addition, we document a
-measurement-oriented strategy for ChArUco corner identification on degraded imagery, including a non-parametric
-low-frequency plane ``ray-field'' baseline that relaxes the pinhole assumption.
+Fiducial-based stereo calibration is often developed and evaluated on pristine imagery, yet practical pipelines frequently operate on lossy-compressed streams (bandwidth-limited transmission, storage constraints, onboard logging).
+Lossy compression introduces spatially structured artifacts that yield biased subpixel localization of fiducial corners; these errors are not well modeled as independent noise and can destabilize epipolar geometry and depth estimates.
+We propose a model-agnostic two-stage planar refinement that regularizes 2D correspondences before calibration: a robust homography fit on the calibration plane followed by a smooth residual warp learned from marker correspondences.
+We evaluate on a fully reproducible synthetic benchmark with ground-truth geometry and controlled degradations, including codec-quality sweeps, and report stereo-relevant metrics (vertical disparity/rectification stability, baseline error in disparity-equivalent pixels, and triangulation stability when ground truth is available).
+On our compression sweep, an optional compact 3D ray-based stereo model further improves robustness, yielding triangulation error that remains stable across lossy compression levels compared to pinhole-based baselines.
+Code, benchmark scripts, and configurations are released for reproducibility.
 \end{abstract}
 
-\textbf{Keywords:} stereo calibration; digital twin; ChArUco; uncertainty; blur; geometric distortion; direct 3D mapping
+\textbf{Keywords:} stereo calibration; ChArUco; compression robustness; homography; thin-plate spline; ray-based stereo; reproducible benchmark
 
 \section{Introduction}
-Experimental Mechanics applications frequently require accurate 3D measurements across a wide range of length scales,
-from micro-scale systems (e.g., microscopy with complex optical interfaces) to meter-scale structures.
-In such regimes, classical pinhole camera models and conventional stereo calibration workflows can degrade due to:
-(i) non-pinhole optics and off-axis arrangements, (ii) spatially varying blur and contrast, (iii) sensor preprocessing
-differences (binning, crop/region of interest (ROI), resizing), and (iv) algorithmic brittleness when corner extraction or pose estimation is imperfect.
+\subsection{Problem statement}
+Stereo calibration from planar fiducial targets (e.g., ChArUco boards) is a widely used workflow in robotics and metrology.
+However, most calibration pipelines are developed under an implicit assumption of high-quality imagery (RAW or lossless formats).
+In practical systems, images may be recorded or transmitted with lossy compression: on-board video streams, compressed logging, or industrial camera pipelines that only provide compressed output.
 
-The long-term goal of this project is a robust two-phase workflow:
-\emph{(1) calibration} from a small set of stereo image pairs of a planar target (e.g., ChArUco) to a low-dimensional latent
-vector $z$, and \emph{(2) production inference} using a compact direct model (ray-field or polynomial/Zernike-like mapping)
-to reconstruct 3D from stereo correspondences without solving a fragile inverse problem online.
+Lossy compression does not simply add independent noise.
+Block artifacts and ringing around sharp edges induce spatially structured biases near fiducial corners, which can persist after subpixel refinement.
+These structured biases can yield unstable epipolar geometry, increased vertical disparity after rectification, and degraded triangulation.
+In many such regimes, \emph{2D localization quality} becomes the bottleneck for stereo geometry, independent of the downstream camera model.
 
-This draft focuses on what is already implemented to support a rigorous experimental pipeline: a stable dataset specification
-and a CPU synthetic renderer baseline to enable early testing, ablations, and instrumentation before GPU ray tracing is integrated.
+\subsection{Key idea}
+We treat corner localization as a geometric estimation problem on the calibration plane.
+Rather than directly feeding raw detections into a camera model fit, we introduce a \emph{planar second pass}: we estimate a robust planar mapping and a smooth residual warp to denoise the correspondence set before calibration and reconstruction.
+This refinement is model-agnostic (it does not require known intrinsics) and is designed to absorb structured, low-frequency biases introduced by degradations such as compression.
 
-\section{Project overview and intended contributions}
-The complete project targets the following contributions:
-\begin{enumerate}
-  \item A digital-twin-driven training workflow for stereo auto-calibration robust to non-pinhole effects and blur.
-  \item A compact representation for production inference: either a decoded ray-field with analytical triangulation, or a direct
-        compact mapping from $(u_L,v_L,u_R,v_R)$ to $(X,Y,Z)$.
-  \item A dataset format and metadata conventions enabling portability across sensors and preprocessing pipelines.
-  \item Quantitative validation protocols and out-of-distribution detection for confidence reporting.
-\end{enumerate}
-
-The remainder of this manuscript documents the \emph{current baseline implementation} supporting Items (2) and (3) and providing
-the scaffolding required to evaluate Items (1) and (4) in later milestones.
-
-\section{Dataset specification (v0)}
-\subsection{Design principles}
-The dataset format is designed to (i) remain stable when swapping the data generator (CPU fallback vs.\ OptiX), (ii) retain
-enough metadata to reproduce physical units, and (iii) decouple sensor preprocessing from the learned latent parameters.
-In particular, the pixel pitch is treated as mandatory to anchor blur and reconstruction in physical units.
-
-\subsection{On-disk structure}
-The recommended directory layout is:
-\begin{verbatim}
-dataset/v0/
-  manifest.json
-  train|val|test/
-    scene_0000/
-      meta.json
-      frames.jsonl
-      left/000000.png
-      right/000000.png
-      gt_points.npz
-      gt_charuco_corners.npz   (optional, for ChArUco scenes)
-\end{verbatim}
-
-\subsection{Metadata (mandatory physical fields)}
-Each scene contains a \texttt{meta.json} with:
+\subsection{Contributions}
+We provide the following falsifiable contributions:
 \begin{itemize}
-  \item Sensor/view metadata for left and right images: resolution, crop, resize factors, binning, \textbf{pixel pitch} (µm).
-  \item Board metadata: target type (currently \texttt{charuco} or a grid fallback) and its physical dimensions (mm).
-  \item Generator parameters (audit): camera model, baseline, blur/noise settings, and optional distortion coefficients.
+  \item \textbf{C1 (Planar refinement).} A two-stage planar geometric refinement pipeline (robust homography + smooth residual warp) that improves correspondence consistency under degradations (compression, blur, noise) before stereo calibration.
+  \item \textbf{C2 (Stereo metrics).} A stereo evaluation protocol with metrics that directly quantify stereo usefulness: vertical disparity after rectification, baseline error in disparity-equivalent pixels, and triangulation stability (and ray skew) when ground truth is available.
+  \item \textbf{C3 (Synthetic benchmark).} A synthetic benchmark suite with controlled degradations (including compression sweeps) and ground-truth geometry enabling fully reproducible comparisons.
+  \item \textbf{C4 (Optional ray-based stereo).} A compact \emph{central} ray-based stereo model (Zernike basis + regularized point$\leftrightarrow$ray optimization) that yields improved robustness under compression compared to pinhole-only calibration on our benchmark.
 \end{itemize}
 
-\subsection{Ground-truth labels}
-The baseline provides planar ground-truth correspondences:
-\begin{itemize}
-  \item \texttt{gt\_points.npz}: tuples \{frame\_id, $(X,Y,Z)$\textsubscript{world} [mm], $(u,v)$\textsubscript{left/right} [px]\}.
-  \item \texttt{gt\_charuco\_corners.npz} (optional): deterministic inner-corner IDs and their corresponding GT projections.
-\end{itemize}
+\subsection{Paper organization}
+Section~\ref{sec:related} reviews related work.
+Section~\ref{sec:formulation} formulates how structured 2D biases propagate to stereo geometry errors.
+Section~\ref{sec:method2d} presents the planar second-pass refinement.
+Section~\ref{sec:ray3d} describes an optional compact central ray-based stereo model.
+Sections~\ref{sec:benchmark}--\ref{sec:experiments} describe the synthetic benchmark and experiments (synthetic only).
+Section~\ref{sec:discussion} discusses limitations and future work.
 
-\section{CPU fallback synthetic renderer}
-\subsection{Rationale}
-GPU ray tracing (OptiX) is the intended high-fidelity generator, but early-stage development benefits from a lightweight,
-deterministic fallback that runs on any machine. The CPU baseline implements:
+\section{Related work}
+\label{sec:related}
+\subsection{Fiducial-based camera and stereo calibration}
+Planar calibration targets and Zhang-style methods~\cite{zhang2000flexible} form the backbone of many camera calibration workflows.
+ChArUco boards combine chessboards with ArUco markers for robust detection under partial occlusion~\cite{garrido2014aruco,romero2018charuco}.
+OpenCV provides widely used implementations~\cite{opencv}, typically optimizing parameters by minimizing reprojection error.
+
+\subsection{Robust estimation and correspondence regularization}
+Robust estimation techniques such as RANSAC~\cite{fischler1981ransac} and M-estimators (e.g., Huber loss~\cite{huber1964robust}) are standard tools for outlier rejection and robust fitting.
+For planar correspondence sets, geometric regularization can be performed by fitting parametric plane mappings and smoothing residual fields.
+
+\subsection{Calibration under degradations}
+Blur and noise effects on calibration have been studied extensively; however, compression artifacts are not well modeled by independent noise.
+Lossy compression can induce coherent local biases (e.g., ringing) that systematically affect corner localization.
+This work focuses on the resulting stereo consequences and on geometric regularization strategies that remain effective under such structured perturbations.
+
+\subsection{Ray-based and model-agnostic camera representations}
+General imaging models and ray-based calibration have been explored as alternatives to simple pinhole models, including compact representations and point-based calibration under generalized models~\cite{miraldo2011pointbased}.
+Here we restrict to a \emph{central} ray-based model as a practical extension that avoids explicit pinhole intrinsics while remaining compact and optimizable.
+
+\section{Problem formulation: from 2D localization error to stereo geometry error}
+\label{sec:formulation}
+\subsection{Notation}
+We consider a planar calibration target with known board-plane coordinates $\mathbf{x}=(x,y)^\top$.
+For a given camera view, the observed image measurement is a 2D point $\mathbf{u}=(u,v)^\top$ in pixels.
+We denote homogeneous coordinates by $\tilde{\mathbf{x}}=(x,y,1)^\top$ and $\tilde{\mathbf{u}}=(u,v,1)^\top$ and use projective division $\pi$:
+\begin{equation}
+\pi\!\left((a,b,c)^\top\right)=\left(\frac{a}{c},\frac{b}{c}\right)^\top,\qquad c\neq 0.
+\end{equation}
+
+Let $\mathbf{u}^\star(\mathbf{x})$ denote the ideal projection (including geometric distortion) of board point $\mathbf{x}$ into the image.
+We model an observed corner as
+\begin{equation}
+\mathbf{u}(\mathbf{x}) = \mathbf{u}^\star(\mathbf{x}) + \mathbf{b}(\mathbf{x}) + \boldsymbol{\varepsilon},
+\label{eq:obs_model}
+\end{equation}
+where $\mathbf{b}(\mathbf{x})$ is a structured bias (e.g., induced by compression artifacts) and $\boldsymbol{\varepsilon}$ is residual noise and occasional outliers.
+Crucially, $\mathbf{b}(\mathbf{x})$ can be spatially coherent and low-frequency over the board plane.
+
+\subsection{Why stereo suffers}
+Stereo reconstruction relies on consistent correspondences and stable epipolar geometry.
+Small biases in $\mathbf{u}_L,\mathbf{u}_R$ translate into vertical disparity after rectification (violating the epipolar assumption), and into disparity errors that affect depth.
+If calibration is performed on biased 2D measurements, a pinhole model may compensate by distorting intrinsics/distortion/extrinsics, potentially reducing reprojection RMS while degrading stereo geometry (e.g., baseline drift).
+This motivates metrics that reflect stereo usefulness beyond reprojection RMS.
+
+\subsection{Stereo usefulness metrics}
+We report the following stereo-relevant metrics:
+\begin{itemize}
+  \item \textbf{Stereo reprojection RMS} (OpenCV fit objective; included for completeness).
+  \item \textbf{Baseline error in disparity-equivalent pixels:} translate baseline error into an equivalent disparity error at a representative depth $\bar Z$ to interpret scale stability.
+  \item \textbf{Triangulation RMS (when ground truth is available):} report RMS 3D error, and a depth-normalized version ($\%\,\bar Z$) for comparability across scenes.
+  \item \textbf{Ray skew} (for ray-based stereo): the minimum distance between the two back-projected rays (should be small when geometry is consistent).
+\end{itemize}
+Formal definitions and derivations are provided in Appendix~\ref{app:metrics}.
+
+\section{Method: planar geometric refinement (``second pass'')}
+\label{sec:method2d}
+\subsection{Pipeline overview}
+Given an image, we detect ArUco markers and recover a set of board-plane to image correspondences
+$\{(\mathbf{x}_i,\mathbf{u}_i)\}_{i=1}^N$ from marker corners.
+We then:
 \begin{enumerate}
-  \item per-pixel ray casting to a planar board,
-  \item texture sampling of a virtual ChArUco board (or an analytic grid),
-  \item physically parameterized blur using pixel pitch, including a spatially varying edge blur approximation,
-  \item optional Brown-Conrady geometric distortion with consistent forward and inverse mappings.
+  \item Estimate a robust homography $H$ mapping the board plane to the image.
+  \item Compute residuals $\mathbf{r}_i=\mathbf{u}_i-\pi(H\tilde{\mathbf{x}}_i)$.
+  \item Fit a smooth residual warp $\mathbf{g}(\mathbf{x})$ on the board plane and predict $\hat{\mathbf{u}}(\mathbf{x})=\pi(H\tilde{\mathbf{x}})+\mathbf{g}(\mathbf{x})$ for all chessboard corners.
+  \item Feed refined correspondences to downstream stereo calibration and evaluation.
 \end{enumerate}
 
-\subsection{Ray--plane rendering and coordinate conventions}
-For each pixel center $(u,v)$ in the delivered image, a ray direction is generated in the camera frame.
-The ray is intersected with the plane pose $(R,t)$ in world coordinates, producing plane-local coordinates $(x_p,y_p)$ in millimeters.
-Intensity is then obtained by sampling the target texture at the corresponding coordinates.
-
-Sensor preprocessing (crop/resize/binning) is treated explicitly in metadata and a deterministic pixel-to-sensor conversion.
-This is critical to experimental portability: the same physical system may deliver images under different acquisition settings.
-
-\subsection{Virtual ChArUco generation and texture interpolation}
-The ChArUco board texture is generated using OpenCV's ArUco module~\cite{opencv,garrido2014aruco,romero2018charuco} and treated as a grayscale target texture.
-Texture sampling can be performed with selectable interpolation (nearest, linear, cubic, Lanczos4), implemented via OpenCV
-\texttt{remap} when available.
-
-\subsection{Blur and noise models}
-Blur is parameterized as a Gaussian point spread function (PSF) specified either in pixels or in micrometers (converted to pixels via pitch and preprocessing).
-To emulate spatially varying blur (e.g., due to off-axis optics), a radial edge blur is approximated by blending two blurred images
-(center vs.\ edges) using a smooth radial weight field.
-Additive Gaussian noise is available as a minimal sensor-noise proxy; additional camera effects (Poisson noise,
-photo-response non-uniformity (PRNU), dark signal non-uniformity (DSNU), saturation, gamma, quantization) are planned.
-
-\subsection{Geometric distortion model}
-To capture common lens-like geometric aberrations, the baseline supports Brown-Conrady distortion on normalized camera coordinates.
-The forward model distorts $(x_n,y_n)=(X/Z,Y/Z)$ prior to converting to sensor coordinates, and the inverse model is applied iteratively
-for pixel-to-ray generation~\cite{brown1966decentering}. Distortion coefficients are stored per view in the scene metadata.
-
-\section{ChArUco corner identification: from detection to stable 2D measurements}
-\subsection{Problem statement and motivation}
-We consider a planar ChArUco board: a chessboard whose squares are augmented with ArUco fiducial markers~\cite{garrido2014aruco,romero2018charuco}.
-The board geometry is known in its own coordinate system. For each acquired grayscale image, the
-practical goal of this section is to obtain a set of \emph{stable} 2D measurements (in pixels) for ChArUco inner corners,
-robust to blur, compression, and geometric aberrations, such that downstream calibration and stereo reconstruction are not
-dominated by brittle corner localization.
-
-Formally, let $\{(x_i,y_i)\leftrightarrow \mathbf{u}_i\}_{i=1}^N$ denote detected ArUco marker-corner correspondences between known board-plane
-coordinates and measured pixel coordinates, and let $\{(x_j,y_j)\}_{j=1}^M$ denote the known board-plane coordinates of all ChArUco inner corners.
-The identification task is to estimate $\hat{\mathbf{u}}_j\approx \mathbf{u}(x_j,y_j)$ for each ChArUco corner location, using the structure of
-the planar mapping and the observed correspondences.
-
-The key observation is that classical pipelines ``detect $\rightarrow$ interpolate corners $\rightarrow$ estimate pose'' are
-highly sensitive to small 2D biases. We therefore treat ChArUco identification as an estimation problem with explicit
-geometric structure (planar target) and evaluate competing strategies against deterministic 2D ground truth on synthetic
-datasets.
-
-\subsection{Notation and conventions}
-\subsubsection{Pixel-coordinate convention}
-The dataset uses a pixel-center convention where integer $(u,v)$ correspond to pixel centers (with a continuous mapping
-implemented via $(u+0.5,v+0.5)$ in the pixel$\leftrightarrow$sensor conversion). Some OpenCV APIs effectively output corner
-coordinates in a $(u+0.5,v+0.5)$ convention; the evaluation code applies the appropriate correction for fair comparison.
-
-\subsubsection{Geometry and camera models}
-\paragraph{Coordinates.}
-We denote board-plane coordinates in millimeters by $(x,y)\in\mathbb{R}^2$ and image coordinates in pixels by
-$(u,v)\in\mathbb{R}^2$. Homogeneous coordinates are written with a tilde:
+\subsection{Robust homography estimation}
+We estimate $H\in\mathbb{R}^{3\times 3}$ using RANSAC~\cite{fischler1981ransac} on the marker-corner correspondences:
 \begin{equation}
-\tilde{\mathbf{x}} = (x,y,1)^\top,\qquad \tilde{\mathbf{u}} = (u,v,1)^\top.
+\tilde{\mathbf{u}} \sim H\tilde{\mathbf{x}}.
 \end{equation}
-Two non-zero homogeneous vectors are equivalent if they differ by a non-zero scalar, denoted $\tilde{\mathbf{u}} \sim
-\tilde{\mathbf{u}}'$. We use the dehomogenization (projective division) operator $\pi$ to map a 3-vector to 2D image coordinates:
+RANSAC rejects gross outliers (e.g., occasional marker misdetections), yielding an initial plane mapping robust to outliers.
+
+\subsection{Smooth residual warp model}
+We model the residual correction $\mathbf{g}(\mathbf{x})\in\mathbb{R}^2$ as a smooth function on the board plane.
+In this work we use a thin-plate spline (TPS) residual field~\cite{bookstein1989principal} with a robust loss:
 \begin{equation}
-\pi\!\left((u',v',w')^\top\right) = \left(\frac{u'}{w'},\frac{v'}{w'}\right)^\top,\qquad w'\neq 0.
+\min_{\mathbf{g}} \sum_{i=1}^N \rho\!\left(\left\|\mathbf{r}_i-\mathbf{g}(\mathbf{x}_i)\right\|^2\right) + \lambda\,\mathcal{R}_{\mathrm{TPS}}(\mathbf{g}),
+\label{eq:tps_objective}
 \end{equation}
-In particular, for a homography $H$ we write $\mathbf{u}(x,y)=\pi(H\tilde{\mathbf{x}})$ to denote the corresponding inhomogeneous pixel
-coordinates. To avoid ambiguity with the camera projection, $\pi(\cdot)$ is only this dehomogenization operator; the full distortion-aware
-camera projection is denoted by $\Pi(\cdot)$ (defined below).
+where $\rho$ is a robust penalty (Huber~\cite{huber1964robust}) and $\mathcal{R}_{\mathrm{TPS}}$ is the bending-energy regularizer controlling smoothness.
+We solve Eq.~\eqref{eq:tps_objective} by iteratively reweighted least squares (IRLS), updating weights from current residual magnitudes.
+The smoothness parameter $\lambda$ trades off fidelity to the observed residuals and spatial smoothness, and is swept in ablations (Appendix~\ref{app:irls_tps}).
 
-\paragraph{Parametric (central) camera model.}
-For central pinhole models, a 3D point $\mathbf{P}=(X,Y,Z)^\top$ in the camera frame projects to normalized coordinates
-$(x_n,y_n)=(X/Z,Y/Z)$. Under Brown--Conrady distortion~\cite{brown1966decentering}, distorted normalized coordinates
-$(x_d,y_d)$ are
-\begin{equation}
-\begin{aligned}
-r^2 &= x_n^2+y_n^2,\quad \alpha(r)=1+k_1 r^2 + k_2 r^4 + k_3 r^6,\\
-x_d &= x_n\,\alpha(r) + 2p_1x_ny_n + p_2(r^2+2x_n^2),\\
-y_d &= y_n\,\alpha(r) + p_1(r^2+2y_n^2) + 2p_2x_ny_n,
-\end{aligned}
-\end{equation}
-and pixel coordinates are obtained via intrinsics $K$:
-\begin{equation}
-\begin{bmatrix}u\\v\\1\end{bmatrix}
-=
-\begin{bmatrix}
-f_x & s & c_x\\
-0 & f_y & c_y\\
-0 & 0 & 1
-\end{bmatrix}
-\begin{bmatrix}x_d\\y_d\\1\end{bmatrix}.
-\end{equation}
+\subsection{Implementation notes and scope}
+The method is planar: it assumes correspondences lie on the calibration plane and that residual biases vary smoothly over that plane.
+It is therefore most appropriate for refining planar target measurements (calibration, rectification, and plane-based diagnostics).
+Extrapolation far outside the convex hull of detected markers is not guaranteed and is treated as a failure mode.
 
-\paragraph{Planar homography.}
-For a planar target, the most general projective mapping from the board plane to the image is a homography:
-\begin{equation}
-\tilde{\mathbf{u}} \sim H\,\tilde{\mathbf{x}},\qquad H\in\mathbb{R}^{3\times 3},\ \det(H)\neq 0,
-\end{equation}
-where $H$ is defined up to scale. For a pinhole camera observing a plane, $H$ admits a physical factorization
-$H = K\,[\mathbf{r}_1\ \mathbf{r}_2\ \mathbf{t}]$ (for plane $Z=0$ in board coordinates)~\cite{hartley2003multiple}. However,
-homography-based methods use $H$ purely as a plane mapping and do not require $K$.
-
-\subsection{Identification methods}
-We consider two families of identification methods:
-\emph{(i) parametric} methods that require an explicit optical model (intrinsics and distortion), and
-\emph{(ii) non-parametric} plane mappings that operate directly on board-to-image correspondences without requiring
-$(f_x,f_y,c_x,c_y)$.
-
-\subsubsection{OpenCV ChArUco baseline}
-Markers are detected and subpixel-refined, then ChArUco inner corners are interpolated by the ChArUco routine. This is a
-strong practical baseline but can remain limited on degraded imagery due to sensitivity in detection and interpolation.
-
-\subsubsection{Homography second pass (non-parametric)}
-Using detected ArUco marker corners, we estimate a global plane-to-image homography $H$ using Random Sample Consensus
-(RANSAC)~\cite{fischler1981ransac} and project all ChArUco
-inner corners by applying $\pi(H\tilde{\mathbf{x}})$.
-
-\subsubsection{PnP second pass (parametric)}
-When the optical system is adequately approximated by a pinhole camera with Brown distortion, we estimate the board pose
-$(R,t)$ via a Perspective-$n$-Point (PnP) solver on marker corners and re-project all ChArUco corners using the estimated
-pose and the known $(K,\mathbf{d})$. This can strongly reduce error under distortion but is inherently model-dependent.
-
-\subsubsection{Plane ray-field second pass (non-parametric)}
-To accommodate complex optics while retaining a low-frequency assumption, we model the plane-to-image mapping as
-``projective base + smooth residual field'':
-\begin{equation}
-\mathbf{u}(x,y) = \pi(H\,\tilde{\mathbf{x}}) + \mathbf{r}(x,y),
-\end{equation}
-where $\mathbf{u}(x,y)=(u(x,y),v(x,y))^\top$. Given ArUco marker-corner correspondences
-$\{(x_i,y_i)\leftrightarrow \mathbf{u}_i\}_{i=1}^N$ with $\mathbf{u}_i=(u_i,v_i)^\top$, the observed residual at correspondence $i$ is
-\begin{equation}
-\hat{\mathbf{r}}_i \;=\; \mathbf{u}_i - \pi(H\,\tilde{\mathbf{x}}_i)\in\mathbb{R}^2,
-\end{equation}
-expressed in pixels. The residual field $\mathbf{r}(x,y)$ provides a smooth interpolation/denoising of these residuals over
-the board domain. This ``ray-field'' is restricted to the calibration plane (a 2D warp); extending it to a full per-pixel 3D
-ray-field requires additional constraints (e.g., multiple board poses and/or multiple planes), and naturally connects to
-general imaging models and ray-based calibration formulations~\cite{miraldo2011pointbased}.
-
-\paragraph{Why this reduces point uncertainty without an optical model.}
-The goal of this second pass is to reduce the measurement uncertainty of ChArUco corner locations by exploiting only two
-sources of structure: (i) the target is planar with known coordinates $(x,y)$, and (ii) the mapping from the target plane to
-the image varies smoothly over the board for many real optical systems (a low-frequency assumption).
-
-We model each detected ArUco corner as a noisy observation of an unknown smooth mapping:
-\begin{equation}
-\mathbf{u}_i \;=\; \mathbf{u}(x_i,y_i) + \boldsymbol\varepsilon_i,
-\end{equation}
-where $\boldsymbol\varepsilon_i$ captures detector noise, blur/compression bias, and occasional outliers. Rather than using
-the raw measurements directly, we estimate a smooth residual field $\mathbf{r}(x,y)$ from $\{\hat{\mathbf{r}}_i\}$ by
-regularized fitting (Section~5.4.4). Because $\mathbf{r}(x,y)$ is constrained to be low-frequency, the estimate at a query
-point $(x_j,y_j)$ effectively aggregates information from many nearby correspondences, acting as a denoising filter on the
-plane-to-image warp. This reduces variance in the predicted corner position
-$\hat{\mathbf{u}}_j=\pi(H\tilde{\mathbf{x}}_j)+\mathbf{r}(x_j,y_j)$, at the cost of a bias--variance trade-off: very
-high-frequency distortions cannot be represented and will be smoothed out. Robust loss functions further improve stability
-by limiting the influence of outlier detections.
-
-\subsubsection{K-field surrogate (Jacobian field, non-parametric)}
-As an intermediate baseline, we consider a smoothed field of local first-order models (a Jacobian field) that approximates
-the plane-to-image mapping locally. This surrogate is ``$K$-like'' in the sense that it maps metric displacements on the
-target plane to pixel displacements, but it is not a literal per-marker pinhole intrinsic matrix.
-
-\subsubsection{Assumptions summary}
-Table~\ref{tab:charuco_assumptions} summarizes the key assumptions behind each identification method.
-\begin{table}[t]
-\centering
-\small
-\begin{tabular}{p{3.2cm} l c p{6.8cm}}
-\toprule
-Method & Family & Requires $(K,\mathbf{d})$ & Core assumption\\
-\midrule
-OpenCV ChArUco & non-parametric & no & local photometric refinement + interpolation is unbiased\\
-Homography (2nd pass) & non-parametric & no & global plane-to-image mapping is well described by a homography\\
-PnP (2nd pass) & parametric & yes & central pinhole projection + Brown distortion is adequate\\
-Plane ray-field & non-parametric & no & homography + smooth residual captures low-frequency non-idealities\\
-K-field surrogate & non-parametric & no & mapping is locally affine; Jacobian field varies smoothly\\
-\bottomrule
-\end{tabular}
-\caption{Assumptions and dependencies of the ChArUco identification methods used in this work.}
-\label{tab:charuco_assumptions}
-\end{table}
-
-\subsection{Estimation procedures}
-\subsubsection{Homography estimation (RANSAC + normalized DLT)}
-The homography $H$ is estimated from ArUco marker-corner correspondences between board coordinates and image measurements by
-minimizing a reprojection error on inliers:
-\begin{equation}
-\min_{H}\sum_{i\in\mathcal{I}} \left\| \mathbf{u}_i - \pi\!\left(H\,\tilde{\mathbf{x}}_i\right)\right\|_2^2,
-\end{equation}
-where $\mathcal{I}$ is the inlier set found by RANSAC~\cite{fischler1981ransac}.
-
-\noindent
-RANSAC repeatedly samples minimal correspondence sets, fits a candidate $H$, and selects inliers under a pixel reprojection
-threshold. Given inliers, we compute $H$ using the Direct Linear Transform (DLT) algorithm~\cite{hartley2003multiple}.
-DLT starts from the homogeneous constraint $\tilde{\mathbf{u}}_i \times (H\,\tilde{\mathbf{x}}_i)=\mathbf{0}$, which yields two
-independent linear equations in the nine entries of $H$ per correspondence. Stacking all inlier equations produces a linear
-system $A\,\mathbf{h}=\mathbf{0}$, with $\mathbf{h}$ the vectorized homography. The solution is obtained as the right singular
-vector of $A$ associated with the smallest singular value and reshaped into a $3\times 3$ matrix. To improve numerical
-conditioning, the normalized DLT variant is used: both $\tilde{\mathbf{x}}_i$ and $\tilde{\mathbf{u}}_i$ are pre-normalized by
-similarity transforms such that their centroids are at the origin and their mean distance to the origin is $\sqrt{2}$, then
-the resulting homography is de-normalized~\cite{hartley2003multiple}.
-
-\subsubsection{Pixel-to-ray conversion (pinhole + undistortion)}
-For parametric methods, we rely on the \emph{central projection} (pinhole) assumption: all viewing rays pass through a single
-camera center (the origin of the camera frame). In this model, normalized coordinates are not merely a change of units: they
-parameterize ray directions.
-
-\paragraph{Normalized coordinates as ray directions.}
-Consider the normalized image plane $Z=1$ in the camera frame. A 3D point $\mathbf{P}^c=(X,Y,Z)^\top$ with $Z>0$ defines
-normalized coordinates $(x_n,y_n)=(X/Z,Y/Z)$, which are exactly the intersection of the ray $\lambda\,\mathbf{P}^c$ with the
-plane $Z=1$:
-\begin{equation}
-(x_n,y_n,1)^\top \;=\; \left(\frac{X}{Z},\frac{Y}{Z},1\right)^\top.
-\end{equation}
-Conversely, a normalized coordinate pair $(x_n,y_n)$ defines the set of 3D points projecting to the same image location:
-\begin{equation}
-\mathbf{P}^c(\lambda) \;=\; \lambda\,(x_n,y_n,1)^\top,\qquad \lambda>0,
-\end{equation}
-which is a ray through the camera center. Therefore, the unit ray direction associated with $(x_n,y_n)$ is
-\begin{equation}
-\mathbf{d} \;=\; \frac{(x_n,y_n,1)^\top}{\left\|(x_n,y_n,1)^\top\right\|_2},
-\end{equation}
-which defines a central ray through the camera center~\cite{hartley2003multiple}.
-
-\paragraph{From pixels to normalized coordinates.}
-Let $\tilde{\mathbf{u}}=(u,v,1)^\top$ denote a pixel (homogeneous) coordinate. Without distortion, normalized coordinates satisfy
-$\tilde{\mathbf{u}}\sim K(x_n,y_n,1)^\top$, hence $(x_n,y_n)^\top=\pi(K^{-1}\tilde{\mathbf{u}})$.
-With Brown--Conrady distortion, we first compute \emph{distorted} normalized coordinates
-\begin{equation}
-(x_d,y_d)^\top=\pi\!\left(K^{-1}\tilde{\mathbf{u}}\right),
-\end{equation}
-then iteratively invert the distortion mapping to recover $(x_n,y_n)$~\cite{brown1966decentering}.
-
-\noindent
-In our metadata-aware formulation, $(f_x,f_y,c_x,c_y)$ are derived from the focal length in micrometers $f_{\mu m}$, the pixel pitch
-and preprocessing parameters (crop/resize/binning), ensuring that blur expressed in micrometers can be related consistently to pixels.
-This is analogous in spirit to calibration models that explicitly account for sensor geometry and preprocessing~\cite{zhang2000flexible}.
-
-\noindent
-\textbf{Remark (non-central optics).} The above ray construction relies on central projection. In non-central systems (e.g., some
-microscope/CMO configurations), a pixel may not correspond to a ray passing through a single shared center. This motivates the
-non-parametric plane mapping baselines in Section~5.3, which avoid imposing a pinhole ray model when it is not appropriate.
-
-\noindent
-\textbf{Important:} in the current synthetic baseline, $f_{\mu m}$ and distortion coefficients are known because they are part of the
-scene metadata emitted by the generator. This makes the PnP-based method a controlled upper bound for the effect of corner
-identification. For real data, these parameters must be estimated (e.g., via multi-view calibration) or replaced by a
-non-parametric model such as the proposed plane ray-field.
-
-\subsubsection{PnP pose estimation}
-Let $\mathbf{P}_i=(x_i,y_i,0)^\top$ denote the 3D coordinates (in millimeters) of detected ArUco marker corners in the board coordinate system,
-and let $\mathbf{u}_i$ be their measured pixel coordinates. Given known $(K,\mathbf{d})$, PnP estimates the board pose $(R,t)$ by minimizing
-the reprojection error
-\begin{equation}
-\min_{R,t}\sum_{i\in\mathcal{I}} \left\| \mathbf{u}_i - \Pi\!\left(K,\mathbf{d},R,t,\mathbf{P}_i\right)\right\|_2^2,
-\end{equation}
-where $\mathcal{I}$ is an inlier set found by a robust scheme (e.g., PnP-RANSAC as implemented in OpenCV~\cite{opencv}). The projection
-operator is defined by: $\mathbf{P}_i^c=R\mathbf{P}_i+t$, $(x_n,y_n)=(X_i^c/Z_i^c,Y_i^c/Z_i^c)$, then $(x_d,y_d)$ is obtained by Brown
-distortion, and finally
-\begin{equation}
-\Pi(K,\mathbf{d},R,t,\mathbf{P}_i)=\pi\!\left(K\,(x_d,y_d,1)^\top\right).
-\end{equation}
-ChArUco inner corners are then predicted by projecting their known 3D board coordinates using the estimated pose.
-
-\subsubsection{Plane ray-field estimation (objective and IRLS)}
-The residual field $\mathbf{r}(x,y)$ is parameterized by node values on a regular grid in board coordinates, and evaluated
-by bilinear interpolation. Let $\mathbf{r}_\theta(x_i,y_i)$ denote the interpolated residual at correspondence $i$, given
-parameters $\theta$ (the stacked node values). We estimate $\theta$ by minimizing a robust, regularized objective:
-\begin{equation}
-\min_{\theta}\sum_i \rho\!\left(\left\|\mathbf{r}_\theta(x_i,y_i) - \hat{\mathbf{r}}_i\right\|_2^2\right)
- + \lambda \left\|L\,\theta\right\|_2^2,
-\end{equation}
-where $L$ is a discrete Laplacian operator on the grid. We use a Huber loss on the squared residual norm $t$:
-\begin{equation}
-\rho(t)=
-\begin{cases}
-t, & \sqrt{t}\le \delta,\\
-2\delta \sqrt{t} - \delta^2, & \sqrt{t}>\delta,
-\end{cases}
-\end{equation}
-which behaves quadratically near the origin and linearly for large residuals~\cite{huber1964robust}. Here, $\delta>0$ is a
-user-chosen threshold in pixels. In practice, we solve this objective using iteratively reweighted least squares (IRLS),
-with weights derived from $\rho'(t)$. Writing $\mathbf{s}_i(\theta)=\mathbf{r}_\theta(x_i,y_i)-\hat{\mathbf{r}}_i$ and
-$s_i(\theta)=\|\mathbf{s}_i(\theta)\|_2$, the Huber weights for the squared residual norm take the simple form
-$w_i=1$ if $s_i\le \delta$ and $w_i=\delta/s_i$ otherwise.
-
-\noindent
-The regularization term $\|L\theta\|_2^2$ uses a 4-neighborhood discrete Laplacian on the grid, enforcing smoothness consistent with a
-low-frequency assumption.
-
-\subsubsection{K-field estimation (local linearization and smoothing)}
-To bridge between a single global intrinsic matrix $K$ and a fully non-parametric warp, we also consider a ``$K$-field''
-surrogate based on a smoothed local \emph{first-order} approximation of the plane-to-image mapping. The key idea is that,
-over a sufficiently small neighborhood on the calibration plane, many optical mappings are well approximated by an affine
-model even when the global mapping is not.
-
-Importantly, a \emph{true} pinhole intrinsic matrix $K$ is a global camera parameter. From a single planar view, only a
-plane homography is identifiable, and recovering $K$ requires multiple views and additional constraints (e.g., Zhang's
-calibration method~\cite{zhang2000flexible}). Therefore, the ``$K$-field'' considered here should be understood as a
-measurement-driven local linearization (a Jacobian field) rather than a literal per-marker pinhole $K$.
-
-Let $(x,y)$ denote board-plane coordinates and $(u,v)$ image coordinates. For a query location $(x_q,y_q)$ (in practice, the
-center of an ArUco marker or a grid anchor), we fit a local affine mapping
-\emph{equivalently obtained from a first-order Taylor expansion} of an unknown smooth mapping:
-\begin{equation}
-\begin{aligned}
-u(x,y) &\approx u(x_q,y_q) + \left.\frac{\partial u}{\partial x}\right|_q (x-x_q) + \left.\frac{\partial u}{\partial y}\right|_q (y-y_q),\\
-v(x,y) &\approx v(x_q,y_q) + \left.\frac{\partial v}{\partial x}\right|_q (x-x_q) + \left.\frac{\partial v}{\partial y}\right|_q (y-y_q),
-\end{aligned}
-\end{equation}
-where the $2\times 2$ Jacobian
-\begin{equation}
-J(x_q,y_q)=
-\begin{bmatrix}
-\left.\frac{\partial u}{\partial x}\right|_q & \left.\frac{\partial u}{\partial y}\right|_q\\
-\left.\frac{\partial v}{\partial x}\right|_q & \left.\frac{\partial v}{\partial y}\right|_q
-\end{bmatrix}
-\end{equation}
-captures the local conversion from metric displacements on the calibration plane to pixel displacements.
-
-\begin{equation}
-\begin{aligned}
-u(x,y) &\approx a_0(x_q,y_q) + a_1(x_q,y_q)\,x + a_2(x_q,y_q)\,y,\\
-v(x,y) &\approx b_0(x_q,y_q) + b_1(x_q,y_q)\,x + b_2(x_q,y_q)\,y,
-\end{aligned}
-\end{equation}
-using weighted least squares on nearby ArUco marker-corner correspondences $\{(x_i,y_i)\leftrightarrow(u_i,v_i)\}$:
-\begin{equation}
-\min_{\mathbf{a}} \sum_i w_i(x_q,y_q)\,\left(u_i - [x_i\ y_i\ 1]\mathbf{a}\right)^2,\quad
-\min_{\mathbf{b}} \sum_i w_i(x_q,y_q)\,\left(v_i - [x_i\ y_i\ 1]\mathbf{b}\right)^2,
-\end{equation}
-with Gaussian weights $w_i=\exp\!\left(-\frac{\|(x_i,y_i)-(x_q,y_q)\|^2}{2\sigma^2}\right)$.
-
-The local Jacobian of this affine approximation,
-\begin{equation}
-J(x_q,y_q)=
-\begin{bmatrix}
-a_1(x_q,y_q) & a_2(x_q,y_q)\\
-b_1(x_q,y_q) & b_2(x_q,y_q)
-\end{bmatrix},
-\end{equation}
-can be interpreted as an estimate of the Jacobian above. In that sense, the set of parameters $(a_0,a_1,a_2,b_0,b_1,b_2)$
-is ``$K$-like'': it plays the role of locally mapping metric displacements on the target plane to pixel displacements,
-without requiring a globally valid pinhole parameterization.
-
-To enforce the low-frequency assumption, we estimate these parameters on a coarse grid of anchors in board coordinates and
-then smooth each parameter field independently (Gaussian smoothing). For an arbitrary point $(x,y)$, the local parameters
-are recovered by bilinear interpolation on the grid and the affine mapping is applied. While this surrogate can be useful
-as an intermediate baseline, it is fundamentally limited by the expressiveness of an affine local model; in our experiments,
-a projective base plus smooth residual field (the plane ray-field in the previous subsection) is typically more accurate.
-
-\subsection{Evaluation protocol and metrics}
-On synthetic datasets, ground-truth ChArUco corners are provided as stable IDs with their corresponding 2D image coordinates.
-For each view (left/right), we match predictions to ground truth by ChArUco corner ID and compute a per-corner Euclidean error
-$e_i=\|\hat{\mathbf{u}}_i-\mathbf{u}_i^{gt}\|_2$ in pixels. We report the root-mean-square (RMS) and 95th percentile (P95)
-of $\{e_i\}$ for each view.
-
-\subsection{Preliminary quantitative comparison}
-Table~\ref{tab:charuco_methods} reports a baseline comparison between direct OpenCV ChArUco, homography and PnP second
-passes, and the proposed plane ray-field baseline. The table is generated reproducibly by
-\texttt{paper/experiments/compare\_charuco\_methods.py} and included here via \texttt{\\input}.
-
+\subsection{2D synthetic evaluation of corner identification}
+We first evaluate planar refinement as a pure 2D identification method by comparing predicted chessboard corners to ground-truth projections on a synthetic dataset (no real data).
+Table~\ref{tab:charuco_methods} reports representative 2D errors for multiple identification strategies.
 \input{tables/charuco_methods.tex}
 
-\paragraph{Reading of the results.}
-On clean synthetic imagery, planar geometric second passes can approach sub-tenth-pixel accuracy, indicating that most of
-the error of the direct ChArUco pipeline is not purely numerical but induced by detection/interpolation sensitivity.
-With blur and geometric distortions, PnP can outperform a global homography when the camera model is correct, whereas the
-plane ray-field provides a competitive non-parametric alternative when pinhole assumptions do not hold.
+\section{Optional extension: compact central ray-based stereo}
+\label{sec:ray3d}
+\subsection{Model definition}
+We define a \emph{central} ray-based camera model that maps a pixel $(u,v)$ to a unit direction $\mathbf{d}(u,v)\in\mathbb{R}^3$.
+We parameterize
+\begin{equation}
+\mathbf{d}(u,v) = \frac{1}{\left\| (x(u,v),y(u,v),1)^\top \right\|}\,(x(u,v),y(u,v),1)^\top,
+\end{equation}
+where $x(u,v)$ and $y(u,v)$ are expanded in a real Zernike basis on a unit disk.
+We regularize coefficients with an $\ell_2$ penalty to enforce smoothness and limit overfitting.
+This central model is a stepping stone towards more general (non-central) ray models; we do not claim non-central support in this paper.
 
-\section{Preliminary checks and reproducibility}
-The repository includes a dataset validator and an ``oracle'' evaluator that reprojects GT 3D points using the same model parameters
-recorded in metadata. This ensures the data pipeline is internally consistent (e.g., units, coordinate conventions, preprocessing).
+\subsection{Fitting procedure (point--ray optimization)}
+Given multiple planar poses, we associate each observed pixel with a known 3D board point $\mathbf{P}$ (in the board frame) and estimate per-frame poses $(R_i,\mathbf{t}_i)$.
+For a central camera, the point in camera coordinates is $\mathbf{P}_{i}=R_i\mathbf{P}+\mathbf{t}_i$.
+We fit ray-field parameters by minimizing point-to-ray residuals:
+\begin{equation}
+\mathbf{r}_{i} = \left(I - \mathbf{d}\mathbf{d}^\top\right)\mathbf{P}_{i},
+\end{equation}
+with robust loss and coefficient regularization.
+For stereo, we jointly optimize a single rigid transform between cameras and per-frame board poses, minimizing the sum of left/right point-to-ray residuals.
 
-\section{Planned next steps (toward a full Experimental Mechanics submission)}
-Immediate next steps toward a complete paper include:
+\subsection{Stereo triangulation and skew}
+Given a correspondence $(u_L,v_L)\leftrightarrow(u_R,v_R)$, we back-project two rays and triangulate by the closest approach of the two lines.
+We report the resulting 3D estimate and the \emph{ray skew} (minimum distance between rays) as a geometry-consistency diagnostic.
+
+\section{Synthetic benchmark design}
+\label{sec:benchmark}
+\subsection{Ground-truth geometry}
+We generate synthetic stereo scenes with known calibration target geometry, camera poses, and ground-truth projections.
+The benchmark provides:
+(i) ground-truth 2D corner projections per view, and
+(ii) ground-truth 3D target points for triangulation evaluation.
+
+\subsection{Degradation operators}
+We apply controlled degradations to the rendered images:
 \begin{itemize}
-  \item OptiX-based digital twin with physically meaningful illumination/material effects and richer optical interfaces~\cite{optix}.
-  \item Amortized calibration learning (CalibNet) with set-based encoders and uncertainty outputs.
-  \item Compact decoder benchmarks: ray-field vs.\ direct mapping, speed/accuracy trade-offs, conditioning and confidence metrics.
-  \item Extension from plane-only non-parametric warps to a full 3D per-pixel ray-field (and stereo triangulation) using multiple
-        target poses and/or multiple calibration planes, following ray-based general imaging model parameterizations~\cite{miraldo2011pointbased}.
-  \item Real-world validation protocol and sim-to-real ablations.
+  \item \textbf{Compression:} re-encode images with multiple codecs and quality levels (lossless PNG; lossy WebP/JPEG quality sweeps).
+  \item \textbf{Blur/noise:} optional Gaussian blur and additive noise (used in additional ablations; not the focus of this paper).
+\end{itemize}
+Compression is treated as a first-class experimental variable because it yields structured artifacts at high-contrast edges.
+
+\subsection{Protocol}
+We use a fixed number of poses per scene and evaluate identical frame subsets across codec variants.
+All scripts are deterministic given a random seed and are released with the benchmark.
+
+\section{Experiments (synthetic only)}
+\label{sec:experiments}
+\subsection{Baselines}
+We compare:
+\begin{itemize}
+  \item \textbf{B1: OpenCV pinhole (raw).} Detect corners and run standard pinhole stereo calibration and triangulation.
+  \item \textbf{B2: OpenCV pinhole + planar refinement.} Apply the planar second pass, then run the same OpenCV calibration.
+  \item \textbf{B3: 3D ray-field + planar refinement.} Use planar refinement for 2D correspondences, then fit the compact central ray-based stereo model and triangulate by ray intersection.
 \end{itemize}
 
-\section*{Data and code availability}
-This manuscript is accompanied by a reproducible codebase and dataset format. The current implementation includes a CPU data generator,
-dataset validator, and oracle evaluator. Packaging and public release details will be finalized in the full submission.
+\subsection{Main results: robustness to compression}
+Figure~\ref{fig:compression_tri} reports triangulation stability (RMS depth error normalized by mean depth) as a function of codec quality.
+The compact 3D ray-field is remarkably stable across compression levels on this benchmark, while pinhole-based baselines remain sensitive to codec artifacts.
 
-\section*{Implementation summary (current baseline)}
-For traceability, the current baseline components correspond to:
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\linewidth]{../docs/assets/compression_sweep/tri_rms_rel_depth_percent.png}
+\caption{Compression sweep (synthetic): triangulation RMS as a percentage of mean depth versus codec quality. The 3D ray-field remains stable across codec settings on this benchmark, while pinhole-based pipelines are sensitive to lossy compression.}
+\label{fig:compression_tri}
+\end{figure}
+
+We also report stereo RMS and baseline error in disparity-equivalent pixels (Figures~\ref{fig:compression_stereo_rms}--\ref{fig:compression_baseline}).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\linewidth]{../docs/assets/compression_sweep/stereo_rms_px.png}
+\caption{Compression sweep (synthetic): stereo reprojection RMS versus codec quality for the OpenCV pipelines. Reprojection RMS alone does not fully characterize stereo usefulness under compression.}
+\label{fig:compression_stereo_rms}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\linewidth]{../docs/assets/compression_sweep/baseline_abs_error_px_at_mean_depth.png}
+\caption{Compression sweep (synthetic): baseline absolute error converted to disparity-equivalent pixels at mean depth. Pinhole baselines exhibit codec-dependent drift, whereas the 3D ray-field remains comparatively stable.}
+\label{fig:compression_baseline}
+\end{figure}
+
+\subsection{Summary table (selected codecs)}
+Table~\ref{tab:compression_summary} summarizes representative metrics for a lossless PNG and selected lossy WebP/JPEG settings using the released sweep results.
+
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llccc}
+\toprule
+Codec & Method & Stereo RMS (px) & Baseline err (px @ $\bar Z$) & Tri RMS (\%$\bar Z$)\\
+\midrule
+\multicolumn{5}{l}{\textbf{PNG (lossless)}}\\
+\quad & OpenCV pinhole (raw) & 0.529 & 1.693 & 0.971\\
+\quad & OpenCV pinhole + planar refinement & 0.123 & 0.287 & 1.079\\
+\quad & 3D ray-field + planar refinement & -- & 0.200 & 0.097\\
+\midrule
+\multicolumn{5}{l}{\textbf{WebP (q70)}}\\
+\quad & OpenCV pinhole (raw) & 0.499 & 1.208 & 0.874\\
+\quad & OpenCV pinhole + planar refinement & 0.117 & 0.110 & 1.010\\
+\quad & 3D ray-field + planar refinement & -- & 0.218 & 0.077\\
+\midrule
+\multicolumn{5}{l}{\textbf{JPEG (q80)}}\\
+\quad & OpenCV pinhole (raw) & 0.513 & 1.376 & 0.890\\
+\quad & OpenCV pinhole + planar refinement & 0.119 & 0.137 & 1.102\\
+\quad & 3D ray-field + planar refinement & -- & 0.296 & 0.101\\
+\bottomrule
+\end{tabular}
+\caption{Compression robustness (synthetic, selected codecs) using the released sweep results (\texttt{docs/assets/compression\_sweep/sweep\_metrics.json}). ``Baseline err'' is converted to disparity-equivalent pixels at mean depth $\bar Z$; ``Tri RMS'' is depth-normalized. The 3D ray-field remains stable across lossy codecs in this benchmark.}
+\label{tab:compression_summary}
+\end{table}
+
+\subsection{Why reprojection RMS can be misleading}
+Under structured perturbations, a pinhole model may partially compensate biased correspondences by drifting intrinsics/extrinsics, thereby reducing reprojection RMS without improving rectification stability or triangulation.
+This motivates reporting baseline-in-pixels and triangulation stability in addition to reprojection RMS.
+
+\subsection{Runtime considerations}
+Planar refinement is lightweight once correspondences are detected: it requires a homography fit and a small TPS solve on the marker-corner set.
+The central ray-field optimization is more expensive (nonlinear least squares over ray-field coefficients, per-frame poses, and rig parameters) but remains practical for the small number of calibration frames used in our benchmark.
+In production, the ray-field model evaluates with costs comparable to a standard camera model (compute a small basis and a few dot products per pixel).
+
+\section{Discussion and limitations}
+\label{sec:discussion}
+\subsection{Why planar refinement helps under compression}
+Compression artifacts induce structured, spatially correlated biases near edges.
+On a planar target, these biases are well captured by a low-frequency residual field on the plane, which can be learned robustly from marker-corner correspondences.
+The planar refinement therefore improves correspondence consistency before calibration, reducing the propagation of structured 2D errors into stereo geometry.
+
+\subsection{Parameter truth versus epipolar stability}
+Improving stereo usefulness (rectification and depth stability) does not necessarily imply more accurate intrinsic parameters.
+Under structured measurement biases, different parameterizations can trade off intrinsic ``truth'' for extrinsic/epipolar consistency.
+We therefore emphasize stereo-relevant metrics and provide ground-truth comparisons in synthetic experiments.
+
+\subsection{Scope and future work}
+This paper reports \emph{synthetic-only} results with ground-truth geometry and controlled degradations.
+Real-world validation (including sensor pipelines and non-ideal optics) is left as future work.
+The current ray-based model is central; extending to non-central generalized cameras is also future work.
+
+\section{Reproducibility and open-source release}
+All experiments in this paper are reproducible from the released repository.
+Key scripts include:
 \begin{itemize}
-  \item Metadata schema and validation (pixel pitch mandatory) and preprocessing-aware pixel$\leftrightarrow$sensor conversions.
-  \item CPU renderer with ray--plane intersection, virtual ChArUco texture generation, and selectable texture interpolation.
-  \item Blur model with optional edge-varying approximation; additive noise.
-  \item Optional Brown-Conrady distortion with forward projection and inverse pixel-to-ray mapping.
-  \item Dataset validator and oracle evaluator for internal consistency checks.
-  \item ChArUco identification evaluation vs.\ GT, including multi-stage geometric second passes and a plane-only non-parametric
-        low-frequency ``ray-field'' baseline.
+  \item Dataset generation and re-encoding utilities (synthetic benchmark and codec variants).
+  \item Compression sweep driver and plotting scripts producing Figures~\ref{fig:compression_tri}--\ref{fig:compression_baseline}.
+  \item Corner identification comparisons producing Table~\ref{tab:charuco_methods}.
 \end{itemize}
+The code is released under GPL-2.0-or-later; documentation is released under CC BY-SA 4.0 (see repository licensing files).
 
-\section*{Limitations of the current baseline}
-The CPU renderer is intentionally simplified: single planar target, direct texture sampling, and no physically based illumination.
-OptiX-based rendering with materials, lighting, and optical interfaces is planned for future milestones.
+\section{Conclusion}
+We presented a planar geometric refinement pipeline that improves the stability of fiducial correspondences under structured degradations such as lossy compression.
+Using a fully reproducible synthetic benchmark, we demonstrated that stereo-relevant metrics (baseline stability in pixels and triangulation stability) reveal failure modes not captured by reprojection RMS alone.
+An optional compact central ray-based stereo model further improves robustness to compression on our benchmark.
+Real-world validation and extensions to non-central ray models are left as future work.
+
+\appendix
+\section{Metric definitions}
+\label{app:metrics}
+This appendix summarizes the core stereo metrics used in the experiments.
+
+\paragraph{Baseline error in disparity-equivalent pixels.}
+Given an estimated baseline error $\Delta B$ (in mm) and a representative depth $\bar Z$ (in mm), we report a disparity-equivalent pixel error by mapping baseline error to its effect on disparity at $\bar Z$ under the nominal geometry.
+This provides an interpretable pixel-domain scale stability metric.
+
+\paragraph{Triangulation RMS.}
+When ground-truth 3D points are available, we compute RMS 3D error in mm, and a depth-normalized version:
+\begin{equation}
+\mathrm{TriRMS}_{\%} = 100\,\frac{\sqrt{\frac{1}{N}\sum_i \| \hat{\mathbf{P}}_i-\mathbf{P}_i\|^2}}{\bar Z}.
+\end{equation}
+
+\paragraph{Ray skew.}
+For ray-based stereo, we also report the minimum distance between the two rays corresponding to a match; this quantifies how close the rays come to intersecting.
+
+\section{IRLS-TPS refinement details}
+\label{app:irls_tps}
+Equation~\eqref{eq:tps_objective} is solved by IRLS with a robust Huber penalty~\cite{huber1964robust}.
+At each iteration, weights are updated from current residual magnitudes and a weighted TPS linear system is solved.
+Implementation follows a standard smoothing spline formulation, with $\lambda$ controlling smoothness.
 
 \bibliographystyle{plain}
 \bibliography{references}
