@@ -194,3 +194,8 @@ uvL = np.array([[320.0, 240.0]], dtype=float)
 uvR = np.array([[318.5, 240.0]], dtype=float)
 XYZ_L_mm, skew_mm = model.triangulate(uvL, uvR)
 ```
+
+## License
+
+- Code: GNU General Public License v2.0 or later (GPL-2.0-or-later), see `LICENSE`.
+- Documentation (`docs/`): Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0), see `docs/LICENSE.md`.

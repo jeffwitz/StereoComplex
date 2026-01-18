@@ -9,6 +9,12 @@ description = "Stereo calibration + compact ray-field/mapping with CPU fallback 
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = ["stereo", "calibration", "charuco", "aruco", "computer-vision", "ray-field", "metrology"]
+license = { text = "GPL-2.0-or-later" }
+classifiers = [
+  "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+]
 dependencies = [
   "numpy>=1.24",
   "pillow>=10.0",
@@ -34,6 +40,7 @@ dev = [
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+license-files = ["LICENSE", "docs/LICENSE.md"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
