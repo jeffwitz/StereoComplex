@@ -6,12 +6,17 @@ Stereo calibration and 3D reconstruction research prototype, built around:
 - a 2D “ray-field” correction (homography + smooth residual field) to improve ChArUco corner localization,
 - an experimental **ray-based 3D reconstruction / calibration** prototype (central ray-field, Zernike basis) designed as a stepping stone towards complex/non-pinhole optics.
 
+Note on terminology: in this repository, “ray-field” may refer either to (1) a **2D planar warp** learned on the board plane (homography + smooth residual field) or (2) an experimental **3D ray-based model**. The 2D method is not a per-pixel 3D ray model.
+
 ## Why would you use this?
 
 StereoComplex targets two practical pain points:
 
+- In many practical stereo systems, calibration accuracy is limited by **2D localization quality** (blur, compression, noise) rather than by the camera model itself.
 - **Fix OpenCV calibration that plateaus** (blur / distortion / compression): refine ChArUco corners before calibration (without assuming a global pinhole model for the refinement).
 - **Reconstruct 3D without a pinhole model (prototype)**: calibrate a compact ray-based stereo model from multi-pose planar observations (**no solvePnP, no known** `K`) and triangulate from rays.
+
+Engineering footprint: no ROS, no Docker requirement, no C++ toolchain; the core is a Python package using standard scientific libraries.
 
 Visual proof (green = GT, red = OpenCV raw, blue = ray-field):
 
