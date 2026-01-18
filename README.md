@@ -26,6 +26,28 @@ Visual proof (green = GT, red = OpenCV raw, blue = ray-field):
 
 See `docs/RAYFIELD_WORKED_EXAMPLE.md` and `docs/STEREO_RECONSTRUCTION.md` for full methodology, plots, and definitions.
 
+## Alternatives and positioning
+
+StereoComplex is designed to sit between minimal OpenCV calibration scripts and larger robotics / SfM toolchains.
+It keeps an OpenCV-like installation footprint, but emphasizes robust stereo geometry, rectification quality, and explicit diagnostic metrics.
+
+**OpenCV (camera & stereo calibration).** A widely used baseline: easy to install, stable APIs, strong documentation. In practice, performance can plateau on degraded data (blur, compression, noise), and OpenCV provides limited diagnostics beyond reprojection error. StereoComplex is compatible with OpenCV workflows and adds geometric corner refinement + explicit metrics on top.
+
+**Kalibr (ETH Zurich).** A robotics-oriented calibration toolbox (camera/IMU) with rich models and global optimization. For stereo-only workflows, the ROS/catkin/Docker-style setup can be heavy. StereoComplex targets lightweight stereo calibration without requiring a robotics stack.
+
+**Basalt (TUM).** A VIO/SLAM research framework that includes calibration tools and modern optimization. It is primarily a C++ VIO codebase with non-trivial build/configuration, and calibration is not a standalone focus. StereoComplex focuses specifically on stereo geometry and rectification quality.
+
+**camodocal.** An academic multi-camera calibration toolbox with solid foundations and multiple camera models. It tends to have lower maintenance activity and dated ergonomics compared to newer pipelines. StereoComplex focuses on a lightweight Python workflow with reproducible experiments and diagnostics.
+
+**SfM toolchains (COLMAP, OpenMVG).** Excellent for reconstruction from unordered imagery, but not designed around stereo calibration objectives (stereo constraints and rectification quality are not first-class targets). They can provide rough initialization in unconstrained settings, but are out of scope here.
+
+**Non-goals (current scope).**
+
+- Not a SLAM or VIO framework
+- Not a camera–IMU calibration toolbox
+- Not a replacement for full robotics stacks
+- Not a Structure-from-Motion pipeline
+
 ## Installation
 
 Core dependencies are in `pyproject.toml` (NumPy, Pillow, SciPy). For ChArUco/ArUco features, you also need OpenCV with `aruco`:

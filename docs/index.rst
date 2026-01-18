@@ -53,6 +53,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 .. rubric:: Documentation map
 
 - I want a practical guide: :doc:`FIX_MY_CALIBRATION`
+- I want alternatives and scope/positioning: :doc:`ALTERNATIVES_POSITIONING`
 - I want the full worked example (plots + overlays): :doc:`RAYFIELD_WORKED_EXAMPLE`
 - I want stereo/3D metrics and baseline-in-pixels: :doc:`STEREO_RECONSTRUCTION`
 - I want multi-case robustness results: :doc:`ROBUSTNESS_SWEEP`
@@ -68,6 +69,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 
    START_HERE
    FIX_MY_CALIBRATION
+   ALTERNATIVES_POSITIONING
    ARCHITECTURE
    DATASET_SPEC
    CONVENTIONS
