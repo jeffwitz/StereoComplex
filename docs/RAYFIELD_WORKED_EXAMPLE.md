@@ -449,11 +449,56 @@ Overlay (left view, frame 0): GT (green), raw OpenCV (red), ray-field (blue).
 Overlay (right view, frame 0): GT (green), raw OpenCV (red), ray-field (blue).
 ```
 
+### Ideal vs realistic (why GT may look “off”)
+
+If the image includes blur / MTF / noise, the *photometric* corner (what your eye sees as the edge intersection) can be slightly shifted relative to the *geometric* GT (analytical projection).
+Here, GT includes the dataset's geometric distortion (Brown model): the “ideal” vs “realistic” comparison does not remove distortion.
+For readability, the “ideal” image in {numref}`fig-ideal-vs-realistic` is a *strict* render: no blur/noise, and **nearest-neighbor texture sampling** (to avoid introducing an implicit MTF from texture resampling).
+
+```{figure} assets/rayfield_worked_example/zoom_overlays/left_best_ideal_vs_realistic_frame000000.png
+:name: fig-ideal-vs-realistic
+:alt: Ideal vs realistic corner overlays (raw vs ray-field)
+:width: 95%
+
+2×2: ideal (top) vs realistic (bottom), raw (left) vs ray-field (right).
+GT is shown in green, predictions in red/blue, and the estimated “photometric corner” is shown as a yellow dot.
+Orange segments show the **projected edges of a neighboring board square** (geometry sanity-check): if these edges match the nearest-neighbor steps in the strict-ideal render, the projection (pose + distortion + conventions) is consistent and the remaining sub-pixel offset is photometric.
+```
+
+#### Photometric bias at checkerboard corners
+
+In the overlays above, we deliberately distinguish **geometric ground truth** from what we call the **photometric corner**.
+
+**Geometric corner (ground truth).** The geometric corner is defined as the intersection of two edges in the 3D model of the ChArUco board, projected into the image using the known pose and distortion model. It is a purely geometric quantity: it does **not** depend on image sampling, blur, noise, or the choice of corner detector. In the figures, it is shown as the **green cross**.
+
+**Photometric corner.** The photometric corner is defined as the location in the sampled image that maximizes a photometric criterion (e.g., local edge-intersection estimate, corner response, gradient-based criterion). This is the quantity implicitly targeted by corner detectors and sub-pixel refinement algorithms. In the figures, it is shown as the **yellow marker**.
+
+**Photometric bias.** We define the photometric bias as the vector difference between the photometric corner and the geometric corner (in image pixels):
+
+```{math}
+\mathbf{b}_{\mathrm{photo}} = \mathbf{x}_{\mathrm{photo}} - \mathbf{x}_{\mathrm{geom}}.
+```
+
+This bias is **not** an error in the geometric projection model. It arises from the fact that the photometric corner is extracted from a **discretely sampled intensity image**, while the geometric corner is defined in continuous space.
+
+Even in strict “ideal” renders (no blur/no noise, nearest-neighbor texture sampling), a non-zero photometric bias can appear due to:
+
+- Rasterization effects (sharp edges discretized on a pixel grid).
+- Local intensity structure near ArUco markers (the neighborhood is not a perfectly symmetric black–white “L” corner).
+- Distortion and perspective (local anisotropy and edge orientation modify the sampled gradient field).
+- Any implicit MTF introduced by rendering/resampling steps.
+
+**Key observation.** In {numref}`fig-ideal-vs-realistic`, the projected square edges (orange) coincide with the observed intensity transitions in the strict-ideal render, supporting that the geometric projection is consistent. The remaining offset between the green cross and the yellow marker is therefore **photometric**.
+
 ### Micro-overlays (sub-pixel readability)
 
 Two panels (left: `raw`, right: `ray-field`) on a few-pixel neighborhood (pixel grid displayed):
 
 See {numref}`fig-micro-best-left` and {numref}`fig-micro-best-right`.
+
+Important: these micro-overlays show the **pixel lattice** (each big square is one source pixel, upscaled with nearest-neighbor).
+The GT cross is a sub-pixel location in a pixel-center coordinate system, so it is **not expected** to sit exactly on the grid-line intersections.
+Use the larger overlays above if you want to visually check the checkerboard geometry.
 
 ```{figure} assets/rayfield_worked_example/micro_overlays/left_best_frame000000.png
 :name: fig-micro-best-left

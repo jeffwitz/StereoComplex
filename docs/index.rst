@@ -9,11 +9,11 @@ StereoComplex is a practical toolkit to **refine ChArUco corners before calibrat
 
 This simple “2D cleanup” step is often enough to make classic OpenCV calibration **much more stable** on challenging data.
 
-.. figure:: assets/rayfield_worked_example/micro_overlays/left_best_frame000000.png
-   :alt: Micro overlay showing GT (green), OpenCV raw (red), ray-field (blue)
+.. figure:: assets/rayfield_worked_example/zoom_overlays/left_best_ideal_vs_realistic_frame000000.png
+   :alt: Ideal (no blur) vs realistic (dataset) corner overlays, raw vs ray-field
    :width: 85%
 
-   GT (green) vs OpenCV raw (red) vs ray-field (blue) on a zoomed ChArUco corner.
+   Same GT (with geometric distortion) on a strict ideal render (top: no blur/no noise, nearest texture sampling) vs realistic (bottom), raw vs ray-field.
 
 .. rubric:: Quickstart (what most users want)
 

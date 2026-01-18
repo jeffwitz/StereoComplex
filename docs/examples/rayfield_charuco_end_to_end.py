@@ -557,8 +557,13 @@ def draw_micro_overlay_pair(
     crop_up = cv2.cvtColor(crop_up, cv2.COLOR_GRAY2BGR)
 
     def uv_to_xy(uv: np.ndarray) -> tuple[int, int]:
-        x = (float(uv[0]) - float(x0)) * micro_scale
-        y = (float(uv[1]) - float(y0)) * micro_scale
+        # OpenCV resize convention:
+        #   src_x = (dst_x + 0.5)/scale - 0.5  =>  dst_x = scale*(src_x + 0.5) - 0.5
+        # This keeps pixel centers consistent when resizing. Here `uv` is expressed in the
+        # dataset "pixel-center" convention (center of top-left pixel is (0,0)), so we
+        # map to resized-image coordinates accordingly.
+        x = micro_scale * (float(uv[0]) - float(x0) + 0.5) - 0.5
+        y = micro_scale * (float(uv[1]) - float(y0) + 0.5) - 0.5
         return int(round(x)), int(round(y))
 
     def draw_pixel_grid(img: np.ndarray) -> None:
@@ -604,6 +609,514 @@ def draw_micro_overlay_pair(
     cv2.imwrite(str(out_path), out)
 
 
+def draw_zoom_overlay_pair(
+    img_gray: np.ndarray,
+    gt_uv: dict[int, np.ndarray],
+    pred_raw: tuple[np.ndarray, np.ndarray] | None,
+    pred_ray: tuple[np.ndarray, np.ndarray] | None,
+    out_path: Path,
+    corner_id: int,
+    crop_radius_px: int = 60,
+    scale: int = 8,
+) -> None:
+    """
+    Zoomed overlay around one ChArUco corner: two panels (raw vs ray-field).
+
+    Compared to `draw_micro_overlay_pair`, this view is meant for documentation/landing pages:
+    it uses a larger crop and a smooth interpolation so the corner geometry (checkerboard edges)
+    remains visually interpretable.
+    """
+    import cv2  # type: ignore
+
+    scale = int(max(2, scale))
+    crop_radius_px = int(max(8, crop_radius_px))
+
+    gt0 = gt_uv.get(int(corner_id))
+    if gt0 is None:
+        return
+    gt0 = np.asarray(gt0, dtype=np.float64)
+
+    cx = int(round(float(gt0[0])))
+    cy = int(round(float(gt0[1])))
+    x0 = cx - crop_radius_px
+    y0 = cy - crop_radius_px
+    w = 2 * crop_radius_px + 1
+    h = 2 * crop_radius_px + 1
+
+    crop = _safe_crop_with_padding(img_gray, x0, y0, w, h)
+    # Smooth interpolation (for human readability of edges) rather than pixel replication.
+    crop_up = cv2.resize(crop, (w * scale, h * scale), interpolation=cv2.INTER_LANCZOS4)
+    crop_up = cv2.cvtColor(crop_up, cv2.COLOR_GRAY2BGR)
+
+    # Draw markers with sub-pixel placement (fixed-point coordinates).
+    # Otherwise, rounding the GT to integer pixels can visually shift the marker by up to
+    # ~0.5 px (i.e., many pixels after zooming), which is misleading.
+    shift = 4
+    fp = 1 << shift
+
+    def uv_to_xy_fp(uv: np.ndarray) -> tuple[int, int]:
+        x = scale * (float(uv[0]) - float(x0) + 0.5) - 0.5
+        y = scale * (float(uv[1]) - float(y0) + 0.5) - 0.5
+        return int(round(x * fp)), int(round(y * fp))
+
+    def _draw_cross_fp(img: np.ndarray, center_fp: tuple[int, int], half_len: int, color: tuple[int, int, int], thickness: int) -> None:
+        x, y = center_fp
+        r = int(half_len * fp)
+        cv2.line(img, (x - r, y), (x + r, y), color, thickness, cv2.LINE_AA, shift=shift)
+        cv2.line(img, (x, y - r), (x, y + r), color, thickness, cv2.LINE_AA, shift=shift)
+
+    def draw_point_set(img: np.ndarray, title: str, pred_uv: np.ndarray | None, color: tuple[int, int, int]) -> None:
+        gt_pt = uv_to_xy_fp(gt0)
+        # GT cross (outline + fill) with sub-pixel placement.
+        _draw_cross_fp(img, gt_pt, half_len=7, color=(0, 0, 0), thickness=4)
+        _draw_cross_fp(img, gt_pt, half_len=6, color=(0, 255, 0), thickness=2)
+
+        if pred_uv is not None:
+            pr_pt = uv_to_xy_fp(pred_uv)
+            cv2.line(img, gt_pt, pr_pt, color, 2, cv2.LINE_AA, shift=shift)
+            cv2.circle(img, pr_pt, 9, color, 2, cv2.LINE_AA, shift=shift)
+
+        cv2.putText(img, title, (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.85, (255, 255, 255), 3, cv2.LINE_AA)
+        cv2.putText(img, title, (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.85, (0, 0, 0), 1, cv2.LINE_AA)
+
+    raw_map = _predict_map(pred_raw)
+    ray_map = _predict_map(pred_ray)
+    raw_uv = raw_map.get(int(corner_id))
+    ray_uv = ray_map.get(int(corner_id))
+
+    left = crop_up.copy()
+    right = crop_up.copy()
+    draw_point_set(left, f"raw (id={corner_id})", raw_uv, (0, 0, 255))
+    draw_point_set(right, f"ray-field (id={corner_id})", ray_uv, (255, 0, 0))
+
+    sep = np.full((left.shape[0], 8, 3), 0, dtype=np.uint8)
+    out = np.concatenate([left, sep, right], axis=1)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    cv2.imwrite(str(out_path), out)
+
+
+def _estimate_board_pose_from_gt(scene_dir: Path, frame_id: int) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Estimate the board pose (R,t) in the world frame from GT ChArUco 3D points.
+
+    Dataset convention: the simulator uses the world frame as the *left* camera frame.
+    """
+    meta = load_json(scene_dir / "meta.json")
+    board = meta.get("board", {})
+    if str(board.get("type")) != "charuco":
+        raise ValueError("Board pose estimation only supports charuco datasets.")
+
+    gt_path = scene_dir / "gt_charuco_corners.npz"
+    if not gt_path.exists():
+        raise FileNotFoundError(f"Missing GT corners file: {gt_path}")
+    gt = np.load(gt_path)
+
+    fid = gt["frame_id"].astype(np.int32)
+    cid = gt["corner_id"].astype(np.int32)
+    xyz = gt["XYZ_world_mm"].astype(np.float64)
+    m = fid == int(frame_id)
+    if not np.any(m):
+        raise ValueError(f"No GT corners found for frame_id={frame_id}.")
+
+    # Board plane coordinates for inner corners (X,Y,0) in board local frame.
+    from stereocomplex.sim.cpu.generate_dataset import _charuco_inner_corners_mm  # noqa: PLC0415
+
+    corner_ids, corners_xy = _charuco_inner_corners_mm(board)
+    id_to_xy = {int(i): corners_xy[k] for k, i in enumerate(corner_ids.tolist())}
+
+    P = []
+    Q = []
+    for i, X in zip(cid[m].tolist(), xyz[m], strict=True):
+        xy = id_to_xy.get(int(i))
+        if xy is None:
+            continue
+        P.append([float(xy[0]), float(xy[1]), 0.0])
+        Q.append([float(X[0]), float(X[1]), float(X[2])])
+
+    P = np.asarray(P, dtype=np.float64)
+    Q = np.asarray(Q, dtype=np.float64)
+    if P.shape[0] < 6:
+        raise ValueError(f"Not enough correspondences to estimate pose (n={P.shape[0]}).")
+
+    # Kabsch: find R,t minimizing ||R P + t - Q||.
+    p0 = P.mean(axis=0)
+    q0 = Q.mean(axis=0)
+    Pc = P - p0[None, :]
+    Qc = Q - q0[None, :]
+    H = Pc.T @ Qc
+    U, _S, Vt = np.linalg.svd(H)
+    R = Vt.T @ U.T
+    if np.linalg.det(R) < 0:
+        Vt[-1, :] *= -1.0
+        R = Vt.T @ U.T
+    t = q0 - R @ p0
+    return R, t
+
+
+def _render_charuco_ideal_u8(
+    scene_dir: Path,
+    side: str,
+    R_plane: np.ndarray,
+    t_plane_mm: np.ndarray,
+    outside_mask: str = "hard",
+    tex_interp_override: str | None = None,
+) -> np.ndarray:
+    """
+    Render an ideal (no blur/no noise) ChArUco image for the given scene/frame pose:
+    - includes the dataset's geometric distortion (Brown model, through pixel->ray mapping)
+    - no blur / no noise / no background vignette
+    - outside the board is black if outside_mask='hard'
+    """
+    meta = load_json(scene_dir / "meta.json")
+    sim = meta.get("sim_params", {})
+    board = dict(meta.get("board", {}))
+
+    from stereocomplex.core.distortion import brown_from_dict  # noqa: PLC0415
+    from stereocomplex.core.geometry import PinholeCamera, pixel_grid_um  # noqa: PLC0415
+    from stereocomplex.meta import parse_view_meta  # noqa: PLC0415
+    from stereocomplex.sim.patterns.charuco import CharucoSpec, generate_charuco_texture  # noqa: PLC0415
+
+    view_meta = parse_view_meta(meta["stereo"][str(side)])
+    cam = PinholeCamera(f_um=float(sim["f_um"]))
+
+    dist = brown_from_dict(sim["distortion_left"] if str(side) == "left" else sim["distortion_right"])
+    baseline_mm = float(sim["baseline_mm"])
+    origin_mm = np.array([0.0, 0.0, 0.0], dtype=np.float64) if str(side) == "left" else np.array([baseline_mm, 0.0, 0.0])
+
+    # Cache the same ChArUco texture as the simulator.
+    spec = CharucoSpec(
+        squares_x=int(board.get("squares_x", board.get("cols"))),
+        squares_y=int(board.get("squares_y", board.get("rows"))),
+        square_size_mm=float(board["square_size_mm"]),
+        marker_size_mm=float(board["marker_size_mm"]),
+        aruco_dictionary=str(board.get("aruco_dictionary", "DICT_4X4_1000")),
+        pixels_per_square=int(board.get("pixels_per_square", 80)),
+    )
+    board["_texture_img"] = generate_charuco_texture(spec)
+
+    # Rays for each delivered pixel (includes distortion via undistort()).
+    x_um, y_um = pixel_grid_um(view_meta)
+    xd = x_um / float(cam.f_um)
+    yd = y_um / float(cam.f_um)
+    x, y = dist.undistort(xd, yd)
+    d_cam = cam.ray_directions_cam_from_norm(x, y)
+
+    # Ray-plane intersection + texture sampling (copied from the simulator, but without photometric effects).
+    square = float(board["square_size_mm"])
+    cols = int(board.get("squares_x", board.get("cols", 0)))
+    rows = int(board.get("squares_y", board.get("rows", 0)))
+    w_mm = square * cols
+    h_mm = square * rows
+
+    n = R_plane @ np.array([0.0, 0.0, 1.0], dtype=np.float64)
+    denom = d_cam @ n
+    denom = np.where(np.abs(denom) < 1e-9, np.nan, denom)
+    t = ((t_plane_mm - origin_mm) @ n) / denom  # (H,W)
+    X = origin_mm[None, None, :] + t[..., None] * d_cam  # (H,W,3)
+    Xp = (R_plane.T @ (X - t_plane_mm[None, None, :]).reshape(-1, 3).T).T.reshape(X.shape)
+    xp = Xp[..., 0]
+    yp = Xp[..., 1]
+
+    finite = np.isfinite(t) & (t > 0)
+    inside = (
+        finite
+        & (xp >= -0.5 * w_mm)
+        & (xp <= 0.5 * w_mm)
+        & (yp >= -0.5 * h_mm)
+        & (yp <= 0.5 * h_mm)
+    )
+
+    from stereocomplex.sim.cpu.generate_dataset import _sample_board_texture  # noqa: PLC0415
+
+    # Note: the dataset may use a smooth interpolation (e.g. Lanczos4) when sampling the board
+    # texture. For pedagogical "strict ideal" renders, we can override this to 'nearest' to
+    # remove the implicit MTF introduced by texture resampling.
+    tex_interp = (
+        str(tex_interp_override)
+        if tex_interp_override is not None
+        else str(board.get("texture_interp", sim.get("tex_interp", "lanczos4")))
+    )
+    tex = _sample_board_texture(board, xp, yp, inside, tex_interp=tex_interp)
+    if str(outside_mask) == "hard":
+        out = np.zeros_like(tex, dtype=np.uint8)
+        out[inside] = tex[inside]
+        return out
+    if str(outside_mask) == "none":
+        return tex.astype(np.uint8, copy=False)
+    raise ValueError("outside_mask must be none|hard")
+
+
+def _estimate_photometric_corner_uv(img_gray: np.ndarray, uv_init: np.ndarray, patch_radius_px: int = 50, search_radius_px: int = 18) -> np.ndarray | None:
+    """
+    Estimate a 'photometric corner' by intersecting dominant vertical/horizontal edges near uv_init.
+    Returns a (2,) array in pixel coordinates.
+    """
+    import cv2  # type: ignore
+
+    uv = np.asarray(uv_init, dtype=np.float64).reshape(2)
+    h, w = img_gray.shape[:2]
+    r = int(max(10, patch_radius_px))
+    cx = int(round(float(uv[0])))
+    cy = int(round(float(uv[1])))
+    x0 = max(0, cx - r)
+    y0 = max(0, cy - r)
+    x1 = min(w, cx + r + 1)
+    y1 = min(h, cy + r + 1)
+    patch = img_gray[y0:y1, x0:x1]
+    if patch.size == 0 or patch.shape[0] < 10 or patch.shape[1] < 10:
+        return None
+
+    patch_f = patch.astype(np.float32) / 255.0
+    patch_blur = cv2.GaussianBlur(patch_f, (5, 5), 0.0)
+    sx = cv2.Sobel(patch_blur, cv2.CV_32F, 1, 0, ksize=3)
+    sy = cv2.Sobel(patch_blur, cv2.CV_32F, 0, 1, ksize=3)
+
+    col = np.sum(np.abs(sx), axis=0)
+    row = np.sum(np.abs(sy), axis=1)
+    if col.size < 3 or row.size < 3:
+        return None
+
+    uvp = uv - np.array([x0, y0], dtype=np.float64)
+    px = int(round(float(uvp[0])))
+    py = int(round(float(uvp[1])))
+    win = int(max(6, search_radius_px))
+
+    cx0 = max(0, px - win)
+    cx1 = min(int(col.shape[0]), px + win + 1)
+    ry0 = max(0, py - win)
+    ry1 = min(int(row.shape[0]), py + win + 1)
+    if (cx1 - cx0) < 3 or (ry1 - ry0) < 3:
+        return None
+
+    ix = cx0 + int(np.argmax(col[cx0:cx1]))
+    iy = ry0 + int(np.argmax(row[ry0:ry1]))
+
+    def quad_peak(y: np.ndarray, i: int) -> float:
+        if i <= 0 or i >= (y.size - 1):
+            return float(i)
+        y0, y1, y2 = float(y[i - 1]), float(y[i]), float(y[i + 1])
+        denom = y0 - 2.0 * y1 + y2
+        if abs(denom) < 1e-12:
+            return float(i)
+        delta = 0.5 * (y0 - y2) / denom
+        return float(i) + float(delta)
+
+    ixf = quad_peak(col, ix)
+    iyf = quad_peak(row, iy)
+    return np.array([float(x0) + ixf, float(y0) + iyf], dtype=np.float64)
+
+
+def draw_ideal_vs_realistic_zoom_grid(
+    img_real_gray: np.ndarray,
+    img_ideal_gray: np.ndarray,
+    gt_uv: dict[int, np.ndarray],
+    pred_raw: tuple[np.ndarray, np.ndarray] | None,
+    pred_ray: tuple[np.ndarray, np.ndarray] | None,
+    out_path: Path,
+    corner_id: int,
+    scene_dir: Path,
+    side: str,
+    R_plane: np.ndarray,
+    t_plane_mm: np.ndarray,
+    crop_radius_px: int = 45,
+    scale: int = 12,
+) -> None:
+    """
+    2x2 grid around one corner:
+      rows: ideal (no blur/no noise, with distortion) / realistic (dataset)
+      cols: raw (OpenCV) / ray-field
+    Also displays an estimated 'photometric corner' (yellow dot) to illustrate why GT may not
+    visually coincide with the blurred edge intersection.
+    """
+    import cv2  # type: ignore
+
+    scale = int(max(2, scale))
+    crop_radius_px = int(max(12, crop_radius_px))
+
+    gt0 = gt_uv.get(int(corner_id))
+    if gt0 is None:
+        return
+    gt0 = np.asarray(gt0, dtype=np.float64)
+
+    cx = int(round(float(gt0[0])))
+    cy = int(round(float(gt0[1])))
+    x0 = cx - crop_radius_px
+    y0 = cy - crop_radius_px
+    w = 2 * crop_radius_px + 1
+    h = 2 * crop_radius_px + 1
+
+    def make_crop(img_gray: np.ndarray) -> np.ndarray:
+        crop = _safe_crop_with_padding(img_gray, x0, y0, w, h)
+        crop_up = cv2.resize(crop, (w * scale, h * scale), interpolation=cv2.INTER_LANCZOS4)
+        return cv2.cvtColor(crop_up, cv2.COLOR_GRAY2BGR)
+
+    crop_ideal = make_crop(img_ideal_gray)
+    crop_real = make_crop(img_real_gray)
+
+    # Subpixel drawing in fixed-point.
+    shift = 4
+    fp = 1 << shift
+
+    def uv_to_xy_fp(uv: np.ndarray) -> tuple[int, int]:
+        x = scale * (float(uv[0]) - float(x0) + 0.5) - 0.5
+        y = scale * (float(uv[1]) - float(y0) + 0.5) - 0.5
+        return int(round(x * fp)), int(round(y * fp))
+
+    def draw_cross(img: np.ndarray, center_fp: tuple[int, int], half_len: int, color: tuple[int, int, int], thickness: int) -> None:
+        x, y = center_fp
+        r = int(half_len * fp)
+        cv2.line(img, (x - r, y), (x + r, y), color, thickness, cv2.LINE_AA, shift=shift)
+        cv2.line(img, (x, y - r), (x, y + r), color, thickness, cv2.LINE_AA, shift=shift)
+
+    def draw_dot(img: np.ndarray, center_fp: tuple[int, int], color: tuple[int, int, int], radius: int = 5, thickness: int = 2) -> None:
+        cv2.circle(img, center_fp, radius, color, thickness, cv2.LINE_AA, shift=shift)
+
+    raw_map = _predict_map(pred_raw)
+    ray_map = _predict_map(pred_ray)
+    raw_uv = raw_map.get(int(corner_id))
+    ray_uv = ray_map.get(int(corner_id))
+
+    photo_ideal = _estimate_photometric_corner_uv(img_ideal_gray, gt0)
+    photo_real = _estimate_photometric_corner_uv(img_real_gray, gt0)
+
+    def annotate_panel(img: np.ndarray, title: str, photo_uv: np.ndarray | None, pred_uv: np.ndarray | None, pred_color: tuple[int, int, int]) -> None:
+        gt_pt = uv_to_xy_fp(gt0)
+        draw_cross(img, gt_pt, half_len=6, color=(0, 0, 0), thickness=4)
+        draw_cross(img, gt_pt, half_len=5, color=(0, 255, 0), thickness=2)
+
+        if photo_uv is not None:
+            ph_pt = uv_to_xy_fp(photo_uv)
+            draw_dot(img, ph_pt, color=(0, 255, 255), radius=5, thickness=2)
+
+        if pred_uv is not None:
+            pr_pt = uv_to_xy_fp(pred_uv)
+            cv2.line(img, gt_pt, pr_pt, pred_color, 2, cv2.LINE_AA, shift=shift)
+            draw_dot(img, pr_pt, color=pred_color, radius=7, thickness=2)
+
+        cv2.putText(img, title, (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.85, (255, 255, 255), 3, cv2.LINE_AA)
+        cv2.putText(img, title, (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.85, (0, 0, 0), 1, cv2.LINE_AA)
+
+        if photo_uv is not None:
+            dx = float(photo_uv[0] - gt0[0])
+            dy = float(photo_uv[1] - gt0[1])
+            lab = f"d(photo-GT)=({dx:+.3f},{dy:+.3f}) px"
+            cv2.putText(
+                img,
+                lab,
+                (10, img.shape[0] - 12),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.65,
+                (255, 255, 255),
+                3,
+                cv2.LINE_AA,
+            )
+            cv2.putText(
+                img,
+                lab,
+                (10, img.shape[0] - 12),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.65,
+                (0, 0, 0),
+                1,
+                cv2.LINE_AA,
+            )
+
+    # Project and draw a square neighborhood (geometry sanity check).
+    # If these projected square edges do not match the nearest-neighbor steps in the strict-ideal render,
+    # it indicates a geometric mismatch (pose/distortion/convention), not photometry.
+    try:
+        meta = load_json(scene_dir / "meta.json")
+        board_meta = meta.get("board", {})
+        cols = int(board_meta.get("squares_x", board_meta.get("cols", 0)))
+        rows = int(board_meta.get("squares_y", board_meta.get("rows", 0)))
+        nx = max(1, cols - 1)
+        ny = max(1, rows - 1)
+
+        from stereocomplex.sim.cpu.generate_dataset import _charuco_inner_corners_mm  # noqa: PLC0415
+
+        _corner_ids, corners_xy = _charuco_inner_corners_mm(board_meta)
+        if 0 <= int(corner_id) < int(corners_xy.shape[0]):
+            r0 = int(corner_id) // nx
+            c0 = int(corner_id) % nx
+
+            # Pick a square around the corner (prefer bottom-right).
+            candidates = [(r0, c0), (r0 - 1, c0), (r0, c0 - 1), (r0 - 1, c0 - 1)]
+            sq_rc = None
+            for rr, cc in candidates:
+                if 0 <= rr < (ny - 1) and 0 <= cc < (nx - 1):
+                    sq_rc = (rr, cc)
+                    break
+
+            uv4: np.ndarray | None = None
+            if sq_rc is not None:
+                rr, cc = sq_rc
+                ids4 = [rr * nx + cc, rr * nx + (cc + 1), (rr + 1) * nx + (cc + 1), (rr + 1) * nx + cc]
+                xy4 = np.asarray([corners_xy[i] for i in ids4], dtype=np.float64)  # (4,2)
+
+                from stereocomplex.core.distortion import brown_from_dict  # noqa: PLC0415
+                from stereocomplex.core.geometry import PinholeCamera  # noqa: PLC0415
+                from stereocomplex.meta import parse_view_meta  # noqa: PLC0415
+                from stereocomplex.sim.cpu.generate_dataset import _project_points_pinhole  # noqa: PLC0415
+
+                sim = meta.get("sim_params", {})
+                view_meta = parse_view_meta(meta["stereo"][str(side)])
+                cam = PinholeCamera(f_um=float(sim["f_um"]))
+                dist = brown_from_dict(sim["distortion_left"] if str(side) == "left" else sim["distortion_right"])
+                baseline_mm = float(sim["baseline_mm"])
+                origin_mm = (
+                    np.array([0.0, 0.0, 0.0], dtype=np.float64)
+                    if str(side) == "left"
+                    else np.array([baseline_mm, 0.0, 0.0], dtype=np.float64)
+                )
+
+                xyz4 = (R_plane @ np.c_[xy4, np.zeros((4,), dtype=np.float64)].T).T + t_plane_mm[None, :]
+                uv4 = _project_points_pinhole(view_meta, cam, dist, origin_mm, xyz4)
+
+        def draw_poly_edges(img: np.ndarray, uv_poly: np.ndarray, color: tuple[int, int, int]) -> None:
+            pts = [uv_to_xy_fp(uv_poly[k]) for k in range(int(uv_poly.shape[0]))]
+            for k in range(len(pts)):
+                p = pts[k]
+                q = pts[(k + 1) % len(pts)]
+                cv2.line(img, p, q, color, 2, cv2.LINE_AA, shift=shift)
+    except Exception:
+        uv4 = None
+
+    # 2x2 grid: ideal/raw, ideal/ray, real/raw, real/ray
+    p00 = crop_ideal.copy()
+    p01 = crop_ideal.copy()
+    p10 = crop_real.copy()
+    p11 = crop_real.copy()
+    if uv4 is not None:
+        for panel in (p00, p01, p10, p11):
+            draw_poly_edges(panel, uv4, color=(0, 200, 255))  # orange: projected square edges
+    annotate_panel(
+        p00,
+        f"ideal (no blur/no noise, with distortion, tex=nearest) / raw (id={corner_id})",
+        photo_ideal,
+        raw_uv,
+        (0, 0, 255),
+    )
+    annotate_panel(
+        p01,
+        f"ideal (no blur/no noise, with distortion, tex=nearest) / ray-field (id={corner_id})",
+        photo_ideal,
+        ray_uv,
+        (255, 0, 0),
+    )
+    annotate_panel(p10, f"realistic (dataset) / raw (id={corner_id})", photo_real, raw_uv, (0, 0, 255))
+    annotate_panel(p11, f"realistic (dataset) / ray-field (id={corner_id})", photo_real, ray_uv, (255, 0, 0))
+
+    sep_v = np.full((p00.shape[0], 10, 3), 0, dtype=np.uint8)
+    sep_h = np.full((10, p00.shape[1] * 2 + 10, 3), 0, dtype=np.uint8)
+    top = np.concatenate([p00, sep_v, p01], axis=1)
+    bot = np.concatenate([p10, sep_v, p11], axis=1)
+    out = np.concatenate([top, sep_h, bot], axis=0)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    cv2.imwrite(str(out_path), out)
+
+
 def _pick_best_improvement_corner_id(
     gt_uv: dict[int, np.ndarray],
     pred_raw: tuple[np.ndarray, np.ndarray] | None,
@@ -619,6 +1132,118 @@ def _pick_best_improvement_corner_id(
         if pr is None or py is None:
             continue
         gt0 = np.asarray(gt0, dtype=np.float64)
+        e_raw = float(np.hypot(float(pr[0] - gt0[0]), float(pr[1] - gt0[1])))
+        e_ray = float(np.hypot(float(py[0] - gt0[0]), float(py[1] - gt0[1])))
+        gain = e_raw - e_ray
+        if gain > best_gain:
+            best_gain = gain
+            best_id = int(cid)
+    return best_id
+
+
+def _edge_intersection_delta_norm_px(img_gray: np.ndarray, uv: np.ndarray, patch_radius_px: int = 50, search_radius_px: int = 18) -> float | None:
+    """
+    Quick diagnostic: estimate how close a sub-pixel point is to the intersection of a dominant
+    vertical and horizontal edge in a local neighborhood.
+
+    This is used only to pick a documentation-friendly corner where the GT marker visually sits
+    on an obvious corner in the rendered image.
+    """
+    import cv2  # type: ignore
+
+    uv = np.asarray(uv, dtype=np.float64).reshape(2)
+    h, w = img_gray.shape[:2]
+    r = int(max(10, patch_radius_px))
+    cx = int(round(float(uv[0])))
+    cy = int(round(float(uv[1])))
+    x0 = max(0, cx - r)
+    y0 = max(0, cy - r)
+    x1 = min(w, cx + r + 1)
+    y1 = min(h, cy + r + 1)
+    patch = img_gray[y0:y1, x0:x1]
+    if patch.size == 0 or patch.shape[0] < 10 or patch.shape[1] < 10:
+        return None
+
+    patch_f = patch.astype(np.float32) / 255.0
+    patch_blur = cv2.GaussianBlur(patch_f, (5, 5), 0.0)
+    sx = cv2.Sobel(patch_blur, cv2.CV_32F, 1, 0, ksize=3)
+    sy = cv2.Sobel(patch_blur, cv2.CV_32F, 0, 1, ksize=3)
+
+    col = np.sum(np.abs(sx), axis=0)
+    row = np.sum(np.abs(sy), axis=1)
+    if col.size < 3 or row.size < 3:
+        return None
+
+    uvp = uv - np.array([x0, y0], dtype=np.float64)
+    px = int(round(float(uvp[0])))
+    py = int(round(float(uvp[1])))
+    win = int(max(6, search_radius_px))
+
+    cx0 = max(0, px - win)
+    cx1 = min(int(col.shape[0]), px + win + 1)
+    ry0 = max(0, py - win)
+    ry1 = min(int(row.shape[0]), py + win + 1)
+    if (cx1 - cx0) < 3 or (ry1 - ry0) < 3:
+        return None
+
+    ix = cx0 + int(np.argmax(col[cx0:cx1]))
+    iy = ry0 + int(np.argmax(row[ry0:ry1]))
+
+    def quad_peak(y: np.ndarray, i: int) -> float:
+        if i <= 0 or i >= (y.size - 1):
+            return float(i)
+        y0, y1, y2 = float(y[i - 1]), float(y[i]), float(y[i + 1])
+        denom = y0 - 2.0 * y1 + y2
+        if abs(denom) < 1e-12:
+            return float(i)
+        delta = 0.5 * (y0 - y2) / denom
+        return float(i) + float(delta)
+
+    ixf = quad_peak(col, ix)
+    iyf = quad_peak(row, iy)
+    x_edge = float(x0) + ixf
+    y_edge = float(y0) + iyf
+    dx = x_edge - float(uv[0])
+    dy = y_edge - float(uv[1])
+    return float(np.hypot(dx, dy))
+
+
+def _pick_best_improvement_corner_id_visually_clean(
+    img_gray: np.ndarray,
+    gt_uv: dict[int, np.ndarray],
+    pred_raw: tuple[np.ndarray, np.ndarray] | None,
+    pred_ray: tuple[np.ndarray, np.ndarray] | None,
+    max_edge_delta_px: float = 0.15,
+    corner_grid_shape: tuple[int, int] | None = None,
+) -> int | None:
+    """
+    Like `_pick_best_improvement_corner_id`, but only keeps corners where the GT lies close
+    to an obvious corner in the image (for documentation readability).
+    """
+    raw_map = _predict_map(pred_raw)
+    ray_map = _predict_map(pred_ray)
+    ny: int | None = None
+    nx: int | None = None
+    if corner_grid_shape is not None:
+        ny = int(corner_grid_shape[0])
+        nx = int(corner_grid_shape[1])
+    best_id: int | None = None
+    best_gain = -1e18
+    for cid, gt0 in gt_uv.items():
+        pr = raw_map.get(int(cid))
+        py = ray_map.get(int(cid))
+        if pr is None or py is None:
+            continue
+        if ny is not None and nx is not None:
+            r = int(cid) // nx
+            c = int(cid) % nx
+            # Require an interior corner so we can draw a full square neighborhood.
+            if not (1 <= r <= (ny - 2) and 1 <= c <= (nx - 2)):
+                continue
+        gt0 = np.asarray(gt0, dtype=np.float64)
+        vis = _edge_intersection_delta_norm_px(img_gray, gt0)
+        if vis is None or float(vis) > float(max_edge_delta_px):
+            continue
         e_raw = float(np.hypot(float(pr[0] - gt0[0]), float(pr[1] - gt0[1])))
         e_ray = float(np.hypot(float(py[0] - gt0[0]), float(py[1] - gt0[1])))
         gain = e_raw - e_ray
@@ -1003,6 +1628,59 @@ def main() -> int:
                 # Micro overlays: (1) one point + ~2–3 px neighborhood, (2) one board corner + ~1 px neighborhood.
                 best_id = _pick_best_improvement_corner_id(gt_uv, pred_raw, pred_ray)
                 if best_id is not None:
+                    best_vis_id = _pick_best_improvement_corner_id_visually_clean(
+                        img,
+                        gt_uv,
+                        pred_raw,
+                        pred_ray,
+                        corner_grid_shape=(int(meta["board"]["squares_y"]) - 1, int(meta["board"]["squares_x"]) - 1),
+                    )
+                    if best_vis_id is None:
+                        best_vis_id = int(best_id)
+
+                    # Extra didactic figure: ideal (no blur/no noise) vs realistic (dataset image).
+                    try:
+                        R_plane, t_plane = _estimate_board_pose_from_gt(scene_dir, frame_id)
+                        # "Strict ideal" for readability: remove blur/noise AND avoid texture interpolation
+                        # that would introduce an implicit MTF (keep distortion).
+                        img_ideal = _render_charuco_ideal_u8(
+                            scene_dir,
+                            side,
+                            R_plane,
+                            t_plane,
+                            outside_mask="hard",
+                            tex_interp_override="nearest",
+                        )
+                        draw_ideal_vs_realistic_zoom_grid(
+                            img_real_gray=img,
+                            img_ideal_gray=img_ideal,
+                            gt_uv=gt_uv,
+                            pred_raw=pred_raw,
+                            pred_ray=pred_ray,
+                            out_path=args.out / "zoom_overlays" / f"{side}_best_ideal_vs_realistic_frame{frame_id:06d}.png",
+                            corner_id=int(best_vis_id),
+                            scene_dir=scene_dir,
+                            side=side,
+                            R_plane=R_plane,
+                            t_plane_mm=t_plane,
+                            crop_radius_px=max(18, 6 * int(args.micro_radius)),
+                            scale=max(12, 3 * int(args.overlay_scale)),
+                        )
+                    except Exception:
+                        pass
+
+                    draw_zoom_overlay_pair(
+                        img,
+                        gt_uv,
+                        pred_raw,
+                        pred_ray,
+                        args.out / "zoom_overlays" / f"{side}_best_frame{frame_id:06d}.png",
+                        corner_id=int(best_vis_id),
+                        # 3× more "zoom" than the default micro-overlay, while keeping the
+                        # final image size reasonable (smaller crop, larger scale).
+                        crop_radius_px=max(12, 5 * int(args.micro_radius)),
+                        scale=max(12, 3 * int(args.overlay_scale)),
+                    )
                     draw_micro_overlay_pair(
                         img,
                         gt_uv,
