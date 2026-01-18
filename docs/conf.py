@@ -58,6 +58,16 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 
+html_theme_options = {
+    # Keep the same left navigation tree on all pages (avoid collapsing to the current branch).
+    "collapse_navigation": False,
+    # Show a reasonable depth so pages remain discoverable from anywhere.
+    "navigation_depth": 4,
+    # Include hidden toctrees (we use :hidden: to keep the landing page compact).
+    "includehidden": True,
+    "titles_only": False,
+}
+
 # Number figures/tables/code-blocks so docs can reference them like a paper.
 numfig = True
 numfig_secnum_depth = 2

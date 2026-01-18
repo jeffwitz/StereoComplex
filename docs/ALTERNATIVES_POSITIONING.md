@@ -1,6 +1,6 @@
 # Alternatives and positioning
 
-StereoComplex is designed to sit between minimal OpenCV calibration scripts and larger robotics / SfM toolchains.
+StereoComplex is designed to sit between minimal OpenCV calibration scripts and larger robotics / Structure-from-Motion (SfM) toolchains.
 It keeps an OpenCV-like installation footprint, but emphasizes robust stereo geometry, rectification quality, and explicit diagnostic metrics.
 
 ## OpenCV (camera & stereo calibration)
@@ -16,10 +16,10 @@ References: [opencv.org](https://opencv.org/), [opencv/opencv](https://github.co
 
 ## Kalibr (ETH Zurich)
 
-Kalibr is a robotics-oriented calibration toolbox (camera, IMU) with rich models and global optimization.
+Kalibr is a robotics-oriented calibration toolbox (camera, inertial measurement unit (IMU)) with rich models and global optimization.
 
 - Strengths: mature methodology, multi-sensor focus, strong optimization backbone.
-- Trade-offs: heavy dependencies and workflow (ROS/catkin/Docker-style environment), which can be costly to set up and maintain for stereo-only use.
+- Trade-offs: heavy dependencies and workflow (Robot Operating System (ROS) / catkin build system / Docker-style environment), which can be costly to set up and maintain for stereo-only use.
 
 StereoComplex targets lightweight stereo calibration workflows without requiring a robotics stack.
 
@@ -27,7 +27,7 @@ Reference: [ethz-asl/kalibr](https://github.com/ethz-asl/kalibr).
 
 ## Basalt (TUM)
 
-Basalt is a VIO/SLAM research framework that includes calibration utilities.
+Basalt is a visual-inertial odometry (VIO) / simultaneous localization and mapping (SLAM) research framework that includes calibration utilities.
 
 - Strengths: modern optimization methods, strong performance in VIO contexts.
 - Trade-offs: C++ research-oriented codebase, non-trivial build/configuration, calibration is not the primary standalone focus.
@@ -49,7 +49,7 @@ Reference: [hengli/camodocal](https://github.com/hengli/camodocal).
 
 ## SfM toolchains (COLMAP, OpenMVG)
 
-Structure-from-Motion toolchains are not designed around stereo calibration objectives:
+Structure-from-Motion (SfM) toolchains are not designed around stereo calibration objectives:
 
 - Intrinsics are typically optimized for reconstruction quality, not stereo rectification stability.
 - Stereo constraints and rectification quality are not first-class objectives.
