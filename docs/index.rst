@@ -21,6 +21,16 @@ Engineering footprint: no ROS, no Docker requirement, no C++ toolchain; the core
 
    Same GT (with geometric distortion) on a strict ideal render (top: no blur/no noise, nearest texture sampling) vs realistic (bottom), raw vs ray-field.
 
+.. rubric:: Key result: 3D ray-field robustness to compression
+
+StereoComplex includes an experimental **3D ray-based stereo reconstruction** prototype. On the provided compression sweep, the **3D ray-field** remains stable under lossy compression, while pinhole-based pipelines remain sensitive to codec artifacts through the 2D localization stage.
+
+.. figure:: assets/compression_sweep/tri_rms_rel_depth_percent.png
+   :alt: Compression sweep: triangulation RMS vs codec quality (pinhole vs 3D ray-field)
+   :width: 92%
+
+   Compression sweep: triangulation RMS (relative depth error) vs codec quality, comparing pinhole-based pipelines to the 3D ray-field.
+
 .. rubric:: Quickstart (what most users want)
 
 1) Refine corners (exports JSON + an OpenCV-ready NPZ):
