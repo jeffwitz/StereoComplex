@@ -205,6 +205,29 @@ The table below illustrates a run on `scene_0000` (5 frames). On these synthetic
 
 Note: in this section the “3D ray-field” fit can use GT 3D correspondences to isolate the impact of 2D measurement noise. A full calibration without GT 3D is covered next.
 
+## Compression stress-test (PNG lossless vs WebP lossy)
+
+To evaluate whether the ray-based pipeline remains usable under strong image compression, we compare the same scene stored as:
+
+- `PNG` (lossless),
+- `WebP` (lossy, low quality).
+
+This comparison runs three pipelines:
+
+1. OpenCV pinhole calibration from **raw** ChArUco corners,
+2. OpenCV pinhole calibration from **2D ray-field refined** corners,
+3. central **3D ray-field (BA)** calibrated from **2D ray-field refined** corners.
+
+Command (prints a markdown summary and writes a JSON report):
+
+```bash
+.venv/bin/python paper/experiments/compare_compression_3d_methods.py \
+  --png dataset/compression_sweep/png_lossless \
+  --webp dataset/compression_sweep/webp_q70 \
+  --split train --scene scene_0000 \
+  --out paper/tables/compression_compare/compression_compare_3d_methods.json
+```
+
 ## Part C — Ray-based calibration (no GT 3D): point↔ray bundle adjustment
 
 This section replaces the “GT-assisted 3D fit” by a full calibration from:

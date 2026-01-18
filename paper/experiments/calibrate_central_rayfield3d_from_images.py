@@ -709,7 +709,7 @@ def main() -> int:
     cv2, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector = build_charuco_from_meta(meta)
 
     # 2D ray-field predictor.
-    from stereocomplex.eval.charuco_detection import _predict_points_rayfield_tps_robust  # noqa: PLC0415
+    from stereocomplex.core.rayfield2d import predict_points_rayfield_tps_robust  # noqa: PLC0415
 
     board_ids = np.asarray(board.getIds(), dtype=np.int32).reshape(-1)
     board_obj = board.getObjPoints()
@@ -760,7 +760,7 @@ def main() -> int:
         if target_ids.size == 0:
             return {}
         target_xy = chess2[target_ids]
-        pred = _predict_points_rayfield_tps_robust(
+        pred = predict_points_rayfield_tps_robust(
             obj_xy,
             img_uv,
             target_xy,
@@ -783,9 +783,9 @@ def main() -> int:
         det_by_side: dict[Side, dict[int, np.ndarray]] = {}
         for side in ("left", "right"):
             img_path = scene_dir / side / str(fr[side])
-            img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)
-            if img is None:
-                continue
+            from stereocomplex.core.image_io import load_gray_u8  # noqa: PLC0415
+
+            img = load_gray_u8(img_path)
             det = detect_view(cv2, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector, img)
             if det is None:
                 continue
