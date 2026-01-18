@@ -158,6 +158,11 @@ def main(argv: list[str] | None = None) -> int:
         choices=["all", "jpeg", "webp"],
         help="Compute only a subset (always reuses cached per-case JSON files when available).",
     )
+    ap.add_argument(
+        "--skip-compute",
+        action="store_true",
+        help="Do not run any calibration; only (re)generate plots/JSON snapshots from existing results.",
+    )
     ap.add_argument("--png", type=str, default="png_lossless", help="Subdir name for the lossless PNG dataset.")
     ap.add_argument(
         "--webp",
@@ -246,6 +251,8 @@ def main(argv: list[str] | None = None) -> int:
     cases: dict[str, Any] = results["cases"]
 
     def maybe_compute(name: str, ds_root: Path) -> None:
+        if bool(args.skip_compute):
+            return
         if name in cases:
             # If previous reports are still present, keep them.
             prev = cases[name]
@@ -270,12 +277,9 @@ def main(argv: list[str] | None = None) -> int:
             label=str(name),
         )
 
-    # Always include the PNG baseline if available; only recompute it when requested.
-    if args.only == "all" and "png_lossless" not in cases:
+    # Ensure the PNG baseline is present (or stays as-is in plot-only mode).
+    if "png_lossless" not in cases:
         maybe_compute("png_lossless", png_root)
-    else:
-        # Ensure png_lossless exists if already computed in previous runs.
-        pass
 
     # Keep a stable order by increasing quality if possible.
     def quality_key(name: str) -> int:
@@ -311,8 +315,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     cases = results["cases"]
-    labels_webp = [name for name, _ in sorted(webp_roots, key=lambda kv: quality_key(kv[0])) if name in cases]
-    labels_jpeg = [name for name, _ in sorted(jpeg_roots, key=lambda kv: quality_key(kv[0])) if name in cases]
+    # For plotting, prefer "all available" qualities already present in results,
+    # regardless of what was passed in --webp/--jpeg for this run.
+    labels_webp = sorted([k for k in cases.keys() if re.search(r"^webp_q\\d+$", k)], key=quality_key)
+    labels_jpeg = sorted([k for k in cases.keys() if re.search(r"^jpeg_q\\d+$", k)], key=quality_key)
     labels = [n for n in ["png_lossless", *labels_webp, *labels_jpeg] if n in cases]
 
     def xval(name: str) -> float:

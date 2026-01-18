@@ -63,6 +63,8 @@ The exact numeric results used to generate these plots are saved as:
 
 - `docs/assets/compression_sweep/sweep_metrics.json`
 
+The plotting script automatically includes **all computed codec qualities** found in the sweep results (e.g. `webp_q*`, `jpeg_q*`), so extending the sweep does not require manual plot edits.
+
 ## Discussion: why can compression sometimes “help”?
 
 It is not intuitive, but it is plausible to observe that **moderate lossy compression can improve some metrics** in a ChArUco-based pipeline, for at least three reasons:
