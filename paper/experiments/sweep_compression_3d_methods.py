@@ -283,7 +283,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Keep a stable order by increasing quality if possible.
     def quality_key(name: str) -> int:
-        m = re.search(r"_q(\\d+)$", name)
+        m = re.search(r"_q(\d+)$", name)
         if not m:
             return 10_000
         return int(m.group(1))
@@ -317,14 +317,14 @@ def main(argv: list[str] | None = None) -> int:
     cases = results["cases"]
     # For plotting, prefer "all available" qualities already present in results,
     # regardless of what was passed in --webp/--jpeg for this run.
-    labels_webp = sorted([k for k in cases.keys() if re.search(r"^webp_q\\d+$", k)], key=quality_key)
-    labels_jpeg = sorted([k for k in cases.keys() if re.search(r"^jpeg_q\\d+$", k)], key=quality_key)
+    labels_webp = sorted([k for k in cases.keys() if re.search(r"^webp_q\d+$", k)], key=quality_key)
+    labels_jpeg = sorted([k for k in cases.keys() if re.search(r"^jpeg_q\d+$", k)], key=quality_key)
     labels = [n for n in ["png_lossless", *labels_webp, *labels_jpeg] if n in cases]
 
     def xval(name: str) -> float:
         if name == "png_lossless":
             return 101.0
-        m = re.search(r"_q(\\d+)$", name)
+        m = re.search(r"_q(\d+)$", name)
         return float(m.group(1)) if m else float("nan")
 
     def x_with_offset(name: str) -> float:
@@ -381,13 +381,13 @@ def main(argv: list[str] | None = None) -> int:
     plot_metric(
         "baseline_abs_error_px_at_mean_depth",
         "baseline abs. error (px @ mean depth)",
-        "Compression sweep: baseline error vs WebP quality",
+        "Compression sweep: baseline error vs codec quality",
         "baseline_abs_error_px_at_mean_depth.png",
     )
     plot_metric(
         "tri_rms_rel_depth_percent",
         "triangulation RMS (% mean depth)",
-        "Compression sweep: triangulation error vs WebP quality",
+        "Compression sweep: triangulation error vs codec quality",
         "tri_rms_rel_depth_percent.png",
     )
     plot_metric(
