@@ -393,7 +393,7 @@ def main(argv: list[str] | None = None) -> int:
     plot_metric(
         "stereo_rms_px",
         "stereo RMS reprojection (px)",
-        "Compression sweep: stereo RMS vs WebP quality (OpenCV only)",
+        "Compression sweep: stereo RMS vs codec quality (OpenCV only)",
         "stereo_rms_px.png",
     )
 

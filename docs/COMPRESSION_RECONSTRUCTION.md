@@ -26,7 +26,7 @@ We compare three pipelines:
   - For OpenCV pinhole: direct RMS error vs GT (absolute scale is defined).
   - For 3D ray-field: we report a **similarity-aligned** 3D error, because the ray-based model has a weak gauge (global similarity drift) in this prototype.
 
-## WebP quality sweep
+## Codec quality sweep (WebP + JPEG)
 
 Command (uses cached intermediate JSON files; does not regenerate datasets):
 
@@ -65,7 +65,25 @@ The exact numeric results used to generate these plots are saved as:
 
 The plotting script automatically includes **all computed codec qualities** found in the sweep results (e.g. `webp_q*`, `jpeg_q*`), so extending the sweep does not require manual plot edits.
 
-## Discussion: why can compression sometimes “help”?
+## Key finding: 3D ray-field is remarkably stable under compression
+
+On this sweep, the **central 3D ray-field + BA** pipeline is both:
+
+- **stable** across strong lossy compression, and
+- **consistently better in 3D** than OpenCV pinhole, even when pinhole uses 2D ray-field refined corners.
+
+Quantitatively (range over the tested qualities):
+
+- **3D ray-field (+2D ray-field)**:
+  - WebP q70–q95: baseline error stays in `[0.166, 0.247] px@Z̄` and triangulation stays in `[0.075, 0.083] %Z̄` (similarity-aligned).
+  - JPEG q80–q98: baseline error stays in `[0.195, 0.296] px@Z̄` and triangulation stays in `[0.078, 0.104] %Z̄` (similarity-aligned).
+- **OpenCV pinhole (+2D ray-field)** is still sensitive:
+  - WebP q70–q95: baseline error spans `[0.042, 0.308] px@Z̄` and triangulation spans `[0.591, 1.010] %Z̄`.
+  - JPEG q80–q98: baseline error spans `[0.062, 0.384] px@Z̄` and triangulation spans `[0.899, 1.102] %Z̄`.
+
+The baseline error for the pinhole pipeline can occasionally be *very* low at a specific quality, but it is not monotonic and not stable. In contrast, the ray-based pipeline yields a tight band of performance across codecs and qualities, which is exactly what is needed for compressed, real-time robotics/stereo pipelines.
+
+## Discussion: why can compression sometimes “help” OpenCV, yet remain unstable?
 
 It is not intuitive, but it is plausible to observe that **moderate lossy compression can improve some metrics** in a ChArUco-based pipeline, for at least three reasons:
 
@@ -73,9 +91,11 @@ It is not intuitive, but it is plausible to observe that **moderate lossy compre
 2. **Detection non-linearities and selection effects**: the set of detected markers/corners can change across codecs (some frames may fail, some points may be rejected). This changes the calibration problem itself and can shift the solution (sometimes for the better, sometimes for the worse).
 3. **Model mismatch compensation**: OpenCV calibration may reach a different local optimum depending on the outlier pattern. A change in compression can change the outlier pattern, which can make the pose/baseline estimation appear “better” even if the image is objectively worse.
 
-For these reasons, compression quality sweeps are essential before concluding about robustness.
+This explains the “surprising” observation that raw pinhole metrics can sometimes improve at a given lossy quality (e.g. by implicit low-pass filtering), while remaining inconsistent across the sweep.
 
-In contrast, the ray-field approach aims to reduce sensitivity to these effects by:
+### Why the 3D ray-field stays stable
 
-- using a geometric prior on the board plane (2D ray-field),
-- and using a ray-based representation for 3D (instead of forcing a global pinhole model).
+The ray-field pipeline reduces compression sensitivity at two levels:
+
+1. **2D ray-field refinement** enforces a smooth board→image mapping, reducing corner jitter and down-weighting outliers.
+2. **Ray-based 3D calibration** avoids forcing a single global pinhole/distortion model to explain all residuals. The point↔ray bundle adjustment aggregates constraints across multiple poses and tends to produce a more stable stereo geometry (baseline/epipolar consistency) under measurement perturbations.
