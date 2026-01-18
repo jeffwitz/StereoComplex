@@ -1,0 +1,349 @@
+{
+  "schema_version": "stereocomplex.compression_sweep_3d.v0",
+  "settings": {
+    "root": "dataset/compression_sweep",
+    "png": "png_lossless",
+    "webp": [
+      "webp_q70",
+      "webp_q80",
+      "webp_q90",
+      "webp_q95"
+    ],
+    "jpeg": [
+      "jpeg_q80",
+      "jpeg_q90",
+      "jpeg_q95",
+      "jpeg_q98"
+    ],
+    "split": "train",
+    "scene": "scene_0000",
+    "max_frames": 5,
+    "rayfield3d": {
+      "outer_iters": 3,
+      "nmax": 10,
+      "max_points_per_frame": 200
+    },
+    "tps": {
+      "lam": 10.0,
+      "huber": 3.0,
+      "iters": 3
+    }
+  },
+  "cases": {
+    "png_lossless": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.3256769021742769,
+        "mono_rms_right_px": 0.30702647651338877,
+        "stereo_rms_px": 0.5286755323444348,
+        "baseline_abs_error_mm": 1.8492658615354287,
+        "baseline_abs_error_px_at_mean_depth": 1.6927456164825705,
+        "tri_rms_mm": 13.041802105826873,
+        "tri_rms_rel_depth_percent": 0.9713168858898532,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.08681466775426919,
+        "mono_rms_right_px": 0.07053110341407966,
+        "stereo_rms_px": 0.12310907547291783,
+        "baseline_abs_error_mm": 0.3199480949129736,
+        "baseline_abs_error_px_at_mean_depth": 0.287202785395918,
+        "tri_rms_mm": 14.48161215094838,
+        "tri_rms_rel_depth_percent": 1.078549904605535,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.22073061870466404,
+        "baseline_abs_error_px_at_mean_depth": 0.2000204264434975,
+        "tri_rms_mm": 1.3039536547087727,
+        "tri_rms_rel_depth_percent": 0.09711481534216367,
+        "n_frames": 5,
+        "n_points_total": 288
+      }
+    },
+    "webp_q70": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.32602220740999605,
+        "mono_rms_right_px": 0.3105509960600477,
+        "stereo_rms_px": 0.4989531612103873,
+        "baseline_abs_error_mm": 1.3223220122868042,
+        "baseline_abs_error_px_at_mean_depth": 1.2083385355471408,
+        "tri_rms_mm": 11.732913128158497,
+        "tri_rms_rel_depth_percent": 0.8738345015193387,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.08600723174887757,
+        "mono_rms_right_px": 0.07049547646977576,
+        "stereo_rms_px": 0.11688519297070037,
+        "baseline_abs_error_mm": 0.12229769149251979,
+        "baseline_abs_error_px_at_mean_depth": 0.10992531012548394,
+        "tri_rms_mm": 13.565075632376315,
+        "tri_rms_rel_depth_percent": 1.0102888322629333,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.24020635167292426,
+        "baseline_abs_error_px_at_mean_depth": 0.21766883624034267,
+        "tri_rms_mm": 1.0296975719289172,
+        "tri_rms_rel_depth_percent": 0.07668899059030208,
+        "n_frames": 5,
+        "n_points_total": 288
+      }
+    },
+    "webp_q80": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.3221491461769118,
+        "mono_rms_right_px": 0.3093699546132233,
+        "stereo_rms_px": 0.5353246123451292,
+        "baseline_abs_error_mm": 1.9082151178330093,
+        "baseline_abs_error_px_at_mean_depth": 1.7497995986159895,
+        "tri_rms_mm": 14.441192666626103,
+        "tri_rms_rel_depth_percent": 1.0755395746432634,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.08749400871700797,
+        "mono_rms_right_px": 0.07205278049930684,
+        "stereo_rms_px": 0.12981896209050434,
+        "baseline_abs_error_mm": 0.34153649724058255,
+        "baseline_abs_error_px_at_mean_depth": 0.30814474399318587,
+        "tri_rms_mm": 7.931249410600615,
+        "tri_rms_rel_depth_percent": 0.590697237713675,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.270438384778231,
+        "baseline_abs_error_px_at_mean_depth": 0.24506432939604422,
+        "tri_rms_mm": 1.0091122932918715,
+        "tri_rms_rel_depth_percent": 0.07515585670445844,
+        "n_frames": 5,
+        "n_points_total": 288
+      }
+    },
+    "webp_q90": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.32889511198915655,
+        "mono_rms_right_px": 0.30777177670420763,
+        "stereo_rms_px": 0.5329957664546249,
+        "baseline_abs_error_mm": 1.7744398156316379,
+        "baseline_abs_error_px_at_mean_depth": 1.6251425730150664,
+        "tri_rms_mm": 13.267415881047476,
+        "tri_rms_rel_depth_percent": 0.9881199678399483,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.0858234330904246,
+        "mono_rms_right_px": 0.06836202186852958,
+        "stereo_rms_px": 0.11168896325500671,
+        "baseline_abs_error_mm": 0.09058808755685277,
+        "baseline_abs_error_px_at_mean_depth": 0.08141545034425554,
+        "tri_rms_mm": 13.395223914867126,
+        "tri_rms_rel_depth_percent": 0.9976387521608622,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.2724170602687934,
+        "baseline_abs_error_px_at_mean_depth": 0.2468573543861347,
+        "tri_rms_mm": 1.0473049860894397,
+        "tri_rms_rel_depth_percent": 0.07800034147204338,
+        "n_frames": 5,
+        "n_points_total": 288
+      }
+    },
+    "webp_q95": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.3278774267972242,
+        "mono_rms_right_px": 0.3079777346405937,
+        "stereo_rms_px": 0.5283738268784315,
+        "baseline_abs_error_mm": 1.7724499819549067,
+        "baseline_abs_error_px_at_mean_depth": 1.6207731127463758,
+        "tri_rms_mm": 12.059949069067837,
+        "tri_rms_rel_depth_percent": 0.8981912222486155,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.08567046929323253,
+        "mono_rms_right_px": 0.07361463338233175,
+        "stereo_rms_px": 0.10457859843698385,
+        "baseline_abs_error_mm": 0.0467889255197349,
+        "baseline_abs_error_px_at_mean_depth": 0.042140961604519474,
+        "tri_rms_mm": 10.614832769944044,
+        "tri_rms_rel_depth_percent": 0.79056300859964,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.18347036848408038,
+        "baseline_abs_error_px_at_mean_depth": 0.16625614316350373,
+        "tri_rms_mm": 1.114270615680721,
+        "tri_rms_rel_depth_percent": 0.08298775396829616,
+        "n_frames": 5,
+        "n_points_total": 288
+      }
+    },
+    "jpeg_q80": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.32596258432633274,
+        "mono_rms_right_px": 0.3050650716213251,
+        "stereo_rms_px": 0.5133525808923572,
+        "baseline_abs_error_mm": 1.5049994476730149,
+        "baseline_abs_error_px_at_mean_depth": 1.376305299712697,
+        "tri_rms_mm": 11.954952658590557,
+        "tri_rms_rel_depth_percent": 0.8903713837303758,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.08912742960350199,
+        "mono_rms_right_px": 0.07274476375389874,
+        "stereo_rms_px": 0.11941540346349207,
+        "baseline_abs_error_mm": 0.15300618679677314,
+        "baseline_abs_error_px_at_mean_depth": 0.1373268546849618,
+        "tri_rms_mm": 14.790123522190369,
+        "tri_rms_rel_depth_percent": 1.1015269672802164,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.3266109910128705,
+        "baseline_abs_error_px_at_mean_depth": 0.2959665047237386,
+        "tri_rms_mm": 1.3558394104953635,
+        "tri_rms_rel_depth_percent": 0.10097912108179424,
+        "n_frames": 5,
+        "n_points_total": 288
+      }
+    },
+    "jpeg_q90": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.328073737946167,
+        "mono_rms_right_px": 0.30665180627778016,
+        "stereo_rms_px": 0.5402717817718118,
+        "baseline_abs_error_mm": 1.9668542022821214,
+        "baseline_abs_error_px_at_mean_depth": 1.8007921988071869,
+        "tri_rms_mm": 13.30227140133696,
+        "tri_rms_rel_depth_percent": 0.9907159093477959,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.08590714124714625,
+        "mono_rms_right_px": 0.07533709422539284,
+        "stereo_rms_px": 0.13079672905176912,
+        "baseline_abs_error_mm": 0.4280948690248749,
+        "baseline_abs_error_px_at_mean_depth": 0.38428194459003684,
+        "tri_rms_mm": 14.455690203602256,
+        "tri_rms_rel_depth_percent": 1.0766193105842388,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.23199904017911877,
+        "baseline_abs_error_px_at_mean_depth": 0.21023158102591283,
+        "tri_rms_mm": 1.0444582716660924,
+        "tri_rms_rel_depth_percent": 0.07778832615650137,
+        "n_frames": 5,
+        "n_points_total": 288
+      }
+    },
+    "jpeg_q95": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.32672438574032936,
+        "mono_rms_right_px": 0.3069533821212587,
+        "stereo_rms_px": 0.5131987318406438,
+        "baseline_abs_error_mm": 1.5985817061115313,
+        "baseline_abs_error_px_at_mean_depth": 1.4622529432267548,
+        "tri_rms_mm": 12.419332838794405,
+        "tri_rms_rel_depth_percent": 0.9249571186498655,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.08750486724021271,
+        "mono_rms_right_px": 0.0727791373484354,
+        "stereo_rms_px": 0.11527309147113138,
+        "baseline_abs_error_mm": 0.21859733100242806,
+        "baseline_abs_error_px_at_mean_depth": 0.19661085507897083,
+        "tri_rms_mm": 12.281833617158636,
+        "tri_rms_rel_depth_percent": 0.9147165618090388,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.21479624940579356,
+        "baseline_abs_error_px_at_mean_depth": 0.19464285316073757,
+        "tri_rms_mm": 1.17180975211643,
+        "tri_rms_rel_depth_percent": 0.0872731076614452,
+        "n_frames": 5,
+        "n_points_total": 288
+      }
+    },
+    "jpeg_q98": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.3265764536548186,
+        "mono_rms_right_px": 0.3070123974216447,
+        "stereo_rms_px": 0.5235785977947358,
+        "baseline_abs_error_mm": 1.7608289918354671,
+        "baseline_abs_error_px_at_mean_depth": 1.6105350835741006,
+        "tri_rms_mm": 12.38931727337417,
+        "tri_rms_rel_depth_percent": 0.9227216434221607,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.0878984185218779,
+        "mono_rms_right_px": 0.07080798434754228,
+        "stereo_rms_px": 0.10597480663028704,
+        "baseline_abs_error_mm": 0.06864512737558925,
+        "baseline_abs_error_px_at_mean_depth": 0.06175820226031183,
+        "tri_rms_mm": 12.064411798438137,
+        "tri_rms_rel_depth_percent": 0.8985235938303459,
+        "n_frames": null,
+        "n_points_total": null
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.2404763473290359,
+        "baseline_abs_error_px_at_mean_depth": 0.217913499380374,
+        "tri_rms_mm": 1.3965241471636252,
+        "tri_rms_rel_depth_percent": 0.10400920629572406,
+        "n_frames": 5,
+        "n_points_total": 288
+      }
+    }
+  }
+}

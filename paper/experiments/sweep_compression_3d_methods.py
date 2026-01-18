@@ -151,12 +151,25 @@ def main(argv: list[str] | None = None) -> int:
         description="Sweep compression quality and compare 3D reconstruction pipelines (PNG vs WebP qualities).",
     )
     ap.add_argument("--root", type=Path, default=Path("dataset/compression_sweep"))
+    ap.add_argument(
+        "--only",
+        type=str,
+        default="all",
+        choices=["all", "jpeg", "webp"],
+        help="Compute only a subset (always reuses cached per-case JSON files when available).",
+    )
     ap.add_argument("--png", type=str, default="png_lossless", help="Subdir name for the lossless PNG dataset.")
     ap.add_argument(
         "--webp",
         type=str,
         default="webp_q70,webp_q80,webp_q90,webp_q95",
         help="Comma-separated WebP dataset subdirs to compare.",
+    )
+    ap.add_argument(
+        "--jpeg",
+        type=str,
+        default="jpeg_q80,jpeg_q90,jpeg_q95,jpeg_q98",
+        help="Comma-separated JPEG dataset subdirs to compare.",
     )
     ap.add_argument("--split", default="train")
     ap.add_argument("--scene", default="scene_0000")
@@ -177,59 +190,73 @@ def main(argv: list[str] | None = None) -> int:
     root = args.root
     png_root = root / str(args.png)
     webp_names = [s.strip() for s in str(args.webp).split(",") if s.strip()]
+    jpeg_names = [s.strip() for s in str(args.jpeg).split(",") if s.strip()]
     webp_roots = [(name, root / name) for name in webp_names]
+    jpeg_roots = [(name, root / name) for name in jpeg_names]
 
     out_dir = args.out.parent
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    results: dict[str, Any] = {
-        "schema_version": "stereocomplex.compression_sweep_3d.v0",
-        "settings": {
-            "root": str(root),
-            "png": str(args.png),
-            "webp": webp_names,
-            "split": str(args.split),
-            "scene": str(args.scene),
-            "max_frames": int(args.max_frames),
-            "rayfield3d": {
-                "outer_iters": int(args.outer_iters),
-                "nmax": int(args.nmax),
-                "max_points_per_frame": int(args.max_points_per_frame),
-            },
-            "tps": {"lam": float(args.tps_lam), "huber": float(args.tps_huber), "iters": int(args.tps_iters)},
+    # Resume behavior: if the sweep JSON already exists, extend it in-place.
+    if args.out.exists():
+        try:
+            results = load_json(args.out)
+        except Exception:
+            results = {}
+    else:
+        results = {}
+
+    if results.get("schema_version") != "stereocomplex.compression_sweep_3d.v0":
+        results = {"schema_version": "stereocomplex.compression_sweep_3d.v0"}
+
+    results["settings"] = {
+        "root": str(root),
+        "png": str(args.png),
+        "webp": webp_names,
+        "jpeg": jpeg_names,
+        "split": str(args.split),
+        "scene": str(args.scene),
+        "max_frames": int(args.max_frames),
+        "rayfield3d": {
+            "outer_iters": int(args.outer_iters),
+            "nmax": int(args.nmax),
+            "max_points_per_frame": int(args.max_points_per_frame),
         },
-        "cases": {},
+        "tps": {"lam": float(args.tps_lam), "huber": float(args.tps_huber), "iters": int(args.tps_iters)},
     }
+    if "cases" not in results or not isinstance(results["cases"], dict):
+        results["cases"] = {}
 
-    results["cases"]["png_lossless"] = run_case(
-        py=py,
-        cal_script=cal_script,
-        dataset_root=png_root,
-        split=str(args.split),
-        scene=str(args.scene),
-        max_frames=int(args.max_frames),
-        max_points_per_frame=int(args.max_points_per_frame),
-        outer_iters=int(args.outer_iters),
-        nmax=int(args.nmax),
-        tps_lam=float(args.tps_lam),
-        tps_huber=float(args.tps_huber),
-        tps_iters=int(args.tps_iters),
-        out_dir=out_dir,
-        label="png_lossless",
-    )
-
-    # Keep a stable order by increasing quality if possible.
-    def quality_key(name: str) -> int:
-        m = re.search(r"_q(\\d+)$", name)
+    # Optional convenience: if jpeg sub-datasets are missing, generate them from PNG.
+    def ensure_reencode_if_missing(name: str, ds: Path) -> None:
+        if ds.exists() and (ds / "manifest.json").exists():
+            return
+        if not (png_root / "manifest.json").exists():
+            return
+        try:
+            from stereocomplex.sim.reencode_dataset import ReencodeOptions, reencode_dataset  # noqa: PLC0415
+        except Exception:
+            return
+        m = re.search(r"_q(\d+)$", name)
         if not m:
-            return 10_000
-        return int(m.group(1))
+            return
+        q = int(m.group(1))
+        reencode_dataset(png_root, ds, ReencodeOptions(image_format="jpeg", quality=q, webp_lossless=False))
 
-    for name, ds in sorted(webp_roots, key=lambda kv: quality_key(kv[0])):
-        results["cases"][name] = run_case(
+    cases: dict[str, Any] = results["cases"]
+
+    def maybe_compute(name: str, ds_root: Path) -> None:
+        if name in cases:
+            # If previous reports are still present, keep them.
+            prev = cases[name]
+            rp = Path(str(prev.get("raw_report", "")))
+            pp = Path(str(prev.get("rayfield2d_report", "")))
+            if rp.exists() and pp.exists():
+                return
+        cases[name] = run_case(
             py=py,
             cal_script=cal_script,
-            dataset_root=ds,
+            dataset_root=ds_root,
             split=str(args.split),
             scene=str(args.scene),
             max_frames=int(args.max_frames),
@@ -243,18 +270,50 @@ def main(argv: list[str] | None = None) -> int:
             label=str(name),
         )
 
+    # Always include the PNG baseline if available; only recompute it when requested.
+    if args.only == "all" and "png_lossless" not in cases:
+        maybe_compute("png_lossless", png_root)
+    else:
+        # Ensure png_lossless exists if already computed in previous runs.
+        pass
+
+    # Keep a stable order by increasing quality if possible.
+    def quality_key(name: str) -> int:
+        m = re.search(r"_q(\\d+)$", name)
+        if not m:
+            return 10_000
+        return int(m.group(1))
+
+    if args.only in ("all", "webp"):
+        for name, ds in sorted(webp_roots, key=lambda kv: quality_key(kv[0])):
+            maybe_compute(name, ds)
+
+    if args.only in ("all", "jpeg"):
+        for name, ds in sorted(jpeg_roots, key=lambda kv: quality_key(kv[0])):
+            ensure_reencode_if_missing(name, ds)
+            maybe_compute(name, ds)
+
     args.out.write_text(json.dumps(results, indent=2), encoding="utf-8")
 
     # Plots (matplotlib).
     plots_out = args.plots_out
     plots_out.mkdir(parents=True, exist_ok=True)
+    # Also write a small, doc-friendly JSON snapshot next to the plots (tracked by git).
+    compact = {
+        "schema_version": results.get("schema_version"),
+        "settings": results.get("settings", {}),
+        "cases": {k: v.get("methods", {}) for k, v in (results.get("cases", {}) or {}).items()},
+    }
+    (plots_out / "sweep_metrics.json").write_text(json.dumps(compact, indent=2), encoding="utf-8")
     try:
         import matplotlib.pyplot as plt  # type: ignore
     except Exception:
         return 0
 
     cases = results["cases"]
-    labels = ["png_lossless"] + [name for name, _ in sorted(webp_roots, key=lambda kv: quality_key(kv[0]))]
+    labels_webp = [name for name, _ in sorted(webp_roots, key=lambda kv: quality_key(kv[0])) if name in cases]
+    labels_jpeg = [name for name, _ in sorted(jpeg_roots, key=lambda kv: quality_key(kv[0])) if name in cases]
+    labels = [n for n in ["png_lossless", *labels_webp, *labels_jpeg] if n in cases]
 
     def xval(name: str) -> float:
         if name == "png_lossless":
@@ -262,7 +321,15 @@ def main(argv: list[str] | None = None) -> int:
         m = re.search(r"_q(\\d+)$", name)
         return float(m.group(1)) if m else float("nan")
 
-    x = [xval(n) for n in labels]
+    def x_with_offset(name: str) -> float:
+        xv = xval(name)
+        if name.startswith("webp_"):
+            return xv - 0.15
+        if name.startswith("jpeg_"):
+            return xv + 0.15
+        return xv
+
+    x = [x_with_offset(n) for n in labels]
 
     methods = ["opencv_pinhole_raw", "opencv_pinhole_rayfield2d", "rayfield3d_ba_rayfield2d"]
     colors = {"opencv_pinhole_raw": "tab:red", "opencv_pinhole_rayfield2d": "tab:blue", "rayfield3d_ba_rayfield2d": "tab:green"}
@@ -276,14 +343,31 @@ def main(argv: list[str] | None = None) -> int:
 
     def plot_metric(metric: str, ylabel: str, title: str, filename: str) -> None:
         plt.figure(figsize=(8.2, 4.6), dpi=150)
+        # Plot each method as 2 codec lines (webp/jpeg) + a PNG reference point.
         for m in methods:
-            y = series(metric, m)
-            plt.plot(x, y, marker="o", linewidth=2.0, label=m, color=colors[m])
+            # PNG reference.
+            y_png = series(metric, m)[0]
+            plt.scatter([x[0]], [y_png], marker="s", s=42, color=colors[m], label=f"{m} (PNG)")
+
+            # WebP line (if present).
+            if labels_webp:
+                xw = [x_with_offset(n) for n in labels_webp]
+                yw = [cases[n]["methods"][m].get(metric) for n in labels_webp]
+                yw = [float("nan") if v is None else float(v) for v in yw]
+                plt.plot(xw, yw, marker="o", linewidth=2.0, color=colors[m], alpha=0.85, label=f"{m} (WebP)")
+
+            # JPEG line (if present).
+            if labels_jpeg:
+                xj = [x_with_offset(n) for n in labels_jpeg]
+                yj = [cases[n]["methods"][m].get(metric) for n in labels_jpeg]
+                yj = [float("nan") if v is None else float(v) for v in yj]
+                plt.plot(xj, yj, marker="^", linewidth=2.0, color=colors[m], alpha=0.55, label=f"{m} (JPEG)")
+
         plt.grid(True, alpha=0.25)
-        plt.xlabel("quality (WebP q)   [PNG lossless shown at 101]")
+        plt.xlabel("quality (q)   [PNG lossless shown at 101]")
         plt.ylabel(ylabel)
         plt.title(title)
-        plt.legend()
+        plt.legend(ncol=2, fontsize=8)
         plt.tight_layout()
         plt.savefig(plots_out / filename)
         plt.close()

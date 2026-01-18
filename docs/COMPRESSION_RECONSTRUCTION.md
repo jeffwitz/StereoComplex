@@ -35,6 +35,7 @@ Command (uses cached intermediate JSON files; does not regenerate datasets):
   --root dataset/compression_sweep \
   --png png_lossless \
   --webp webp_q70,webp_q80,webp_q90,webp_q95 \
+  --jpeg jpeg_q80,jpeg_q90,jpeg_q95,jpeg_q98 \
   --split train --scene scene_0000 \
   --out paper/tables/compression_compare/sweep_webp_quality.json \
   --plots-out docs/assets/compression_sweep
@@ -58,6 +59,10 @@ This plot illustrates 3D robustness under compression. For the ray-field pipelin
 
 ![](assets/compression_sweep/tri_rms_rel_depth_percent.png)
 
+The exact numeric results used to generate these plots are saved as:
+
+- `docs/assets/compression_sweep/sweep_metrics.json`
+
 ## Discussion: why can compression sometimes “help”?
 
 It is not intuitive, but it is plausible to observe that **moderate lossy compression can improve some metrics** in a ChArUco-based pipeline, for at least three reasons:
@@ -72,4 +77,3 @@ In contrast, the ray-field approach aims to reduce sensitivity to these effects 
 
 - using a geometric prior on the board plane (2D ray-field),
 - and using a ray-based representation for 3D (instead of forcing a global pinhole model).
-
