@@ -113,6 +113,7 @@ This motivates metrics that reflect stereo usefulness beyond reprojection RMS.
 We report the following stereo-relevant metrics:
 \begin{itemize}
   \item \textbf{Stereo reprojection RMS} (OpenCV fit objective; included for completeness).
+  \item \textbf{Rectification vertical disparity:} after rectification, we report statistics of $|\Delta y|=|v_L^{\mathrm{rect}}-v_R^{\mathrm{rect}}|$ (median/P95). This directly measures epipolar consistency in pixel units.
   \item \textbf{Baseline error in disparity-equivalent pixels:} translate baseline error into an equivalent disparity error at a representative depth $\bar Z$ to interpret scale stability.
   \item \textbf{Triangulation RMS (when ground truth is available):} report RMS 3D error, and a depth-normalized version ($\%\,\bar Z$) for comparability across scenes.
   \item \textbf{Ray skew} (for ray-based stereo): the minimum distance between the two back-projected rays (should be small when geometry is consistent).
@@ -215,6 +216,10 @@ We compare:
   \item \textbf{B2: OpenCV pinhole + planar refinement.} Apply the planar second pass, then run the same OpenCV calibration.
   \item \textbf{B3: 3D ray-field + planar refinement.} Use planar refinement for 2D correspondences, then fit the compact central ray-based stereo model and triangulate by ray intersection.
 \end{itemize}
+For completeness, Table~\ref{tab:charuco_methods} also includes intermediate 2D identification baselines (homography-only and model-based variants) evaluated in pixel space.
+
+\subsection{Experimental settings}
+Unless stated otherwise, results use the released compression sweep configuration (\path{docs/assets/compression_sweep/sweep_metrics.json}): $5$ frames, TPS refinement with $\lambda=10$ and Huber IRLS (3 iterations), and the central 3D ray-field with Zernike order $n_{\max}=10$ and $3$ outer optimization iterations.
 
 \subsection{Main results: robustness to compression}
 Figure~\ref{fig:compression_tri} reports triangulation stability (RMS depth error normalized by mean depth) as a function of codec quality.
@@ -245,38 +250,46 @@ We also report stereo RMS and baseline error in disparity-equivalent pixels (Fig
 
 \subsection{Summary table (selected codecs)}
 Table~\ref{tab:compression_summary} summarizes representative metrics for a lossless PNG and selected lossy WebP/JPEG settings using the released sweep results.
+Vertical disparity statistics are computed by rectifying \emph{ground-truth correspondences} using the \emph{estimated} stereo parameters for each pipeline, isolating epipolar consistency of the estimated geometry.
 
 \begin{table}[t]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{llccc}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{l p{3.2cm} c c c c}
 \toprule
-Codec & Method & Stereo RMS (px) & Baseline err (px @ $\bar Z$) & Tri RMS (\%$\bar Z$)\\
+Codec & Method & Stereo RMS (px) & \shortstack{Rectif.\\P95 $|\Delta y|$ (px)} & \shortstack{Baseline err\\(px @ $\bar Z$)} & \shortstack{Tri RMS\\(\%$\bar Z$)}\\
 \midrule
-\multicolumn{5}{l}{\textbf{PNG (lossless)}}\\
-\quad & OpenCV pinhole (raw) & 0.529 & 1.693 & 0.971\\
-\quad & OpenCV pinhole + planar refinement & 0.123 & 0.287 & 1.079\\
-\quad & 3D ray-field + planar refinement & -- & 0.200 & 0.097\\
+\multicolumn{6}{l}{\textbf{PNG (lossless)}}\\
+\quad & OpenCV pinhole (raw) & 0.529 & 0.759 & 1.693 & 0.971\\
+\quad & OpenCV pinhole + planar refinement & 0.123 & 0.233 & 0.287 & 1.079\\
+\quad & 3D ray-field + planar refinement & -- & -- & 0.200 & 0.097$^{\dagger}$\\
 \midrule
-\multicolumn{5}{l}{\textbf{WebP (q70)}}\\
-\quad & OpenCV pinhole (raw) & 0.499 & 1.208 & 0.874\\
-\quad & OpenCV pinhole + planar refinement & 0.117 & 0.110 & 1.010\\
-\quad & 3D ray-field + planar refinement & -- & 0.218 & 0.077\\
+\multicolumn{6}{l}{\textbf{WebP (q70)}}\\
+\quad & OpenCV pinhole (raw) & 0.499 & 0.670 & 1.208 & 0.874\\
+\quad & OpenCV pinhole + planar refinement & 0.117 & 0.170 & 0.110 & 1.010\\
+\quad & 3D ray-field + planar refinement & -- & -- & 0.218 & 0.077$^{\dagger}$\\
 \midrule
-\multicolumn{5}{l}{\textbf{JPEG (q80)}}\\
-\quad & OpenCV pinhole (raw) & 0.513 & 1.376 & 0.890\\
-\quad & OpenCV pinhole + planar refinement & 0.119 & 0.137 & 1.102\\
-\quad & 3D ray-field + planar refinement & -- & 0.296 & 0.101\\
+\multicolumn{6}{l}{\textbf{JPEG (q80)}}\\
+\quad & OpenCV pinhole (raw) & 0.513 & 0.716 & 1.376 & 0.890\\
+\quad & OpenCV pinhole + planar refinement & 0.119 & 0.197 & 0.137 & 1.102\\
+\quad & 3D ray-field + planar refinement & -- & -- & 0.296 & 0.101$^{\dagger}$\\
 \bottomrule
 \end{tabular}
-\caption{Compression robustness (synthetic, selected codecs) using the released sweep results (\texttt{docs/assets/compression\_sweep/sweep\_metrics.json}). ``Baseline err'' is converted to disparity-equivalent pixels at mean depth $\bar Z$; ``Tri RMS'' is depth-normalized. The 3D ray-field remains stable across lossy codecs in this benchmark.}
+\caption{Compression robustness (synthetic, selected codecs) using the released sweep results (\protect\path{docs/assets/compression_sweep/sweep_metrics.json}). ``Rectif.\ $|\Delta y|$'' is the P95 of vertical disparity after rectification, computed by rectifying ground-truth correspondences with the estimated stereo parameters. ``Baseline err'' is converted to disparity-equivalent pixels at mean depth $\bar Z$; ``Tri RMS'' is depth-normalized. $^{\dagger}$For the 3D ray-field, triangulation error is reported after similarity alignment due to gauge freedom (see Section~\ref{sec:ray3d}).}
 \label{tab:compression_summary}
 \end{table}
 
 \subsection{Why reprojection RMS can be misleading}
 Under structured perturbations, a pinhole model may partially compensate biased correspondences by drifting intrinsics/extrinsics, thereby reducing reprojection RMS without improving rectification stability or triangulation.
 This motivates reporting baseline-in-pixels and triangulation stability in addition to reprojection RMS.
+
+\subsection{Why lower reprojection error may not improve depth on this benchmark}
+Table~\ref{tab:compression_summary} highlights an important phenomenon: the planar refinement substantially reduces stereo RMS, yet triangulation RMS does not necessarily decrease for the pinhole pipelines.
+This is expected for two reasons.
+First, depth depends primarily on \emph{disparity bias} and on epipolar consistency; a lower global reprojection RMS can coexist with systematic disparity errors that dominate depth.
+Second, the OpenCV objective is optimized on the same degraded measurements used for triangulation in this benchmark, so a reduced reprojection RMS can reflect a better fit to structured measurement biases rather than improved physical geometry.
+The vertical-disparity statistic (rectified $|\Delta y|$) helps disambiguate these cases by directly measuring epipolar stability in pixels.
 
 \subsection{Runtime considerations}
 Planar refinement is lightweight once correspondences are detected: it requires a homography fit and a small TPS solve on the marker-corner set.
@@ -324,6 +337,10 @@ This appendix summarizes the core stereo metrics used in the experiments.
 \paragraph{Baseline error in disparity-equivalent pixels.}
 Given an estimated baseline error $\Delta B$ (in mm) and a representative depth $\bar Z$ (in mm), we report a disparity-equivalent pixel error by mapping baseline error to its effect on disparity at $\bar Z$ under the nominal geometry.
 This provides an interpretable pixel-domain scale stability metric.
+
+\paragraph{Vertical disparity after rectification.}
+Given estimated stereo parameters, we compute rectification transforms (e.g., via \texttt{stereoRectify}) and rectify corresponding points.
+We report statistics of the vertical disparity magnitude $|\Delta y|=|v_L^{\mathrm{rect}}-v_R^{\mathrm{rect}}|$ in pixels (median/P95).
 
 \paragraph{Triangulation RMS.}
 When ground-truth 3D points are available, we compute RMS 3D error in mm, and a depth-normalized version:
