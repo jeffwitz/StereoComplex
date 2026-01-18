@@ -338,7 +338,16 @@ def main(argv: list[str] | None = None) -> int:
     x = [x_with_offset(n) for n in labels]
 
     methods = ["opencv_pinhole_raw", "opencv_pinhole_rayfield2d", "rayfield3d_ba_rayfield2d"]
-    colors = {"opencv_pinhole_raw": "tab:red", "opencv_pinhole_rayfield2d": "tab:blue", "rayfield3d_ba_rayfield2d": "tab:green"}
+    colors = {
+        "opencv_pinhole_raw": "tab:red",
+        "opencv_pinhole_rayfield2d": "tab:blue",
+        "rayfield3d_ba_rayfield2d": "tab:green",
+    }
+    labels_method = {
+        "opencv_pinhole_raw": "OpenCV pinhole (raw corners)",
+        "opencv_pinhole_rayfield2d": "OpenCV pinhole (+2D ray-field)",
+        "rayfield3d_ba_rayfield2d": "3D ray-field (+2D ray-field)",
+    }
 
     def series(metric: str, method: str) -> list[float]:
         out: list[float] = []
@@ -351,23 +360,24 @@ def main(argv: list[str] | None = None) -> int:
         plt.figure(figsize=(8.2, 4.6), dpi=150)
         # Plot each method as 2 codec lines (webp/jpeg) + a PNG reference point.
         for m in methods:
+            name = labels_method.get(m, m)
             # PNG reference.
             y_png = series(metric, m)[0]
-            plt.scatter([x[0]], [y_png], marker="s", s=42, color=colors[m], label=f"{m} (PNG)")
+            plt.scatter([x[0]], [y_png], marker="s", s=42, color=colors[m], label=f"{name} (PNG)")
 
             # WebP line (if present).
             if labels_webp:
                 xw = [x_with_offset(n) for n in labels_webp]
                 yw = [cases[n]["methods"][m].get(metric) for n in labels_webp]
                 yw = [float("nan") if v is None else float(v) for v in yw]
-                plt.plot(xw, yw, marker="o", linewidth=2.0, color=colors[m], alpha=0.85, label=f"{m} (WebP)")
+                plt.plot(xw, yw, marker="o", linewidth=2.0, color=colors[m], alpha=0.85, label=f"{name} (WebP)")
 
             # JPEG line (if present).
             if labels_jpeg:
                 xj = [x_with_offset(n) for n in labels_jpeg]
                 yj = [cases[n]["methods"][m].get(metric) for n in labels_jpeg]
                 yj = [float("nan") if v is None else float(v) for v in yj]
-                plt.plot(xj, yj, marker="^", linewidth=2.0, color=colors[m], alpha=0.55, label=f"{m} (JPEG)")
+                plt.plot(xj, yj, marker="^", linewidth=2.0, color=colors[m], alpha=0.55, label=f"{name} (JPEG)")
 
         plt.grid(True, alpha=0.25)
         plt.xlabel("quality (q)   [PNG lossless shown at 101]")

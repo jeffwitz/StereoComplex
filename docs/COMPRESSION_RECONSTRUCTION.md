@@ -3,7 +3,7 @@
 This page studies how image compression impacts:
 
 1. **ChArUco-based OpenCV stereo calibration**, and
-2. the **ray-based 3D reconstruction** pipeline (*central 3D ray-field + point↔ray BA*).
+2. the **ray-based 3D reconstruction** pipeline (*central 3D ray-field + point↔ray bundle adjustment*).
 
 The main goal is practical: determine whether a ray-based reconstruction remains usable when images are **strongly compressed** (for storage, telemetry, or embedded/robotics pipelines).
 
@@ -15,7 +15,7 @@ We compare three pipelines:
 
 1. **OpenCV pinhole (raw)**: calibrate from raw OpenCV ChArUco detections.
 2. **OpenCV pinhole (+ 2D ray-field)**: refine corners with `rayfield_tps_robust`, then calibrate with OpenCV.
-3. **3D ray-field BA (+ 2D ray-field)**: refine corners with `rayfield_tps_robust`, then calibrate a central 3D ray-field via point↔ray bundle adjustment and triangulate.
+3. **3D ray-field (+ 2D ray-field)**: refine corners with `rayfield_tps_robust`, then calibrate a central 3D ray-field via point↔ray bundle adjustment (nonlinear least squares) and triangulate.
 
 ### Metrics
 
@@ -67,7 +67,7 @@ The plotting script automatically includes **all computed codec qualities** foun
 
 ## Key finding: 3D ray-field is remarkably stable under compression
 
-On this sweep, the **central 3D ray-field + BA** pipeline is both:
+On this sweep, the **central 3D ray-field + bundle adjustment** pipeline is both:
 
 - **stable** across strong lossy compression, and
 - **consistently better in 3D** than OpenCV pinhole, even when pinhole uses 2D ray-field refined corners.

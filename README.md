@@ -109,7 +109,7 @@ Export refined ChArUco corners (JSON + an OpenCV-ready NPZ):
 
 ## Quickstart (3D reconstruction without a pinhole model)
 
-Calibrate a central ray-field stereo model (point↔ray BA) and export it:
+Calibrate a central ray-field stereo model (point↔ray bundle adjustment) and export it:
 
 ```bash
 .venv/bin/python paper/experiments/calibrate_central_rayfield3d_from_images.py dataset/v0_png \

@@ -216,7 +216,7 @@ This comparison runs three pipelines:
 
 1. OpenCV pinhole calibration from **raw** ChArUco corners,
 2. OpenCV pinhole calibration from **2D ray-field refined** corners,
-3. central **3D ray-field (BA)** calibrated from **2D ray-field refined** corners.
+3. central **3D ray-field (bundle adjustment)** calibrated from **2D ray-field refined** corners.
 
 Command (prints a markdown summary and writes a JSON report):
 
@@ -249,7 +249,7 @@ Miraldo et al. propose a compact, continuous version of the general imaging mode
 radial basis functions (RBF), and derive a linear calibration procedure from point↔line incidence constraints
 (`Point-based Calibration using a Parametric Representation of the General Imaging Model`, ICCV 2011, DOI: `10.1109/ICCV.2011.6126511`).
 
-Our current BA formulation is a *central* specialization: lines pass through a constant origin $C$, so a pixel maps to a
+Our current bundle-adjustment formulation is a *central* specialization: lines pass through a constant origin $C$, so a pixel maps to a
 unit direction $\hat{\mathbf d}(u,v)$ only. Extending the current code to non-central optics can follow the same structure
 (compact interpolation + global regularization), but with a per-pixel line representation (e.g., Plücker) instead of a single origin.
 
@@ -280,7 +280,7 @@ In the stereo version, we optimize **simultaneously**:
 
 We solve with `scipy.optimize.least_squares` (robust Gauss-Newton/LM) using Huber loss and $L^2$ coefficient regularization.
 
-### Script (images → 2D ray-field → 3D ray-field BA → stereo)
+### Script (images → 2D ray-field → 3D ray-field bundle adjustment → stereo)
 
 ```bash
 .venv/bin/python paper/experiments/calibrate_central_rayfield3d_from_images.py \
@@ -302,19 +302,19 @@ Output: JSON (default: `paper/tables/rayfield3d_ba_from_images.json`) with:
 
 ### Results (example)
 
-On `scene_0000` (5 frames), the “pinhole oracle” remains a lower bound (pinhole + GT Brown). The central 3D ray-field BA (Zernike, central model) is calibrated **without solvePnP** and **without a known** $K$: initial board poses are obtained from homographies (Zhang-style) only as an *initialization*, and the solver then directly optimizes the point↔ray cost (robust Gauss-Newton via SciPy).
+On `scene_0000` (5 frames), the “pinhole oracle” remains a lower bound (pinhole + GT Brown). The central 3D ray-field (Zernike, central model) is calibrated **without solvePnP** and **without a known** $K$: initial board poses are obtained from homographies (Zhang-style) only as an *initialization*, and the solver then directly optimizes the point↔ray cost (robust Gauss-Newton via SciPy).
 
 ```{table} Central ray-based calibration from images: comparison to the pinhole oracle (example).
-:name: tab-rayfield3d-ba-example
+:name: tab-rayfield3d-bundle-adjustment-example
 
 | 3D method (same 2D points) | Baseline abs. err. (mm) | Baseline abs. err. (px) | 3D RMS (mm) | Reproj RMS L/R (px) |
 |---|---:|---:|---:|---:|
 | Pinhole oracle (GT params) | $0$ | $0$ | $\approx 1.28$ | $\approx 0.20 / 0.15$ |
 | OpenCV pinhole calibrated (images, non-GT) | $\approx 0.32$ | $\approx 0.29$ | $\approx 14.48$ | $\approx 3.02 / 2.77$ |
-| 3D ray-field BA (central, Zernike) | $\approx 0.21$ | $\approx 0.19$ | $\approx 1.55$ | $\approx 1.36 / 1.33$ |
+| 3D ray-field (bundle adjustment, central Zernike) | $\approx 0.21$ | $\approx 0.19$ | $\approx 1.55$ | $\approx 1.36 / 1.33$ |
 ```
 
-Note: for the “3D ray-field BA” row, the 3D RMS and reprojections are computed **after** a fixed-origin similarity alignment (rotation + scale, no translation) between the reconstruction and the GT reference. Without this step, errors “in the GT frame” become arbitrarily large because the point↔ray cost does not, by itself, fix the global frame choice (gauge).
+Note: for the “3D ray-field” row, the 3D RMS and reprojections are computed **after** a fixed-origin similarity alignment (rotation + scale, no translation) between the reconstruction and the GT reference. Without this step, errors “in the GT frame” become arbitrarily large because the point↔ray cost does not, by itself, fix the global frame choice (gauge).
 
 ### Discussion: (i) baseline, (ii) reprojection, (iii) triangulation
 
@@ -333,7 +333,7 @@ Practical takeaway:
 - in robotics (rectification, dense stereo), baseline accuracy and epipolar coherence often dominate matching success;
 - in metrology (stereo-DIC), ray-based calibration can stabilize stereo geometry when a global pinhole becomes only an approximation.
 
-### Discussion: why “3D ray-field BA” needs an “aligned” comparison
+### Discussion: why the ray-field calibration needs an “aligned” comparison
 
 The point↔ray cost
 
@@ -470,5 +470,5 @@ This is on the same order of magnitude as a pinhole model (focal length, princip
 
 ### Code references
 
-- Central stereo point↔ray BA: `src/stereocomplex/ray3d/central_stereo_ba.py`
-- Experimental driver (images → BA): `paper/experiments/calibrate_central_rayfield3d_from_images.py`
+- Central stereo point↔ray bundle adjustment: `src/stereocomplex/ray3d/central_stereo_ba.py`
+- Experimental driver (images → bundle adjustment): `paper/experiments/calibrate_central_rayfield3d_from_images.py`

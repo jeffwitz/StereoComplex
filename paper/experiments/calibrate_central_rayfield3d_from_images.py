@@ -663,7 +663,7 @@ def _init_coeffs_from_pose_guess(
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Calibrate a central ray-field (Zernike) from images (multi-poses) using point-to-ray BA."
+        description="Calibrate a central ray-field (Zernike) from images (multi-poses) using point-to-ray bundle adjustment."
     )
     ap.add_argument("dataset_root", type=Path)
     ap.add_argument("--split", default="train")
@@ -883,7 +883,7 @@ def main() -> int:
         image_size=image_size,
     )
 
-    # Joint stereo BA (shared rig, board poses in left camera coordinates).
+    # Joint stereo bundle adjustment (shared rig, board poses in left camera coordinates).
     stereo_frames = {
         fid: StereoFrameObservations(
             uv_left_px=obs_L[fid].uv_px,

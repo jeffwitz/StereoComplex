@@ -159,11 +159,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--run-rayfield3d",
         action="store_true",
-        help="Also run ray-field 3D BA + post-hoc pinhole identification per case.",
+        help="Also run ray-field 3D bundle adjustment + post-hoc pinhole identification per case.",
     )
     ap.add_argument("--rayfield3d-outer-iters", type=int, default=6)
     ap.add_argument("--rayfield3d-nmax", type=int, default=12)
-    ap.add_argument("--rayfield3d-max-points", type=int, default=200, help="Max ChArUco corners per frame for ray-field 3D BA.")
+    ap.add_argument(
+        "--rayfield3d-max-points",
+        type=int,
+        default=200,
+        help="Max ChArUco corners per frame for ray-field 3D bundle adjustment.",
+    )
     args = ap.parse_args(argv)
 
     seeds = [int(s.strip()) for s in str(args.seeds).split(",") if s.strip()]

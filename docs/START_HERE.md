@@ -26,7 +26,7 @@ StereoComplex is built around:
 - ChArUco detection evaluation against GT,
 - a 2D “ray-field” correction (`rayfield_tps_robust`) to improve corner localization,
 - a stereo calibration / triangulation evaluation pipeline (OpenCV),
-- an experimental central 3D ray-field (Zernike) and point↔ray bundle adjustment.
+- an experimental central 3D ray-field (Zernike) calibrated by point↔ray bundle adjustment.
 
 ## What is already implemented
 
@@ -37,7 +37,7 @@ StereoComplex is built around:
 - Worked example (end-to-end 2D ray-field): `docs/RAYFIELD_WORKED_EXAMPLE.md`
 - Stereo calibration + reconstruction study: `docs/STEREO_RECONSTRUCTION.md`
 - Robustness sweep: `docs/ROBUSTNESS_SWEEP.md`
-- Central 3D ray-field + BA: `docs/RAYFIELD3D_RECONSTRUCTION.md`
+- Central 3D ray-field + point↔ray bundle adjustment: `docs/RAYFIELD3D_RECONSTRUCTION.md`
 
 ## Quickstart
 

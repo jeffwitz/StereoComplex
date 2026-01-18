@@ -119,7 +119,7 @@ Results are stored in:
 - `paper/tables/robustness_sweep/*.json` (per-case reports),
 - `paper/tables/robustness_sweep/summary.json` (aggregated).
 
-Optional (slow): also run the ray-field 3D BA + post-hoc pinhole identification for each case:
+Optional (slow): also run the ray-field 3D bundle adjustment + post-hoc pinhole identification for each case:
 
 ```bash
 .venv/bin/python paper/experiments/sweep_robustness_board_focal_aberrations.py --seeds 0,1 --frames 16 --run-rayfield3d
