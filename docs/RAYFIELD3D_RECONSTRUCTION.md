@@ -228,6 +228,8 @@ Command (prints a markdown summary and writes a JSON report):
   --out paper/tables/compression_compare/compression_compare_3d_methods.json
 ```
 
+For a more complete WebP quality sweep and a discussion of non-intuitive effects (compression can sometimes help by acting as a low-pass filter), see: [Image compression and 3D reconstruction](COMPRESSION_RECONSTRUCTION.md).
+
 ## Part C — Ray-based calibration (no GT 3D): point↔ray bundle adjustment
 
 This section replaces the “GT-assisted 3D fit” by a full calibration from:

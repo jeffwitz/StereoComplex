@@ -57,8 +57,9 @@ def _metrics_opencv(report: dict[str, Any]) -> MethodMetrics:
 
 def _metrics_rayfield3d(report: dict[str, Any]) -> MethodMetrics:
     rig = report["rig"]
-    tri = report["rayfield3d_ba"]["triangulation_error_mm"]
-    tri_rel = report["rayfield3d_ba"]["triangulation_error_rel_depth_percent"]
+    # Ray-field 3D has a weak gauge (scale/pose drift). Report similarity-aligned metrics.
+    tri = report["rayfield3d_ba"]["triangulation_error_mm_aligned_similarity"]
+    depth_mean = float(report.get("depth_mm", {}).get("mean", float("nan")))
     return MethodMetrics(
         mono_rms_left_px=None,
         mono_rms_right_px=None,
@@ -66,7 +67,7 @@ def _metrics_rayfield3d(report: dict[str, Any]) -> MethodMetrics:
         baseline_abs_error_mm=float(rig["baseline_abs_error_mm"]),
         baseline_abs_error_px_at_mean_depth=float(rig["baseline_abs_error_px_at_mean_depth"]),
         tri_rms_mm=float(tri["rms"]),
-        tri_rms_rel_depth_percent=float(tri_rel["rms"]),
+        tri_rms_rel_depth_percent=float(100.0 * float(tri["rms"]) / (float(depth_mean) + 1e-12)),
     )
 
 

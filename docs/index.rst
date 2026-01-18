@@ -58,6 +58,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 - I want multi-case robustness results: :doc:`ROBUSTNESS_SWEEP`
 - I want to load/export models and reconstruct via an API: :doc:`RECONSTRUCTION_API`
 - I want the public API contract: :doc:`PUBLIC_API`
+- I want compression robustness for 3D reconstruction: :doc:`COMPRESSION_RECONSTRUCTION`
 - I want the math and ray-based calibration: :doc:`RAYFIELD3D_RECONSTRUCTION`
 
 .. toctree::
@@ -86,6 +87,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 
    STEREO_RECONSTRUCTION
    ROBUSTNESS_SWEEP
+   COMPRESSION_RECONSTRUCTION
    RECONSTRUCTION_API
    PUBLIC_API
    RAYFIELD3D_RECONSTRUCTION
