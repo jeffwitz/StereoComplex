@@ -229,12 +229,12 @@ Unless stated otherwise, results use the released compression sweep configuratio
 
 \subsection{Main results: robustness to compression}
 Figure~\ref{fig:compression_tri} reports triangulation stability (RMS depth error normalized by mean depth) as a function of codec quality.
-The compact 3D ray-field is remarkably stable across compression levels on this benchmark, while pinhole-based baselines remain sensitive to codec artifacts.
+Using the settings of Section~7.2 ($\lambda=10$, $n_{\max}=10$, $5$ frames), the compact 3D ray-field is remarkably stable across compression levels on this benchmark, while pinhole-based baselines remain sensitive to codec artifacts.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.92\linewidth]{../docs/assets/compression_sweep/tri_rms_rel_depth_percent.png}
-\caption{Compression sweep (synthetic): triangulation RMS as a percentage of mean depth versus codec quality. The ray-based backend remains stable across codec settings on this benchmark, while pinhole-based pipelines are sensitive to lossy compression.}
+\caption{Compression sweep (synthetic): triangulation RMS as a percentage of mean depth versus codec quality. Note the near-flat response of the ray-based backend across codec settings on this benchmark, while pinhole-based pipelines are sensitive to lossy compression.}
 \label{fig:compression_tri}
 \end{figure}
 
@@ -299,7 +299,7 @@ WebP (q70) & 1.007 & 0.985 & 0.141\\
 JPEG (q80) & 1.571 & 1.533 & 0.152\\
 \bottomrule
 \end{tabular}
-\caption{Ray-based diagnostics for the compact 3D ray-field on selected codecs (2D planar refinement enabled). ``Reproj. RMS'' reports per-view reprojection error after origin-preserving similarity alignment (see Section~\ref{sec:ray3d}). ``Ray skew'' is the minimum distance between the two rays for a correspondence, reported as P95 over all points/frames.}
+\caption{Ray-based diagnostics for the compact 3D ray-field on selected codecs (2D planar refinement enabled). ``Reproj. RMS'' reports per-view reprojection error after origin-preserving similarity alignment (see Section~\ref{sec:ray3d}); this alignment is used only to compare to ground-truth 3D points and does not affect ray skew or baseline metrics computed in the camera frame. ``Ray skew'' is the minimum distance between the two rays for a correspondence, reported as P95 over all points/frames.}
 \label{tab:rayfield_diagnostics}
 \end{table}
 
@@ -380,6 +380,17 @@ For ray-based stereo, we also report the minimum distance between the two rays c
 Equation~\eqref{eq:tps_objective} is solved by IRLS with a robust Huber penalty~\cite{huber1964robust}.
 At each iteration, weights are updated from current residual magnitudes and a weighted TPS linear system is solved.
 Implementation follows a standard smoothing spline formulation, with $\lambda$ controlling smoothness.
+
+\section{TPS residual fields under compression}
+\label{app:tps_fields}
+To support the interpretation in Section~8.1, Figure~\ref{fig:tps_fields} visualizes the learned TPS residual magnitude $\|\mathbf{g}(x,y)\|$ on the board plane for two codec settings from the released compression sweep.
+The residual field captures low-frequency, spatially correlated biases induced by compression artifacts near high-contrast edges.
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/tps_residual_fields_png_webp.png}
+\caption{TPS residual magnitude on the calibration plane for a lossless PNG versus a lossy WebP setting (same scene and comparable frame subset). Colors show $\|\mathbf{g}(x,y)\|$ in pixels; both panels share the same color scale.}
+\label{fig:tps_fields}
+\end{figure}
 
 \bibliographystyle{plain}
 \bibliography{references}
