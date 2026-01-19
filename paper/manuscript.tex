@@ -148,6 +148,7 @@ In this work we use a thin-plate spline (TPS) residual field~\cite{bookstein1989
 \label{eq:tps_objective}
 \end{equation}
 where $\rho$ is a robust penalty (Huber~\cite{huber1964robust}) and $\mathcal{R}_{\mathrm{TPS}}$ is the bending-energy regularizer controlling smoothness.
+TPS control points are the detected ArUco marker corners (four corners per detected marker), expressed in board coordinates.
 We solve Eq.~\eqref{eq:tps_objective} by iteratively reweighted least squares (IRLS), updating weights from current residual magnitudes.
 The smoothness parameter $\lambda$ trades off fidelity to the observed residuals and spatial smoothness, and is swept in ablations (Appendix~\ref{app:irls_tps}).
 
@@ -161,7 +162,7 @@ We first evaluate planar refinement as a pure 2D identification method by compar
 Table~\ref{tab:charuco_methods} reports representative 2D errors for multiple identification strategies.
 \input{tables/charuco_methods.tex}
 
-\section{Optional extension: compact central ray-based stereo}
+\section{Ray-based backend for maximum robustness}
 \label{sec:ray3d}
 \subsection{Model definition}
 We define a \emph{central} ray-based camera model that maps a pixel $(u,v)$ to a unit direction $\mathbf{d}(u,v)\in\mathbb{R}^3$.
@@ -189,7 +190,7 @@ We report the resulting 3D estimate and the \emph{ray skew} (minimum distance be
 
 \paragraph{Evaluation note (gauge and similarity alignment).}
 The ray-based formulation is expressed in camera coordinates and does not enforce a unique global gauge when compared to world-referenced ground truth (e.g., a global similarity transform may remain weakly constrained depending on parameterization and pose distribution).
-For ground-truth evaluation, we therefore report ray-based triangulation error after a best-fit similarity alignment (Sim(3)) between reconstructed points and ground truth.
+For ground-truth evaluation, we therefore report ray-based triangulation error after a best-fit similarity alignment (Sim(3), i.e., rotation, translation, and isotropic scale) between reconstructed points and ground truth.
 In addition, we report stereo scale stability separately through the estimated rig baseline error mapped to disparity-equivalent pixels at mean depth (Section~\ref{app:metrics}).
 
 \section{Synthetic benchmark design}
@@ -233,7 +234,7 @@ The compact 3D ray-field is remarkably stable across compression levels on this 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.92\linewidth]{../docs/assets/compression_sweep/tri_rms_rel_depth_percent.png}
-\caption{Compression sweep (synthetic): triangulation RMS as a percentage of mean depth versus codec quality. The 3D ray-field remains stable across codec settings on this benchmark, while pinhole-based pipelines are sensitive to lossy compression.}
+\caption{Compression sweep (synthetic): triangulation RMS as a percentage of mean depth versus codec quality. The ray-based backend remains stable across codec settings on this benchmark, while pinhole-based pipelines are sensitive to lossy compression.}
 \label{fig:compression_tri}
 \end{figure}
 
@@ -242,7 +243,7 @@ We also report stereo RMS and baseline error in disparity-equivalent pixels (Fig
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.92\linewidth]{../docs/assets/compression_sweep/stereo_rms_px.png}
-\caption{Compression sweep (synthetic): stereo reprojection RMS versus codec quality for the OpenCV pipelines. Reprojection RMS alone does not fully characterize stereo usefulness under compression.}
+\caption{Compression sweep (synthetic): stereo reprojection RMS versus codec quality for the OpenCV pipelines. \textbf{Lower reprojection RMS does not imply better stereo geometry under compression}; see Section~7.6.}
 \label{fig:compression_stereo_rms}
 \end{figure}
 
@@ -332,6 +333,7 @@ We therefore emphasize stereo-relevant metrics and provide ground-truth comparis
 
 \subsection{Scope and future work}
 This paper reports \emph{synthetic-only} results with ground-truth geometry and controlled degradations.
+The synthetic benchmark is a methodological necessity to isolate the effect of compression and to measure baseline drift and depth stability against a known geometric reference; on real data, such quantities would require external metrology or carefully instrumented ground truth.
 Real-world validation (including sensor pipelines and non-ideal optics) is left as future work.
 The current ray-based model is central; extending to non-central generalized cameras is also future work.
 
@@ -348,7 +350,7 @@ The code is released under GPL-2.0-or-later; documentation is released under CC 
 \section{Conclusion}
 We presented a planar geometric refinement pipeline that improves the stability of fiducial correspondences under structured degradations such as lossy compression.
 Using a fully reproducible synthetic benchmark, we demonstrated that stereo-relevant metrics (baseline stability in pixels and triangulation stability) reveal failure modes not captured by reprojection RMS alone.
-An optional compact central ray-based stereo model further improves robustness to compression on our benchmark.
+A compact central ray-based stereo backend further improves robustness to compression on our benchmark.
 Real-world validation and extensions to non-central ray models are left as future work.
 
 \appendix
