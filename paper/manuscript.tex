@@ -187,6 +187,11 @@ For stereo, we jointly optimize a single rigid transform between cameras and per
 Given a correspondence $(u_L,v_L)\leftrightarrow(u_R,v_R)$, we back-project two rays and triangulate by the closest approach of the two lines.
 We report the resulting 3D estimate and the \emph{ray skew} (minimum distance between rays) as a geometry-consistency diagnostic.
 
+\paragraph{Evaluation note (gauge and similarity alignment).}
+The ray-based formulation is expressed in camera coordinates and does not enforce a unique global gauge when compared to world-referenced ground truth (e.g., a global similarity transform may remain weakly constrained depending on parameterization and pose distribution).
+For ground-truth evaluation, we therefore report ray-based triangulation error after a best-fit similarity alignment (Sim(3)) between reconstructed points and ground truth.
+In addition, we report stereo scale stability separately through the estimated rig baseline error mapped to disparity-equivalent pixels at mean depth (Section~\ref{app:metrics}).
+
 \section{Synthetic benchmark design}
 \label{sec:benchmark}
 \subsection{Ground-truth geometry}
@@ -263,21 +268,38 @@ Codec & Method & Stereo RMS (px) & \shortstack{Rectif.\\P95 $|\Delta y|$ (px)} &
 \multicolumn{6}{l}{\textbf{PNG (lossless)}}\\
 \quad & OpenCV pinhole (raw) & 0.529 & 0.759 & 1.693 & 0.971\\
 \quad & OpenCV pinhole + planar refinement & 0.123 & 0.233 & 0.287 & 1.079\\
-\quad & 3D ray-field + planar refinement & -- & -- & 0.200 & 0.097$^{\dagger}$\\
+\quad & 3D ray-field + planar refinement & N/A$^{\ddagger}$ & N/A$^{\ddagger}$ & 0.200 & 0.097$^{\dagger}$\\
 \midrule
 \multicolumn{6}{l}{\textbf{WebP (q70)}}\\
 \quad & OpenCV pinhole (raw) & 0.499 & 0.670 & 1.208 & 0.874\\
 \quad & OpenCV pinhole + planar refinement & 0.117 & 0.170 & 0.110 & 1.010\\
-\quad & 3D ray-field + planar refinement & -- & -- & 0.218 & 0.077$^{\dagger}$\\
+\quad & 3D ray-field + planar refinement & N/A$^{\ddagger}$ & N/A$^{\ddagger}$ & 0.218 & 0.077$^{\dagger}$\\
 \midrule
 \multicolumn{6}{l}{\textbf{JPEG (q80)}}\\
 \quad & OpenCV pinhole (raw) & 0.513 & 0.716 & 1.376 & 0.890\\
 \quad & OpenCV pinhole + planar refinement & 0.119 & 0.197 & 0.137 & 1.102\\
-\quad & 3D ray-field + planar refinement & -- & -- & 0.296 & 0.101$^{\dagger}$\\
+\quad & 3D ray-field + planar refinement & N/A$^{\ddagger}$ & N/A$^{\ddagger}$ & 0.296 & 0.101$^{\dagger}$\\
 \bottomrule
 \end{tabular}
-\caption{Compression robustness (synthetic, selected codecs) using the released sweep results (\protect\path{docs/assets/compression_sweep/sweep_metrics.json}). ``Rectif.\ $|\Delta y|$'' is the P95 of vertical disparity after rectification, computed by rectifying ground-truth correspondences with the estimated stereo parameters. ``Baseline err'' is converted to disparity-equivalent pixels at mean depth $\bar Z$; ``Tri RMS'' is depth-normalized. $^{\dagger}$For the 3D ray-field, triangulation error is reported after similarity alignment due to gauge freedom (see Section~\ref{sec:ray3d}).}
+\caption{Compression robustness (synthetic, selected codecs) using the released sweep results (\protect\path{docs/assets/compression_sweep/sweep_metrics.json}). ``Rectif.\ $|\Delta y|$'' is the P95 of vertical disparity after rectification, computed by rectifying ground-truth correspondences with the estimated stereo parameters. ``Baseline err'' is converted to disparity-equivalent pixels at mean depth $\bar Z$; ``Tri RMS'' is depth-normalized. $^{\dagger}$For the 3D ray-field, triangulation error is reported after similarity alignment due to gauge freedom (see Section~\ref{sec:ray3d}). $^{\ddagger}$Stereo RMS and rectified $|\Delta y|$ are pinhole/rectification-specific; the ray-based model does not rely on scanline rectification. We report ray-based diagnostics in Table~\ref{tab:rayfield_diagnostics}.}
 \label{tab:compression_summary}
+\end{table}
+
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l c c c}
+\toprule
+Codec & \shortstack{Ray-field reproj.\\RMS L (px)} & \shortstack{Ray-field reproj.\\RMS R (px)} & \shortstack{Ray skew\\P95 (mm)}\\
+\midrule
+PNG (lossless) & 1.468 & 1.437 & 0.159\\
+WebP (q70) & 1.007 & 0.985 & 0.141\\
+JPEG (q80) & 1.571 & 1.533 & 0.152\\
+\bottomrule
+\end{tabular}
+\caption{Ray-based diagnostics for the compact 3D ray-field on selected codecs (2D planar refinement enabled). ``Reproj. RMS'' reports per-view reprojection error after origin-preserving similarity alignment (see Section~\ref{sec:ray3d}). ``Ray skew'' is the minimum distance between the two rays for a correspondence, reported as P95 over all points/frames.}
+\label{tab:rayfield_diagnostics}
 \end{table}
 
 \subsection{Why reprojection RMS can be misleading}
