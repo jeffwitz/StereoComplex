@@ -31,6 +31,24 @@ Possible fields (generator-dependent):
 - `image_format`: `"png"` or `"webp"`
 - `outside_mask`: `"none"` or `"hard"` (black background outside the board)
 
+### Optional: `opencv` (detection tuning)
+
+Real datasets (or non-default boards) may require OpenCV detector tuning. `meta.json` can optionally include:
+
+- `opencv.aruco_detector`: subset of `cv2.aruco.DetectorParameters` fields (e.g., `adaptiveThreshWinSizeMax`)
+- `opencv.charuco_detector`: subset of `cv2.aruco.CharucoParameters` fields (e.g., `checkMarkers`)
+
+Example:
+
+```json
+{
+  "opencv": {
+    "aruco_detector": { "adaptiveThreshWinSizeMax": 300 },
+    "charuco_detector": { "checkMarkers": false }
+  }
+}
+```
+
 ### `board.type = "charuco"`
 
 Required fields:

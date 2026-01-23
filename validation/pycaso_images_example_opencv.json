@@ -1,0 +1,46 @@
+{
+  "schema_version": "stereocomplex.pycaso_images_example.v0",
+  "description": "Configuration to reuse the Pycaso example images (Images_example/*) with OpenCV ArUco/ChArUco pipelines.",
+  "images_root": "/home/jeff/Code/Pycaso/Exemple/Images_example",
+  "pairs": {
+    "calibration11": {
+      "left_dir": "left_calibration11",
+      "right_dir": "right_calibration11",
+      "filename_encodes_z_mm": true
+    },
+    "calibration": {
+      "left_dir": "left_calibration",
+      "right_dir": "right_calibration",
+      "filename_encodes_z_mm": true
+    },
+    "calibration2": {
+      "left_dir": "left_calibration2",
+      "right_dir": "right_calibration2",
+      "filename_encodes_z_mm": true
+    }
+  },
+  "board": {
+    "type": "charuco",
+    "squares_x": 16,
+    "squares_y": 12,
+    "square_size_mm": 0.3,
+    "marker_size_mm": 0.15,
+    "aruco_dictionary": "DICT_6X6_250",
+    "note": "The Pycaso generator uses DICT_6X6_1000, but the published board only uses IDs 0..95; DICT_6X6_250 is therefore equivalent for detection."
+  },
+  "opencv": {
+    "aruco_detector": {
+      "adaptiveThreshWinSizeMax": 300,
+      "cornerRefinementMethod": "SUBPIX",
+      "cornerRefinementWinSize": 5,
+      "cornerRefinementMaxIterations": 50,
+      "cornerRefinementMinAccuracy": 0.001
+    },
+    "charuco_detector": {
+      "checkMarkers": false,
+      "minMarkers": 2,
+      "tryRefineMarkers": false,
+      "note": "Required for the Pycaso board layout (marker parity differs from OpenCV's default CharucoBoard generator)."
+    }
+  }
+}

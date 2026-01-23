@@ -60,6 +60,12 @@ def main(argv: list[str] | None = None) -> int:
     gen.add_argument("--pitch-um", type=float, default=None, help="Override pixel pitch (µm).")
     gen.add_argument("--f-um", type=float, default=None, help="Override focal length (µm).")
     gen.add_argument("--tz-mm", type=float, default=None, help="Override nominal working distance (mm).")
+    gen.add_argument(
+        "--tz-schedule-mm",
+        type=str,
+        default=None,
+        help="Optional comma-separated Z schedule in mm (length must match --frames-per-scene).",
+    )
     gen.add_argument("--baseline-mm", type=float, default=None, help="Override stereo baseline (mm).")
     gen.add_argument("--squares-x", type=int, default=None, help="Override ChArUco squares_x.")
     gen.add_argument("--squares-y", type=int, default=None, help="Override ChArUco squares_y.")
@@ -70,6 +76,11 @@ def main(argv: list[str] | None = None) -> int:
         type=int,
         default=None,
         help="Override texture resolution (pixels per square) for synthetic rendering.",
+    )
+    gen.add_argument(
+        "--z-only-mode",
+        action="store_true",
+        help="Fix the board X/Y/rotation and only sweep it along Z (Pycaso-style dataset).",
     )
 
     val = sub.add_parser("validate-dataset", help="Validate dataset structure + basic consistency checks.")
@@ -162,6 +173,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.cmd == "generate-cpu-dataset":
+        tz_schedule = None
+        if args.tz_schedule_mm:
+            tz_schedule = [float(x.strip()) for x in str(args.tz_schedule_mm).split(",") if x.strip()]
         generate_cpu_dataset(
             out_root=args.out,
             scenes=args.scenes,
@@ -184,13 +198,15 @@ def main(argv: list[str] | None = None) -> int:
             pitch_um_override=args.pitch_um,
             f_um_override=args.f_um,
             tz_nominal_mm_override=args.tz_mm,
+            tz_schedule_mm=tz_schedule,
             baseline_mm_override=args.baseline_mm,
-            board_squares_x_override=args.squares_x,
-            board_squares_y_override=args.squares_y,
-            board_square_size_mm_override=args.square_size_mm,
-            board_marker_size_mm_override=args.marker_size_mm,
-            board_pixels_per_square_override=args.pixels_per_square,
-        )
+        board_squares_x_override=args.squares_x,
+        board_squares_y_override=args.squares_y,
+        board_square_size_mm_override=args.square_size_mm,
+        board_marker_size_mm_override=args.marker_size_mm,
+        board_pixels_per_square_override=args.pixels_per_square,
+        z_only_mode=args.z_only_mode,
+    )
         return 0
 
     if args.cmd == "validate-dataset":

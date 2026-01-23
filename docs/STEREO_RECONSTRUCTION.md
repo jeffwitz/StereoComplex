@@ -228,6 +228,13 @@ With OpenCV’s `stereoCalibrate` convention ($\mathbf X_R=\mathbf R\,\mathbf X_
 \mathbf C_R = -\mathbf R^\top \mathbf T.
 ```
 
+From each correspondence we thus obtain two rays $(\mathcal D_L,\mathcal D_R)$; the **ray skew** is defined as the minimum distance between these two lines in space. An analytical expression is:
+```{math}
+\delta(\mathcal D_L,\mathcal D_R)=\left\|\left((\mathbf C_R-\mathbf C_L)\cdot\mathbf n\right)\,\mathbf n\right\|,
+\quad \text{with }\mathbf n=\frac{\mathbf d_L\times\mathbf d_R}{\|\mathbf d_L\times\mathbf d_R\|},
+```
+where $\mathbf n$ is the unit normal to the plane spanned by the two directions. The **ray skew P95** reported in the tables is the 95th percentile of $\delta(\mathcal D_L,\mathcal D_R)$ over all correspondences, and serves as a geometry-consistency diagnostic: perfect geometry yields skew close to zero, whereas large skews indicate that the modeled rays no longer intersect because of pose/intrinsic errors or noisy observations.
+
 ### 2) The practical case: skew lines
 
 In a perfect world, $\mathcal D_L$ and $\mathcal D_R$ intersect exactly at the 3D point $\mathbf X$.

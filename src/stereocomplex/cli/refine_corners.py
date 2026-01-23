@@ -33,6 +33,9 @@ def build_charuco_from_meta(meta: dict[str, Any]):
     import cv2.aruco as aruco  # type: ignore
 
     board_meta = meta["board"]
+    opencv_meta = meta.get("opencv", {})
+    opencv_aruco = opencv_meta.get("aruco_detector", {}) if isinstance(opencv_meta, dict) else {}
+    opencv_charuco = opencv_meta.get("charuco_detector", {}) if isinstance(opencv_meta, dict) else {}
     dict_name = str(board_meta.get("aruco_dictionary", "DICT_4X4_1000"))
     dict_id = getattr(aruco, dict_name, None)
     if dict_id is None:
@@ -57,12 +60,30 @@ def build_charuco_from_meta(meta: dict[str, Any]):
     detector_params.cornerRefinementWinSize = 5
     detector_params.cornerRefinementMaxIterations = 50
     detector_params.cornerRefinementMinAccuracy = 1e-3
+    if isinstance(opencv_aruco, dict):
+        if "adaptiveThreshWinSizeMax" in opencv_aruco:
+            detector_params.adaptiveThreshWinSizeMax = int(opencv_aruco["adaptiveThreshWinSizeMax"])
+        if "cornerRefinementWinSize" in opencv_aruco:
+            detector_params.cornerRefinementWinSize = int(opencv_aruco["cornerRefinementWinSize"])
+        if "cornerRefinementMaxIterations" in opencv_aruco:
+            detector_params.cornerRefinementMaxIterations = int(opencv_aruco["cornerRefinementMaxIterations"])
+        if "cornerRefinementMinAccuracy" in opencv_aruco:
+            detector_params.cornerRefinementMinAccuracy = float(opencv_aruco["cornerRefinementMinAccuracy"])
 
     charuco_detector = None
     if hasattr(aruco, "CharucoDetector"):
         charuco_detector = aruco.CharucoDetector(board)
         if hasattr(charuco_detector, "setDetectorParameters"):
             charuco_detector.setDetectorParameters(detector_params)
+        if isinstance(opencv_charuco, dict) and hasattr(charuco_detector, "getCharucoParameters") and hasattr(charuco_detector, "setCharucoParameters"):
+            cp = charuco_detector.getCharucoParameters()
+            if "checkMarkers" in opencv_charuco:
+                cp.checkMarkers = bool(opencv_charuco["checkMarkers"])
+            if "minMarkers" in opencv_charuco:
+                cp.minMarkers = int(opencv_charuco["minMarkers"])
+            if "tryRefineMarkers" in opencv_charuco:
+                cp.tryRefineMarkers = bool(opencv_charuco["tryRefineMarkers"])
+            charuco_detector.setCharucoParameters(cp)
 
     aruco_detector = None
     if charuco_detector is None and hasattr(aruco, "ArucoDetector"):

@@ -669,7 +669,12 @@ def main() -> int:
     ap.add_argument("--split", default="train")
     ap.add_argument("--scene", default="scene_0000")
     ap.add_argument("--max-frames", type=int, default=0, help="Limit frames (0=all).")
-    ap.add_argument("--method2d", default="rayfield_tps_robust", choices=["raw", "rayfield_tps_robust"])
+    ap.add_argument(
+        "--method2d",
+        default="rayfield_tps_robust",
+        choices=["raw", "homography_only", "rayfield_tps_robust"],
+        help="2D correspondence strategy: raw OpenCV ChArUco corners, homography-only projection from marker corners, or homography+robust TPS residual warp.",
+    )
     ap.add_argument(
         "--max-points-per-frame",
         type=int,
@@ -716,6 +721,7 @@ def main() -> int:
     id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
     chess3 = np.asarray(board.getChessboardCorners(), dtype=np.float64)  # (Nc,3)
     chess2 = chess3[:, :2]
+    board_area_mm2 = float((np.max(chess2[:, 0]) - np.min(chess2[:, 0])) * (np.max(chess2[:, 1]) - np.min(chess2[:, 1])) + 1e-12)
 
     sim = meta.get("sim_params", {})
     baseline_gt = float(sim.get("baseline_mm", float("nan")))
@@ -760,19 +766,61 @@ def main() -> int:
         if target_ids.size == 0:
             return {}
         target_xy = chess2[target_ids]
-        pred = predict_points_rayfield_tps_robust(
-            obj_xy,
-            img_uv,
-            target_xy,
-            lam=float(args.tps_lam),
-            huber_c=float(args.tps_huber),
-            iters=int(args.tps_iters),
-        )
+        if args.method2d == "homography_only":
+            H, _mask = cv2.findHomography(obj_xy, img_uv, method=cv2.RANSAC, ransacReprojThreshold=3.0)
+            if H is None:
+                H, _mask = cv2.findHomography(obj_xy, img_uv, method=0)
+            if H is None:
+                return None
+            ph = np.concatenate([target_xy, np.ones((target_xy.shape[0], 1), dtype=np.float64)], axis=1)
+            uvw = (np.asarray(H, dtype=np.float64) @ ph.T).T
+            pred = uvw[:, :2] / (uvw[:, 2:3] + 1e-12)
+        else:
+            pred = predict_points_rayfield_tps_robust(
+                obj_xy,
+                img_uv,
+                target_xy,
+                lam=float(args.tps_lam),
+                huber_c=float(args.tps_huber),
+                iters=int(args.tps_iters),
+            )
         return _dict_from_ids_xy(target_ids, pred)
 
     # Collect per-frame observations for each side.
     obs_by_side: dict[Side, dict[int, FrameObservations]] = {"left": {}, "right": {}}
     ids_by_frame: dict[int, list[int]] = {}
+    coverage: dict[Side, dict[str, list[float]]] = {
+        "left": {"hull_area_frac": [], "outside_frac": [], "max_outside_dist_mm": []},
+        "right": {"hull_area_frac": [], "outside_frac": [], "max_outside_dist_mm": []},
+    }
+
+    def _update_coverage(*, side: Side, marker_ids: np.ndarray, marker_corners: list[np.ndarray]) -> None:
+        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
+        if marker_ids.size == 0:
+            return
+        obj_pts: list[np.ndarray] = []
+        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
+            o = id_to_obj2.get(int(mid))
+            if o is None or mc.shape != (4, 2) or o.shape != (4, 2):
+                continue
+            obj_pts.append(o)
+        if not obj_pts:
+            return
+        obj_xy = np.concatenate(obj_pts, axis=0).astype(np.float32)
+        hull = cv2.convexHull(obj_xy)
+        hull_area = float(abs(cv2.contourArea(hull)))
+        coverage[side]["hull_area_frac"].append(hull_area / board_area_mm2)
+
+        n_total = int(chess2.shape[0])
+        n_out = 0
+        max_out = 0.0
+        for x, y in chess2.tolist():
+            d = float(cv2.pointPolygonTest(hull, (float(x), float(y)), True))
+            if d < 0.0:
+                n_out += 1
+                max_out = max(max_out, -d)
+        coverage[side]["outside_frac"].append(float(n_out) / float(n_total))
+        coverage[side]["max_outside_dist_mm"].append(float(max_out))
 
     for fr in frames:
         fid = int(fr["frame_id"])
@@ -789,6 +837,7 @@ def main() -> int:
             det = detect_view(cv2, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector, img)
             if det is None:
                 continue
+            _update_coverage(side=side, marker_ids=det.marker_ids, marker_corners=det.marker_corners)
 
             if args.method2d == "raw":
                 det_by_side[side] = _dict_from_ids_xy(det.charuco_ids, det.charuco_xy)
@@ -1272,6 +1321,20 @@ def main() -> int:
             "reprojection_error_right_px_aligned_origin_similarity": _stats(np.asarray(repr_R_rf_aligned0)),
             "diagnostics": res.diagnostics,
         },
+    }
+
+    def _summarize(values: list[float]) -> dict[str, float]:
+        if not values:
+            return {"p50": float("nan"), "p95": float("nan"), "max": float("nan")}
+        a = np.asarray(values, dtype=np.float64)
+        return {
+            "p50": float(np.percentile(a, 50.0)),
+            "p95": float(np.percentile(a, 95.0)),
+            "max": float(np.max(a)),
+        }
+
+    out["planar_coverage"] = {
+        side: {k: _summarize(v) for k, v in stats.items()} for side, stats in coverage.items()
     }
 
     # Parameter-level comparison vs GT (synthetic datasets only).

@@ -35,12 +35,14 @@ def generate_cpu_dataset(
     pitch_um_override: float | None = None,
     f_um_override: float | None = None,
     tz_nominal_mm_override: float | None = None,
+    tz_schedule_mm: list[float] | None = None,
     baseline_mm_override: float | None = None,
     board_squares_x_override: int | None = None,
     board_squares_y_override: int | None = None,
     board_square_size_mm_override: float | None = None,
     board_marker_size_mm_override: float | None = None,
     board_pixels_per_square_override: int | None = None,
+    z_only_mode: bool = False,
 ) -> None:
     rng = np.random.default_rng(seed)
     out_root.mkdir(parents=True, exist_ok=True)
@@ -75,6 +77,7 @@ def generate_cpu_dataset(
             pitch_um_override,
             f_um_override,
             tz_nominal_mm_override,
+            tz_schedule_mm,
             baseline_mm_override,
             board_squares_x_override,
             board_squares_y_override,
@@ -82,6 +85,7 @@ def generate_cpu_dataset(
             board_marker_size_mm_override,
             board_pixels_per_square_override,
             rng,
+            z_only_mode,
         )
 
 
@@ -105,6 +109,7 @@ def _generate_scene(
     pitch_um_override: float | None,
     f_um_override: float | None,
     tz_nominal_mm_override: float | None,
+    tz_schedule_mm: list[float] | None,
     baseline_mm_override: float | None,
     board_squares_x_override: int | None,
     board_squares_y_override: int | None,
@@ -112,6 +117,7 @@ def _generate_scene(
     board_marker_size_mm_override: float | None,
     board_pixels_per_square_override: int | None,
     rng: np.random.Generator,
+    z_only_mode: bool,
 ) -> None:
     scene_dir.mkdir(parents=True, exist_ok=True)
     left_dir = scene_dir / "left"
@@ -136,6 +142,10 @@ def _generate_scene(
     tz_nominal = (
         float(tz_nominal_mm_override) if tz_nominal_mm_override is not None else float(rng.uniform(200.0, 5000.0))
     )
+    if tz_schedule_mm is not None:
+        if len(tz_schedule_mm) != int(frames_per_scene):
+            raise ValueError("tz_schedule_mm length must match frames_per_scene")
+        tz_nominal = float(np.mean(np.asarray(tz_schedule_mm, dtype=np.float64)))
     f_mm = f_um / 1000.0
     sensor_half_w_mm = ((width - 1) / 2.0) * (pitch_um / 1000.0)
     sensor_half_h_mm = ((height - 1) / 2.0) * (pitch_um / 1000.0)
@@ -197,6 +207,7 @@ def _generate_scene(
             "camera_model": "pinhole",
             "f_um": f_um,
             "baseline_mm": baseline_mm,
+            "tz_schedule_mm": [float(x) for x in tz_schedule_mm] if tz_schedule_mm is not None else None,
             "tex_interp": str(tex_interp),
             "distortion_model": str(distort),
             "distortion_left": brown_to_dict(dist_left),
@@ -209,6 +220,7 @@ def _generate_scene(
             "blur_edge_start": float(blur_edge_start),
             "blur_edge_power": float(blur_edge_power),
             "noise_std": float(noise_std),
+            "z_only_mode": bool(z_only_mode),
         },
     }
     (scene_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
@@ -242,12 +254,22 @@ def _generate_scene(
     for frame_id in range(frames_per_scene):
         # Rejection-sample poses until the board yields enough valid GT points in both views.
         accepted = False
-        for _attempt in range(25):
-            tz = float(tz_nominal * rng.uniform(0.7, 1.3))
-            tx = float(rng.uniform(-0.15, 0.15) * visible_w_mm)
-            ty = float(rng.uniform(-0.15, 0.15) * visible_h_mm)
-            tilt_x = float(rng.uniform(-0.30, 0.30))
-            tilt_y = float(rng.uniform(-0.30, 0.30))
+        max_attempts = 1 if z_only_mode else 25
+        for _attempt in range(max_attempts):
+            if tz_schedule_mm is not None:
+                tz = float(tz_schedule_mm[frame_id])
+            else:
+                tz = float(tz_nominal * rng.uniform(0.7, 1.3))
+            if z_only_mode:
+                tx = 0.0
+                ty = 0.0
+                tilt_x = 0.0
+                tilt_y = 0.0
+            else:
+                tx = float(rng.uniform(-0.15, 0.15) * visible_w_mm)
+                ty = float(rng.uniform(-0.15, 0.15) * visible_h_mm)
+                tilt_x = float(rng.uniform(-0.30, 0.30))
+                tilt_y = float(rng.uniform(-0.30, 0.30))
             R = _rot_y(tilt_y) @ _rot_x(tilt_x)
             t = np.array([tx, ty, tz], dtype=np.float64)
 

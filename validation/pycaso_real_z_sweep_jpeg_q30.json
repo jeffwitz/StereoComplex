@@ -1,0 +1,81 @@
+{
+  "dataset": {
+    "left_dir": "/home/jeff/Code/Pycaso/Exemple/Images_example/left_calibration11",
+    "right_dir": "/home/jeff/Code/Pycaso/Exemple/Images_example/right_calibration11",
+    "n_pairs_used": 10,
+    "z_mm_min": 2.65,
+    "z_mm_max": 3.35,
+    "z_mm_mean": 2.9859999999999998,
+    "codec": "jpeg",
+    "quality": 30
+  },
+  "board": {
+    "squares_x": 16,
+    "squares_y": 12,
+    "square_size_mm": 0.3,
+    "marker_parity": 0,
+    "n_corners": 165
+  },
+  "pycaso_direct_poly": {
+    "degree": 3,
+    "n_monomials": 35,
+    "ridge": 0.0,
+    "z_rms_mm": 0.004988003260614607,
+    "z_rms_percent": 0.16704632486982374
+  },
+  "rayfield3d": {
+    "nmax": 6,
+    "opt_nfev": 120.0,
+    "opt_cost": 0.0008941627077404203,
+    "baseline_mm": 17.38069885240823,
+    "z_affine_fit": {
+      "a": 0.4865005587853879,
+      "b": 17.184841729761715
+    },
+    "z_rms_mm_after_affine": 0.005713658430950603,
+    "z_rms_percent_after_affine": 0.19134823948254154,
+    "skew_p95_mm": 0.0022975413583020687
+  },
+  "per_frame": [
+    {
+      "z_mm": 2.65,
+      "z_est_mm": 18.47502709485635
+    },
+    {
+      "z_mm": 2.72,
+      "z_est_mm": 18.50286465278159
+    },
+    {
+      "z_mm": 2.79,
+      "z_est_mm": 18.53752371005586
+    },
+    {
+      "z_mm": 2.86,
+      "z_est_mm": 18.572603141266498
+    },
+    {
+      "z_mm": 2.93,
+      "z_est_mm": 18.613527016096846
+    },
+    {
+      "z_mm": 3.0,
+      "z_est_mm": 18.657050873126316
+    },
+    {
+      "z_mm": 3.07,
+      "z_est_mm": 18.681431163335848
+    },
+    {
+      "z_mm": 3.21,
+      "z_est_mm": 18.75028630257608
+    },
+    {
+      "z_mm": 3.28,
+      "z_est_mm": 18.778294367174187
+    },
+    {
+      "z_mm": 3.35,
+      "z_est_mm": 18.806715661679306
+    }
+  ]
+}

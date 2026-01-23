@@ -2,6 +2,8 @@
 
 This page introduces a first “ray-based 3D” building block targeting optical systems **more complex than a global pinhole model** (e.g., CMO). The current implementation starts validation on **synthetic pinhole** data to provide a clear “oracle” reference and controlled ablations.
 
+We compare this ray-field pipeline against Pycaso-style polynomial stereo (direct mapping + Soloff/LM) because Pycaso represents a canonical “non-parametric” stereo baseline: it learns a non-pinhole mapping between correspondences and 3D points, so it already captures some of the flexibility needed for complex optics. The new `PYCASO_Z_SWEEP` benchmark (and the compression stress test documented from `docs/ROBUSTNESS_SWEEP.md`) makes it easy to reproduce side-by-side comparisons between Pycaso and the ray-field 3D bundle adjustment.
+
 ## What this enables (and what it does not)
 
 - **Goal**: reconstruct 3D by intersecting **two rays** (left/right) without assuming a global pinhole model.

@@ -1,5 +1,8 @@
-% StereoComplex paper draft (synthetic benchmark only).
+% StereoComplex paper draft (synthetic benchmark + limited real-image depth sweep).
 \documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
 
 \usepackage[margin=1in]{geometry}
 \usepackage{graphicx}
@@ -7,9 +10,11 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{siunitx}
+\usepackage{float}
 \usepackage{hyperref}
 \usepackage{microtype}
 \usepackage{url}
+\hyphenation{homography planar correspondences checkerboard Charuco CharucoDetector triangulation}
 
 \title{Compression-Robust Stereo Calibration via Planar Geometric Refinement of Fiducial Corners}
 \author{Author(s)\\
@@ -26,6 +31,7 @@ Lossy compression introduces spatially structured artifacts that yield biased su
 We propose a model-agnostic two-stage planar refinement that regularizes 2D correspondences before calibration: a robust homography fit on the calibration plane followed by a smooth residual warp learned from marker correspondences.
 We evaluate on a fully reproducible synthetic benchmark with ground-truth geometry and controlled degradations, including codec-quality sweeps, and report stereo-relevant metrics (vertical disparity/rectification stability, baseline error in disparity-equivalent pixels, and triangulation stability when ground truth is available).
 On our compression sweep, an optional compact 3D ray-based stereo model further improves robustness, yielding triangulation error that remains stable across lossy compression levels compared to pinhole-based baselines.
+We also report a small real-image depth-sweep comparison using the public Pycaso example dataset, including an in-memory JPEG/WebP re-encoding stress test.
 Code, benchmark scripts, and configurations are released for reproducibility.
 \end{abstract}
 
@@ -61,7 +67,7 @@ Section~\ref{sec:related} reviews related work.
 Section~\ref{sec:formulation} formulates how structured 2D biases propagate to stereo geometry errors.
 Section~\ref{sec:method2d} presents the planar second-pass refinement.
 Section~\ref{sec:ray3d} describes an optional compact central ray-based stereo model.
-Sections~\ref{sec:benchmark}--\ref{sec:experiments} describe the synthetic benchmark and experiments (synthetic only).
+Sections~\ref{sec:benchmark}--\ref{sec:experiments} describe the synthetic benchmark, experiments, and a small real-image depth-sweep comparison (Section~\ref{sec:pycaso_real}).
 Section~\ref{sec:discussion} discusses limitations and future work.
 
 \section{Related work}
@@ -69,7 +75,7 @@ Section~\ref{sec:discussion} discusses limitations and future work.
 \subsection{Fiducial-based camera and stereo calibration}
 Planar calibration targets and Zhang-style methods~\cite{zhang2000flexible} form the backbone of many camera calibration workflows.
 ChArUco boards combine chessboards with ArUco markers for robust detection under partial occlusion~\cite{garrido2014aruco,romero2018charuco}.
-OpenCV provides widely used implementations~\cite{bradski2000opencv,opencv}, typically optimizing parameters by minimizing reprojection error.
+OpenCV provides widely used implementations~\cite{bradski2000opencv}, typically optimizing parameters by minimizing reprojection error.
 
 \subsection{Robust estimation and correspondence regularization}
 Robust estimation techniques such as RANSAC~\cite{fischler1981ransac} and M-estimators (e.g., Huber loss~\cite{huber1964robust}) are standard tools for outlier rejection and robust fitting.
@@ -78,11 +84,20 @@ For planar correspondence sets, geometric regularization can be performed by fit
 \subsection{Calibration under degradations}
 Blur and noise effects on calibration have been studied extensively; however, compression artifacts are not well modeled by independent noise.
 Lossy compression can induce coherent local biases (e.g., ringing) that systematically affect corner localization.
+More broadly, calibration residuals can exhibit spatial structure that persists after fitting classical parametric models; generic camera models with smoothness priors have been shown to reduce such structured residuals and improve downstream geometry tasks~\cite{schops2020tenk}.
+Recent comparative surveys of wide-angle calibration models also emphasize practical issues such as parameter redundancy/instability and robust outlier handling under non-ideal measurements~\cite{shao2024wideangle}.
 This work focuses on the resulting stereo consequences and on geometric regularization strategies that remain effective under such structured perturbations.
 
 \subsection{Ray-based and model-agnostic camera representations}
 General imaging models and ray-based calibration have been explored as alternatives to simple pinhole models, including compact representations and point-based calibration under generalized models~\cite{miraldo2011pointbased}.
+Large-parameter ``generic'' models (e.g., spline ray maps) have also been advocated to reduce systematic calibration bias and improve 3D estimation accuracy when sufficient calibration coverage is available~\cite{schops2020tenk}.
 Here we restrict to a \emph{central} ray-based model as a practical extension that avoids explicit pinhole intrinsics while remaining compact and optimizable.
+
+\subsection{Polynomial mapping calibration (Soloff/Pycaso)}
+In experimental mechanics and image-based metrology, camera pairs are also calibrated via polynomial mappings that directly regress 3D coordinates from stereo pixel measurements, following Soloff-style formulations.
+Barta et al. provide a recent comparative study of calibration approaches in particle tracking velocimetry (PTV), which motivates including this polynomial family as a baseline in our evaluation~\cite{barta2025ptv}.
+Pycaso~\cite{caron2023pycaso} provides an open-source implementation of this workflow, including a direct polynomial mapping $(u_L,v_L,u_R,v_R)\!\rightarrow\!(X,Y,Z)$ and an inverse formulation that fits polynomials from 3D points to pixels and inverts them numerically.
+These approaches typically rely on calibration data with known 3D target point coordinates (often obtained via depth sweeps or 3D calibration objects), which differs from planar calibration workflows where per-frame target pose is unknown and must be estimated.
 
 \section{Problem formulation: from 2D localization error to stereo geometry error}
 \label{sec:formulation}
@@ -133,6 +148,24 @@ We then:
   \item Feed refined correspondences to downstream stereo calibration and evaluation.
 \end{enumerate}
 
+\begin{figure}[H]
+\centering
+\fbox{\begin{minipage}{0.96\linewidth}
+\small
+\textbf{Algorithm 1: Planar geometric refinement (per image).}\\
+\textbf{Inputs:} image $I$; board specification (marker corner coordinates $\{\mathbf{x}_{m,k}\}$ and chessboard corner coordinates $\{\mathbf{x}_j\}$ in board units); detected ArUco markers with image corners $\{\mathbf{u}_{m,k}\}$.\\
+\textbf{Output:} refined chessboard corners $\{\hat{\mathbf{u}}_j\}$ in pixels.\\[2pt]
+1.\ Build correspondences $\mathcal{C}\!=\!\{(\mathbf{x}_{m,k},\mathbf{u}_{m,k})\}$ from all detected marker corners.\\
+2.\ Robustly estimate homography $H$ with RANSAC on $\mathcal{C}$.\\
+3.\ Compute residuals $\mathbf{r}_{m,k}=\mathbf{u}_{m,k}-\pi(H\tilde{\mathbf{x}}_{m,k})$.\\
+4.\ Fit TPS residual field $\mathbf{g}(\mathbf{x})$ to $\{(\mathbf{x}_{m,k},\mathbf{r}_{m,k})\}$ with Huber IRLS (Eq.~\eqref{eq:tps_objective}).\\
+5.\ For each chessboard corner $\mathbf{x}_j$, predict $\hat{\mathbf{u}}_j=\pi(H\tilde{\mathbf{x}}_j)+\mathbf{g}(\mathbf{x}_j)$.\\
+6.\ (Optional diagnostic) flag predictions far outside the marker convex hull as extrapolations.
+\end{minipage}}
+\caption{Pseudo-code of the planar refinement stage. In our implementation, the board specification provides the board-plane coordinates of all marker corners and chessboard corners, and detected marker IDs select the corresponding control points.}
+\label{fig:planar_refinement_algo}
+\end{figure}
+
 \subsection{Robust homography estimation}
 We estimate $H\in\mathbb{R}^{3\times 3}$ using RANSAC~\cite{fischler1981ransac} on the marker-corner correspondences:
 \begin{equation}
@@ -156,10 +189,15 @@ The smoothness parameter $\lambda$ trades off fidelity to the observed residuals
 The method is planar: it assumes correspondences lie on the calibration plane and that residual biases vary smoothly over that plane.
 It is therefore most appropriate for refining planar target measurements (calibration, rectification, and plane-based diagnostics).
 Extrapolation far outside the convex hull of detected markers is not guaranteed and is treated as a failure mode.
+In practice, this can be monitored by checking board-plane coverage of detected markers and flagging predicted corners that lie far outside the marker convex hull as extrapolations.
+On the released compression sweep (Section~7.2), marker coverage is high: the marker convex hull covers $1.55\times$ the chessboard-corner bounding-box area (median; ratio $>1$ means the hull extends beyond the chessboard-corner domain), and at most $10\%$ of chessboard corners lie outside the hull with a maximum outside distance of \SI{5.9}{\milli\meter}.
+All codec cases use the full requested set of $5$ frames (no frames rejected for insufficient marker coverage in this benchmark).
+Appendix~\ref{app:homography_only} provides an ablation showing that a homography-only mapping is insufficient under lens distortion and compression, motivating the residual warp.
 
 \subsection{2D synthetic evaluation of corner identification}
 We first evaluate planar refinement as a pure 2D identification method by comparing predicted chessboard corners to ground-truth projections on a synthetic dataset (no real data).
 Table~\ref{tab:charuco_methods} reports representative 2D errors for multiple identification strategies.
+In particular, the \textbf{PnP (K+distortion)} baseline uses a known camera model to solve per-frame pose and reproject corners, while the planar methods (\textbf{Homography} and \textbf{Plane ray-field}) use only the planar target geometry and marker correspondences.
 \input{tables/charuco_methods.tex}
 
 \section{Ray-based backend for maximum robustness}
@@ -170,9 +208,9 @@ We parameterize
 \begin{equation}
 \mathbf{d}(u,v) = \frac{1}{\left\| (x(u,v),y(u,v),1)^\top \right\|}\,(x(u,v),y(u,v),1)^\top,
 \end{equation}
-where $x(u,v)$ and $y(u,v)$ are expanded in a real Zernike basis on a unit disk.
+where $x(u,v)$ and $y(u,v)$ are expanded in a real Zernike basis on a unit disk. We map image pixels $(u,v)$ to disk coordinates $(u',v')$ by centering at the principal point $(c_x,c_y)$ and scaling by a radius $r_0$ that covers the calibrated field of view, i.e., $u'=(u-c_x)/r_0$, $v'=(v-c_y)/r_0$, and we clamp $r=\sqrt{u'^2+v'^2}$ to $r\leq 1$ for evaluation.
 We regularize coefficients with an $\ell_2$ penalty to enforce smoothness and limit overfitting.
-This central model is a stepping stone towards more general (non-central) ray models; we do not claim non-central support in this paper.
+Generalized (potentially non-central) ray-based models exist~\cite{miraldo2011pointbased}; here we restrict to a \emph{central} model as a compact stepping stone and do not claim non-central support in this paper.
 
 \subsection{Fitting procedure (point--ray optimization)}
 Given multiple planar poses, we associate each observed pixel with a known 3D board point $\mathbf{P}$ (in the board frame) and estimate per-frame poses $(R_i,\mathbf{t}_i)$.
@@ -190,7 +228,7 @@ We report the resulting 3D estimate and the \emph{ray skew} (minimum distance be
 
 \paragraph{Evaluation note (gauge and similarity alignment).}
 The ray-based formulation is expressed in camera coordinates and does not enforce a unique global gauge when compared to world-referenced ground truth (e.g., a global similarity transform may remain weakly constrained depending on parameterization and pose distribution).
-For ground-truth evaluation, we therefore report ray-based triangulation error after a best-fit similarity alignment (Sim(3), i.e., rotation, translation, and isotropic scale) between reconstructed points and ground truth.
+For ground-truth evaluation, we therefore report ray-based triangulation error after a best-fit similarity alignment (Sim(3), i.e., rotation, translation, and isotropic scale) between reconstructed points and ground truth. Clarification (metrics under gauge freedom). The Sim(3)-aligned 3D error is only used to evaluate reconstruction consistency against world-referenced ground truth when the gauge is not fully constrained by the formulation and pose distribution. Stereo scale stability is therefore assessed independently in the camera frame via the rig baseline error mapped to disparity-equivalent pixels at mean depth (Table~2), which does not use any similarity alignment. We treat the GT-projection RMS in Table~5 as a derived sanity check only (pixel-domain consistency after alignment), not as a direct objective comparable to pinhole reprojection RMS.
 In addition, we report stereo scale stability separately through the estimated rig baseline error mapped to disparity-equivalent pixels at mean depth (Section~\ref{app:metrics}).
 
 \section{Synthetic benchmark design}
@@ -213,7 +251,7 @@ Compression is treated as a first-class experimental variable because it yields 
 We use a fixed number of poses per scene and evaluate identical frame subsets across codec variants.
 All scripts are deterministic given a random seed and are released with the benchmark.
 
-\section{Experiments (synthetic only)}
+\section{Experiments}
 \label{sec:experiments}
 \subsection{Baselines}
 We compare:
@@ -221,17 +259,21 @@ We compare:
   \item \textbf{B1: OpenCV pinhole (raw).} Detect corners and run standard pinhole stereo calibration and triangulation.
   \item \textbf{B2: OpenCV pinhole + planar refinement.} Apply the planar second pass, then run the same OpenCV calibration.
   \item \textbf{B3: 3D ray-field + planar refinement.} Use planar refinement for 2D correspondences, then fit the compact central ray-based stereo model and triangulate by ray intersection.
+  \item \textbf{B4: Pycaso polynomial mapping.} We include a polynomial stereo baseline based on the Pycaso workflow~\cite{caron2023pycaso}: (i) the \emph{direct} Soloff polynomial mapping $(u_L,v_L,u_R,v_R)\!\rightarrow\!(X,Y,Z)$, and (ii) a Soloff-style inversion variant (polynomials from $(X,Y,Z)$ to pixels followed by a Levenberg--Marquardt inversion).
+  Since this family typically assumes calibration data with known 3D target point coordinates (e.g., depth sweep), we evaluate it on a dedicated synthetic depth-sweep benchmark (Section~\ref{sec:pycaso}).
 \end{itemize}
 For completeness, Table~\ref{tab:charuco_methods} also includes intermediate 2D identification baselines (homography-only and model-based variants) evaluated in pixel space.
 
 \subsection{Experimental settings}
 Unless stated otherwise, results use the released compression sweep configuration (\path{docs/assets/compression_sweep/sweep_metrics.json}): $5$ frames, TPS refinement with $\lambda=10$ and Huber IRLS (3 iterations), and the central 3D ray-field with Zernike order $n_{\max}=10$ and $3$ outer optimization iterations.
+We intentionally evaluate this low-data regime to expose sensitivity to structured localization bias under compression; scripts support larger numbers of calibration frames for practitioners.
+Appendix~\ref{app:num_frames} sweeps the number of calibration frames available in the released split (2/5/8 frames) and confirms the qualitative trends of the main compression results.
 
 \subsection{Main results: robustness to compression}
 Figure~\ref{fig:compression_tri} reports triangulation stability (RMS depth error normalized by mean depth) as a function of codec quality.
 Using the settings of Section~7.2 ($\lambda=10$, $n_{\max}=10$, $5$ frames), the compact 3D ray-field is remarkably stable across compression levels on this benchmark, while pinhole-based baselines remain sensitive to codec artifacts.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.92\linewidth]{../docs/assets/compression_sweep/tri_rms_rel_depth_percent.png}
 \caption{Compression sweep (synthetic): triangulation RMS as a percentage of mean depth versus codec quality. Note the near-flat response of the ray-based backend across codec settings on this benchmark, while pinhole-based pipelines are sensitive to lossy compression.}
@@ -240,14 +282,14 @@ Using the settings of Section~7.2 ($\lambda=10$, $n_{\max}=10$, $5$ frames), the
 
 We also report stereo RMS and baseline error in disparity-equivalent pixels (Figures~\ref{fig:compression_stereo_rms}--\ref{fig:compression_baseline}).
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.92\linewidth]{../docs/assets/compression_sweep/stereo_rms_px.png}
 \caption{Compression sweep (synthetic): stereo reprojection RMS versus codec quality for the OpenCV pipelines. \textbf{Lower reprojection RMS does not imply better stereo geometry under compression}; see Section~7.6.}
 \label{fig:compression_stereo_rms}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.92\linewidth]{../docs/assets/compression_sweep/baseline_abs_error_px_at_mean_depth.png}
 \caption{Compression sweep (synthetic): baseline absolute error converted to disparity-equivalent pixels at mean depth. Pinhole baselines exhibit codec-dependent drift, whereas the 3D ray-field remains comparatively stable.}
@@ -258,7 +300,7 @@ We also report stereo RMS and baseline error in disparity-equivalent pixels (Fig
 Table~\ref{tab:compression_summary} summarizes representative metrics for a lossless PNG and selected lossy WebP/JPEG settings using the released sweep results.
 Vertical disparity statistics are computed by rectifying \emph{ground-truth correspondences} using the \emph{estimated} stereo parameters for each pipeline, isolating epipolar consistency of the estimated geometry.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -282,30 +324,76 @@ Codec & Method & Stereo RMS (px) & \shortstack{Rectif.\\P95 $|\Delta y|$ (px)} &
 \quad & 3D ray-field + planar refinement & N/A$^{\ddagger}$ & N/A$^{\ddagger}$ & 0.296 & 0.101$^{\dagger}$\\
 \bottomrule
 \end{tabular}
-\caption{Compression robustness (synthetic, selected codecs) using the released sweep results (\protect\path{docs/assets/compression_sweep/sweep_metrics.json}). ``Rectif.\ $|\Delta y|$'' is the P95 of vertical disparity after rectification, computed by rectifying ground-truth correspondences with the estimated stereo parameters. ``Baseline err'' is converted to disparity-equivalent pixels at mean depth $\bar Z$; ``Tri RMS'' is depth-normalized. $^{\dagger}$For the 3D ray-field, triangulation error is reported after similarity alignment due to gauge freedom (see Section~\ref{sec:ray3d}). $^{\ddagger}$Stereo RMS and rectified $|\Delta y|$ are pinhole/rectification-specific; the ray-based model does not rely on scanline rectification. We report ray-based diagnostics in Table~\ref{tab:rayfield_diagnostics}.}
+\caption{Compression robustness (synthetic, selected codecs) using the released sweep results (\protect\path{docs/assets/compression_sweep/sweep_metrics.json}). ``Rectif.\ $|\Delta y|$'' is the P95 of vertical disparity after rectification, computed by rectifying ground-truth correspondences with the estimated stereo parameters; this removes detection noise and measures epipolar inconsistency of the estimated geometry in pixel units. ``Baseline err'' is converted to disparity-equivalent pixels at mean depth $\bar Z$; ``Tri RMS'' is depth-normalized. $^{\dagger}$For the 3D ray-field, triangulation error is reported after similarity alignment due to gauge freedom (see Section~\ref{sec:ray3d}). $^{\ddagger}$Stereo RMS and rectified $|\Delta y|$ are pinhole/rectification-specific; the ray-based model does not rely on scanline rectification. We report ray-based diagnostics in Table~\ref{tab:rayfield_diagnostics}.}
 \label{tab:compression_summary}
 \end{table}
 
-\begin{table}[t]
+\subsection{Pycaso comparison (depth-sweep and pose-sweep)}
+\label{sec:pycaso}
+Pycaso-style polynomial mappings are widely used in metrology pipelines (e.g., stereo DIC/PIV) and provide a useful non-pinhole baseline.
+However, they require calibration data with \emph{known 3D target point coordinates} (typically produced by a depth sweep or a 3D calibration object), whereas our planar refinement and stereo calibration operate on a single planar target with unknown pose per frame.
+We therefore report two regimes: (i) a \emph{depth sweep} that matches Pycaso's intended protocol (target translated along $Z$ with fixed $X,Y$ and orientation), and (ii) the \emph{pose sweep} used in our main compression benchmark (target observed under general planar-calibration poses).
+In both cases we apply the same planar refinement to the detected 2D correspondences before fitting the 3D models.
+Note that the two protocols also operate at very different depth scales in our synthetic setup (depth-sweep: $\bar Z\approx\SI{3}{\milli\meter}$; pose-sweep: $\bar Z\approx\SI{1.23}{\meter}$), so absolute RMS values in mm are not directly comparable across the two tables.
+To make this explicit, we report RMS $Z$ both in mm and as a percentage of mean depth in Tables~\ref{tab:pycaso_compression}--\ref{tab:pycaso_pose_sweep}, and interpret each result within its corresponding protocol.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/pycaso_compression_rms_z_vs_quality.png}
+\caption{Depth-sweep protocol (synthetic, Pycaso-style): RMS $Z$ error versus lossy compression quality, using planar refinement for 2D correspondences. The compact 3D ray-field achieves comparable depth accuracy to the Pycaso polynomial mappings across codec qualities on this benchmark.}
+\label{fig:pycaso_compression}
+\end{figure}
+
+\input{tables/pycaso_compression_summary.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/pycaso_pose_sweep_rms_z_vs_quality.png}
+\caption{Pose-sweep protocol (synthetic, planar stereo calibration poses): RMS $Z$ error versus lossy compression quality (planar refinement enabled). In this higher-variance pose regime with few calibration frames, the direct polynomial mapping exhibits large codec-dependent variation (tens of mm), whereas the compact ray-based backend remains in a narrow band.}
+\label{fig:pycaso_pose_sweep}
+\end{figure}
+
+\input{tables/pycaso_pose_sweep_summary.tex}
+
+\paragraph{Why the two protocols differ.}
+In the depth-sweep protocol, the input measurements $(u_L,v_L)$ and $(u_R,v_R)$ vary primarily along a low-dimensional manifold driven by depth, making polynomial regression well-conditioned for a moderate number of depth samples.
+In the pose-sweep protocol, the mapping must cover a higher-dimensional domain induced by pose diversity; with only $5$ calibration frames in our benchmark (Section~7.2), a global polynomial regression can become sensitive to structured corner perturbations (and to the exact coverage of calibration poses), which is reflected in increased depth-error variability under codec changes.
+The ray-based backend remains stable because it enforces a rigid stereo geometry and optimizes a regularized point$\leftrightarrow$ray objective, rather than regressing 3D coordinates directly.
+
+\paragraph{Model complexity and calibration requirements.}
+For degree-3 direct mapping, Pycaso regresses $(X,Y,Z)$ from $35$ monomials in $(u_L,v_L,u_R,v_R)$ (i.e., $105$ coefficients for three outputs).
+Our central ray-based backend with $n_{\max}=10$ uses $66$ Zernike modes per coordinate per view (i.e., $264$ coefficients for stereo), which is the same order of magnitude (a few hundred coefficients).
+Despite comparable parameter counts, Figure~\ref{fig:pycaso_pose_sweep} shows markedly different compression sensitivity in the pose-sweep regime, suggesting that geometric constraints (rigid stereo + point$\leftrightarrow$ray objective) matter more than raw model capacity.
+Unlike Pycaso, the ray-based backend can be fitted in a standard planar calibration workflow with unknown per-frame target pose (Section~\ref{sec:ray3d}), avoiding the need for instrumented 3D target placement or measured depth steps.
+
+\begin{table}[H]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{l c c c}
 \toprule
-Codec & \shortstack{Ray-field reproj.\\RMS L (px)} & \shortstack{Ray-field reproj.\\RMS R (px)} & \shortstack{Ray skew\\P95 (mm)}\\
+Codec & \shortstack{Aligned reconstr.\\GT-projection\\RMS L (px)} & \shortstack{Aligned reconstr.\\GT-projection\\RMS R (px)} & \shortstack{Ray skew\\P95 (mm)}\\
 \midrule
 PNG (lossless) & 1.468 & 1.437 & 0.159\\
 WebP (q70) & 1.007 & 0.985 & 0.141\\
 JPEG (q80) & 1.571 & 1.533 & 0.152\\
 \bottomrule
 \end{tabular}
-\caption{Ray-based diagnostics for the compact 3D ray-field on selected codecs (2D planar refinement enabled). ``Reproj. RMS'' reports per-view reprojection error after origin-preserving similarity alignment (see Section~\ref{sec:ray3d}); this alignment is used only to compare to ground-truth 3D points and does not affect ray skew or baseline metrics computed in the camera frame. ``Ray skew'' is the minimum distance between the two rays for a correspondence, reported as P95 over all points/frames.}
+\caption{Ray-based diagnostics for the compact 3D ray-field on selected codecs (2D planar refinement enabled). ``GT-projection RMS'' is a \emph{derived sanity check}: we take the similarity-aligned 3D reconstruction and project it through the known ground-truth pinhole model to obtain a pixel-domain error versus ground-truth projections. This value is therefore not directly comparable to pinhole reprojection RMS (Table~\ref{tab:compression_summary}), which measures the fit of a parametric projection model to observed pixels. Stereo scale stability is instead evaluated via baseline error in disparity-equivalent pixels at mean depth (Table~\ref{tab:compression_summary}), computed directly in the camera frame without similarity alignment. ``Ray skew'' is the minimum distance between the two rays for a correspondence, reported as P95 over all points/frames.}
 \label{tab:rayfield_diagnostics}
 \end{table}
+
+Across codec settings, the P95 ray skew remains below \SI{0.16}{\milli\meter} (i.e., the two rays miss by less than \SI{0.16}{\milli\meter} for 95\% of correspondences), consistent with stable stereo geometry under photometric stress.
 
 \subsection{Why reprojection RMS can be misleading}
 Under structured perturbations, a pinhole model may partially compensate biased correspondences by drifting intrinsics/extrinsics, thereby reducing reprojection RMS without improving rectification stability or triangulation.
 This motivates reporting baseline-in-pixels and triangulation stability in addition to reprojection RMS.
+More broadly, camera modeling work has noted that structured residuals and downstream geometry quality motivate going beyond reprojection RMS alone~\cite{schops2020tenk}.
+
+\paragraph{Polynomial mapping baseline (Pycaso).}
+The depth-sweep experiment (Figure~\ref{fig:pycaso_compression}) shows that planar refinement transfers to polynomial stereo baselines as well: once 2D correspondences are regularized, Pycaso and the compact ray-based backend exhibit comparable depth accuracy across codec qualities.
+In contrast, on the pose-sweep benchmark (Figure~\ref{fig:pycaso_pose_sweep}), the same direct polynomial mapping exhibits substantially larger depth-error variability across codec settings, consistent with global regression being sensitive to structured corner perturbations and limited pose coverage.
+The main practical difference is the required calibration input: Pycaso relies on known 3D target point coordinates (e.g., depth sweep), while our planar refinement and ray-based backend are compatible with standard planar calibration where target pose is unknown and estimated jointly.
 
 \subsection{Why lower reprojection error may not improve depth on this benchmark}
 Table~\ref{tab:compression_summary} highlights an important phenomenon: the planar refinement substantially reduces stereo RMS, yet triangulation RMS does not necessarily decrease for the pinhole pipelines.
@@ -314,27 +402,79 @@ First, depth depends primarily on \emph{disparity bias} and on epipolar consiste
 Second, the OpenCV objective is optimized on the same degraded measurements used for triangulation in this benchmark, so a reduced reprojection RMS can reflect a better fit to structured measurement biases rather than improved physical geometry.
 The vertical-disparity statistic (rectified $|\Delta y|$) helps disambiguate these cases by directly measuring epipolar stability in pixels.
 
+\subsection{Real-image depth sweep and compression stress test (marker-only planar refinement; Pycaso example dataset)}
+\label{sec:pycaso_real}
+To complement the synthetic benchmark, we also run a depth-sweep comparison on the public example images distributed with Pycaso~\cite{caron2023pycaso}. Importantly, this real-data experiment validates the marker-only planar correspondence pathway (ArUco detections $\rightarrow$ planar refinement $\rightarrow$ predicted inner corners) rather than an OpenCV \texttt{CharucoDetector} end-to-end pipeline, to avoid dependence on board-generation conventions.
+We use the \texttt{calibration11} subset (10 stereo pairs) where filenames encode a nominal stage depth in \si{\milli\meter} spanning \SIrange{2.65}{3.35}{\milli\meter}.
+In the Pycaso repository, this subset is stored under \texttt{Exemple/Images\_example/left\_calibration11/} and \texttt{Exemple/Images\_example/right\_calibration11/}.
+To directly address the paper's focus on compression robustness, we additionally evaluate the same real-image sweep after lossy re-encoding each image in memory (JPEG/WebP) prior to detection.
+
+\paragraph{2D correspondences (marker-only + planar refinement).}
+The Pycaso target is a 16$\times$12 ChArUco board with \SI{0.3}{\milli\meter} squares and \SI{0.15}{\milli\meter} markers.
+Pycaso generates markers from \texttt{DICT\_6X6\_1000}, but the published board only uses IDs 0--95, so using \texttt{DICT\_6X6\_250} for detection is equivalent.
+One subtlety is that the Pycaso board places marker IDs on the opposite square parity compared to OpenCV's default \texttt{CharucoBoard} generator; with OpenCV's \texttt{CharucoDetector}, this requires setting \texttt{checkMarkers=false} (we provide the exact OpenCV settings in \path{validation/pycaso_images_example_opencv.json}).
+In this section we avoid dependence on any specific ChArUco interpolation convention by using a marker-based pipeline: we detect ArUco markers and use marker \emph{centers} as robust planar correspondences.
+We then apply the same planar refinement (homography + robust TPS residual warp) to predict all inner checkerboard corners.
+The refined corners are used as inputs for both methods.
+
+\paragraph{3D models and evaluation.}
+For the ray-based backend, we fit the compact central stereo ray-field by point--ray optimization from refined 2D corners, without using the stage depth labels.
+We evaluate depth variation by triangulating per-frame points and comparing the mean reconstructed depth against the stage depth after a best-fit affine alignment (to account for the arbitrary stage origin and remaining gauge).
+For the Pycaso direct mapping, we fit a degree-3 polynomial regressor $(u_L,v_L,u_R,v_R)\!\rightarrow\!(X,Y,Z)$ using the same refined measurements and the stage depth labels.
+Table~\ref{tab:pycaso_real} reports the resulting depth RMS values for clean images and two lossy re-encoding settings.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l c c c}
+\toprule
+Method & \shortstack{RMS $Z$\\(mm)} & \shortstack{RMS $Z$\\(\% mean $Z$)} & \shortstack{Ray skew\\P95 (mm)}\\
+\midrule
+\multicolumn{4}{l}{\textbf{Clean (no re-encoding)}}\\
+\quad Pycaso direct polynomial (deg.\ 3) & 0.0050 & 0.17 & N/A\\
+\quad 3D ray-field (central, $n_{\max}=6$) & 0.0056$^{\dagger}$ & 0.19$^{\dagger}$ & 0.0028\\
+\midrule
+\multicolumn{4}{l}{\textbf{JPEG (q30, in-memory re-encoding)}}\\
+\quad Pycaso direct polynomial (deg.\ 3) & 0.0050 & 0.17 & N/A\\
+\quad 3D ray-field (central, $n_{\max}=6$) & 0.0057$^{\dagger}$ & 0.19$^{\dagger}$ & 0.0023\\
+\midrule
+\multicolumn{4}{l}{\textbf{WebP (q70, in-memory re-encoding)}}\\
+\quad Pycaso direct polynomial (deg.\ 3) & 0.0048 & 0.16 & N/A\\
+\quad 3D ray-field (central, $n_{\max}=6$) & 0.0055$^{\dagger}$ & 0.19$^{\dagger}$ & 0.0025\\
+\bottomrule
+\end{tabular}
+\caption{Real-image depth sweep and compression stress test (marker-only correspondences + planar refinement; Pycaso example dataset, \texttt{calibration11}, 10 stereo pairs). Both methods use the same planar-refined 2D corners (marker-only + TPS). JPEG/WebP results are obtained by lossy re-encoding each image in memory prior to detection. $^{\dagger}$Ray-field depth is compared to stage $Z$ after best-fit affine alignment to account for stage gauge. Results are produced by \protect\path{validation/pycaso_real_z_sweep_rayfield3d.py}.}
+\label{tab:pycaso_real}
+\end{table}
+
 \subsection{Runtime considerations}
 Planar refinement is lightweight once correspondences are detected: it requires a homography fit and a small TPS solve on the marker-corner set.
 The central ray-field optimization is more expensive (nonlinear least squares over ray-field coefficients, per-frame poses, and rig parameters) but remains practical for the small number of calibration frames used in our benchmark.
 In production, the ray-field model evaluates with costs comparable to a standard camera model (compute a small basis and a few dot products per pixel).
+On our reference CPU (Intel\textsuperscript{\textregistered} Core\texttrademark{} Ultra 5 228V), planar refinement (RANSAC homography + robust TPS) takes $\approx$0.38~s per image for $\sim$120 marker corners and $\sim$400 predicted checkerboard corners (single core, Python/NumPy implementation).
+The central ray-field fitting takes on the order of a few seconds ( $\approx$8~s on the same CPU) for $N{=}5$ calibration frames at $n_{\max}{=}10$ (three outer iterations).
+Once fitted, evaluating rays costs on the order of a few microseconds per pixel (basis evaluation + dot products), comparable to a pinhole model.
 
 \section{Discussion and limitations}
 \label{sec:discussion}
 \subsection{Why planar refinement helps under compression}
 Compression artifacts induce structured, spatially correlated biases near edges.
 On a planar target, these biases are well captured by a low-frequency residual field on the plane, which can be learned robustly from marker-corner correspondences.
+This observation aligns with reports that parametric calibration models can leave spatially structured residuals, motivating smooth correction fields or more generic representations when the goal is downstream geometric accuracy~\cite{schops2020tenk}.
 The planar refinement therefore improves correspondence consistency before calibration, reducing the propagation of structured 2D errors into stereo geometry.
 
 \subsection{Parameter truth versus epipolar stability}
 Improving stereo usefulness (rectification and depth stability) does not necessarily imply more accurate intrinsic parameters.
 Under structured measurement biases, different parameterizations can trade off intrinsic ``truth'' for extrinsic/epipolar consistency.
+This kind of parameter coupling and redundancy under non-ideal measurements is widely discussed in comparative calibration surveys, especially for wide-angle models~\cite{shao2024wideangle}.
 We therefore emphasize stereo-relevant metrics and provide ground-truth comparisons in synthetic experiments.
 
 \subsection{Scope and future work}
-This paper reports \emph{synthetic-only} results with ground-truth geometry and controlled degradations.
+This paper's primary results are based on a synthetic benchmark with ground-truth geometry and controlled degradations.
 The synthetic benchmark is a methodological necessity to isolate the effect of compression and to measure baseline drift and depth stability against a known geometric reference; on real data, such quantities would require external metrology or carefully instrumented ground truth.
-Real-world validation (including sensor pipelines and non-ideal optics) is left as future work.
+In addition, we report a small real-image depth-sweep comparison on the public Pycaso example dataset (Section~\ref{sec:pycaso_real}), including an in-memory JPEG/WebP re-encoding stress test, to demonstrate feasibility on real imagery.
+More extensive real-world validation (including hardware codecs, sensor pipelines, and non-ideal optics) remains future work.
 The current ray-based model is central; extending to non-central generalized cameras is also future work.
 
 \section{Reproducibility and open-source release}
@@ -343,15 +483,18 @@ Key scripts include:
 \begin{itemize}
   \item Dataset generation and re-encoding utilities (synthetic benchmark and codec variants).
   \item Compression sweep driver and plotting scripts producing Figures~\ref{fig:compression_tri}--\ref{fig:compression_baseline}.
+  \item Pycaso baseline drivers and plotting scripts producing Figures~\ref{fig:pycaso_compression}--\ref{fig:pycaso_pose_sweep}.
+  \item Real-image Pycaso depth-sweep comparison script (Table~\ref{tab:pycaso_real}; \protect\path{validation/pycaso_real_z_sweep_rayfield3d.py}).
   \item Corner identification comparisons producing Table~\ref{tab:charuco_methods}.
 \end{itemize}
 The code is released under GPL-2.0-or-later; documentation is released under CC BY-SA 4.0 (see repository licensing files).
 
 \section{Conclusion}
-We presented a planar geometric refinement pipeline that improves the stability of fiducial correspondences under structured degradations such as lossy compression.
+We presented a planar geometric refinement pipeline for fiducial correspondences under structured degradations such as lossy compression. Our synthetic benchmark with controlled degradations, plus the marker-only real-image stress test, both indicate that refining planar correspondences is critical for stable stereo geometry under lossy compression.
 Using a fully reproducible synthetic benchmark, we demonstrated that stereo-relevant metrics (baseline stability in pixels and triangulation stability) reveal failure modes not captured by reprojection RMS alone.
-A compact central ray-based stereo backend further improves robustness to compression on our benchmark.
-Real-world validation and extensions to non-central ray models are left as future work.
+The comparison against the Pycaso polynomial mapping (direct + Soloff) further demonstrates that this refinement helps even when non-pinhole regressions are used, while the ray-based backend delivers the most stable depth under aggressive compression.
+On the public Pycaso real-image depth sweep, both the polynomial mapping and ray-based backends achieve sub-\SI{0.2}{\percent} RMS depth variation (after accounting for stage gauge) and remain stable under in-memory JPEG/WebP re-encoding, supporting feasibility on real imagery.
+More extensive real-world validation and extensions to non-central ray models are left as future work.
 
 \appendix
 \section{Metric definitions}
@@ -381,11 +524,30 @@ Equation~\eqref{eq:tps_objective} is solved by IRLS with a robust Huber penalty~
 At each iteration, weights are updated from current residual magnitudes and a weighted TPS linear system is solved.
 Implementation follows a standard smoothing spline formulation, with $\lambda$ controlling smoothness.
 
+\paragraph{Sensitivity to $\lambda$.}
+Figure~\ref{fig:tps_lambda_sweep} reports a representative sweep of the TPS smoothness parameter $\lambda$ on a synthetic identification example (left/right views), using RMS and P95 corner error in pixels.
+We observe a broad optimum around $\lambda\approx 3$--$30$, which motivates using a fixed default $\lambda=10$ in the main experiments (Section~7.2).
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.49\linewidth]{../docs/assets/rayfield_worked_example/plots/tps_lambda_sweep_left.png}
+\includegraphics[width=0.49\linewidth]{../docs/assets/rayfield_worked_example/plots/tps_lambda_sweep_right.png}
+\caption{TPS smoothness sweep on a representative synthetic identification example. Curves report RMS and P95 corner error (px) versus $\lambda$ for left and right views; lower is better.}
+\label{fig:tps_lambda_sweep}
+\end{figure}
+
+\section{Sensitivity to the number of calibration frames}
+\label{app:num_frames}
+\input{tables/num_frames_sweep.tex}
+
+\section{Homography-only ablation}
+\label{app:homography_only}
+\input{tables/homography_only_ablation.tex}
+
 \section{TPS residual fields under compression}
 \label{app:tps_fields}
 To support the interpretation in Section~8.1, Figure~\ref{fig:tps_fields} visualizes the learned TPS residual magnitude $\|\mathbf{g}(x,y)\|$ on the board plane for two codec settings from the released compression sweep.
 The residual field captures low-frequency, spatially correlated biases induced by compression artifacts near high-contrast edges.
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.92\linewidth]{figures/tps_residual_fields_png_webp.png}
 \caption{TPS residual magnitude on the calibration plane for a lossless PNG versus a lossy WebP setting (same scene and comparable frame subset). Colors show $\|\mathbf{g}(x,y)\|$ in pixels; both panels share the same color scale.}

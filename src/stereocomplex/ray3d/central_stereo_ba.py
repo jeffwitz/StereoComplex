@@ -296,3 +296,133 @@ def fit_central_stereo_rayfield_ba(
         tvecs=tvecs,
         diagnostics=diag,
     )
+
+
+def fit_central_stereo_rayfield_coeffs_fixed(
+    *,
+    frames: dict[int, StereoFrameObservations],
+    image_width_px: int,
+    image_height_px: int,
+    nmax: int,
+    rvecs: dict[int, np.ndarray],
+    tvecs: dict[int, np.ndarray],
+    rig_rvec: np.ndarray,
+    rig_tvec: np.ndarray,
+    coeffs0_left_x: np.ndarray,
+    coeffs0_left_y: np.ndarray,
+    coeffs0_right_x: np.ndarray,
+    coeffs0_right_y: np.ndarray,
+    lam_coeff: float = 1e-3,
+    loss: Literal["linear", "huber", "soft_l1", "cauchy", "arctan"] = "huber",
+    f_scale_mm: float = 1.0,
+    max_nfev: int = 200,
+) -> CentralStereoRayFieldBAResult:
+    """
+    Fit only the ray-field coefficients for both cameras, with fixed:
+      - stereo rig (R_RL, t_RL)
+      - per-frame board poses (R_i, t_i)
+
+    This is useful for controlled synthetic benchmarks (GT poses/rig),
+    or when external metrology provides accurate poses.
+    """
+    if not frames:
+        raise ValueError("frames is empty")
+    if nmax < 0:
+        raise ValueError("nmax must be >= 0")
+
+    u0, v0, radius = default_disk(int(image_width_px), int(image_height_px))
+
+    # Stable ordering.
+    fids = sorted(int(fid) for fid in frames.keys())
+    for fid in fids:
+        if fid not in rvecs or fid not in tvecs:
+            raise ValueError("missing pose for some frame")
+
+    # Precompute design matrices.
+    A_left_by_fid: dict[int, np.ndarray] = {}
+    A_right_by_fid: dict[int, np.ndarray] = {}
+    frames_clean: dict[int, StereoFrameObservations] = {}
+    K = None
+    for fid in fids:
+        fr = frames[fid]
+        uvL = np.asarray(fr.uv_left_px, dtype=np.float64).reshape(-1, 2)
+        uvR = np.asarray(fr.uv_right_px, dtype=np.float64).reshape(-1, 2)
+        P = np.asarray(fr.P_board_mm, dtype=np.float64).reshape(-1, 3)
+        if uvL.shape[0] != uvR.shape[0] or uvL.shape[0] != P.shape[0]:
+            raise ValueError("inconsistent per-frame observation sizes")
+
+        A_L, maskL, _modes = zernike_design_matrix(
+            uvL[:, 0], uvL[:, 1], nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+        )
+        A_R, maskR, _modes2 = zernike_design_matrix(
+            uvR[:, 0], uvR[:, 1], nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+        )
+        mask = maskL & maskR
+        if not np.all(mask):
+            uvL = uvL[mask]
+            uvR = uvR[mask]
+            P = P[mask]
+            A_L = A_L[mask]
+            A_R = A_R[mask]
+
+        frames_clean[fid] = StereoFrameObservations(uv_left_px=uvL, uv_right_px=uvR, P_board_mm=P)
+        A_left_by_fid[fid] = A_L
+        A_right_by_fid[fid] = A_R
+        K = A_L.shape[1] if K is None else K
+        if A_L.shape[1] != K or A_R.shape[1] != K:
+            raise RuntimeError("inconsistent Zernike design matrix width")
+    assert K is not None
+
+    from scipy.optimize import least_squares  # type: ignore
+    from scipy.spatial.transform import Rotation as R  # type: ignore
+
+    coeff0 = _pack_coeffs(coeffs0_left_x, coeffs0_left_y, coeffs0_right_x, coeffs0_right_y)
+    rig_rvec = np.asarray(rig_rvec, dtype=np.float64).reshape(3)
+    rig_tvec = np.asarray(rig_tvec, dtype=np.float64).reshape(3)
+    R_RL = R.from_rotvec(rig_rvec).as_matrix()
+
+    def fun(p: np.ndarray) -> np.ndarray:
+        cLx, cLy, cRx, cRy = _unpack_coeffs(p, K)
+        res_parts: list[np.ndarray] = []
+        for fid in fids:
+            fr = frames_clean[fid]
+            A_L = A_left_by_fid[fid]
+            A_R = A_right_by_fid[fid]
+            dL = _dir_from_coeffs(A_L, cLx, cLy)
+            dR = _dir_from_coeffs(A_R, cRx, cRy)
+
+            R_i = R.from_rotvec(np.asarray(rvecs[fid], dtype=np.float64).reshape(3)).as_matrix()
+            t_i = np.asarray(tvecs[fid], dtype=np.float64).reshape(3)
+            P_L = (R_i @ fr.P_board_mm.T).T + t_i.reshape(1, 3)
+            P_R = (R_RL @ P_L.T).T + rig_tvec.reshape(1, 3)
+
+            res_parts.append(_point_to_ray_residual(P_L, dL))
+            res_parts.append(_point_to_ray_residual(P_R, dR))
+        if lam_coeff > 0:
+            res_parts.append(np.sqrt(lam_coeff) * p)
+        return np.concatenate(res_parts, axis=0)
+
+    sol = least_squares(fun, coeff0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev))
+    cLx, cLy, cRx, cRy = _unpack_coeffs(sol.x, K)
+
+    diag = {
+        "coeffs_fixed_cost": float(sol.cost),
+        "coeffs_fixed_nfev": float(sol.nfev),
+        "coeffs_fixed_success": float(bool(sol.success)),
+    }
+
+    return CentralStereoRayFieldBAResult(
+        nmax=int(nmax),
+        u0_px=float(u0),
+        v0_px=float(v0),
+        radius_px=float(radius),
+        coeffs_left_x=cLx,
+        coeffs_left_y=cLy,
+        coeffs_right_x=cRx,
+        coeffs_right_y=cRy,
+        rig_rvec=rig_rvec,
+        rig_tvec=rig_tvec,
+        rvecs={int(fid): np.asarray(rvecs[int(fid)], dtype=np.float64).reshape(3) for fid in fids},
+        tvecs={int(fid): np.asarray(tvecs[int(fid)], dtype=np.float64).reshape(3) for fid in fids},
+        diagnostics=diag,
+    )
