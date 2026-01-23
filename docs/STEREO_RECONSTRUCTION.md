@@ -13,7 +13,7 @@ Even if images are generated from a pinhole model (with Brown distortion), the 2
 - ArUco/ChArUco detection outliers.
 
 In this regime, OpenCV calibration is often limited by **2D localization quality** (more than by the projection model itself).
-The ray-field acts as a **geometric denoiser** on the board plane: OpenCV is fed with more coherent 2D observations.
+The ray-field acts as a **geometric denoiser** on the board plane: OpenCV is fed with more coherent 2D observations. Any similarity alignment (Sim(3)) is used only to compare reconstructed 3D to world-referenced ground truth when the gauge is underconstrained; stereo scale stability is reported in the camera frame (baseline error converted to disparity pixels at mean depth), without alignment.
 
 For a robustness study across board sizes/focal lengths/aberration levels, see: [Robustness sweep](ROBUSTNESS_SWEEP.md).
 
@@ -39,6 +39,12 @@ The exported JSON contains:
 - `n_views_stereo`: number of stereo views used by `stereoCalibrate`,
 - `view_stats.*.frame_ids`: which `frame_id` actually contributed,
 - `view_stats.*.n_corners`: number-of-corners statistics per view (mean/p50/p95/min/max).
+
+### Runtime (order of magnitude)
+
+- Planar refinement (homography + robust TPS) on CPU (Intel Core Ultra 5 228V): $\approx$0.38 s for $\sim$120 markers and $\sim$400 predicted corners (single core, Python/NumPy).
+- Ray-field fitting (central, $n_{\max}{=}10$, 3 outer iters) on 5 frames: $\approx$8 s on the same CPU.
+- Ray evaluation once fitted: a few μs per pixel (basis + dot products), comparable to a pinhole model.
 
 ## “Baseline error” in pixels (disparity-equivalent)
 
