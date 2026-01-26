@@ -29,6 +29,26 @@ The virtual camera intrinsics are chosen to maximize valid coverage; by default
 `fx'=fy'=0.9*W'` and `cx'=W'/2`, `cy'=H'/2`. The rectified axes are built from the
 baseline direction, so the epipolars become horizontal.
 
+## Implementation overview (maps for `cv2.remap`)
+
+The rectification is implemented as a **dense warp** toward a **virtual rectified pinhole camera**.
+For each pixel `(u', v')` in the rectified images:
+
+1. **Virtual ray**: build a unit direction `d_rect = normalize([(u'-cx')/fx', (v'-cy')/fy', 1])`.
+2. **Physical rays**: rotate `d_rect` into the left and right camera frames using the rectified axes
+   derived from the baseline.
+3. **Inverse mapping (direction → pixel)**: since the calibrated model is **forward** (`pixel → direction`),
+   each target direction must be inverted back to a source pixel `(u,v)`:
+   - coarse init via a **quantized inverse LUT** (`lut_use/lut_quant`),
+   - fallback init via a coarse image grid (`coarse_step`),
+   - refinement via a few Gauss–Newton iterations minimizing the angular error between
+     `dir(u,v)` and the target direction.
+4. **Fill maps**: write `mapx/mapy` for left and right; invalid pixels (direction outside the model FOV)
+   are marked as `-1` and filled by `cv2.remap` border policy.
+
+The LUT and Newton refinement are internal details of `build_virtual_rectify_maps`, but they are the key
+reason virtual rectification is practical: the dense maps are computed once per model, cached, then reused.
+
 ## Visual sanity check (synthetic pinhole)
 
 Below is a synthetic check on a pinhole rig (baseline 10 cm, random 3D points, 640×480):

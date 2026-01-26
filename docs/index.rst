@@ -77,6 +77,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 - I want the public API contract: :doc:`PUBLIC_API`
 - I want compression robustness for 3D reconstruction: :doc:`COMPRESSION_RECONSTRUCTION`
 - I want the math and ray-based calibration: :doc:`RAYFIELD3D_RECONSTRUCTION`
+- I want dense stereo via virtual rectification (ray-field): :doc:`RAYFIELD_VIRTUAL_RECTIFY`
 - Licensing: :doc:`LICENSE`
 
 .. toctree::

@@ -215,6 +215,9 @@ The proposed planar refinement is a preprocessing stage that operates \textbf{on
 
 Downstream steps (rectification, disparity computation, triangulation) remain unchanged; only the input correspondence set is regularized.
 For the ray-based backend, correspondences can come either from sparse features or from dense \emph{2D disparities} (e.g., produced by a dense matcher); triangulation is performed by ray intersection without requiring pinhole scanline rectification. Virtual rectification maps (not used in our main experiments) are available to reuse off-the-shelf 1D dense matchers on scanline-aligned images when desired.
+
+\paragraph{Implementation note (virtual rectification maps).}
+Virtual rectification is implemented as a dense warp toward a rectified virtual pinhole camera, producing \texttt{mapx/mapy} lookup tables for \texttt{cv::remap}. Since our ray-field is defined in the forward direction (pixel $\rightarrow$ ray direction; Eq.~(5)), building the warp requires inverting the mapping (direction $\rightarrow$ pixel). In practice we use a coarse inverse lookup table (LUT) to initialize the solution, followed by a few Gauss--Newton iterations that minimize the angular discrepancy between the target direction and the ray-field direction. This enables reuse of standard scanline dense matchers (e.g., SGM/Census) on the rectified images when desired.
 \input{tables/charuco_methods.tex}
 
 \section{Ray-based backend for maximum robustness}
@@ -499,13 +502,15 @@ The current ray-based model is central; extending to non-central generalized cam
 Table~\ref{tab:practical_guidelines} summarizes recommended backends by scenario. When images are clean and time-to-calibrate matters most, a standard pinhole pipeline suffices. Under mild photometric stress (e.g., JPEG/WebP $\gtrsim 90$), inserting the planar refinement (H + TPS residual) before calibration significantly stabilizes epipolar geometry at negligible runtime cost. Under strong photometric stress or when rectification-free triangulation is preferred, the ray-based backend offers maximum robustness; a virtual rectification is available to reuse 1D dense matchers if needed.
 \begin{table}[H]
 \centering
-\begin{tabular}{p{0.30\textwidth}p{0.34\textwidth}p{0.30\textwidth}}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{0.28\textwidth}p{0.33\textwidth}p{0.33\textwidth}}
 \toprule
 Scenario & Recommended backend & Rationale \\
 \midrule
 Clean imagery, fast calib. & Pinhole (standard) & Minimal cost, sufficient accuracy \\
 Mild compression / blur & Pinhole + planar refinement & Stabilizes epipolar geometry cheaply \\
-Strong compression / complex optics & Ray-based (optional virtual rectif.) & Robustness; no scanline rectif. required \\
+Strong compression / complex optics & Ray-based (optional virtual rectif.) & Robustness; scanline rectif. optional \\
 \bottomrule
 \end{tabular}
 \caption{Practical deployment recommendations. Planar refinement is a drop-in preprocessing of correspondences; the ray-based backend replaces pinhole calibration/triangulation when maximum robustness is required.}
