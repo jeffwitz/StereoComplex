@@ -179,6 +179,10 @@ Core method pages:
 - `docs/RAYFIELD3D_RECONSTRUCTION.md`
 - `docs/RECONSTRUCTION_API.md`
 
+## Code & documentation
+
+The full toolkit is available on GitHub (`https://github.com/jeffwitz/StereoComplex`), and the online documentation is published via ReadTheDocs (`https://stereocomplex.readthedocs.io/en/latest/`), so you can browse tutorials and references without cloning the repo.
+
 ### Sphinx / ReadTheDocs
 
 Build local HTML docs:

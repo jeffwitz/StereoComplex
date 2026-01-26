@@ -93,6 +93,24 @@ It is not intuitive, but it is plausible to observe that **moderate lossy compre
 
 This explains the “surprising” observation that raw pinhole metrics can sometimes improve at a given lossy quality (e.g. by implicit low-pass filtering), while remaining inconsistent across the sweep.
 
+## Quantitative uncertainty comparison (planar-refined pinhole vs ray-field)
+
+To compare the two backends in a unified way we convert pixel/disparity uncertainty into an **equivalent angular uncertainty** \(u_\alpha\) and propagate it into depth uncertainty via \(u_Z \approx \frac{Z^2}{B}\sqrt{u_{\alpha_L}^2+u_{\alpha_R}^2}\). The supporting `paper/experiments/quantitative_uncertainty.py` script computes \(u_{\alpha}\), the doubled interval \(U_Z\), and the relative \(U_Z/Z\) for each codec quality already present in the sweep.
+
+The resulting table (section `tab:uncertainty_comparison` in the manuscript) shows, for example, \(u_{\alpha,\mathrm{pinhole}}\approx 0.97\) mrad vs \(u_{\alpha,\mathrm{ray}}\approx 0.06\) mrad on lossless PNG, yielding relative depth uncertainty \(U_Z/Z\approx 2.16\%\) vs \(0.13\%\). The gain remains >14× on the tested lossy qualities (WebP q70, JPEG q80) because the ray-field's angular representation absorbs structured residuals while the pinhole uncertainty grows with each degradation step.
+
+To regenerate the table and supporting plots, reuse the sweep metrics and run:
+
+```bash
+.venv/bin/python paper/experiments/quantitative_uncertainty.py \
+  --sweep-json docs/assets/compression_sweep/sweep_metrics.json \
+  --baseline-mm 120 \
+  --depth-mm 3000 \
+  --out docs/assets/compression_sweep/uncertainty_report.json
+```
+
+The script produces the same per-condition columns that the LaTeX table displays in the paper, so you can reproduce the values for your own codec sweep simply by pointing it to a new `sweep_metrics.json`.
+
 ### Why the 3D ray-field stays stable
 
 The ray-field pipeline reduces compression sensitivity at two levels:
