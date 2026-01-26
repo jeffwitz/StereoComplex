@@ -209,6 +209,7 @@ The proposed planar refinement is a preprocessing stage that operates \textbf{on
 - \textbf{With planar refinement}: detect ArUco markers (and/or corners) $\rightarrow$ \textbf{planar refinement (H + TPS residual)} $\rightarrow$ stereo calibration (same backend) $\rightarrow$ \texttt{stereoRectify} $\rightarrow$ triangulation / disparity.
 
 Downstream steps (rectification, disparity computation, triangulation) remain unchanged; only the input correspondence set is regularized.
+For the ray-based backend, correspondences can come either from sparse features or from dense \emph{2D disparities} (e.g., produced by a dense matcher); triangulation is performed by ray intersection without requiring pinhole scanline rectification. Virtual rectification maps (not used in our main experiments) are available to reuse off-the-shelf 1D dense matchers on scanline-aligned images when desired.
 \input{tables/charuco_methods.tex}
 
 \section{Ray-based backend for maximum robustness}

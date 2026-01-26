@@ -44,6 +44,9 @@ class RectifyParams:
     coarse_topk: int = 4
     border_mode: int = cv2.BORDER_CONSTANT
     border_value: float = 0.0
+    # LUT inverse (direction->pixel) settings
+    lut_quant: int = 32  # number of bins per axis for direction quantization (theta/phi)
+    lut_use: bool = True
 
 
 def _build_rect_axes(t_lr: np.ndarray, up_hint: np.ndarray = np.array([0, 1, 0], dtype=np.float64)) -> np.ndarray:
@@ -79,6 +82,44 @@ def _direction_field_from_model(ray_model, width: int, height: int, step: int) -
             dirs[j, i] = ray_model.dir(float(u), float(v))
     dirs = _normalize(dirs)
     return dirs, coords
+
+
+def _build_direction_lut(ray_model, width: int, height: int, quant: int = 32) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Build a coarse inverse LUT: quantize directions on the unit sphere (theta,phi grid)
+    and store one representative pixel (u,v) for each bin.
+
+    Returns
+    -------
+    lut_dirs : (Q,Q,3) representative direction per bin (unit)
+    lut_uv   : (Q,Q,2) pixel coordinate for that bin (-1,-1 if empty)
+    """
+    uu, vv = np.meshgrid(np.arange(width, dtype=np.float64), np.arange(height, dtype=np.float64))
+    uu = uu.reshape(-1)
+    vv = vv.reshape(-1)
+    dirs = np.zeros((uu.size, 3), dtype=np.float64)
+    for i in range(uu.size):
+        dirs[i] = ray_model.dir(float(uu[i]), float(vv[i]))
+    dirs = _normalize(dirs)
+    # Spherical bins
+    x, y, z = dirs[:, 0], dirs[:, 1], dirs[:, 2]
+    theta = np.arctan2(y, x)  # [-pi,pi]
+    phi = np.arctan2(np.sqrt(x * x + y * y), z)  # [0,pi]
+    theta_idx = ((theta + np.pi) / (2 * np.pi) * quant).astype(int)
+    phi_idx = (phi / np.pi * quant).astype(int)
+    theta_idx = np.clip(theta_idx, 0, quant - 1)
+    phi_idx = np.clip(phi_idx, 0, quant - 1)
+    lut_uv = -np.ones((quant, quant, 2), dtype=np.float32)
+    lut_dirs = np.zeros((quant, quant, 3), dtype=np.float32)
+    for i in range(uu.size):
+        ti = theta_idx[i]
+        pi = phi_idx[i]
+        if lut_uv[pi, ti, 0] < 0:  # empty bin
+            lut_uv[pi, ti, 0] = uu[i]
+            lut_uv[pi, ti, 1] = vv[i]
+            lut_dirs[pi, ti] = dirs[i]
+    lut_dirs = _normalize(lut_dirs)
+    return lut_dirs, lut_uv
 
 
 def _invert_direction_newton(ray_model, d_target: np.ndarray, init_uv: np.ndarray, max_iters: int, eps_angle: float, eps_step: float) -> Optional[np.ndarray]:
@@ -150,6 +191,12 @@ def build_virtual_rectify_maps(
         dirs_R, coords_R = _direction_field_from_model(ray_model_R, ray_model_R.width, ray_model_R.height, params.coarse_step)
     else:
         dirs_L = coords_L = dirs_R = coords_R = None
+    # Direction->pixel inverse LUT (optional)
+    if params.lut_use:
+        lut_dirs_L, lut_uv_L = _build_direction_lut(ray_model_L, ray_model_L.width, ray_model_L.height, params.lut_quant)
+        lut_dirs_R, lut_uv_R = _build_direction_lut(ray_model_R, ray_model_R.width, ray_model_R.height, params.lut_quant)
+    else:
+        lut_dirs_L = lut_uv_L = lut_dirs_R = lut_uv_R = None
 
     mapx_L = np.full((H, W), -1.0, dtype=np.float32)
     mapy_L = np.full((H, W), -1.0, dtype=np.float32)
@@ -168,7 +215,15 @@ def build_virtual_rectify_maps(
 
             # invert left
             init_L = None
-            if dirs_L is not None:
+            if params.lut_use and lut_dirs_L is not None and lut_uv_L is not None:
+                dots = (lut_dirs_L.reshape(-1, 3) @ d_L)
+                idx = int(np.argmax(dots))
+                pi = idx // params.lut_quant
+                ti = idx - pi * params.lut_quant
+                init_L = lut_uv_L[pi, ti]
+                if init_L[0] < 0:
+                    init_L = None
+            if init_L is None and dirs_L is not None:
                 init_L = _coarse_init(d_L, dirs_L, coords_L, params.coarse_topk)
             if init_L is None:
                 init_L = np.array([ray_model_L.width * 0.5, ray_model_L.height * 0.5], dtype=np.float64)
@@ -176,7 +231,15 @@ def build_virtual_rectify_maps(
 
             # invert right
             init_R = None
-            if dirs_R is not None:
+            if params.lut_use and lut_dirs_R is not None and lut_uv_R is not None:
+                dots = (lut_dirs_R.reshape(-1, 3) @ d_R)
+                idx = int(np.argmax(dots))
+                pi = idx // params.lut_quant
+                ti = idx - pi * params.lut_quant
+                init_R = lut_uv_R[pi, ti]
+                if init_R[0] < 0:
+                    init_R = None
+            if init_R is None and dirs_R is not None:
                 init_R = _coarse_init(d_R, dirs_R, coords_R, params.coarse_topk)
             if init_R is None:
                 init_R = np.array([ray_model_R.width * 0.5, ray_model_R.height * 0.5], dtype=np.float64)
