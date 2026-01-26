@@ -17,9 +17,9 @@
 \hyphenation{homography planar correspondences checkerboard Charuco CharucoDetector triangulation}
 
 \title{Compression-Robust Stereo Calibration via Planar Geometric Refinement of Fiducial Corners}
-\author{Jeff Witz\thanks{ORCID: \href{https://orcid.org/0000-0002-7240-9476}{0000-0002-7240-9476}}\\
-\small Independent Researcher, France\\
-\small Corresponding author: jeff.witz@example.com}
+\author{Jean-Fran\c{c}ois Witz\thanks{ORCID: \href{https://orcid.org/0000-0002-7240-9476}{0000-0002-7240-9476}}\\
+\small CNRS, France\\
+\small Corresponding author: jean-francois.witz@centralelille.fr}
 \date{\today}
 
 \begin{document}
@@ -135,6 +135,9 @@ We report the following stereo-relevant metrics:
 \end{itemize}
 Formal definitions and derivations are provided in Appendix~\ref{app:metrics}.
 
+\subsubsection{Connection to rectified stereo pipelines}
+In many practical stereo systems, calibration is primarily used to enable stable scanline rectification. Rectification quality is therefore a direct proxy for downstream performance of block matching / semi-global matching and for triangulation from horizontal disparities. For pinhole backends, we explicitly evaluate epipolar consistency through vertical disparity statistics after \texttt{stereoRectify} (median/P95 of $|\Delta y|$). Importantly, this metric is computed by rectifying \textbf{ground-truth correspondences} with the \textbf{estimated} stereo parameters (Table~\ref{tab:compression_summary}), isolating the quality of the estimated geometry from detection noise. This directly answers the practical question: does the estimated calibration produce stable rectified pairs under photometric stress?
+
 \section{Method: planar geometric refinement (``second pass'')}
 \label{sec:method2d}
 \subsection{Pipeline overview}
@@ -198,12 +201,21 @@ Appendix~\ref{app:homography_only} provides an ablation showing that a homograph
 We first evaluate planar refinement as a pure 2D identification method by comparing predicted chessboard corners to ground-truth projections on a synthetic dataset (no real data).
 Table~\ref{tab:charuco_methods} reports representative 2D errors for multiple identification strategies.
 In particular, the \textbf{PnP (K+distortion)} baseline uses a known camera model to solve per-frame pose and reproject corners, while the planar methods (\textbf{Homography} and \textbf{Plane ray-field}) use only the planar target geometry and marker correspondences.
+
+\paragraph{Integration into a standard stereo pipeline (drop-in step).}
+The proposed planar refinement is a preprocessing stage that operates \textbf{only on 2D correspondences on the calibration plane}, before any camera model fitting. It can be inserted as a drop-in replacement for raw ChArUco corner sets in a standard stereo workflow:
+
+- \textbf{Standard}: detect corners $\rightarrow$ stereo calibration (pinhole) $\rightarrow$ \texttt{stereoRectify} $\rightarrow$ triangulation / disparity.
+- \textbf{With planar refinement}: detect ArUco markers (and/or corners) $\rightarrow$ \textbf{planar refinement (H + TPS residual)} $\rightarrow$ stereo calibration (same backend) $\rightarrow$ \texttt{stereoRectify} $\rightarrow$ triangulation / disparity.
+
+Downstream steps (rectification, disparity computation, triangulation) remain unchanged; only the input correspondence set is regularized.
 \input{tables/charuco_methods.tex}
 
 \section{Ray-based backend for maximum robustness}
 \label{sec:ray3d}
 \subsection{Model definition}
 We define a \emph{central} ray-based camera model that maps a pixel $(u,v)$ to a unit direction $\mathbf{d}(u,v)\in\mathbb{R}^3$.
+This ray-based backend is \textbf{optional}: it can replace the classical pinhole calibration + triangulation stages when maximum robustness is required, while the planar refinement remains compatible with standard rectified stereo pipelines.
 We parameterize
 \begin{equation}
 \mathbf{d}(u,v) = \frac{1}{\left\| (x(u,v),y(u,v),1)^\top \right\|}\,(x(u,v),y(u,v),1)^\top,
@@ -258,7 +270,7 @@ We compare:
 \begin{itemize}
   \item \textbf{B1: OpenCV pinhole (raw).} Detect corners and run standard pinhole stereo calibration and triangulation.
   \item \textbf{B2: OpenCV pinhole + planar refinement.} Apply the planar second pass, then run the same OpenCV calibration.
-  \item \textbf{B3: 3D ray-field + planar refinement.} Use planar refinement for 2D correspondences, then fit the compact central ray-based stereo model and triangulate by ray intersection.
+  \item \textbf{B3: 3D ray-field + planar refinement.} Apply planar refinement to regularize 2D correspondences, then \textbf{replace} pinhole stereo calibration/triangulation with the compact central ray-based stereo model and ray-intersection triangulation (no scanline rectification required).
   \item \textbf{B4: Pycaso polynomial mapping.} We include a polynomial stereo baseline based on the Pycaso workflow~\cite{caron2023pycaso}: (i) the \emph{direct} Soloff polynomial mapping $(u_L,v_L,u_R,v_R)\!\rightarrow\!(X,Y,Z)$, and (ii) a Soloff-style inversion variant (polynomials from $(X,Y,Z)$ to pixels followed by a Levenberg--Marquardt inversion).
   Since this family typically assumes calibration data with known 3D target point coordinates (e.g., depth sweep), we evaluate it on a dedicated synthetic depth-sweep benchmark (Section~\ref{sec:pycaso}).
 \end{itemize}
