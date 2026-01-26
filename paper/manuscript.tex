@@ -26,13 +26,13 @@
 \maketitle
 
 \begin{abstract}
-Fiducial-based stereo calibration is often developed and evaluated on pristine imagery, yet practical pipelines frequently operate on lossy-compressed streams (bandwidth-limited transmission, storage constraints, onboard logging).
-Lossy compression introduces spatially structured artifacts that yield biased subpixel localization of fiducial corners; these errors are not well modeled as independent noise and can destabilize epipolar geometry and depth estimates.
-We propose a model-agnostic two-stage planar refinement that regularizes 2D correspondences before calibration: a robust homography fit on the calibration plane followed by a smooth residual warp learned from marker correspondences.
-We evaluate on a fully reproducible synthetic benchmark with ground-truth geometry and controlled degradations, including codec-quality sweeps, and report stereo-relevant metrics (vertical disparity/rectification stability, baseline error in disparity-equivalent pixels, and triangulation stability when ground truth is available).
-On our compression sweep, an optional compact 3D ray-based stereo model further improves robustness, yielding triangulation error that remains stable across lossy compression levels compared to pinhole-based baselines.
-We also report a small real-image depth-sweep comparison using the public Pycaso example dataset, including an in-memory JPEG/WebP re-encoding stress test.
-Code, benchmark scripts, and configurations are released for reproducibility.
+Stereo calibration pipelines are highly sensitive to structured photometric degradations such as compression artifacts, blur, or noise, which can bias corner localization and degrade epipolar geometry even when reprojection errors remain low.
+We propose a lightweight planar correspondence refinement strategy that regularizes marker-based detections through a robust homography followed by a smooth residual warp, improving geometric consistency prior to stereo calibration.
+This refinement is designed as a drop-in preprocessing step for standard pinhole stereo toolchains, leaving downstream rectification, disparity computation, and triangulation code unchanged.
+We further introduce an optional compact central ray-based stereo backend, parameterized in a Zernike basis and solved via regularized point–ray optimization, which improves robustness under severe photometric stress compared to pinhole-only calibration.
+This ray-based backend optionally replaces pinhole calibration and triangulation when maximum robustness is required.
+Extensive benchmarks on a controlled dataset with increasing compression and blur levels show that the proposed approach significantly stabilizes epipolar geometry and downstream stereo performance.
+All datasets, code, and evaluation protocols are made publicly available to ensure full reproducibility.
 \end{abstract}
 
 \textbf{Keywords:} stereo calibration; ChArUco; compression robustness; homography; thin-plate spline; ray-based stereo; reproducible benchmark
@@ -57,9 +57,11 @@ This refinement is model-agnostic (it does not require known intrinsics) and is 
 We provide the following falsifiable contributions:
 \begin{itemize}
   \item \textbf{C1 (Planar refinement).} A two-stage planar geometric refinement pipeline (robust homography + smooth residual warp) that improves correspondence consistency under degradations (compression, blur, noise) before stereo calibration.
+        This refinement is a drop-in preprocessing step that leaves downstream rectification/disparity code unchanged (Section~\ref{sec:method2d}, Table~\ref{tab:practical_guidelines}).
   \item \textbf{C2 (Stereo metrics).} A stereo evaluation protocol with metrics that directly quantify stereo usefulness: vertical disparity after rectification, baseline error in disparity-equivalent pixels, and triangulation stability (and ray skew) when ground truth is available.
   \item \textbf{C3 (Synthetic benchmark).} A synthetic benchmark suite with controlled degradations (including compression sweeps) and ground-truth geometry enabling fully reproducible comparisons.
   \item \textbf{C4 (Optional ray-based stereo).} A compact \emph{central} ray-based stereo model (Zernike basis + regularized point$\leftrightarrow$ray optimization) that yields improved robustness under compression compared to pinhole-only calibration on our benchmark.
+        The ray-based backend optionally replaces pinhole calibration/triangulation, and virtual rectification maps (Section~\ref{sec:method2d}) enable reuse of standard dense matchers when preferred.
 \end{itemize}
 
 \subsection{Paper organization}
@@ -498,6 +500,23 @@ In addition, we report a small real-image depth-sweep comparison on the public P
 More extensive real-world validation (including hardware codecs, sensor pipelines, and non-ideal optics) remains future work.
 The current ray-based model is central; extending to non-central generalized cameras is also future work.
 
+\subsection{Quantitative uncertainty comparison (pinhole vs. ray-field)}
+To compare the two backends on equal footing we express their uncertainty in an angular form and then propagate it to depth. The pinhole backend uses the reported triangulation RMS ($u_Z$) to recover an equivalent angular uncertainty
+\[
+u_{\alpha,\mathrm{pinhole}} \;\approx\; \frac{B}{Z^2}\frac{u_Z}{\sqrt{2}},
+\]
+while the ray-field backend uses the measured ray skew $s$ to obtain
+\[
+u_{\alpha,\mathrm{ray}} \;\approx\; \frac{s}{Z}.
+\]
+The depth uncertainty shares the same propagation,
+\[
+u_Z \;\equiv\; \frac{Z^2}{B}\sqrt{2}\,u_\alpha,\qquad
+U_Z \equiv 2u_Z,
+\]
+so the two backends are compared in the same units. In Table~\ref{tab:uncertainty_comparison} we list the resulting angular uncertainties (mrad) and relative depth uncertainty $U_Z/Z$ for PNG lossless and WebP$q=70$. The ray-field values use the P95 skew to keep the comparison conservative, whereas the pinhole pipeline relies on RMS depth error; both quantities are propagated through the same formulas. The ray-field remains under one tenth of the pinhole uncertainty under both conditions, yielding a depth uncertainty gain above $15\times$ in the compression-heavy regime. This comparison confirms that the ray-based backend keeps geometric uncertainty low even when 2D pixel noise grows. Codec quality is not strictly monotonic—artifact structure can vary with codec parameters—so we keep the two conditions separate rather than interpolating intermediate quality levels.
+\input{tables/uncertainty_comparison.tex}
+
 \subsection{Practical deployment guidelines}
 Table~\ref{tab:practical_guidelines} summarizes recommended backends by scenario. When images are clean and time-to-calibrate matters most, a standard pinhole pipeline suffices. Under mild photometric stress (e.g., JPEG/WebP $\gtrsim 90$), inserting the planar refinement (H + TPS residual) before calibration significantly stabilizes epipolar geometry at negligible runtime cost. Under strong photometric stress or when rectification-free triangulation is preferred, the ray-based backend offers maximum robustness; a virtual rectification is available to reuse 1D dense matchers if needed.
 \begin{table}[H]
@@ -518,7 +537,7 @@ Strong compression / complex optics & Ray-based (optional virtual rectif.) & Rob
 \end{table}
 
 \section{Reproducibility and open-source release}
-All experiments in this paper are reproducible from the released repository.
+All experiments in this paper are reproducible from the released repository (\href{https://github.com/jeffwitz/StereoComplex}{StereoComplex}) and documented online (\href{https://stereocomplex.readthedocs.io/en/latest/}{ReadTheDocs}).
 Key scripts include:
 \begin{itemize}
   \item Dataset generation and re-encoding utilities (synthetic benchmark and codec variants).
@@ -526,6 +545,7 @@ Key scripts include:
   \item Pycaso baseline drivers and plotting scripts producing Figures~\ref{fig:pycaso_compression}--\ref{fig:pycaso_pose_sweep}.
   \item Real-image Pycaso depth-sweep comparison script (Table~\ref{tab:pycaso_real}; \protect\path{validation/pycaso_real_z_sweep_rayfield3d.py}).
   \item Corner identification comparisons producing Table~\ref{tab:charuco_methods}.
+  \item Quantitative uncertainty analysis script (\protect\path{experiments/quantitative_uncertainty.py}) that reproduces Table~\ref{tab:uncertainty_comparison}.
 \end{itemize}
 The code is released under GPL-2.0-or-later; documentation is released under CC BY-SA 4.0 (see repository licensing files).
 
