@@ -44,9 +44,10 @@ with standard 1D matching.
 ## Notes and limits
 
 - The inversion `direction -> pixel` is solved by a small Newton loop with finite-difference
-  Jacobians; maps are meant to be **precomputed and cached** once per model.
+  Jacobians; maps are meant to be **precomputed and cached** once per model. A coarse inverse LUT
+  (quantized directions) is used as an initial guess before Newton, with a fallback on a coarse
+  image grid if the LUT bin is empty.
 - If a direction is outside the FOV of the ray-field, the corresponding rectified pixel is
   marked invalid (cv2.remap fills it with the border value).
 - For depth recovery, you can either use a virtual `Q` (pinhole-like) or intersect the two
   rays associated with the rectified disparity (more exact for ray-field).
-
