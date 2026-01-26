@@ -111,4 +111,5 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
    RECONSTRUCTION_API
    PUBLIC_API
    RAYFIELD3D_RECONSTRUCTION
+   RAYFIELD_VIRTUAL_RECTIFY
    PYCASO_Z_SWEEP
