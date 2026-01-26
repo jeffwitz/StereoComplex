@@ -99,6 +99,11 @@ Barta et al. provide a recent comparative study of calibration approaches in par
 Pycaso~\cite{caron2023pycaso} provides an open-source implementation of this workflow, including a direct polynomial mapping $(u_L,v_L,u_R,v_R)\!\rightarrow\!(X,Y,Z)$ and an inverse formulation that fits polynomials from 3D points to pixels and inverts them numerically.
 These approaches typically rely on calibration data with known 3D target point coordinates (often obtained via depth sweeps or 3D calibration objects), which differs from planar calibration workflows where per-frame target pose is unknown and must be estimated.
 
+\subsection{Practical stereo toolchains}
+Kalibr~\cite{furgale2013unified} and Basalt~\cite{usenko2020vin} provide rich calibration backends (including inertial), but require a robotics stack (ROS/catkin/Docker) and are often heavy to deploy for simple stereo-only setups.
+MATLAB toolboxes and OpenCV remain common baselines for industrial stereo calibration, yet typically assume high-quality imagery and focus on minimizing reprojection RMS.
+Our method is intended as a lightweight planar refinement that drops into such pipelines without changing downstream rectification/disparity code; an optional ray-based backend can replace the pinhole calibration + triangulation stages when rectification-free ray intersection is preferred.
+
 \section{Problem formulation: from 2D localization error to stereo geometry error}
 \label{sec:formulation}
 \subsection{Notation}
@@ -490,6 +495,23 @@ In addition, we report a small real-image depth-sweep comparison on the public P
 More extensive real-world validation (including hardware codecs, sensor pipelines, and non-ideal optics) remains future work.
 The current ray-based model is central; extending to non-central generalized cameras is also future work.
 
+\subsection{Practical deployment guidelines}
+Table~\ref{tab:practical_guidelines} summarizes recommended backends by scenario. When images are clean and time-to-calibrate matters most, a standard pinhole pipeline suffices. Under mild photometric stress (e.g., JPEG/WebP $\gtrsim 90$), inserting the planar refinement (H + TPS residual) before calibration significantly stabilizes epipolar geometry at negligible runtime cost. Under strong photometric stress or when rectification-free triangulation is preferred, the ray-based backend offers maximum robustness; a virtual rectification is available to reuse 1D dense matchers if needed.
+\begin{table}[H]
+\centering
+\begin{tabular}{p{0.30\textwidth}p{0.34\textwidth}p{0.30\textwidth}}
+\toprule
+Scenario & Recommended backend & Rationale \\
+\midrule
+Clean imagery, fast calib. & Pinhole (standard) & Minimal cost, sufficient accuracy \\
+Mild compression / blur & Pinhole + planar refinement & Stabilizes epipolar geometry cheaply \\
+Strong compression / complex optics & Ray-based (optional virtual rectif.) & Robustness; no scanline rectif. required \\
+\bottomrule
+\end{tabular}
+\caption{Practical deployment recommendations. Planar refinement is a drop-in preprocessing of correspondences; the ray-based backend replaces pinhole calibration/triangulation when maximum robustness is required.}
+\label{tab:practical_guidelines}
+\end{table}
+
 \section{Reproducibility and open-source release}
 All experiments in this paper are reproducible from the released repository.
 Key scripts include:
@@ -508,7 +530,7 @@ Using a fully reproducible synthetic benchmark, we demonstrated that stereo-rele
 The comparison against the Pycaso polynomial mapping (direct + Soloff) further demonstrates that this refinement helps even when non-pinhole regressions are used, while the ray-based backend delivers the most stable depth under aggressive compression.
 On the public Pycaso real-image depth sweep, both the polynomial mapping and ray-based backends achieve sub-\SI{0.2}{\percent} RMS depth variation (after accounting for stage gauge) and remain stable under in-memory JPEG/WebP re-encoding, supporting feasibility on real imagery.
 More extensive real-world validation and extensions to non-central ray models are left as future work.
-
+From a practitioner perspective, the planar refinement is a drop-in upgrade to standard pinhole pipelines: it replaces the raw correspondence set and leaves rectification/disparity/triangulation code unchanged. The ray-based backend is optional and can replace pinhole calibration + triangulation when maximum robustness is required; virtual rectification maps are available to reuse standard 1D dense matchers when desired.
 \appendix
 \section{Metric definitions}
 \label{app:metrics}
