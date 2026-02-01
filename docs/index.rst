@@ -19,6 +19,18 @@ StereoComplex is a practical toolkit to **refine ChArUco corners before calibrat
 
 This simple “2D cleanup” step is often enough to make classic OpenCV calibration **much more stable** on challenging data.
 
+.. rubric:: Video 1 (overview)
+
+.. raw:: html
+
+   <iframe width="560" height="315"
+     src="https://www.youtube.com/embed/8Mbcv5l7ek0"
+     title="StereoComplex overview"
+     frameborder="0"
+     referrerpolicy="strict-origin-when-cross-origin"
+     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+     allowfullscreen></iframe>
+
 Motivation: in many practical stereo systems, calibration accuracy is limited by **2D localization quality** (blur, compression, noise) rather than by the camera model itself.
 
 Terminology note: here, “ray-field” can refer to either (1) a **2D planar warp** learned on the board plane (homography + smooth residual field) or (2) an experimental **3D ray-based model**. The 2D method is not a per-pixel 3D ray model.
