@@ -1,13 +1,3 @@
-.. raw:: html
-
-   <iframe width="560" height="315"
-     src="https://www.youtube.com/embed/8Mbcv5l7ek0"
-     title="StereoComplex overview"
-     frameborder="0"
-     referrerpolicy="strict-origin-when-cross-origin"
-     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-     allowfullscreen></iframe>
-
 StereoComplex
 =============
 
