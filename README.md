@@ -192,6 +192,14 @@ Build local HTML docs:
 make -C docs html
 ```
 
+Serve the HTML docs locally (needed to render the embedded YouTube video in the docs, and so the root URL opens the docs directly):
+
+```bash
+.venv/bin/python -m http.server -d docs/_build/html 8000
+```
+
+Then open `http://localhost:8000/`.
+
 Build PDF (LaTeX):
 
 ```bash
