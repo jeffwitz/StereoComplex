@@ -1,0 +1,17 @@
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{l l c c c}
+\toprule
+Codec & 2D mapping & Stereo RMS (px) & Baseline err (px @ $\bar Z$) & Tri RMS (\%$\bar Z$)\\
+\midrule
+PNG (lossless) & Homography only & 0.319 & 0.253 & 4.149\\
+PNG (lossless) & Homography + TPS & 0.123 & 0.287 & 1.079\\
+WebP (q70) & Homography only & 0.540 & 2.110 & 3.722\\
+WebP (q70) & Homography + TPS & 0.117 & 0.110 & 1.010\\
+\bottomrule
+\end{tabular}
+\caption{Ablation (OpenCV pinhole backend): homography-only versus homography+TPS residual warp as the planar mapping used to generate 2D correspondences. Without the residual warp, a global homography cannot absorb lens distortion and yields unstable stereo calibration under the same settings. All results use the same compression benchmark configuration (5 frames).}
+\label{tab:homography_only_ablation}
+\end{table}

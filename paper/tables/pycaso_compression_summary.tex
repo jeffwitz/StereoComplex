@@ -1,0 +1,16 @@
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrr}
+\toprule
+Codec & \shortstack{Pycaso direct\\RMS $Z$ (mm)\\(\%$\bar Z$)} & \shortstack{Pycaso Soloff+LM\\RMS $Z$ (mm)\\(\%$\bar Z$)} & \shortstack{3D ray-field\\RMS $Z$ (mm)\\(\%$\bar Z$)} \\
+\midrule
+PNG (lossless) & 0.001470 (0.049\%) & 0.001554 (0.052\%) & 0.001556 (0.052\%) \\
+WebP (q70) & 0.001760 (0.059\%) & 0.001755 (0.059\%) & 0.001750 (0.058\%) \\
+JPEG (q80) & 0.001883 (0.063\%) & 0.001936 (0.065\%) & 0.001936 (0.065\%) \\
+\bottomrule
+\end{tabular}
+\caption{Pycaso-style depth sweep (synthetic, $\bar Z\approx 3.0$\,mm): RMS $Z$ error on clean PNG and under representative lossy compression settings, using planar refinement for 2D correspondences. Values are reported both in mm and as a percentage of mean depth. Note: absolute RMS values are not directly comparable to the pose-sweep protocol (Table~\ref{tab:pycaso_pose_sweep}) due to different depth range and conditioning.}
+\label{tab:pycaso_compression}
+\end{table}

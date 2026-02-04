@@ -1,0 +1,16 @@
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrr}
+\toprule
+Codec & \shortstack{Pycaso direct\\RMS $Z$ (mm)\\(\%$\bar Z$)} & \shortstack{3D ray-field\\RMS $Z$ (mm)\\(\%$\bar Z$)} \\
+\midrule
+PNG (lossless) & 18.122515 (1.475\%) & 1.307573 (0.106\%) \\
+WebP (q70) & 11.603871 (0.945\%) & 1.130296 (0.092\%) \\
+JPEG (q80) & 31.153960 (2.536\%) & 1.231735 (0.100\%) \\
+\bottomrule
+\end{tabular}
+\caption{Pose-sweep compression benchmark (synthetic, $\bar Z\approx 1229$\,mm): RMS $Z$ error on selected codecs, using planar refinement for 2D correspondences. Values are reported both in mm and as a percentage of mean depth. Soloff+LM is omitted here as it is substantially worse in this setting; see Section~\ref{sec:pycaso}. Note: absolute RMS values are not directly comparable to the depth-sweep protocol (Table~\ref{tab:pycaso_compression}) due to different depth range and conditioning.}
+\label{tab:pycaso_pose_sweep}
+\end{table}
