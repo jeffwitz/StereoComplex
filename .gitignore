@@ -32,7 +32,12 @@ dataset/v0_png/train/*
 dataset/v0_png/train/scene_0000/*
 !dataset/v0_png/train/scene_0000/**
 docs/_build/
-paper/tables/
+paper/tables/*
+!paper/tables/robustness_sweep/
+paper/tables/robustness_sweep/*
+!paper/tables/robustness_sweep/summary.json
+!paper/tables/pycaso_pose_sweep_sweep_summary.json
+!paper/tables/pycaso_compression_sweep_summary.json
 paper/figures/
 .ruff_cache/
 paper/references.txt

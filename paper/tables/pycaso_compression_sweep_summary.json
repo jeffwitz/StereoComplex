@@ -1,0 +1,168 @@
+{
+  "schema_version": "stereocomplex.pycaso_compression_sweep.v0",
+  "mean_depth_mm_approx": 3.0,
+  "cases": {
+    "jpeg_q80": {
+      "codec": "jpeg",
+      "quality": 80,
+      "metrics": {
+        "pycaso_direct_poly": {
+          "rms_z_mm": 0.0018825611855709566,
+          "rms_z_rel_percent": 0.06275203951901097
+        },
+        "pycaso_soloff_lm": {
+          "rms_z_mm": 0.0019361260045492757,
+          "rms_z_rel_percent": 0.06453753348495433
+        },
+        "rayfield3d_fixed": {
+          "rms_z_mm": 0.001935823176270388,
+          "rms_z_rel_percent": 0.06452743920899141
+        }
+      }
+    },
+    "jpeg_q90": {
+      "codec": "jpeg",
+      "quality": 90,
+      "metrics": {
+        "pycaso_direct_poly": {
+          "rms_z_mm": 0.0015377196237695355,
+          "rms_z_rel_percent": 0.051257320792300755
+        },
+        "pycaso_soloff_lm": {
+          "rms_z_mm": 0.0016133782635669185,
+          "rms_z_rel_percent": 0.053779275452212685
+        },
+        "rayfield3d_fixed": {
+          "rms_z_mm": 0.0016244330948252256,
+          "rms_z_rel_percent": 0.05414776982748947
+        }
+      }
+    },
+    "jpeg_q95": {
+      "codec": "jpeg",
+      "quality": 95,
+      "metrics": {
+        "pycaso_direct_poly": {
+          "rms_z_mm": 0.0014651692852167516,
+          "rms_z_rel_percent": 0.04883897617387544
+        },
+        "pycaso_soloff_lm": {
+          "rms_z_mm": 0.0015292220547497228,
+          "rms_z_rel_percent": 0.050974068491640434
+        },
+        "rayfield3d_fixed": {
+          "rms_z_mm": 0.0015452300424141526,
+          "rms_z_rel_percent": 0.05150766808045459
+        }
+      }
+    },
+    "jpeg_q98": {
+      "codec": "jpeg",
+      "quality": 98,
+      "metrics": {
+        "pycaso_direct_poly": {
+          "rms_z_mm": 0.0014581705983966768,
+          "rms_z_rel_percent": 0.048605686613206356
+        },
+        "pycaso_soloff_lm": {
+          "rms_z_mm": 0.0015330373943491,
+          "rms_z_rel_percent": 0.051101246478286295
+        },
+        "rayfield3d_fixed": {
+          "rms_z_mm": 0.0015475032970048968,
+          "rms_z_rel_percent": 0.05158344323347937
+        }
+      }
+    },
+    "png_lossless": {
+      "codec": "png",
+      "quality": 101,
+      "metrics": {
+        "pycaso_direct_poly": {
+          "rms_z_mm": 0.0014703414737199613,
+          "rms_z_rel_percent": 0.049011382457315705
+        },
+        "pycaso_soloff_lm": {
+          "rms_z_mm": 0.0015535136608480354,
+          "rms_z_rel_percent": 0.05178378869491725
+        },
+        "rayfield3d_fixed": {
+          "rms_z_mm": 0.001555776126733343,
+          "rms_z_rel_percent": 0.05185920422442748
+        }
+      }
+    },
+    "webp_q70": {
+      "codec": "webp",
+      "quality": 70,
+      "metrics": {
+        "pycaso_direct_poly": {
+          "rms_z_mm": 0.0017598450783068206,
+          "rms_z_rel_percent": 0.0586615026102078
+        },
+        "pycaso_soloff_lm": {
+          "rms_z_mm": 0.001755201317463428,
+          "rms_z_rel_percent": 0.05850671058209476
+        },
+        "rayfield3d_fixed": {
+          "rms_z_mm": 0.0017502897890480833,
+          "rms_z_rel_percent": 0.05834299296825
+        }
+      }
+    },
+    "webp_q80": {
+      "codec": "webp",
+      "quality": 80,
+      "metrics": {
+        "pycaso_direct_poly": {
+          "rms_z_mm": 0.0015681616691273523,
+          "rms_z_rel_percent": 0.05227205563756098
+        },
+        "pycaso_soloff_lm": {
+          "rms_z_mm": 0.001594856255646232,
+          "rms_z_rel_percent": 0.05316187518819001
+        },
+        "rayfield3d_fixed": {
+          "rms_z_mm": 0.0015503413107088933,
+          "rms_z_rel_percent": 0.05167804369027922
+        }
+      }
+    },
+    "webp_q90": {
+      "codec": "webp",
+      "quality": 90,
+      "metrics": {
+        "pycaso_direct_poly": {
+          "rms_z_mm": 0.0014526752213941615,
+          "rms_z_rel_percent": 0.048422507379789245
+        },
+        "pycaso_soloff_lm": {
+          "rms_z_mm": 0.0015268599618220376,
+          "rms_z_rel_percent": 0.05089533206071763
+        },
+        "rayfield3d_fixed": {
+          "rms_z_mm": 0.0015611068578376206,
+          "rms_z_rel_percent": 0.05203689526123667
+        }
+      }
+    },
+    "webp_q95": {
+      "codec": "webp",
+      "quality": 95,
+      "metrics": {
+        "pycaso_direct_poly": {
+          "rms_z_mm": 0.0014611604466968995,
+          "rms_z_rel_percent": 0.04870534822321374
+        },
+        "pycaso_soloff_lm": {
+          "rms_z_mm": 0.0015400589878315316,
+          "rms_z_rel_percent": 0.05133529959436727
+        },
+        "rayfield3d_fixed": {
+          "rms_z_mm": 0.0015475285345074256,
+          "rms_z_rel_percent": 0.051584284483563655
+        }
+      }
+    }
+  }
+}
