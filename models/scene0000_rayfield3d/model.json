@@ -1,0 +1,56 @@
+{
+  "disk": {
+    "radius_px": 499.3000100140195,
+    "u0_px": 399.5,
+    "v0_px": 299.5
+  },
+  "image": {
+    "height_px": 600,
+    "width_px": 800
+  },
+  "rig": {
+    "C_R_in_L_mm": [
+      170.5608603989392,
+      0.20919996691845963,
+      -1.6281895046051473
+    ],
+    "R_RL": [
+      [
+        0.9748475337998789,
+        0.22265636314925433,
+        0.009819867282260614
+      ],
+      [
+        -0.22279546525739893,
+        0.9747235060114402,
+        0.016621296264272518
+      ],
+      [
+        -0.0058708180889028945,
+        -0.01839105157170037,
+        0.9998136339923825
+      ]
+    ],
+    "t_RL": [
+      -166.30142522165076,
+      37.82333674220212,
+      2.6330652572968587
+    ]
+  },
+  "schema_version": "stereocomplex.model.stereo_central_rayfield.v0",
+  "weights": {
+    "format": "npz",
+    "keys": {
+      "R_RL": "R_RL",
+      "coeffs_left_x": "coeffs_left_x",
+      "coeffs_left_y": "coeffs_left_y",
+      "coeffs_right_x": "coeffs_right_x",
+      "coeffs_right_y": "coeffs_right_y",
+      "t_RL": "t_RL"
+    },
+    "path": "weights.npz"
+  },
+  "zernike": {
+    "nmax": 10
+  }
+}

@@ -35,6 +35,7 @@ StereoComplex is built around:
 - CPU dataset generator: `src/stereocomplex/sim/cpu/generate_dataset.py`
 - Evaluations: `src/stereocomplex/eval/` and `paper/experiments/`
 - Worked example (end-to-end 2D ray-field): `docs/RAYFIELD_WORKED_EXAMPLE.md`
+- Virtual rectification demo (ray-field -> rectified dense stereo): `docs/examples/rayfield_virtual_rectification_demo.py`
 - Stereo calibration + reconstruction study: `docs/STEREO_RECONSTRUCTION.md`
 - Robustness sweep: `docs/ROBUSTNESS_SWEEP.md`
 - Central 3D ray-field + point↔ray bundle adjustment: `docs/RAYFIELD3D_RECONSTRUCTION.md`
@@ -43,8 +44,9 @@ StereoComplex is built around:
 
 If you want a more guided, executable entry point, open:
 
-- `examples/notebooks/01_ray2d_vs_opencv.ipynb`
-- `examples/notebooks/02_ray3d.ipynb`
+- `examples/notebooks/01_ray2d_vs_opencv.ipynb` and `examples/notebooks/01_ray2d_vs_opencv.py`
+- `examples/notebooks/02_ray3d.ipynb` and `examples/notebooks/02_ray3d.py`
+- `examples/notebooks/03_rayfield_virtual_rectification.ipynb` and `examples/notebooks/03_rayfield_virtual_rectification.py`
 
 They reuse the committed synthetic images, overlays, and JSON summaries already stored in this repository.
 
