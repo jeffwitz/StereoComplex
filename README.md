@@ -179,6 +179,16 @@ Core method pages:
 - `docs/RAYFIELD3D_RECONSTRUCTION.md`
 - `docs/RECONSTRUCTION_API.md`
 
+## Example notebooks
+
+If you prefer a guided, executable walkthrough, start with:
+
+- `examples/notebooks/01_ray2d_vs_opencv.ipynb`
+- `examples/notebooks/02_ray3d.ipynb`
+
+The notebooks are intentionally lightweight: they read the committed synthetic images and JSON summaries already present in the repository.
+After `pip install -e .`, the repo already includes the Jupyter stack needed to open them with `jupyter lab examples/notebooks`.
+
 ## Code & documentation
 
 The full toolkit is available on GitHub (`https://github.com/jeffwitz/StereoComplex`), and the online documentation is published via ReadTheDocs (`https://stereocomplex.readthedocs.io/en/latest/`), so you can browse tutorials and references without cloning the repo.

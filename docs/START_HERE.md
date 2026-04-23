@@ -39,6 +39,15 @@ StereoComplex is built around:
 - Robustness sweep: `docs/ROBUSTNESS_SWEEP.md`
 - Central 3D ray-field + point↔ray bundle adjustment: `docs/RAYFIELD3D_RECONSTRUCTION.md`
 
+## Notebook walkthroughs
+
+If you want a more guided, executable entry point, open:
+
+- `examples/notebooks/01_ray2d_vs_opencv.ipynb`
+- `examples/notebooks/02_ray3d.ipynb`
+
+They reuse the committed synthetic images, overlays, and JSON summaries already stored in this repository.
+
 ## Quickstart
 
 Generate a minimal dataset and validate it:
