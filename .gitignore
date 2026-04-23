@@ -18,5 +18,5 @@ paper/figures/
 .ruff_cache/
 paper/references.txt
 session.txt
-.codex/
+.codex
 examples/notebooks/.ipynb_checkpoints/
