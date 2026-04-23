@@ -11,7 +11,26 @@ dist/
 venv/
 .env
 .DS_Store
-dataset/
+dataset/*
+# Keep two tiny versioned sample scenes for the notebooks. These are small
+# enough to live in Git and make the walkthroughs open out-of-the-box.
+!dataset/compression_sweep_pnp/
+dataset/compression_sweep_pnp/*
+!dataset/compression_sweep_pnp/png_lossless/
+dataset/compression_sweep_pnp/png_lossless/*
+!dataset/compression_sweep_pnp/png_lossless/train/
+dataset/compression_sweep_pnp/png_lossless/train/*
+!dataset/compression_sweep_pnp/png_lossless/train/scene_0000/
+dataset/compression_sweep_pnp/png_lossless/train/scene_0000/*
+!dataset/compression_sweep_pnp/png_lossless/train/scene_0000/**
+
+!dataset/v0_png/
+dataset/v0_png/*
+!dataset/v0_png/train/
+dataset/v0_png/train/*
+!dataset/v0_png/train/scene_0000/
+dataset/v0_png/train/scene_0000/*
+!dataset/v0_png/train/scene_0000/**
 docs/_build/
 paper/tables/
 paper/figures/

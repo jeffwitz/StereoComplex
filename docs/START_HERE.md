@@ -42,13 +42,20 @@ StereoComplex is built around:
 
 ## Notebook walkthroughs
 
-If you want a more guided, executable entry point, open:
+If you want a more guided, executable entry point, open the notebook overview
+page first:
+
+- :doc:`NOTEBOOKS`
+
+The three notebooks are then available as:
 
 - `examples/notebooks/01_ray2d_vs_opencv.ipynb` and `examples/notebooks/01_ray2d_vs_opencv.py`
 - `examples/notebooks/02_ray3d.ipynb` and `examples/notebooks/02_ray3d.py`
 - `examples/notebooks/03_rayfield_virtual_rectification.ipynb` and `examples/notebooks/03_rayfield_virtual_rectification.py`
 
 They reuse the committed synthetic images, overlays, and JSON summaries already stored in this repository.
+The two sample scenes used by the notebooks are versioned in Git, so the notebooks open
+without having to regenerate the benchmark data first.
 
 ## Quickstart
 

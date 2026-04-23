@@ -1,0 +1,102 @@
+{
+  "schema_version": "stereocomplex.dataset.v0",
+  "stereo": {
+    "left": {
+      "schema_version": "stereocomplex.meta.v0",
+      "sensor": {
+        "pixel_pitch_um": 4.879994502565531,
+        "binning_xy": [
+          1,
+          1
+        ]
+      },
+      "preprocess": {
+        "crop_xywh_px": [
+          0,
+          0,
+          800,
+          600
+        ],
+        "resize_xy": [
+          1.0,
+          1.0
+        ]
+      },
+      "image": {
+        "width_px": 800,
+        "height_px": 600,
+        "bit_depth": 8,
+        "gamma": 1.0
+      }
+    },
+    "right": {
+      "schema_version": "stereocomplex.meta.v0",
+      "sensor": {
+        "pixel_pitch_um": 4.879994502565531,
+        "binning_xy": [
+          1,
+          1
+        ]
+      },
+      "preprocess": {
+        "crop_xywh_px": [
+          0,
+          0,
+          800,
+          600
+        ],
+        "resize_xy": [
+          1.0,
+          1.0
+        ]
+      },
+      "image": {
+        "width_px": 800,
+        "height_px": 600,
+        "bit_depth": 8,
+        "gamma": 1.0
+      }
+    }
+  },
+  "board": {
+    "type": "charuco",
+    "square_size_mm": 39.07131716473686,
+    "marker_size_mm": 27.3499220153158,
+    "squares_x": 11,
+    "squares_y": 7,
+    "cols": 11,
+    "rows": 7,
+    "aruco_dictionary": "DICT_4X4_1000",
+    "pixels_per_square": 80,
+    "texture_interp": "lanczos4"
+  },
+  "sim_params": {
+    "camera_model": "pinhole",
+    "f_um": 5937.556676880016,
+    "baseline_mm": 170.78787723319832,
+    "tex_interp": "lanczos4",
+    "distortion_model": "brown",
+    "distortion_left": {
+      "k1": 0.12700349940811692,
+      "k2": -0.04021660839652088,
+      "p1": 0.00767410947823205,
+      "p2": 0.009357424634668461,
+      "k3": 0.0007782273137719147
+    },
+    "distortion_right": {
+      "k1": -0.07651061967936106,
+      "k2": 0.058363487297534024,
+      "p1": -0.0068696888789977085,
+      "p2": 0.005795209253633032,
+      "k3": 0.007796412275380848
+    },
+    "image_format": "png",
+    "outside_mask": "hard",
+    "blur_fwhm_um": 6.0,
+    "blur_fwhm_px": 0.0,
+    "blur_edge_factor": 2.5,
+    "blur_edge_start": 0.55,
+    "blur_edge_power": 2.0,
+    "noise_std": 0.01
+  }
+}

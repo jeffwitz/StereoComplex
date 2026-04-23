@@ -1,0 +1,57 @@
+# Notebook walkthroughs
+
+The notebooks are the most guided entry point into StereoComplex. They are
+written as teaching material, not just as runnable code dumps:
+
+- each notebook starts with a short motivation,
+- the relevant equations are repeated inline in Markdown/LaTeX,
+- the figures are narrated step by step,
+- and the companion `.py` export is kept next to the notebook for quick review
+  in a plain editor.
+
+All notebooks read committed synthetic images and JSON summaries already stored
+in the repository, so you can inspect the workflow without rerunning the full
+benchmarks first. The two small scene folders used by the walkthroughs are also
+versioned directly in Git:
+
+- `dataset/compression_sweep_pnp/png_lossless/train/scene_0000`
+- `dataset/v0_png/train/scene_0000`
+
+## Recommended reading order
+
+| Notebook | What it teaches | Companion script |
+|---|---|---|
+| `01_ray2d_vs_opencv.ipynb` | How the 2D planar refinement (`rayfield_tps_robust`) changes ChArUco detection and why that matters for standard OpenCV calibration. | `01_ray2d_vs_opencv.py` |
+| `02_ray3d.ipynb` | How the compact central 3D ray-field is calibrated, how the Pycaso-style sweeps are organized, and how the compression experiments are read. | `02_ray3d.py` |
+| `03_rayfield_virtual_rectification.ipynb` | How a ray-field can be turned into virtual rectification maps and then reused with a classic dense stereo pipeline. | `03_rayfield_virtual_rectification.py` |
+
+## What to look for
+
+### 01 Ray2D vs OpenCV
+
+Start here if you want the intuition behind the 2D preprocessing stage. The
+notebook compares raw OpenCV detections with the refined correspondences and
+shows how the improvement propagates to the stereo metrics.
+
+### 02 ray3D
+
+Use this notebook if you want the 3D backend story. It walks through the
+dataset parameters, the Z-sweep, the compression stress test, and the
+comparison against the Pycaso-style baselines.
+
+### 03 Virtual rectification
+
+Use this notebook if you want the bridge back to classical dense stereo. It
+shows how the ray-field is converted into dense remap tables and how the
+rectified pairs can be fed to a standard matcher such as StereoSGBM.
+
+## Open locally
+
+Open the notebooks from the repository root so relative paths resolve cleanly:
+
+```bash
+jupyter lab examples/notebooks
+```
+
+If Jupyter is not installed, the notebook files can still be opened directly in
+VS Code or another notebook viewer.

@@ -187,7 +187,8 @@ If you prefer a guided, executable walkthrough, start with:
 - `examples/notebooks/02_ray3d.ipynb` and `examples/notebooks/02_ray3d.py`
 - `examples/notebooks/03_rayfield_virtual_rectification.ipynb` and `examples/notebooks/03_rayfield_virtual_rectification.py`
 
-The notebooks are intentionally lightweight: they read the committed synthetic images and JSON summaries already present in the repository.
+The notebooks are intentionally lightweight: they read the committed synthetic images and JSON summaries already present in the repository, including the two small sample scenes versioned under
+`dataset/compression_sweep_pnp/png_lossless/train/scene_0000` and `dataset/v0_png/train/scene_0000`.
 After `pip install -e .`, the repo already includes the Jupyter stack needed to open them with `jupyter lab examples/notebooks`.
 
 ## Code & documentation

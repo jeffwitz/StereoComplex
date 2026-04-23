@@ -63,6 +63,21 @@ StereoComplex includes an experimental **3D ray-based stereo reconstruction** pr
      --split train --scene scene_0000 \
      --out paper/tables/opencv_calibration_rayfield.json
 
+.. rubric:: Notebook walkthroughs
+
+If you want a guided, visual introduction before reading the code or the paper,
+start with the notebook series:
+
+- `01_ray2d_vs_opencv.ipynb` compares raw OpenCV detections against the 2D
+  planar refinement (`rayfield_tps_robust`) on the synthetic benchmark.
+- `02_ray3d.ipynb` explains the compact central 3D ray-field, the Pycaso-style
+  sweeps, and the compression robustness experiments.
+- `03_rayfield_virtual_rectification.ipynb` shows how to reuse a calibrated
+  ray-field inside a classical dense stereo pipeline via virtual rectification.
+
+Companion `.py` exports are stored next to the notebooks for quick inspection in
+any text editor.
+
 .. rubric:: Also: 3D reconstruction without a pinhole model (prototype)
 
 StereoComplex also includes a **ray-based stereo reconstruction** prototype: it calibrates a compact mapping
@@ -75,14 +90,15 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
      --split train --scene scene_0000 --max-frames 5 \
      --method2d rayfield_tps_robust \
      --nmax 10 --lam-coeff 1e-3 --outer-iters 3 \
-     --out paper/tables/rayfield3d_ba_scene0000.json \
-     --export-model models/scene0000_rayfield3d
+   --out paper/tables/rayfield3d_ba_scene0000.json \
+   --export-model models/scene0000_rayfield3d
 
 .. rubric:: Documentation map
 
 - I want a practical guide: :doc:`FIX_MY_CALIBRATION`
 - I want alternatives and scope/positioning: :doc:`ALTERNATIVES_POSITIONING`
 - I want the full worked example (plots + overlays): :doc:`RAYFIELD_WORKED_EXAMPLE`
+- I want the notebook walkthroughs: :doc:`NOTEBOOKS`
 - I want stereo/3D metrics and baseline-in-pixels: :doc:`STEREO_RECONSTRUCTION`
 - I want multi-case robustness results: :doc:`ROBUSTNESS_SWEEP`
 - I want to load/export models and reconstruct via an API: :doc:`RECONSTRUCTION_API`
@@ -100,6 +116,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
    START_HERE
    FIX_MY_CALIBRATION
    ALTERNATIVES_POSITIONING
+   NOTEBOOKS
    LICENSE
    ARCHITECTURE
    DATASET_SPEC
