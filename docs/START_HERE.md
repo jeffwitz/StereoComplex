@@ -17,6 +17,8 @@ For ChArUco/ArUco features you also need OpenCV with `cv2.aruco`:
 ```
 
 Note: if you do not install the package, you can still run most commands by prefixing them with `PYTHONPATH=src`.
+The default editable install now also brings the notebook runtime dependencies used by the walkthroughs
+(Jupyter, Matplotlib, and OpenCV ArUco support), so the examples should run directly from a fresh clone.
 
 ## What StereoComplex does today
 

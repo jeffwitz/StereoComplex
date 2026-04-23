@@ -17,6 +17,8 @@ classifiers = [
 ]
 dependencies = [
   "numpy>=1.24",
+  "matplotlib>=3.8",
+  "opencv-contrib-python-headless>=4.10",
   "jupyterlab>=4.0",
   "nbconvert>=7.0",
   "ipykernel>=6.0",
