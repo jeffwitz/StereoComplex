@@ -30,8 +30,16 @@ versioned directly in Git:
 ### 01 Ray2D vs OpenCV
 
 Start here if you want the intuition behind the 2D preprocessing stage. The
-notebook compares raw OpenCV detections with the refined correspondences and
-shows how the improvement propagates to the stereo metrics.
+notebook now begins with the real onboarding path:
+
+- define `left_dir`,
+- define `right_dir`,
+- define `CharucoBoardSpec`,
+- run `fit_opencv_stereo_from_image_dirs(..., method2d="raw")`,
+- run `fit_opencv_stereo_from_image_dirs(..., method2d="rayfield_tps_robust")`.
+
+Only after that does it move to the synthetic GT overlays and then to the
+released benchmark summaries.
 
 ### 02 ray3D
 

@@ -45,6 +45,29 @@ StereoComplex includes an experimental **3D ray-based stereo reconstruction** pr
 
 .. rubric:: Quickstart (what most users want)
 
+0) If you already have your own stereo folders, use the public Python path:
+
+.. code-block:: python
+
+   from pathlib import Path
+   import stereocomplex as sc
+
+   board = sc.CharucoBoardSpec(
+       squares_x=11,
+       squares_y=7,
+       square_size_mm=39.0713,
+       marker_size_mm=27.3499,
+       aruco_dictionary="DICT_4X4_1000",
+   )
+
+   result = sc.fit_stereo_central_rayfield_from_image_dirs(
+       left_dir=Path("my_data/left"),
+       right_dir=Path("my_data/right"),
+       board=board,
+       method2d="rayfield_tps_robust",
+       export_model_dir=Path("models/my_calibration"),
+   )
+
 1) Refine corners (exports JSON + an OpenCV-ready NPZ):
 
 .. code-block:: bash
@@ -96,6 +119,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 .. rubric:: Documentation map
 
 - I want a practical guide: :doc:`FIX_MY_CALIBRATION`
+- I want to run on my own stereo folders: :doc:`BRING_YOUR_OWN_DATA`
 - I want alternatives and scope/positioning: :doc:`ALTERNATIVES_POSITIONING`
 - I want the full worked example (plots + overlays): :doc:`RAYFIELD_WORKED_EXAMPLE`
 - I want the notebook walkthroughs: :doc:`NOTEBOOKS`
@@ -114,6 +138,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
    :hidden:
 
    START_HERE
+   BRING_YOUR_OWN_DATA
    FIX_MY_CALIBRATION
    ALTERNATIVES_POSITIONING
    NOTEBOOKS

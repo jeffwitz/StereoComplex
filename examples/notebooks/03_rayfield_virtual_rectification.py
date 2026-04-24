@@ -22,6 +22,10 @@ This file mirrors the notebook content in a linear, readable Python form.
 #
 # Rectification therefore needs an inverse mapping from a desired ray direction back to a source pixel.
 # StereoComplex handles that inverse with a coarse LUT plus a short Gauss-Newton refinement.
+#
+# In this updated version, the notebook obtains the calibration through the **public API** first,
+# then reuses the exported model for the rectification stage. That keeps the tutorial aligned with
+# the user-facing workflow documented in `docs/BRING_YOUR_OWN_DATA.md`.
 
 # %%
 from __future__ import annotations
@@ -29,7 +33,6 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import cv2
 import matplotlib.pyplot as plt
@@ -51,7 +54,8 @@ if str(ROOT / 'docs' / 'examples') not in sys.path:
     sys.path.insert(0, str(ROOT / 'docs' / 'examples'))
 
 import rayfield_virtual_rectification_demo as demo
-from stereocomplex.api import load_stereo_central_rayfield
+import stereocomplex as sc
+from stereocomplex.core.image_io import load_gray_u8
 from stereocomplex.ray3d.rayfield_rectify import RectifyParams, build_virtual_rectify_maps, rectify_pair
 
 plt.rcParams.update({'figure.dpi': 120, 'image.cmap': 'gray'})
@@ -62,51 +66,51 @@ print('Repo root:', ROOT)
 #
 # If no exported model is already present, this notebook will fit a small one automatically
 # from the same synthetic scene. The resulting `model.json` + `weights.npz` pair can be reused elsewhere.
+#
+# The important point is that the fitting step below now goes through
+# `fit_stereo_central_rayfield_from_dataset(...)`, not through the internal paper script.
 
 # %%
 dataset_root = ROOT / 'dataset' / 'v0_png'
 scene_dir = dataset_root / 'train' / 'scene_0000'
 frame_id = 0
+frame = {'frame_id': frame_id, 'left': '000000.png', 'right': '000000.png'}
+board = sc.CharucoBoardSpec(
+    squares_x=11,
+    squares_y=7,
+    square_size_mm=39.07131716473686,
+    marker_size_mm=27.3499220153158,
+    aruco_dictionary='DICT_4X4_1000',
+)
 
 out_dir = ROOT / 'docs' / 'assets' / 'rayfield_virtual_rectify_demo'
 out_dir.mkdir(parents=True, exist_ok=True)
 
 model_dir = ROOT / 'models' / 'scene0000_rayfield3d'
 if not (model_dir / 'model.json').exists():
-    auto = SimpleNamespace(
+    print('No exported model found, calibrating a small one first with the public API...')
+    fit = sc.fit_stereo_central_rayfield_from_dataset(
         dataset_root=dataset_root,
         split='train',
         scene='scene_0000',
-        frame_id=frame_id,
-        out=out_dir,
-        model=None,
-        export_model=model_dir,
         max_frames=5,
         method2d='rayfield_tps_robust',
-        max_points_per_frame=0,
         nmax=10,
-        lam_coeff=1e-3,
-        outer_iters=3,
-        tps_lam=10.0,
-        tps_huber=1.0,
-        tps_iters=3,
-        rect_fx=None,
-        rect_fy=None,
-        rect_cx=None,
-        rect_cy=None,
-        sgbm_num_disparities=128,
-        sgbm_block_size=5,
+        export_model_dir=model_dir,
     )
-    print('No exported model found, calibrating a small one first...')
-    model_dir = demo.ensure_model(auto, out_dir)
+    print(fit.report)
 
-model = load_stereo_central_rayfield(model_dir)
-meta = demo.load_json(scene_dir / 'meta.json')
-imgL, imgR, frame = demo.load_scene_images(scene_dir, frame_id)
-dictionary, board, detector_params, aruco_detector, charuco_detector = demo.build_charuco_from_meta(meta)
+model = sc.load_stereo_central_rayfield(model_dir)
+imgL = load_gray_u8(scene_dir / 'left' / frame['left'])
+imgR = load_gray_u8(scene_dir / 'right' / frame['right'])
 
-raw_L = demo.detect_charuco(dictionary, board, detector_params, aruco_detector, charuco_detector, imgL)
-raw_R = demo.detect_charuco(dictionary, board, detector_params, aruco_detector, charuco_detector, imgR)
+def det_to_map(det):
+    if det is None:
+        return None
+    return {int(i): det.charuco_xy[k] for k, i in enumerate(det.charuco_ids.tolist())}
+
+raw_L = det_to_map(sc.detect_charuco_corners(image=imgL, board=board))
+raw_R = det_to_map(sc.detect_charuco_corners(image=imgR, board=board))
 
 print('Scene:', frame)
 print('Model dir:', model_dir)
@@ -156,8 +160,8 @@ def draw_detection(ax, img, det, title):
     ax.set_title(title)
     ax.set_axis_off()
 
-rect_L_det = demo.detect_charuco(dictionary, board, detector_params, aruco_detector, charuco_detector, I_L_rect)
-rect_R_det = demo.detect_charuco(dictionary, board, detector_params, aruco_detector, charuco_detector, I_R_rect)
+rect_L_det = det_to_map(sc.detect_charuco_corners(image=I_L_rect, board=board))
+rect_R_det = det_to_map(sc.detect_charuco_corners(image=I_R_rect, board=board))
 
 fig, axs = plt.subplots(2, 2, figsize=(14, 9))
 draw_detection(axs[0, 0], imgL, raw_L, 'Raw left')
