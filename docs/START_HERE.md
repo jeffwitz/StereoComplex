@@ -10,8 +10,14 @@ This repository is a Python package. For consistent CLI and imports, use an edit
 .venv/bin/python -m pip install -e .
 ```
 
-The default editable install already brings the notebook runtime dependencies used by the walkthroughs
-(Jupyter, Matplotlib, and OpenCV ArUco support), so the examples should run directly from a fresh clone.
+The default editable install brings the core runtime dependencies. If you want the walkthrough notebooks,
+install the notebook extra as well:
+
+```bash
+.venv/bin/python -m pip install -e '.[notebooks]'
+```
+
+This adds the Jupyter runtime used by the walkthroughs, so the examples can run directly from a fresh clone.
 If you do not install the package, you can still run most commands by prefixing them with `PYTHONPATH=src`.
 
 ## What StereoComplex does today
