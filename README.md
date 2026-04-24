@@ -61,7 +61,12 @@ It keeps an OpenCV-like installation footprint, but emphasizes robust stereo geo
 
 ## Installation
 
-Core dependencies are in `pyproject.toml` (NumPy, Pillow, SciPy, OpenCV ArUco, Jupyter for the walkthrough notebooks).
+Core dependencies are in `pyproject.toml` (NumPy, Pillow, SciPy, OpenCV ArUco).
+If you want the walkthrough notebooks, install the notebook extra too:
+
+```bash
+.venv/bin/python -m pip install -e '.[notebooks]'
+```
 
 Editable install:
 
@@ -274,7 +279,7 @@ If you prefer a guided, executable walkthrough, start with:
 
 The notebooks are intentionally lightweight: they read the committed synthetic images and JSON summaries already present in the repository, including the two small sample scenes versioned under
 `dataset/compression_sweep_pnp/png_lossless/train/scene_0000` and `dataset/v0_png/train/scene_0000`.
-After `pip install -e .`, the repo already includes the Jupyter stack, Matplotlib, and OpenCV ArUco support needed to open them with `jupyter lab examples/notebooks`.
+After `pip install -e '.[notebooks]'`, the repo includes the Jupyter stack needed to open them with `jupyter lab examples/notebooks`.
 
 ## Code & documentation
 
