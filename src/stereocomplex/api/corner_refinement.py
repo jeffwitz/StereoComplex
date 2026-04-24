@@ -46,6 +46,19 @@ def refine_charuco_corners(
     Output:
     - refined corner positions (K,2) in pixels, same order as `charuco_ids`.
     """
+    if not (
+        hasattr(board, "getIds")
+        and hasattr(board, "getObjPoints")
+        and hasattr(board, "getChessboardCorners")
+    ):
+        try:
+            from stereocomplex.api.calibration import CharucoBoardSpec, build_charuco_board  # noqa: PLC0415
+
+            if isinstance(board, CharucoBoardSpec):
+                board = build_charuco_board(board)
+        except Exception:
+            pass
+
     charuco_ids = np.asarray(charuco_ids, dtype=np.int32).reshape(-1)
     charuco_xy = np.asarray(charuco_xy, dtype=np.float64).reshape(-1, 2)
     if charuco_ids.size == 0:

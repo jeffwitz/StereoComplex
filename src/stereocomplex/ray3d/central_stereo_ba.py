@@ -218,22 +218,22 @@ def fit_central_stereo_rayfield_ba(
             res_parts.append(_point_to_ray_residual(P_R, dR))
 
         if lam_center > 0:
-            x0_L = float(A0 @ cLx)
-            y0_L = float(A0 @ cLy)
-            x0_R = float(A0 @ cRx)
-            y0_R = float(A0 @ cRy)
+            x0_L = float((A0 @ cLx).item())
+            y0_L = float((A0 @ cLy).item())
+            x0_R = float((A0 @ cRx).item())
+            y0_R = float((A0 @ cRy).item())
             res_parts.append(np.sqrt(lam_center) * np.array([x0_L, y0_L, x0_R, y0_R], dtype=np.float64))
 
         if lam_jacobian > 0:
             # Finite-difference Jacobian at (u0,v0) in normalized coordinates.
-            dxdu_L = float((Au_p @ cLx - Au_m @ cLx) / (2.0 * eps))
-            dxdv_L = float((Av_p @ cLx - Av_m @ cLx) / (2.0 * eps))
-            dydu_L = float((Au_p @ cLy - Au_m @ cLy) / (2.0 * eps))
-            dydv_L = float((Av_p @ cLy - Av_m @ cLy) / (2.0 * eps))
-            dxdu_R = float((Au_p @ cRx - Au_m @ cRx) / (2.0 * eps))
-            dxdv_R = float((Av_p @ cRx - Av_m @ cRx) / (2.0 * eps))
-            dydu_R = float((Au_p @ cRy - Au_m @ cRy) / (2.0 * eps))
-            dydv_R = float((Av_p @ cRy - Av_m @ cRy) / (2.0 * eps))
+            dxdu_L = float(((Au_p @ cLx - Au_m @ cLx) / (2.0 * eps)).item())
+            dxdv_L = float(((Av_p @ cLx - Av_m @ cLx) / (2.0 * eps)).item())
+            dydu_L = float(((Au_p @ cLy - Au_m @ cLy) / (2.0 * eps)).item())
+            dydv_L = float(((Av_p @ cLy - Av_m @ cLy) / (2.0 * eps)).item())
+            dxdu_R = float(((Au_p @ cRx - Au_m @ cRx) / (2.0 * eps)).item())
+            dxdv_R = float(((Av_p @ cRx - Av_m @ cRx) / (2.0 * eps)).item())
+            dydu_R = float(((Au_p @ cRy - Au_m @ cRy) / (2.0 * eps)).item())
+            dydv_R = float(((Av_p @ cRy - Av_m @ cRy) / (2.0 * eps)).item())
 
             res_parts.append(
                 np.sqrt(lam_jacobian)

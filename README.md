@@ -61,9 +61,7 @@ It keeps an OpenCV-like installation footprint, but emphasizes robust stereo geo
 
 ## Installation
 
-Core dependencies are in `pyproject.toml` (NumPy, Pillow, SciPy). For ChArUco/ArUco features, you also need OpenCV with `aruco`:
-
-- recommended: `opencv-contrib-python` (provides `cv2.aruco`).
+Core dependencies are in `pyproject.toml` (NumPy, Pillow, SciPy, OpenCV ArUco, Jupyter for the walkthrough notebooks).
 
 Editable install:
 
@@ -142,6 +140,92 @@ Export refined ChArUco corners (JSON + an OpenCV-ready NPZ):
 
 ## Quickstart (3D reconstruction without a pinhole model)
 
+### Bring your own stereo folders (public API)
+
+If you already have `left/*.png`, `right/*.png`, and a known ChArUco board:
+
+First, if you just want to keep a standard OpenCV workflow and compare raw
+corners against `Ray2D + OpenCV`:
+
+```python
+import stereocomplex as sc
+
+board = sc.CharucoBoardSpec(
+    squares_x=11,
+    squares_y=7,
+    square_size_mm=39.0713,
+    marker_size_mm=27.3499,
+    aruco_dictionary="DICT_4X4_1000",
+)
+
+raw = sc.fit_opencv_stereo_from_image_dirs(
+    left_dir="my_data/left",
+    right_dir="my_data/right",
+    board=board,
+    method2d="raw",
+)
+refined = sc.fit_opencv_stereo_from_image_dirs(
+    left_dir="my_data/left",
+    right_dir="my_data/right",
+    board=board,
+    method2d="rayfield_tps_robust",
+)
+```
+
+Then, if you want the StereoComplex 3D backend instead of a pinhole model:
+
+```python
+from pathlib import Path
+
+import stereocomplex as sc
+
+board = sc.CharucoBoardSpec(
+    squares_x=11,
+    squares_y=7,
+    square_size_mm=39.0713,
+    marker_size_mm=27.3499,
+    aruco_dictionary="DICT_4X4_1000",
+)
+
+result = sc.fit_stereo_central_rayfield_from_image_dirs(
+    left_dir=Path("my_data/left"),
+    right_dir=Path("my_data/right"),
+    board=board,
+    method2d="rayfield_tps_robust",
+    export_model_dir=Path("models/my_calibration"),
+)
+```
+
+Then load and triangulate:
+
+```python
+model = sc.load_stereo_central_rayfield("models/my_calibration")
+XYZ_mm, skew_mm = model.triangulate(uvL, uvR)
+```
+
+See `docs/BRING_YOUR_OWN_DATA.md` for the step-by-step walkthrough.
+
+### Dataset v0 scene (public API)
+
+The stable public API wrapper for the versioned sample scene is:
+
+```python
+from pathlib import Path
+import stereocomplex as sc
+
+result = sc.fit_stereo_central_rayfield_from_dataset(
+    dataset_root="dataset/v0_png",
+    split="train",
+    scene="scene_0000",
+    max_frames=5,
+    method2d="rayfield_tps_robust",
+    nmax=10,
+    export_model_dir=Path("models/scene0000_rayfield3d"),
+)
+```
+
+### Internal paper script (advanced / reproducibility)
+
 Calibrate a central ray-field stereo model (point↔ray bundle adjustment) and export it:
 
 ```bash
@@ -178,6 +262,7 @@ Core method pages:
 - `docs/STEREO_RECONSTRUCTION.md`
 - `docs/RAYFIELD3D_RECONSTRUCTION.md`
 - `docs/RECONSTRUCTION_API.md`
+- `docs/BRING_YOUR_OWN_DATA.md`
 
 ## Example notebooks
 

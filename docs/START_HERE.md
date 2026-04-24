@@ -10,15 +10,9 @@ This repository is a Python package. For consistent CLI and imports, use an edit
 .venv/bin/python -m pip install -e .
 ```
 
-For ChArUco/ArUco features you also need OpenCV with `cv2.aruco`:
-
-```bash
-.venv/bin/python -m pip install opencv-contrib-python
-```
-
-Note: if you do not install the package, you can still run most commands by prefixing them with `PYTHONPATH=src`.
-The default editable install now also brings the notebook runtime dependencies used by the walkthroughs
+The default editable install already brings the notebook runtime dependencies used by the walkthroughs
 (Jupyter, Matplotlib, and OpenCV ArUco support), so the examples should run directly from a fresh clone.
+If you do not install the package, you can still run most commands by prefixing them with `PYTHONPATH=src`.
 
 ## What StereoComplex does today
 
@@ -61,6 +55,39 @@ without having to regenerate the benchmark data first.
 
 ## Quickstart
 
+### Quickstart for your own stereo folders
+
+If you already have `left/*.png`, `right/*.png`, and a known ChArUco board, the
+shortest public API path is:
+
+```python
+from pathlib import Path
+
+import stereocomplex as sc
+
+board = sc.CharucoBoardSpec(
+    squares_x=11,
+    squares_y=7,
+    square_size_mm=39.0713,
+    marker_size_mm=27.3499,
+    aruco_dictionary="DICT_4X4_1000",
+)
+
+result = sc.fit_stereo_central_rayfield_from_image_dirs(
+    left_dir=Path("my_data/left"),
+    right_dir=Path("my_data/right"),
+    board=board,
+    method2d="rayfield_tps_robust",
+    export_model_dir=Path("models/my_calibration"),
+)
+```
+
+The full walkthrough is here:
+
+- :doc:`BRING_YOUR_OWN_DATA`
+
+### Quickstart for the versioned synthetic dataset
+
 Generate a minimal dataset and validate it:
 
 ```bash
@@ -97,6 +124,6 @@ Run the stereo calibration/reconstruction comparison (OpenCV):
 
 ## Next steps (recommended)
 
+- Try the public calibration wrappers on your own stereo folders: :doc:`BRING_YOUR_OWN_DATA`
 - Extend the simulator and add more varied scenes/optics (including non-central behavior).
 - Generalize the 3D ray-field from **central** to **non-central** (pixel → 3D line).
-- Provide a stable high-level API for stereo reconstruction once calibration is validated.

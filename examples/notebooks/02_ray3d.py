@@ -32,6 +32,17 @@ This file mirrors the notebook content in a linear, readable Python form.
 #
 # As in the first notebook, we read only versioned JSON summaries and committed example assets. The
 # goal is explanation, not long recomputation.
+#
+# The important change compared with the older version of this walkthrough is that the **local**
+# operations now use the public API:
+#
+# - `CharucoBoardSpec`
+# - `detect_charuco_corners`
+# - `refine_charuco_corners`
+# - `fit_stereo_central_rayfield_from_dataset`
+# - `load_stereo_central_rayfield`
+#
+# The committed JSON files remain only for the published global sweeps.
 
 # %%
 from pathlib import Path
@@ -42,9 +53,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import numpy as np
 
-from stereocomplex.api.corner_refinement import refine_charuco_corners
+import stereocomplex as sc
 from stereocomplex.core.image_io import load_gray_u8
-from stereocomplex.eval.charuco_detection import _make_charuco_detector
 
 plt.style.use('seaborn-v0_8-whitegrid')
 
@@ -86,69 +96,90 @@ print('ROOT =', ROOT)
 # The local overlay shown later in the notebook still matters, because ray3D is not magic: it is
 # fed by 2D corners. The reason to start from global plots is simply that the 3D claim must be
 # assessed on benchmark trends, not on one hand-picked image.
+#
+# For that reason the notebook separates two layers very explicitly:
+#
+# - public API calls for the per-image and per-model workflow,
+# - benchmark JSON summaries for the multi-case plots already released in the repo.
 
 # %%
 scene_dir = ROOT / 'dataset' / 'compression_sweep_pnp' / 'png_lossless' / 'train' / 'scene_0000'
-meta = load_json(scene_dir / 'meta.json')
-frames = [json.loads(line) for line in (scene_dir / 'frames.jsonl').read_text(encoding='utf-8').splitlines() if line.strip()]
+frame0 = {'frame_id': 0, 'left': '000000.png', 'right': '000000.png'}
 gt = np.load(scene_dir / 'gt_charuco_corners.npz')
+board = sc.CharucoBoardSpec(
+    squares_x=11,
+    squares_y=7,
+    square_size_mm=39.07131716473686,
+    marker_size_mm=27.3499220153158,
+    aruco_dictionary='DICT_4X4_1000',
+)
+synthetic_setup = {
+    'camera_model': 'pinhole',
+    'f_um': 5937.556676880016,
+    'pixel_pitch_um': 4.879994502565531,
+    'baseline_mm': 170.78787723319832,
+    'distortion_model': 'brown',
+    'distortion_left': {
+        'k1': 0.12700349940811692,
+        'k2': -0.04021660839652088,
+        'p1': 0.00767410947823205,
+        'p2': 0.009357424634668461,
+        'k3': 0.0007782273137719147,
+    },
+    'distortion_right': {
+        'k1': -0.07651061967936106,
+        'k2': 0.058363487297534024,
+        'p1': -0.0068696888789977085,
+        'p2': 0.005795209253633032,
+        'k3': 0.007796412275380848,
+    },
+    'image_format': 'png',
+    'outside_mask': 'hard',
+    'blur_fwhm_um': 6.0,
+    'blur_edge_factor': 2.5,
+    'blur_edge_start': 0.55,
+    'noise_std': 0.01,
+    'image_width_px': 800,
+    'image_height_px': 600,
+    'bit_depth': 8,
+    'gamma': 1.0,
+    'texture_interp': 'lanczos4',
+}
 
-def print_synthetic_setup(meta):
-    board = meta.get('board', {})
-    sim = meta.get('sim_params', {})
-    stereo = meta.get('stereo', {})
-    left = stereo.get('left', {})
-    sensor = left.get('sensor', {})
-    image = left.get('image', {})
-    f_um = sim.get('f_um')
-    pixel_pitch_um = sensor.get('pixel_pitch_um')
+def print_synthetic_setup(board, setup):
+    f_um = setup.get('f_um')
+    pixel_pitch_um = setup.get('pixel_pitch_um')
     fx_px = f_um / pixel_pitch_um if f_um and pixel_pitch_um else None
     print('\nSynthetic setup summary')
     print('  board:')
-    print(f"    type={board.get('type')}  dictionary={board.get('aruco_dictionary')}")
-    print(f"    grid={board.get('squares_x')}x{board.get('squares_y')}  square={board.get('square_size_mm'):.2f} mm  marker={board.get('marker_size_mm'):.2f} mm")
+    print(f"    type=charuco  dictionary={board.aruco_dictionary}")
+    print(f"    grid={board.squares_x}x{board.squares_y}  square={board.square_size_mm:.2f} mm  marker={board.marker_size_mm:.2f} mm")
     print('  intrinsics / optics:')
-    print(f"    camera_model={sim.get('camera_model')}  f={f_um:.1f} um  pixel_pitch={pixel_pitch_um:.4f} um  f~{fx_px:.1f} px")
+    print(f"    camera_model={setup.get('camera_model')}  f={f_um:.1f} um  pixel_pitch={pixel_pitch_um:.4f} um  f~{fx_px:.1f} px")
     print('  extrinsics / rig:')
-    print(f"    baseline={sim.get('baseline_mm'):.2f} mm")
+    print(f"    baseline={setup.get('baseline_mm'):.2f} mm")
     print('  aberrations / degradations:')
-    print(f"    distortion_model={sim.get('distortion_model')}  image_format={sim.get('image_format')}  outside_mask={sim.get('outside_mask')}")
-    print(f"    blur_fwhm_um={sim.get('blur_fwhm_um'):.2f}  blur_edge_factor={sim.get('blur_edge_factor'):.2f}  blur_edge_start={sim.get('blur_edge_start'):.2f}  noise_std={sim.get('noise_std'):.3f}")
-    print(f"    left_distortion={json.dumps(sim.get('distortion_left', {}), sort_keys=True)}")
-    print(f"    right_distortion={json.dumps(sim.get('distortion_right', {}), sort_keys=True)}")
+    print(f"    distortion_model={setup.get('distortion_model')}  image_format={setup.get('image_format')}  outside_mask={setup.get('outside_mask')}")
+    print(f"    blur_fwhm_um={setup.get('blur_fwhm_um'):.2f}  blur_edge_factor={setup.get('blur_edge_factor'):.2f}  blur_edge_start={setup.get('blur_edge_start'):.2f}  noise_std={setup.get('noise_std'):.3f}")
+    print(f"    left_distortion={json.dumps(setup.get('distortion_left', {}), sort_keys=True)}")
+    print(f"    right_distortion={json.dumps(setup.get('distortion_right', {}), sort_keys=True)}")
     print('  image setup:')
-    print(f"    size={image.get('width_px')}x{image.get('height_px')} px  bit_depth={image.get('bit_depth')}  gamma={image.get('gamma')}  texture_interp={board.get('texture_interp')}")
-
-cv2_obj, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector = _make_charuco_detector(meta['board'])
+    print(f"    size={setup.get('image_width_px')}x{setup.get('image_height_px')} px  bit_depth={setup.get('bit_depth')}  gamma={setup.get('gamma')}  texture_interp={setup.get('texture_interp')}")
 
 def detect_charuco_view(img_gray):
-    if charuco_detector is not None:
-        charuco_corners, charuco_ids, marker_corners, marker_ids = charuco_detector.detectBoard(img_gray)
-    else:
-        if aruco_detector is not None:
-            marker_corners, marker_ids, _rej = aruco_detector.detectMarkers(img_gray)
-        else:
-            marker_corners, marker_ids, _rej = aruco.detectMarkers(img_gray, dictionary, parameters=detector_params)
-        charuco_corners, charuco_ids = None, None
-        if hasattr(aruco, 'interpolateCornersCharuco') and marker_ids is not None and len(marker_ids) > 0:
-            ret = aruco.interpolateCornersCharuco(marker_corners, marker_ids, img_gray, board)
-            if ret is not None:
-                if len(ret) == 3:
-                    charuco_corners, charuco_ids, _ = ret
-                elif len(ret) == 4:
-                    _, charuco_corners, charuco_ids, _ = ret
-    marker_ids_arr = np.asarray(marker_ids if marker_ids is not None else [], dtype=np.int32).reshape(-1)
-    marker_corners_arr = [np.asarray(c, dtype=np.float64).reshape(-1, 2) for c in marker_corners] if marker_corners is not None else []
-    charuco_ids_arr = np.asarray(charuco_ids if charuco_ids is not None else [], dtype=np.int32).reshape(-1)
-    if charuco_corners is None or charuco_ids_arr.size == 0:
-        charuco_xy = np.zeros((0, 2), dtype=np.float64)
-    else:
-        charuco_xy = np.asarray(charuco_corners, dtype=np.float64).reshape(-1, 2) - 0.5
+    det = sc.detect_charuco_corners(image=img_gray, board=board)
+    if det is None:
+        return {
+            'marker_ids': np.zeros((0,), dtype=np.int32),
+            'marker_corners': [],
+            'charuco_ids': np.zeros((0,), dtype=np.int32),
+            'charuco_xy': np.zeros((0, 2), dtype=np.float64),
+        }
     return {
-        'marker_ids': marker_ids_arr,
-        'marker_corners': marker_corners_arr,
-        'charuco_ids': charuco_ids_arr,
-        'charuco_xy': charuco_xy,
+        'marker_ids': det.marker_ids,
+        'marker_corners': det.marker_corners,
+        'charuco_ids': det.charuco_ids,
+        'charuco_xy': det.charuco_xy,
     }
 
 def gt_map_for_frame_id(fid, side):
@@ -159,7 +190,7 @@ def gt_map_for_frame_id(fid, side):
     return {int(cid): uv[k] for k, cid in enumerate(corner_id[mask].tolist())}
 
 def make_refined_points(det):
-    refined = refine_charuco_corners(
+    refined = sc.refine_charuco_corners(
         method='rayfield_tps_robust',
         board=board,
         marker_ids=det['marker_ids'],
@@ -173,9 +204,9 @@ def make_refined_points(det):
     return np.asarray(refined, dtype=np.float64).reshape(-1, 2)
 
 print('scene_dir =', scene_dir)
-print('frames =', len(frames))
-print('board type =', meta['board']['type'])
-print_synthetic_setup(meta)
+print('frame_id =', frame0['frame_id'])
+print('board type = charuco')
+print_synthetic_setup(board, synthetic_setup)
 
 # %% [markdown]
 # ## 1. True Z-sweep benchmark: OpenCV, Pycaso, and ray3D
@@ -356,7 +387,6 @@ for c, label in zip(codec_order, labels, strict=True):
 # - which is why Ray2D and ray3D are complementary rather than competing ideas.
 
 # %%
-frame0 = frames[0]
 left_img = load_gray_u8(scene_dir / 'left' / frame0['left'])
 right_img = load_gray_u8(scene_dir / 'right' / frame0['right'])
 det_left = detect_charuco_view(left_img)
@@ -429,26 +459,36 @@ plt.show()
 # This is the bridge from the benchmark world to actual use: once the model is exported, the rest of
 # the pipeline can interact with a stable API instead of reconstructing the calibration state by
 # hand.
+#
+# The notebook therefore uses the **public** dataset wrapper first. The older `paper/experiments`
+# script is still valid for paper reproducibility, but it is no longer the recommended onboarding
+# path.
 
 # %%
-from stereocomplex.api import load_stereo_central_rayfield
-
 model_dir = ROOT / 'models' / 'scene0000_rayfield3d'
 if model_dir.exists():
-    model = load_stereo_central_rayfield(model_dir)
+    model = sc.load_stereo_central_rayfield(model_dir)
     uvL = np.array([[320.0, 240.0]], dtype=float)
     uvR = np.array([[318.5, 240.0]], dtype=float)
     xyz_mm, skew_mm = model.triangulate(uvL, uvR)
     print('XYZ_mm =', xyz_mm)
     print('skew_mm =', skew_mm)
 else:
-    print('No exported model found at', model_dir)
-    print('Run the calibration script first if you want to instantiate the API.')
+    print('No exported model found at', model_dir, '- fitting one with the public API...')
+    fit = sc.fit_stereo_central_rayfield_from_dataset(
+        dataset_root=ROOT / 'dataset' / 'compression_sweep_pnp' / 'png_lossless',
+        split='train',
+        scene='scene_0000',
+        max_frames=5,
+        method2d='rayfield_tps_robust',
+        nmax=10,
+        export_model_dir=model_dir,
+    )
+    model = fit.model
+    print(fit.report)
 
-print('\nTo export a model from images, use:')
-print('  .venv/bin/python paper/experiments/calibrate_central_rayfield3d_from_images.py dataset/compression_sweep_pnp/png_lossless --split train --scene scene_0000 --max-frames 5 --method2d rayfield_tps_robust --nmax 10 --lam-coeff 1e-3 --outer-iters 3 --out paper/tables/rayfield3d_ba_scene0000.json --export-model models/scene0000_rayfield3d')
-print('\nThen evaluate it with:')
-print('  .venv/bin/python docs/examples/reconstruction_api_demo.py dataset/compression_sweep_pnp/png_lossless --split train --scene scene_0000 --max-frames 5 --model models/scene0000_rayfield3d')
+print('\nEquivalent public API for your own folders:')
+print('  sc.fit_stereo_central_rayfield_from_image_dirs(left_dir=..., right_dir=..., board=..., export_model_dir=...)')
 
 # %%
 pass
