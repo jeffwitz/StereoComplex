@@ -132,10 +132,7 @@ detections = sc.detect_charuco_corners(image="left/000000.png", board=board)
 refined_xy = sc.refine_charuco_corners(
     method="rayfield_tps_robust",
     board=board,
-    marker_ids=detections.marker_ids,
-    marker_corners=detections.marker_corners,
-    charuco_ids=detections.charuco_ids,
-    charuco_xy=detections.charuco_xy,
+    detections=detections,
 )
 ```
 
@@ -147,3 +144,11 @@ This keeps the workflow inside the public API:
 
 Note: the default package install already includes OpenCV ArUco support through
 `opencv-contrib-python-headless`.
+
+## Public `method2d` values
+
+| Method | Status | Description |
+| --- | --- | --- |
+| `raw` | public stable | OpenCV ChArUco corners are used unchanged. |
+| `rayfield_tps_robust` | public stable | Robust planar TPS/ray-field 2D correction before calibration. |
+| other methods | internal benchmark | Experimental or historical methods are not guaranteed by the public API. |

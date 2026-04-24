@@ -28,10 +28,7 @@ detections = sc.detect_charuco_corners(image="left/000000.png", board=board)
 refined_xy = sc.refine_charuco_corners(
     method="rayfield_tps_robust",
     board=board,
-    marker_ids=detections.marker_ids,
-    marker_corners=detections.marker_corners,
-    charuco_ids=detections.charuco_ids,
-    charuco_xy=detections.charuco_xy,
+    detections=detections,
 )
 ```
 

@@ -4,8 +4,6 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
-
 from stereocomplex.eval.charuco_detection import ErrorStats, collect_charuco_scene_errors, _stats_to_dict, _summarize
 
 

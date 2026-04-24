@@ -164,10 +164,7 @@ detections = sc.detect_charuco_corners(image="my_data/left/000000.png", board=bo
 refined_xy = sc.refine_charuco_corners(
     method="rayfield_tps_robust",
     board=board,
-    marker_ids=detections.marker_ids,
-    marker_corners=detections.marker_corners,
-    charuco_ids=detections.charuco_ids,
-    charuco_xy=detections.charuco_xy,
+    detections=detections,
 )
 ```
 
@@ -187,7 +184,10 @@ Do this first:
 1. run with `max_pairs=3` or `max_frames=3`,
 2. keep `nmax=4` or `nmax=6`,
 3. confirm that `result.report.n_initialized_frames >= 2`,
-4. save the model,
-5. only then increase the number of poses and the basis size.
+4. inspect `result.report.train_skew_p95_mm` and `result.report.train_point_to_ray_p95_mm`,
+5. save the model,
+6. only then increase the number of poses and the basis size.
 
-That gives you a fast sanity check before you spend time on a full calibration.
+`n_initialized_frames >= 2` only means that the optimizer could start. It is not a
+quality criterion. Large training skew or point-to-ray residuals mean the exported
+model may be reloadable but geometrically unusable.

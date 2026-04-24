@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Literal, Sequence
+from typing import Any, Sequence
 
 import numpy as np
 
@@ -116,6 +116,12 @@ class StereoCentralRayFieldFitReport:
     method2d: RefineMethod
     min_common_corners: int
     nmax: int
+    train_skew_rms_mm: float
+    train_skew_p95_mm: float
+    train_point_to_ray_rms_mm: float
+    train_point_to_ray_p95_mm: float
+    n_points_total: int
+    mean_common_corners_per_frame: float
     diagnostics: dict[str, float]
     exported_model_json: str | None = None
 
@@ -284,7 +290,6 @@ def detect_charuco_corners(*, image: str | Path | np.ndarray, board: CharucoBoar
 
 
 def _detect_view(runtime: _CharucoRuntime, img_gray: np.ndarray) -> CharucoDetections | None:
-    cv2 = runtime.cv2
     aruco = runtime.aruco
 
     if runtime.charuco_detector is not None:
@@ -619,6 +624,58 @@ def _rig_from_poses(
     return rot_mean, t_mean, C_R_in_L
 
 
+def _ray_fit_health_metrics(
+    *,
+    model: StereoCentralRayFieldModel,
+    frames: dict[int, StereoFrameObservations],
+    rvecs: dict[int, np.ndarray],
+    tvecs: dict[int, np.ndarray],
+) -> dict[str, float]:
+    from scipy.spatial.transform import Rotation as R  # type: ignore
+
+    skew_values: list[np.ndarray] = []
+    residual_values: list[np.ndarray] = []
+    n_points_by_frame: list[int] = []
+
+    for fid in sorted(frames):
+        fr = frames[int(fid)]
+        uv_left = np.asarray(fr.uv_left_px, dtype=np.float64).reshape(-1, 2)
+        uv_right = np.asarray(fr.uv_right_px, dtype=np.float64).reshape(-1, 2)
+        points_board = np.asarray(fr.P_board_mm, dtype=np.float64).reshape(-1, 3)
+        if uv_left.size == 0:
+            continue
+
+        rot = R.from_rotvec(np.asarray(rvecs[int(fid)], dtype=np.float64).reshape(3)).as_matrix()
+        tvec = np.asarray(tvecs[int(fid)], dtype=np.float64).reshape(3)
+        points_left = (rot @ points_board.T).T + tvec.reshape(1, 3)
+        points_right = (model.R_RL @ points_left.T).T + model.t_RL.reshape(1, 3)
+
+        dirs_left = model.left.ray_directions_cam(uv_left[:, 0], uv_left[:, 1])
+        dirs_right = model.right.ray_directions_cam(uv_right[:, 0], uv_right[:, 1])
+        proj_left = np.sum(points_left * dirs_left, axis=-1, keepdims=True) * dirs_left
+        proj_right = np.sum(points_right * dirs_right, axis=-1, keepdims=True) * dirs_right
+        residual_values.append(np.linalg.norm(points_left - proj_left, axis=-1))
+        residual_values.append(np.linalg.norm(points_right - proj_right, axis=-1))
+
+        _xyz, skew = model.triangulate(uv_left, uv_right)
+        skew_values.append(np.asarray(skew, dtype=np.float64).reshape(-1))
+        n_points_by_frame.append(int(uv_left.shape[0]))
+
+    if not n_points_by_frame:
+        raise RuntimeError("cannot compute fit health metrics without training observations")
+
+    skew_all = np.concatenate(skew_values, axis=0)
+    residual_all = np.concatenate(residual_values, axis=0)
+    return {
+        "train_skew_rms_mm": float(np.sqrt(np.mean(skew_all**2))),
+        "train_skew_p95_mm": float(np.quantile(skew_all, 0.95)),
+        "train_point_to_ray_rms_mm": float(np.sqrt(np.mean(residual_all**2))),
+        "train_point_to_ray_p95_mm": float(np.quantile(residual_all, 0.95)),
+        "n_points_total": float(sum(n_points_by_frame)),
+        "mean_common_corners_per_frame": float(np.mean(n_points_by_frame)),
+    }
+
+
 def _normalize_image_pairs(image_pairs: Sequence[StereoImagePair | tuple[str | Path, str | Path]]) -> list[StereoImagePair]:
     out: list[StereoImagePair] = []
     for k, pair in enumerate(image_pairs):
@@ -815,8 +872,8 @@ def fit_opencv_stereo_from_image_dirs(
         left_paths = left_paths[: int(max_pairs)]
         right_paths = right_paths[: int(max_pairs)]
     pairs = [
-        StereoImagePair(left_path=l, right_path=r, frame_id=k)
-        for k, (l, r) in enumerate(zip(left_paths, right_paths, strict=True))
+        StereoImagePair(left_path=left_path, right_path=right_path, frame_id=k)
+        for k, (left_path, right_path) in enumerate(zip(left_paths, right_paths, strict=True))
     ]
     return fit_opencv_stereo_from_image_pairs(
         image_pairs=pairs,
@@ -1060,6 +1117,12 @@ def fit_stereo_central_rayfield_from_image_pairs(
         R_RL=np.asarray(R_RL, dtype=np.float64),
         t_RL=np.asarray(t_RL, dtype=np.float64).reshape(3),
     )
+    fit_health = _ray_fit_health_metrics(
+        model=model,
+        frames=stereo_frames,
+        rvecs=res.rvecs,
+        tvecs=res.tvecs,
+    )
 
     exported_model_json = None
     if export_model_dir is not None:
@@ -1076,7 +1139,13 @@ def fit_stereo_central_rayfield_from_image_pairs(
         method2d=method2d,
         min_common_corners=int(min_common_corners),
         nmax=int(nmax),
-        diagnostics=dict(res.diagnostics),
+        train_skew_rms_mm=float(fit_health["train_skew_rms_mm"]),
+        train_skew_p95_mm=float(fit_health["train_skew_p95_mm"]),
+        train_point_to_ray_rms_mm=float(fit_health["train_point_to_ray_rms_mm"]),
+        train_point_to_ray_p95_mm=float(fit_health["train_point_to_ray_p95_mm"]),
+        n_points_total=int(fit_health["n_points_total"]),
+        mean_common_corners_per_frame=float(fit_health["mean_common_corners_per_frame"]),
+        diagnostics={**dict(res.diagnostics), **fit_health},
         exported_model_json=exported_model_json,
     )
     return StereoCentralRayFieldFitResult(model=model, report=report)
@@ -1107,7 +1176,10 @@ def fit_stereo_central_rayfield_from_image_dirs(
     if max_pairs and max_pairs > 0:
         left_paths = left_paths[: int(max_pairs)]
         right_paths = right_paths[: int(max_pairs)]
-    pairs = [StereoImagePair(left_path=l, right_path=r, frame_id=k) for k, (l, r) in enumerate(zip(left_paths, right_paths, strict=True))]
+    pairs = [
+        StereoImagePair(left_path=left_path, right_path=right_path, frame_id=k)
+        for k, (left_path, right_path) in enumerate(zip(left_paths, right_paths, strict=True))
+    ]
     return fit_stereo_central_rayfield_from_image_pairs(
         image_pairs=pairs,
         board=board,

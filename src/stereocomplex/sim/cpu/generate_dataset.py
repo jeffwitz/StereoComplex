@@ -9,7 +9,7 @@ from PIL import Image
 from stereocomplex.core.distortion import BrownDistortion, brown_to_dict
 from stereocomplex.core.geometry import PinholeCamera, pixel_grid_um, sensor_um_to_pixel
 from stereocomplex.meta import parse_view_meta
-from stereocomplex.sim.cpu.effects import fwhm_to_sigma, gaussian_blur_edge_varying_u8, gaussian_blur_u8
+from stereocomplex.sim.cpu.effects import fwhm_to_sigma, gaussian_blur_edge_varying_u8
 from stereocomplex.sim.patterns.charuco import CharucoSpec, generate_charuco_texture
 
 

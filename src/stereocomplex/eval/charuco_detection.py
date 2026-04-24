@@ -378,10 +378,10 @@ def _index_gt_by_frame(
     frame_id: np.ndarray, corner_id: np.ndarray, uvL: np.ndarray, uvR: np.ndarray
 ) -> dict[int, dict[str, dict[int, np.ndarray]]]:
     out: dict[int, dict[str, dict[int, np.ndarray]]] = {}
-    for fid, cid, l, r in zip(frame_id.tolist(), corner_id.tolist(), uvL, uvR, strict=True):
+    for fid, cid, left_uv, right_uv in zip(frame_id.tolist(), corner_id.tolist(), uvL, uvR, strict=True):
         f = out.setdefault(int(fid), {"left": {}, "right": {}})
-        f["left"][int(cid)] = l
-        f["right"][int(cid)] = r
+        f["left"][int(cid)] = left_uv
+        f["right"][int(cid)] = right_uv
     return out
 
 

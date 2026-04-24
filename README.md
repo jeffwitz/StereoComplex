@@ -294,6 +294,14 @@ Build local HTML docs:
 make -C docs html
 ```
 
+Run the local validation suite before committing:
+
+```bash
+bash scripts/validate_local.sh
+```
+
+If you want the script to reinstall editable dependencies first, set `VALIDATE_INSTALL=1`.
+
 Serve the HTML docs locally (needed to render the embedded YouTube video in the docs, and so the root URL opens the docs directly):
 
 ```bash

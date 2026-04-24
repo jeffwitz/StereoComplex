@@ -6,6 +6,7 @@ import numpy as np
 
 from stereocomplex.core.geometry import triangulate_midpoint
 from stereocomplex.core.model_compact.central_rayfield import CentralRayFieldZernike
+from stereocomplex.core.model_compact.zernike import zernike_modes
 
 
 @dataclass(frozen=True)
@@ -65,7 +66,7 @@ class StereoCentralRayFieldModel:
             radius_px=float(radius_px),
             coeffs_x=np.asarray(coeffs_left_x, dtype=np.float64).reshape(-1),
             coeffs_y=np.asarray(coeffs_left_y, dtype=np.float64).reshape(-1),
-            modes=tuple(),
+            modes=tuple(zernike_modes(int(nmax))),
             C_mm=C_L_mm,
         )
         right = CentralRayFieldZernike(
@@ -75,7 +76,7 @@ class StereoCentralRayFieldModel:
             radius_px=float(radius_px),
             coeffs_x=np.asarray(coeffs_right_x, dtype=np.float64).reshape(-1),
             coeffs_y=np.asarray(coeffs_right_y, dtype=np.float64).reshape(-1),
-            modes=tuple(),
+            modes=tuple(zernike_modes(int(nmax))),
             C_mm=C_L_mm,
         )
         return cls(
@@ -118,4 +119,3 @@ class StereoCentralRayFieldModel:
         dL = self.left.ray_directions_cam(u, v).reshape(h, w, 3)
         dR = self.right.ray_directions_cam(u, v).reshape(h, w, 3)
         return dL.astype(np.float32), dR.astype(np.float32)
-

@@ -22,6 +22,9 @@ def test_fit_stereo_central_rayfield_from_dataset_smoke(tmp_path: Path) -> None:
     )
 
     assert result.report.n_initialized_frames >= 2
+    assert result.report.n_points_total >= 20
+    assert np.isfinite(result.report.train_skew_p95_mm)
+    assert np.isfinite(result.report.train_point_to_ray_p95_mm)
     assert result.report.exported_model_json is not None
 
     reloaded = sc.load_stereo_central_rayfield(tmp_path / "model_from_dataset")
@@ -52,6 +55,9 @@ def test_fit_stereo_central_rayfield_from_image_dirs_smoke(tmp_path: Path) -> No
     )
 
     assert result.report.n_initialized_frames >= 2
+    assert result.report.n_points_total >= 20
+    assert np.isfinite(result.report.train_skew_p95_mm)
+    assert np.isfinite(result.report.train_point_to_ray_p95_mm)
     assert result.report.exported_model_json is not None
 
 
