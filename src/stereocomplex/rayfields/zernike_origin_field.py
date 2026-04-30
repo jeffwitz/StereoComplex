@@ -8,6 +8,16 @@ from stereocomplex.core.model_compact.zernike import ZernikeMode, eval_real_zern
 from stereocomplex.synthetic.parallel_plate import pinhole_ray_from_pixel
 
 
+def _project_transverse(v: np.ndarray, d: np.ndarray) -> np.ndarray:
+    """Remove the component of v along d: v - (v·d) d.
+
+    Used for the transverse gauge O(u,v)⊥d(u,v) and for projecting direction
+    perturbations. Shared with the BA closure in fit_zernike_origin_field.py
+    so a change here propagates to both code paths.
+    """
+    return v - np.sum(v * d, axis=-1, keepdims=True) * d
+
+
 @dataclass(frozen=True)
 class ZernikeOriginFieldConfig:
     image_size: tuple[int, int]
@@ -97,8 +107,7 @@ class ZernikeOriginField:
         O_raw = self.raw_origin(u, v)
         if not self.config.enforce_transverse_gauge:
             return O_raw
-        d = self.direction(u, v)
-        return O_raw - np.sum(O_raw * d, axis=-1, keepdims=True) * d
+        return _project_transverse(O_raw, self.direction(u, v))
 
     def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Return `(O(u,v), d(u,v))`, both shaped `(N,3)`."""
@@ -153,8 +162,7 @@ class ZernikeRayField(ZernikeOriginField):
     def direction_delta(self, u: np.ndarray, v: np.ndarray) -> np.ndarray:
         """Return the transverse direction perturbation before normalization."""
         d0 = super().direction(u, v)
-        delta = self.basis(u, v) @ self.direction_coeffs
-        return delta - np.sum(delta * d0, axis=-1, keepdims=True) * d0
+        return _project_transverse(self.basis(u, v) @ self.direction_coeffs, d0)
 
     def direction(self, u: np.ndarray, v: np.ndarray) -> np.ndarray:
         """Return normalized fitted directions."""

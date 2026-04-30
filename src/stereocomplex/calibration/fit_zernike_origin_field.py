@@ -12,6 +12,7 @@ from stereocomplex.rayfields.zernike_origin_field import (
     ZernikeOriginFieldConfig,
     ZernikeRayField,
     ZernikeRayFieldCoefficients,
+    _project_transverse,
 )
 from stereocomplex.synthetic.parallel_plate import SyntheticStereoDataset, transform_points
 
@@ -248,20 +249,18 @@ def fit_stereo_zernike_origin_field(
         return left, right
 
     def _ray_cached(A: np.ndarray, d0: np.ndarray, origin_coeffs: np.ndarray, direction_coeffs: np.ndarray, enforce_gauge: bool) -> tuple[np.ndarray, np.ndarray]:
-        """Compute (O, d) using precomputed design matrix A and pinhole directions d0."""
+        """Compute (O, d) using precomputed design matrix A and pinhole directions d0.
+
+        Mirrors ZernikeOriginField.origin() / ZernikeRayField.direction() using
+        _project_transverse so both code paths stay in sync automatically.
+        """
         O_raw = A @ origin_coeffs   # (N, 3)
         if optimize_directions:
-            # Transverse projection of direction perturbation, then renormalise
-            delta = A @ direction_coeffs
-            delta_perp = delta - np.sum(delta * d0, axis=-1, keepdims=True) * d0
-            d = d0 + delta_perp
+            d = d0 + _project_transverse(A @ direction_coeffs, d0)
             d = d / np.linalg.norm(d, axis=1, keepdims=True)
         else:
             d = d0
-        if enforce_gauge:
-            O = O_raw - np.sum(O_raw * d, axis=-1, keepdims=True) * d
-        else:
-            O = O_raw
+        O = _project_transverse(O_raw, d) if enforce_gauge else O_raw
         return O, d
 
     def residuals(p: np.ndarray) -> np.ndarray:
