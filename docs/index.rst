@@ -97,6 +97,10 @@ start with the notebook series:
   sweeps, and the compression robustness experiments.
 - `03_rayfield_virtual_rectification.ipynb` shows how to reuse a calibrated
   ray-field inside a classical dense stereo pipeline via virtual rectification.
+- `04_parallel_plate_origin_field.ipynb` demonstrates the inclined-plate
+  non-central oracle, rendered ChArUco images with vignetting/blur/noise, and
+  the complete non-central bundle adjustment over ``O(u,v)``, ``d(u,v)``,
+  poses, and the stereo rig.
 
 Companion `.py` exports are stored next to the notebooks for quick inspection in
 any text editor.
@@ -130,6 +134,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 - I want compression robustness for 3D reconstruction: :doc:`COMPRESSION_RECONSTRUCTION`
 - I want the math and ray-based calibration: :doc:`RAYFIELD3D_RECONSTRUCTION`
 - I want dense stereo via virtual rectification (ray-field): :doc:`RAYFIELD_VIRTUAL_RECTIFY`
+- I want the non-central inclined-plate oracle benchmark: :doc:`PARALLEL_PLATE_ORIGIN_FIELD`
 - Licensing: :doc:`LICENSE`
 
 .. toctree::
@@ -167,4 +172,5 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
    PUBLIC_API
    RAYFIELD3D_RECONSTRUCTION
    RAYFIELD_VIRTUAL_RECTIFY
+   PARALLEL_PLATE_ORIGIN_FIELD
    PYCASO_Z_SWEEP
