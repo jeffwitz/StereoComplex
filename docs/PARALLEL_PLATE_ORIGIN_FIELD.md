@@ -224,6 +224,175 @@ The regularization is not cosmetic: planar non-central calibration has gauge
 freedoms. Without weak priors, the optimizer can trade board motion, baseline,
 and rayfield deformation while preserving very small point-to-ray residuals.
 
+## Implementation details of the complete non-central BA
+
+The implementation is in
+`src/stereocomplex/calibration/fit_zernike_origin_field.py`. This section states
+the exact optimization problem used by the benchmark, so the reported numbers
+can be audited from the code.
+
+For a Zernike maximum order `nmax`, the code uses all real Zernike modes with
+radial order `n <= nmax`, including the constant and linear modes. Thus
+`nmax=3` gives 10 modes and `nmax=4` gives 15 modes. Each camera has its own
+origin coefficients, and, when direction fitting is enabled, its own direction
+coefficients:
+
+```{math}
+\Theta_O^L,\Theta_O^R \in \mathbb R^{N_Z\times 3},
+\qquad
+\Theta_d^L,\Theta_d^R \in \mathbb R^{N_Z\times 3}.
+```
+
+The complete optimized state is
+
+```{math}
+x =
+\left[
+\Theta_O^L,\Theta_O^R,
+\Theta_d^L,\Theta_d^R,
+\xi_{B,1},\ldots,\xi_{B,N_f},
+\xi_{\mathrm{rig}}
+\right],
+```
+
+where the `\Theta_d` block is present only when `optimize_directions=True`, the
+board-pose increments are present only when `optimize_board_poses=True`, and the
+rig increment is present only when `optimize_stereo_extrinsics=True`. In the
+complete BA used for the rendered-image table, all three flags are enabled.
+
+All pose parameters are represented by 6-vectors
+`\xi=(\omega_x,\omega_y,\omega_z,t_x,t_y,t_z)`: the first three entries are a
+SciPy rotation vector and the last three entries are the translation in
+millimetres. The current implementation optimizes absolute SE(3) parameters but
+regularizes their difference from the initialization.
+
+### Frames and residuals
+
+Board poses are represented first in the left-camera frame. For frame `i` and
+board point `X_j^B`, the left-camera point is
+
+```{math}
+P_{ij}^L = T_{L\leftarrow B,i}\,X_j^B .
+```
+
+The stereo rig transform maps left-camera coordinates to right-camera
+coordinates:
+
+```{math}
+P_{ij}^R =
+R_{R\leftarrow L}P_{ij}^L + t_{R\leftarrow L}.
+```
+
+For the observed left and right pixels
+`(u_{ij}^L,v_{ij}^L)` and `(u_{ij}^R,v_{ij}^R)`, the fitted fields return
+
+```{math}
+(O_{ij}^L,d_{ij}^L)=\mathcal R_L(u_{ij}^L,v_{ij}^L),
+\qquad
+(O_{ij}^R,d_{ij}^R)=\mathcal R_R(u_{ij}^R,v_{ij}^R).
+```
+
+The residuals are 3D point-to-line vectors:
+
+```{math}
+r_{ij}^L = (P_{ij}^L-O_{ij}^L)\times d_{ij}^L,
+\qquad
+r_{ij}^R = (P_{ij}^R-O_{ij}^R)\times d_{ij}^R.
+```
+
+The directions are unit-normalized at every evaluation. The residual components
+therefore have units of millimetres. No pixel-noise covariance weighting is
+applied in the current implementation; all observed point-to-ray residual
+components are passed to SciPy in millimetres.
+
+### Objective and robust loss
+
+The vector passed to SciPy is the concatenation of all residual components and
+all active regularization pseudo-residuals. With all blocks active, the
+objective can be read as
+
+```{math}
+\min_x
+\rho_{\mathrm{data}}(x)
++ R_O(x)
++ R_d(x)
++ R_{\mathrm{pose}}(x)
++ R_{\mathrm{rig}}(x).
+```
+
+The terms are
+
+```{math}
+\rho_{\mathrm{data}}(x)=
+\sum_{i,j}\rho(r_{ij}^L)+\rho(r_{ij}^R),
+```
+
+```{math}
+R_O =
+\lambda_O\left(
+\|\sqrt{w}\Theta_O^L\|^2+
+\|\sqrt{w}\Theta_O^R\|^2
+\right),
+```
+
+```{math}
+R_d =
+\lambda_d\left(
+\|\sqrt{w}\Theta_d^L\|^2+
+\|\sqrt{w}\Theta_d^R\|^2
+\right),
+```
+
+```{math}
+R_{\mathrm{pose}} =
+\lambda_{\mathrm{pose}}\|\xi_B-\xi_{B,0}\|^2,
+\qquad
+R_{\mathrm{rig}} =
+\lambda_{\mathrm{rig}}\|\xi_{\mathrm{rig}}-\xi_{\mathrm{rig},0}\|^2 .
+```
+
+Here `\rho` is the robust loss chosen in `scipy.optimize.least_squares`. The
+benchmarks use `loss="huber"`, `method="trf"` and `f_scale=1.0`, so the Huber
+transition is at roughly one millimetre per residual component. The Zernike
+regularization weights increase with radial order:
+
+```{math}
+w_j = 1+n_j^2 .
+```
+
+In the actual residual vector, regularization is appended as
+`\sqrt{\lambda}\sqrt{w_j}\theta_j`, which is why the table below lists the
+`\lambda` values, not their square roots.
+
+### Initialization and benchmark parameters
+
+The BA starts from the central initialization:
+
+- `O(u,v)=0` for both cameras;
+- `\delta d(u,v)=0`, so directions initially equal the pinhole directions;
+- board poses are the initial left-camera board poses provided to the function;
+- the rig is initialized from `T_right_left_initial`.
+
+In the synthetic benchmark these initial board poses and rig are the known
+central/oracle geometry, so the rendered-image experiment should be read as a
+front-end and non-central BA wiring test, not yet as a fully blind real-camera
+calibration. The rendered images then replace the oracle pixels by OpenCV (or
+Ray2D-refined) detections before the same BA is run.
+
+The numerical settings used by the documented benchmarks are:
+
+| Case | nmax | `lambda_O` | `lambda_d` | `lambda_pose` | `lambda_rig` | `max_nfev` |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| O-only geometric benchmark | 4 | `1e-3` | inactive | inactive | inactive | 200 |
+| Full geometric BA | 3 | `1e-5` | `1e-2` | `10` | `100` | 100 |
+| Rendered-image BA | 3 | `1e-5` | `1e-2` | `100` | `1000` | 200 |
+
+These relatively strong pose and rig priors in the rendered-image BA are
+intentional. With a planar target and a non-central rayfield, the problem has
+practical gauge freedoms: without priors, pose, baseline and rayfield
+deformation can compensate one another while keeping small point-to-ray
+residuals.
+
 ## From geometric observations to image-based identification
 
 The present page validates two levels. First, it validates the geometric core
