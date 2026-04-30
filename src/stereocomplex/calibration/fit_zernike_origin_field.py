@@ -260,8 +260,8 @@ def fit_stereo_zernike_origin_field(
             d = d / np.linalg.norm(d, axis=1, keepdims=True)
         else:
             d = d0
-        O = _project_transverse(O_raw, d) if enforce_gauge else O_raw
-        return O, d
+        origin = _project_transverse(O_raw, d) if enforce_gauge else O_raw
+        return origin, d
 
     def residuals(p: np.ndarray) -> np.ndarray:
         (
