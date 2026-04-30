@@ -80,12 +80,24 @@ def triangulate_two_rays(
 
 
 def _triangulate_many(OL: np.ndarray, dL: np.ndarray, OR: np.ndarray, dR: np.ndarray) -> ReconstructionResult:
-    pts = np.empty_like(OL, dtype=np.float64)
-    gaps = np.empty((OL.shape[0],), dtype=np.float64)
-    valid = np.ones((OL.shape[0],), dtype=bool)
-    for i in range(OL.shape[0]):
-        pts[i], gaps[i] = triangulate_two_rays(OL[i], dL[i], OR[i], dR[i])
-        valid[i] = bool(np.all(np.isfinite(pts[i])) and np.isfinite(gaps[i]))
+    # Normalize (mirrors triangulate_two_rays per-row behaviour)
+    d1 = dL / np.linalg.norm(dL, axis=1, keepdims=True)
+    d2 = dR / np.linalg.norm(dR, axis=1, keepdims=True)
+    w0 = OL - OR                                      # (N, 3)
+    b  = np.einsum("ij,ij->i", d1, d2)                # d1·d2  (N,)
+    dd = np.einsum("ij,ij->i", d1, w0)                # d1·w0  (N,)
+    e  = np.einsum("ij,ij->i", d2, w0)                # d2·w0  (N,)
+    # a = c = 1 after normalization, so denom = a*c - b*b = 1 - b*b
+    denom = 1.0 - b * b
+    bad = np.abs(denom) < 1e-12
+    safe_denom = np.where(bad, 1.0, denom)            # avoid division by zero; NaN injected below
+    lam = np.where(bad, np.nan, (b * e - dd) / safe_denom)
+    mu  = np.where(bad, np.nan, (e - b * dd) / safe_denom)
+    P1 = OL + lam[:, None] * d1
+    P2 = OR + mu[:, None] * d2
+    pts  = 0.5 * (P1 + P2)
+    gaps = np.linalg.norm(P1 - P2, axis=1)
+    valid = np.isfinite(pts).all(axis=1) & np.isfinite(gaps)
     return ReconstructionResult(points_3d=pts, ray_gap=gaps, valid_mask=valid)
 
 
