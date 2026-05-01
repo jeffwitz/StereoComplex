@@ -94,6 +94,20 @@ from IPython.display import Image, display
 from types import SimpleNamespace
 
 import stereocomplex as sc
+from stereocomplex.advanced import (
+    compare_3d_reconstruction_with_without_origin_field,
+    compare_rayfields_on_planes,
+    fit_parallel_plate_to_zernike_rayfield,
+    fit_stereo_zernike_origin_field,
+    oracle_reconstruction_floor_report,
+)
+from stereocomplex.benchmarks.parallel_plate_origin_field import (
+    make_default_parallel_plate_dataset,
+    run_parallel_plate_origin_field_benchmark,
+    run_parallel_plate_rendered_image_benchmark,
+)
+from stereocomplex.physics import PinholeParallelPlateRayField
+from stereocomplex.rayfields import ZernikeOriginFieldConfig
 
 
 def find_repo_root(start: Path) -> Path:
@@ -116,7 +130,7 @@ print(f"Repository root: {ROOT}")
 # returns reconstruction, oracle-noise, and rayfield comparison reports.
 
 # %%
-report = sc.run_parallel_plate_origin_field_benchmark(max_order=4, noise_std_px=0.05)
+report = run_parallel_plate_origin_field_benchmark(max_order=4, noise_std_px=0.05)
 
 central = report.reconstruction_comparison.central
 origin = report.reconstruction_comparison.with_origin_field
@@ -165,7 +179,7 @@ print(f"  P95 factor   : {report.reconstruction_comparison.improvement_p95_facto
 # blocks with weak priors.
 
 # %%
-ba_report = sc.run_parallel_plate_origin_field_benchmark(
+ba_report = run_parallel_plate_origin_field_benchmark(
     max_order=3,
     noise_std_px=0.05,
     optimize_directions=True,
@@ -225,12 +239,12 @@ print(f"  field type  : {type(ba_report.fit_result.left_field).__name__}")
 
 # %%
 image_reports = {
-    "OpenCV raw": sc.run_parallel_plate_rendered_image_benchmark(
+    "OpenCV raw": run_parallel_plate_rendered_image_benchmark(
         out_dir=ASSET_DIR / "rendered_image_ba" / "notebook_images_raw",
         max_order=3,
         method2d="raw",
     ),
-    "Ray2D refined": sc.run_parallel_plate_rendered_image_benchmark(
+    "Ray2D refined": run_parallel_plate_rendered_image_benchmark(
         out_dir=ASSET_DIR / "rendered_image_ba" / "notebook_images_ray2d",
         max_order=3,
         method2d="rayfield_tps_robust",
@@ -334,8 +348,8 @@ print(f"Approximate stereo noise floor: {sigma_z:.3f} mm")
 
 # %%
 physical_dataset = sc.make_parallel_plate_wide_coverage_dataset(noise_std_px=0.0)
-physical_config = sc.ZernikeOriginFieldConfig(image_size=physical_dataset.image_size, max_order=4)
-physical_fit = sc.fit_stereo_zernike_origin_field(
+physical_config = ZernikeOriginFieldConfig(image_size=physical_dataset.image_size, max_order=4)
+physical_fit = fit_stereo_zernike_origin_field(
     observations=physical_dataset,
     K_left=physical_dataset.K_left,
     K_right=physical_dataset.K_right,
@@ -349,7 +363,7 @@ physical_fit = sc.fit_stereo_zernike_origin_field(
 support_left = np.concatenate(physical_dataset.left_pixels, axis=0)
 support_right = np.concatenate(physical_dataset.right_pixels, axis=0)
 
-plate_fit_left = sc.fit_parallel_plate_to_zernike_rayfield(
+plate_fit_left = fit_parallel_plate_to_zernike_rayfield(
     zernike_field=physical_fit.left_field,
     K=physical_dataset.K_left,
     image_size=physical_dataset.image_size,
@@ -359,7 +373,7 @@ plate_fit_left = sc.fit_parallel_plate_to_zernike_rayfield(
     grid_shape=(25, 19),
     oracle_params=physical_dataset.oracle_left_params,
 )
-plate_fit_right = sc.fit_parallel_plate_to_zernike_rayfield(
+plate_fit_right = fit_parallel_plate_to_zernike_rayfield(
     zernike_field=physical_fit.right_field,
     K=physical_dataset.K_right,
     image_size=physical_dataset.image_size,
@@ -382,21 +396,21 @@ for side, plate_fit in [("left", plate_fit_left), ("right", plate_fit_right)]:
 
 # %%
 plate_model = SimpleNamespace(
-    left_field=sc.PinholeParallelPlateRayField(physical_dataset.K_left, plate_fit_left.params),
-    right_field=sc.PinholeParallelPlateRayField(physical_dataset.K_right, plate_fit_right.params),
+    left_field=PinholeParallelPlateRayField(physical_dataset.K_left, plate_fit_left.params),
+    right_field=PinholeParallelPlateRayField(physical_dataset.K_right, plate_fit_right.params),
     stereo_transform=physical_dataset.T_right_left,
 )
-plate_comparison = sc.compare_3d_reconstruction_with_without_origin_field(
+plate_comparison = compare_3d_reconstruction_with_without_origin_field(
     dataset=physical_dataset,
     central_model_result=None,
     origin_field_result=plate_model,
 )
-zernike_physical_comparison = sc.compare_3d_reconstruction_with_without_origin_field(
+zernike_physical_comparison = compare_3d_reconstruction_with_without_origin_field(
     dataset=physical_dataset,
     central_model_result=None,
     origin_field_result=physical_fit,
 )
-oracle_physical_floor = sc.oracle_reconstruction_floor_report(physical_dataset).oracle_clean_pixels
+oracle_physical_floor = oracle_reconstruction_floor_report(physical_dataset).oracle_clean_pixels
 
 print("3D reconstruction with compact physical plate model")
 print(f"  central RMS       : {plate_comparison.central.rms_3d:.3f} mm")
@@ -529,11 +543,11 @@ for name in [
 # geometry, **not** the plate parameters.
 
 # %%
-dataset = sc.make_default_parallel_plate_dataset(noise_std_px=0.05)
-dataset_clean = sc.make_default_parallel_plate_dataset(noise_std_px=0.0)
-config = sc.ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=4)
+dataset = make_default_parallel_plate_dataset(noise_std_px=0.05)
+dataset_clean = make_default_parallel_plate_dataset(noise_std_px=0.0)
+config = ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=4)
 
-fit = sc.fit_stereo_zernike_origin_field(
+fit = fit_stereo_zernike_origin_field(
     observations=dataset,
     K_left=dataset.K_left,
     K_right=dataset.K_right,
@@ -544,14 +558,14 @@ fit = sc.fit_stereo_zernike_origin_field(
     regularization=1e-3,
 )
 
-fit_ba = sc.fit_stereo_zernike_origin_field(
+fit_ba = fit_stereo_zernike_origin_field(
     observations=dataset,
     K_left=dataset.K_left,
     K_right=dataset.K_right,
     T_right_left_initial=dataset.T_right_left,
     board_poses_initial=dataset.board_poses,
-    config_left=sc.ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=3),
-    config_right=sc.ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=3),
+    config_left=ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=3),
+    config_right=ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=3),
     optimize_directions=True,
     optimize_board_poses=True,
     optimize_stereo_extrinsics=True,
@@ -562,23 +576,23 @@ fit_ba = sc.fit_stereo_zernike_origin_field(
     max_nfev=100,
 )
 
-comparison = sc.compare_3d_reconstruction_with_without_origin_field(
+comparison = compare_3d_reconstruction_with_without_origin_field(
     dataset=dataset,
     central_model_result=None,
     origin_field_result=fit,
 )
-comparison_ba = sc.compare_3d_reconstruction_with_without_origin_field(
+comparison_ba = compare_3d_reconstruction_with_without_origin_field(
     dataset=dataset,
     central_model_result=None,
     origin_field_result=fit_ba,
 )
 
-oracle_floor = sc.oracle_reconstruction_floor_report(
+oracle_floor = oracle_reconstruction_floor_report(
     dataset_observed=dataset,
     dataset_clean=dataset_clean,
 )
 
-left_rayfield = sc.compare_rayfields_on_planes(
+left_rayfield = compare_rayfields_on_planes(
     fitted_field=fit.left_field,
     oracle_ray_function=dataset.oracle_left_ray_function,
     image_size=dataset.image_size,

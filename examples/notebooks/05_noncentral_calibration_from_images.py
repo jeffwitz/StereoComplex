@@ -50,10 +50,18 @@ from pathlib import Path
 import numpy as np
 
 import stereocomplex as sc
+from stereocomplex.advanced import (
+    reconstruct_points_central_stereo,
+    reconstruct_points_with_origin_fields,
+)
+from stereocomplex.benchmarks.parallel_plate_origin_field import (
+    make_default_parallel_plate_charuco_board,
+    make_default_parallel_plate_charuco_dataset,
+)
 
 tmp = Path(tempfile.mkdtemp())
-board = sc.make_default_parallel_plate_charuco_board()
-dataset_gt = sc.make_default_parallel_plate_charuco_dataset()
+board = make_default_parallel_plate_charuco_board()
+dataset_gt = make_default_parallel_plate_charuco_dataset()
 rendered = sc.render_parallel_plate_charuco_images(dataset_gt, board, tmp / "calib")
 
 left_dir = rendered.left_images[0].parent
@@ -111,8 +119,8 @@ K_left = fit.left_field.K
 K_right = fit.right_field.K
 T_RL = fit.stereo_transform
 
-result_pinhole = sc.reconstruct_points_central_stereo(uv_L, uv_R, K_left, K_right, T_RL)
-result_nc = sc.reconstruct_points_with_origin_fields(uv_L, uv_R, fit.left_field, fit.right_field, T_RL)
+result_pinhole = reconstruct_points_central_stereo(uv_L, uv_R, K_left, K_right, T_RL)
+result_nc = reconstruct_points_with_origin_fields(uv_L, uv_R, fit.left_field, fit.right_field, T_RL)
 
 v_ph = result_pinhole.valid_mask
 v_nc = result_nc.valid_mask
