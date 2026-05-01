@@ -16,7 +16,11 @@ from stereocomplex.metrics.reconstruction_metrics import (
     reconstruct_points_central_stereo,
     reconstruct_points_with_origin_fields,
 )
-from stereocomplex.physics.parallel_plate_fit import PinholeParallelPlateRayField
+from stereocomplex.physics.parallel_plate_fit import (
+    PinholeParallelPlateFitParams,
+    PinholeParallelPlateRayField,
+    rayfield_two_plane_residuals,
+)
 from stereocomplex.rayfields.zernike_origin_field import ZernikeOriginFieldConfig
 from stereocomplex.synthetic.parallel_plate import transform_points
 
@@ -333,8 +337,8 @@ def _fit_physical_plate_case(case):
     }
 
 
-def _fit_physical_plate_wide_coverage_case():
-    dataset = sc.make_parallel_plate_wide_coverage_dataset(noise_std_px=0.0)
+def _fit_physical_plate_wide_coverage_case(noise_std_px=0.0):
+    dataset = sc.make_parallel_plate_wide_coverage_dataset(noise_std_px=noise_std_px)
     config = ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=4)
     fit = fit_stereo_zernike_origin_field(
         observations=dataset,
@@ -369,6 +373,148 @@ def _fit_physical_plate_wide_coverage_case():
     }
     physical = _fit_physical_plate_case(case)
     return case, physical
+
+
+def _two_plane_rms(field_a, field_b, pixels, z_planes=(100.0, 1000.0)):
+    residuals = rayfield_two_plane_residuals(field_a, field_b, pixels, z_planes=z_planes).reshape(-1, 6)
+    norms = np.linalg.norm(residuals, axis=1)
+    return float(np.sqrt(np.mean(norms**2)))
+
+
+def _physical_model_selection(case, physical):
+    dataset = case["dataset"]
+    support_left = np.concatenate(dataset.left_pixels, axis=0)
+    support_right = np.concatenate(dataset.right_pixels, axis=0)
+    uu, vv = np.meshgrid(
+        np.linspace(0.0, dataset.image_size[0] - 1, 25),
+        np.linspace(0.0, dataset.image_size[1] - 1, 19),
+    )
+    full_pixels = np.column_stack([uu.reshape(-1), vv.reshape(-1)])
+
+    central_left = PinholeParallelPlateRayField(
+        dataset.K_left,
+        PinholeParallelPlateFitParams(alpha_deg=0.0, beta_deg=0.0, thickness_mm=0.0),
+    )
+    central_right = PinholeParallelPlateRayField(
+        dataset.K_right,
+        PinholeParallelPlateFitParams(alpha_deg=0.0, beta_deg=0.0, thickness_mm=0.0),
+    )
+    fronto_left = PinholeParallelPlateRayField(
+        dataset.K_left,
+        PinholeParallelPlateFitParams(alpha_deg=0.0, beta_deg=0.0, thickness_mm=16.0),
+    )
+    fronto_right = PinholeParallelPlateRayField(
+        dataset.K_right,
+        PinholeParallelPlateFitParams(alpha_deg=0.0, beta_deg=0.0, thickness_mm=14.0),
+    )
+    wrong_eta_left = sc.fit_parallel_plate_to_zernike_rayfield(
+        zernike_field=case["fit"].left_field,
+        K=dataset.K_left,
+        image_size=dataset.image_size,
+        support_pixels=support_left,
+        eta=1.33,
+        grid_shape=(25, 19),
+        oracle_params=dataset.oracle_left_params,
+    )
+    wrong_eta_right = sc.fit_parallel_plate_to_zernike_rayfield(
+        zernike_field=case["fit"].right_field,
+        K=dataset.K_right,
+        image_size=dataset.image_size,
+        support_pixels=support_right,
+        eta=1.33,
+        grid_shape=(25, 19),
+        oracle_params=dataset.oracle_right_params,
+    )
+    wrong_eta_left_field = PinholeParallelPlateRayField(dataset.K_left, wrong_eta_left.params)
+    wrong_eta_right_field = PinholeParallelPlateRayField(dataset.K_right, wrong_eta_right.params)
+
+    candidates = {
+        "central": (central_left, central_right),
+        "fronto_parallel": (fronto_left, fronto_right),
+        "wrong_eta_fit": (wrong_eta_left_field, wrong_eta_right_field),
+        "inclined_plate_fit": (physical["plate_model"].left_field, physical["plate_model"].right_field),
+    }
+    out = {}
+    for name, (left_field, right_field) in candidates.items():
+        out[name] = {
+            "left_support_rms_to_zernike_mm": _two_plane_rms(case["fit"].left_field, left_field, support_left),
+            "right_support_rms_to_zernike_mm": _two_plane_rms(case["fit"].right_field, right_field, support_right),
+            "left_full_rms_to_zernike_mm": _two_plane_rms(case["fit"].left_field, left_field, full_pixels),
+            "right_full_rms_to_zernike_mm": _two_plane_rms(case["fit"].right_field, right_field, full_pixels),
+            "left_full_rms_to_oracle_mm": compare_rayfields_on_planes(
+                left_field,
+                dataset.oracle_left_ray_function,
+                dataset.image_size,
+                z_planes=(100.0, 1000.0),
+            ).plane_intersection_rms,
+            "right_full_rms_to_oracle_mm": compare_rayfields_on_planes(
+                right_field,
+                dataset.oracle_right_ray_function,
+                dataset.image_size,
+                z_planes=(100.0, 1000.0),
+            ).plane_intersection_rms,
+        }
+    out["wrong_eta_fit"]["left_params"] = {
+        "alpha_deg": wrong_eta_left.params.alpha_deg,
+        "beta_deg": wrong_eta_left.params.beta_deg,
+        "thickness_mm": wrong_eta_left.params.thickness_mm,
+        "eta": wrong_eta_left.params.eta,
+    }
+    out["wrong_eta_fit"]["right_params"] = {
+        "alpha_deg": wrong_eta_right.params.alpha_deg,
+        "beta_deg": wrong_eta_right.params.beta_deg,
+        "thickness_mm": wrong_eta_right.params.thickness_mm,
+        "eta": wrong_eta_right.params.eta,
+    }
+    return out
+
+
+def _physical_bootstrap(case, n_bootstrap=16, fraction=0.65):
+    rng = np.random.default_rng(20260501)
+    dataset = case["dataset"]
+    support_left = np.concatenate(dataset.left_pixels, axis=0)
+    support_right = np.concatenate(dataset.right_pixels, axis=0)
+    n_left = max(20, int(round(fraction * support_left.shape[0])))
+    n_right = max(20, int(round(fraction * support_right.shape[0])))
+    samples = {"left": [], "right": []}
+    for _ in range(n_bootstrap):
+        idx_left = rng.choice(support_left.shape[0], size=n_left, replace=False)
+        idx_right = rng.choice(support_right.shape[0], size=n_right, replace=False)
+        left_fit = sc.fit_parallel_plate_to_zernike_rayfield(
+            zernike_field=case["fit"].left_field,
+            K=dataset.K_left,
+            image_size=dataset.image_size,
+            support_pixels=support_left[idx_left],
+            eta=1.5,
+            grid_shape=(17, 13),
+            full_grid_weight=0.15,
+            oracle_params=dataset.oracle_left_params,
+        )
+        right_fit = sc.fit_parallel_plate_to_zernike_rayfield(
+            zernike_field=case["fit"].right_field,
+            K=dataset.K_right,
+            image_size=dataset.image_size,
+            support_pixels=support_right[idx_right],
+            eta=1.5,
+            grid_shape=(17, 13),
+            full_grid_weight=0.15,
+            oracle_params=dataset.oracle_right_params,
+        )
+        samples["left"].append([left_fit.params.alpha_deg, left_fit.params.beta_deg, left_fit.params.thickness_mm])
+        samples["right"].append([right_fit.params.alpha_deg, right_fit.params.beta_deg, right_fit.params.thickness_mm])
+    out = {}
+    for side, values in samples.items():
+        arr = np.asarray(values, dtype=np.float64)
+        out[side] = {
+            "n_bootstrap": int(arr.shape[0]),
+            "alpha_mean_deg": float(np.mean(arr[:, 0])),
+            "alpha_std_deg": float(np.std(arr[:, 0], ddof=1)),
+            "beta_mean_deg": float(np.mean(arr[:, 1])),
+            "beta_std_deg": float(np.std(arr[:, 1], ddof=1)),
+            "thickness_mean_mm": float(np.mean(arr[:, 2])),
+            "thickness_std_mm": float(np.std(arr[:, 2], ddof=1)),
+        }
+    return out
 
 
 def _plot_physical_plate_reconstruction(case, physical):
@@ -436,6 +582,85 @@ def _plot_physical_plate_vs_zernike_heatmap(case, physical):
     cbar.set_label("ray-space error (mm)")
     fig.tight_layout()
     fig.savefig(OUT / "physical_plate_vs_zernike_rayfield_heatmap.png", dpi=180)
+    plt.close(fig)
+
+
+def _plot_physical_model_selection(model_selection):
+    labels = ["central", "fronto\nparallel", "wrong eta\nfit", "inclined\nplate fit"]
+    keys = ["central", "fronto_parallel", "wrong_eta_fit", "inclined_plate_fit"]
+    support = [
+        0.5
+        * (
+            model_selection[key]["left_support_rms_to_zernike_mm"]
+            + model_selection[key]["right_support_rms_to_zernike_mm"]
+        )
+        for key in keys
+    ]
+    full = [
+        0.5
+        * (
+            model_selection[key]["left_full_rms_to_zernike_mm"]
+            + model_selection[key]["right_full_rms_to_zernike_mm"]
+        )
+        for key in keys
+    ]
+    x = np.arange(len(keys), dtype=np.float64)
+    width = 0.36
+    fig, ax = plt.subplots(figsize=(8.8, 4.4))
+    bars_support = ax.bar(x - width / 2, support, width, label="observed support", color="#0072b2", edgecolor="black")
+    bars_full = ax.bar(x + width / 2, full, width, label="full grid", color="#e69f00", edgecolor="black")
+    ax.set_xticks(x, labels)
+    ax.set_ylabel("RMS rayfield distance to Zernike (mm)")
+    ax.set_title("Ray-space model selection after measuring the Zernike field")
+    ax.set_yscale("log")
+    ax.grid(True, axis="y", alpha=0.3)
+    ax.legend()
+    for group in (bars_support, bars_full):
+        for rect in group:
+            h = rect.get_height()
+            ax.text(rect.get_x() + rect.get_width() / 2.0, h, f"{h:.3g}", ha="center", va="bottom", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(OUT / "physical_plate_model_selection.png", dpi=180)
+    plt.close(fig)
+
+
+def _plot_physical_bootstrap(bootstrap):
+    names = ["alpha (deg)", "beta (deg)", "e (mm)"]
+    left_mean = [
+        bootstrap["left"]["alpha_mean_deg"],
+        bootstrap["left"]["beta_mean_deg"],
+        bootstrap["left"]["thickness_mean_mm"],
+    ]
+    left_std = [
+        bootstrap["left"]["alpha_std_deg"],
+        bootstrap["left"]["beta_std_deg"],
+        bootstrap["left"]["thickness_std_mm"],
+    ]
+    right_mean = [
+        bootstrap["right"]["alpha_mean_deg"],
+        bootstrap["right"]["beta_mean_deg"],
+        bootstrap["right"]["thickness_mean_mm"],
+    ]
+    right_std = [
+        bootstrap["right"]["alpha_std_deg"],
+        bootstrap["right"]["beta_std_deg"],
+        bootstrap["right"]["thickness_std_mm"],
+    ]
+    x = np.arange(3, dtype=np.float64)
+    fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.2), sharey=False)
+    for ax, mean, std, title, truth in [
+        (axes[0], left_mean, left_std, "Left camera", [13.0, 5.0, 16.0]),
+        (axes[1], right_mean, right_std, "Right camera", [10.0, 7.0, 14.0]),
+    ]:
+        ax.errorbar(x, mean, yerr=std, fmt="o", color="#0072b2", ecolor="black", capsize=4, label="bootstrap mean +/- std")
+        ax.scatter(x, truth, marker="x", s=70, color="#d55e00", label="oracle")
+        ax.set_xticks(x, names)
+        ax.set_title(title)
+        ax.grid(True, axis="y", alpha=0.3)
+        ax.legend(fontsize=8)
+    fig.suptitle("Bootstrap stability of the physical plate interpretation")
+    fig.tight_layout()
+    fig.savefig(OUT / "physical_plate_bootstrap_parameters.png", dpi=180)
     plt.close(fig)
 
 
@@ -583,6 +808,36 @@ def _physical_summary(case, physical):
     }
 
 
+def _physical_noisy_summary(case, physical):
+    truth = case["truth"]
+    plate_err = _norm_errors(physical["plate_reconstruction"], truth)
+    zernike_err = _norm_errors(case["origin"], truth)
+    central_err = _norm_errors(case["central"], truth)
+    oracle_err = _norm_errors(case["oracle_clean"], truth)
+    return {
+        "central_rms_3d_mm": float(np.sqrt(np.mean(central_err**2))),
+        "zernike_rms_3d_mm": float(np.sqrt(np.mean(zernike_err**2))),
+        "plate_rms_3d_mm": float(np.sqrt(np.mean(plate_err**2))),
+        "oracle_observed_pixels_rms_3d_mm": float(np.sqrt(np.mean(oracle_err**2))),
+        "left_fit": {
+            "alpha_deg": physical["left_fit"].params.alpha_deg,
+            "beta_deg": physical["left_fit"].params.beta_deg,
+            "thickness_mm": physical["left_fit"].params.thickness_mm,
+            "rayfield_rms_support_mm": physical["left_fit"].rayfield_rms_support_mm,
+            "rayfield_rms_full_mm": physical["left_fit"].rayfield_rms_full_mm,
+            "parameter_error": physical["left_fit"].parameter_error,
+        },
+        "right_fit": {
+            "alpha_deg": physical["right_fit"].params.alpha_deg,
+            "beta_deg": physical["right_fit"].params.beta_deg,
+            "thickness_mm": physical["right_fit"].params.thickness_mm,
+            "rayfield_rms_support_mm": physical["right_fit"].rayfield_rms_support_mm,
+            "rayfield_rms_full_mm": physical["right_fit"].rayfield_rms_full_mm,
+            "parameter_error": physical["right_fit"].parameter_error,
+        },
+    }
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     cases = {
@@ -596,12 +851,21 @@ def main():
     _plot_rayfield_plane_errors(cases["0.05 px observation noise"], "rayfield_plane_error_noise_005px.png")
     _plot_ray_gap(cases)
     physical_case, physical = _fit_physical_plate_wide_coverage_case()
+    physical_noisy_case, physical_noisy = _fit_physical_plate_wide_coverage_case(noise_std_px=0.05)
+    model_selection = _physical_model_selection(physical_case, physical)
+    bootstrap = _physical_bootstrap(physical_case)
     _plot_physical_plate_reconstruction(physical_case, physical)
     _plot_physical_plate_vs_zernike_heatmap(physical_case, physical)
+    _plot_physical_model_selection(model_selection)
+    _plot_physical_bootstrap(bootstrap)
     summary = _summary(cases)
     physical_summary = _physical_summary(physical_case, physical)
+    physical_noisy_summary = _physical_noisy_summary(physical_noisy_case, physical_noisy)
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     (OUT / "physical_plate_summary.json").write_text(json.dumps(physical_summary, indent=2), encoding="utf-8")
+    (OUT / "physical_plate_noisy_summary.json").write_text(json.dumps(physical_noisy_summary, indent=2), encoding="utf-8")
+    (OUT / "physical_plate_model_selection.json").write_text(json.dumps(model_selection, indent=2), encoding="utf-8")
+    (OUT / "physical_plate_bootstrap.json").write_text(json.dumps(bootstrap, indent=2), encoding="utf-8")
     rendered_reports = {
         "raw": sc.run_parallel_plate_rendered_image_benchmark(
             OUT / "rendered_image_ba" / "images_raw",
@@ -615,7 +879,19 @@ def main():
         ),
     }
     rendered_summary = _plot_rendered_image_benchmarks(rendered_reports)
-    print(json.dumps({"geometric": summary, "physical_plate_fit": physical_summary, "rendered_image_ba": rendered_summary}, indent=2))
+    print(
+        json.dumps(
+            {
+                "geometric": summary,
+                "physical_plate_fit": physical_summary,
+                "physical_plate_noisy_fit": physical_noisy_summary,
+                "physical_model_selection": model_selection,
+                "physical_bootstrap": bootstrap,
+                "rendered_image_ba": rendered_summary,
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

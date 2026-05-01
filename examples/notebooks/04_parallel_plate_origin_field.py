@@ -88,6 +88,7 @@
 
 # %%
 from pathlib import Path
+import json
 import numpy as np
 from IPython.display import Image, display
 from types import SimpleNamespace
@@ -431,6 +432,58 @@ print("  Fitted plate model  : 6 scalar parameters for two independent plates (e
 
 
 # %% [markdown]
+# ### Noisy case, bootstrap and model selection diagnostics
+#
+# The documentation generator also runs three additional checks:
+#
+# 1. the same physical compression with `0.05 px` observation noise;
+# 2. a bootstrap refit on random subsets of the observed support;
+# 3. a ray-space comparison against simpler or deliberately wrong physical
+#    candidates.
+#
+# These are not new calibration algorithms. They are diagnostics for the
+# interpretation step. The key question is whether the compact plate remains at
+# the oracle noisy floor, and whether wrong physical candidates are rejected in
+# ray space.
+
+# %%
+for path in [
+    ASSET_DIR / "physical_plate_noisy_summary.json",
+    ASSET_DIR / "physical_plate_bootstrap.json",
+    ASSET_DIR / "physical_plate_model_selection.json",
+]:
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Missing {path}. Run docs/examples/parallel_plate_origin_field_demo.py first."
+        )
+
+noisy_physical = json.loads((ASSET_DIR / "physical_plate_noisy_summary.json").read_text())
+bootstrap_physical = json.loads((ASSET_DIR / "physical_plate_bootstrap.json").read_text())
+model_selection = json.loads((ASSET_DIR / "physical_plate_model_selection.json").read_text())
+
+print("Noisy physical compression at 0.05 px")
+print(f"  central RMS      : {noisy_physical['central_rms_3d_mm']:.3f} mm")
+print(f"  Zernike RMS      : {noisy_physical['zernike_rms_3d_mm']:.3f} mm")
+print(f"  fitted plate RMS : {noisy_physical['plate_rms_3d_mm']:.3f} mm")
+print(f"  oracle pixel RMS : {noisy_physical['oracle_observed_pixels_rms_3d_mm']:.3f} mm")
+
+print("\nBootstrap parameter stability")
+for side in ["left", "right"]:
+    row = bootstrap_physical[side]
+    print(
+        f"  {side}: alpha={row['alpha_mean_deg']:.4f}+/-{row['alpha_std_deg']:.4f} deg, "
+        f"beta={row['beta_mean_deg']:.4f}+/-{row['beta_std_deg']:.4f} deg, "
+        f"e={row['thickness_mean_mm']:.4f}+/-{row['thickness_std_mm']:.4f} mm"
+    )
+
+print("\nRay-space model selection: average left/right full-grid RMS to Zernike")
+for key in ["central", "fronto_parallel", "wrong_eta_fit", "inclined_plate_fit"]:
+    row = model_selection[key]
+    avg = 0.5 * (row["left_full_rms_to_zernike_mm"] + row["right_full_rms_to_zernike_mm"])
+    print(f"  {key:18s}: {avg:.4f} mm")
+
+
+# %% [markdown]
 # ## 8. Show the generated figures
 #
 # The figure-generation script is:
@@ -451,6 +504,8 @@ for name in [
     "reconstruction_error_distributions.png",
     "physical_plate_reconstruction_comparison.png",
     "physical_plate_vs_zernike_rayfield_heatmap.png",
+    "physical_plate_bootstrap_parameters.png",
+    "physical_plate_model_selection.png",
     "depth_error_map_noise_005px.png",
     "rayfield_plane_error_noise_005px.png",
     "ray_gap_histograms.png",

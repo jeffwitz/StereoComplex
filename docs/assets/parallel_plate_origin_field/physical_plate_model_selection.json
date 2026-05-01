@@ -1,0 +1,46 @@
+{
+  "central": {
+    "left_support_rms_to_zernike_mm": 2.691002571244926,
+    "right_support_rms_to_zernike_mm": 2.8467533521293666,
+    "left_full_rms_to_zernike_mm": 4.033649035560006,
+    "right_full_rms_to_zernike_mm": 3.355983897287512,
+    "left_full_rms_to_oracle_mm": 4.054926904112714,
+    "right_full_rms_to_oracle_mm": 3.376520996608535
+  },
+  "fronto_parallel": {
+    "left_support_rms_to_zernike_mm": 1.9871310714186385,
+    "right_support_rms_to_zernike_mm": 1.5723651151363356,
+    "left_full_rms_to_zernike_mm": 2.2267053511066757,
+    "right_full_rms_to_zernike_mm": 1.6974948682711644,
+    "left_full_rms_to_oracle_mm": 2.229501036023292,
+    "right_full_rms_to_oracle_mm": 1.6812587502323082
+  },
+  "wrong_eta_fit": {
+    "left_support_rms_to_zernike_mm": 0.030583825130188202,
+    "right_support_rms_to_zernike_mm": 0.03650032780650524,
+    "left_full_rms_to_zernike_mm": 0.12126999676992903,
+    "right_full_rms_to_zernike_mm": 0.07395037661498835,
+    "left_full_rms_to_oracle_mm": 0.10002334480457846,
+    "right_full_rms_to_oracle_mm": 0.06585166838291702,
+    "left_params": {
+      "alpha_deg": 13.048490118751433,
+      "beta_deg": 5.026218654353144,
+      "thickness_mm": 20.946103736510743,
+      "eta": 1.33
+    },
+    "right_params": {
+      "alpha_deg": 10.140406157972784,
+      "beta_deg": 7.0589468711034336,
+      "thickness_mm": 18.177936971947272,
+      "eta": 1.33
+    }
+  },
+  "inclined_plate_fit": {
+    "left_support_rms_to_zernike_mm": 0.002158474678975366,
+    "right_support_rms_to_zernike_mm": 0.0034519503357000976,
+    "left_full_rms_to_zernike_mm": 0.03406586485419651,
+    "right_full_rms_to_zernike_mm": 0.05423067443371128,
+    "left_full_rms_to_oracle_mm": 0.0035074415069988323,
+    "right_full_rms_to_oracle_mm": 0.006676517377567706
+  }
+}

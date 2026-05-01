@@ -631,12 +631,57 @@ The reconstruction comparison is:
 | Pinhole + fitted plate | 0.0101 mm | 0.0080 mm | 0.0180 mm | 0.00062 mm |
 | Oracle | ~0 | ~0 | ~0 | ~0 |
 
+The same physical interpretation was also run with `0.05 px` observation noise
+on the wide-coverage synthetic dataset:
+
+| Model | RMS 3D |
+| --- | ---: |
+| Central | 2.615 mm |
+| Zernike initial | 0.744 mm |
+| Pinhole + fitted plate | 0.751 mm |
+| Oracle at observed pixels | 0.752 mm |
+
+The fitted physical plate is therefore no longer limited by the non-central
+model: it sits at the same scale as the oracle evaluated at noisy pixels. In
+this regime, the residual error is dominated by image-coordinate noise rather
+than by the compact physical model.
+
 The physical model is therefore not the most flexible model in this comparison.
 The Zernike rayfield is the measured geometric object and remains the best
 training fit. The value of the fitted plate is **compression and
 interpretability**: it explains most of the non-central reconstruction bias with
 six scalar parameters for the stereo pair (`alpha`, `beta`, `e` per camera,
 with `eta` fixed), instead of a larger Zernike coefficient field.
+
+The stability of the physical interpretation was checked by refitting the plate
+on 16 random subsets of the observed support. On this noise-free benchmark, the
+bootstrap standard deviations are small:
+
+| Camera | `alpha` mean +/- std | `beta` mean +/- std | `e` mean +/- std |
+| --- | ---: | ---: | ---: |
+| Left | 13.0045 +/- 0.0002 deg | 5.0018 +/- 0.0002 deg | 15.9938 +/- 0.0003 mm |
+| Right | 10.0146 +/- 0.0007 deg | 7.0043 +/- 0.0003 deg | 13.9894 +/- 0.0005 mm |
+
+This is not meant as a full uncertainty budget; it is a quick conditioning
+check. It shows that, once the Zernike rayfield has been measured with broad
+image support, the physical compression step is numerically stable.
+
+Finally, the ray-space fit can be read as a simple model-selection diagnostic.
+The table below reports the average left/right RMS distance to the measured
+Zernike rayfield:
+
+| Candidate model | Observed support RMS | Full-grid RMS | Interpretation |
+| --- | ---: | ---: | --- |
+| Central | 2.77 mm | 3.69 mm | wrong central model |
+| Fronto-parallel plate | 1.78 mm | 1.96 mm | partially explains a shift, not the tilt |
+| Inclined plate, wrong `eta=1.33` | 0.034 mm | 0.098 mm | can compensate partly via thickness |
+| Inclined plate, correct `eta=1.5` | 0.0028 mm | 0.044 mm | best compact physical explanation |
+
+The wrong-index fit is instructive: because `eta` and thickness are partially
+coupled for a parallel plate, the optimizer can still reduce the ray-space
+residual by changing the effective thickness. This is why `eta` is fixed by
+default in the physical interpretation step unless independent optical
+knowledge is available.
 
 ```{figure} assets/parallel_plate_origin_field/physical_plate_reconstruction_comparison.png
 :alt: Reconstruction comparison between central Zernike fitted plate and oracle models
@@ -655,6 +700,24 @@ residuals.
 Ray-space residual between the fitted plate model and the measured Zernike
 rayfield on the `z=1000 mm` plane. Cyan points show the observed calibration
 support. Errors outside that support mostly measure extrapolation differences.
+```
+
+```{figure} assets/parallel_plate_origin_field/physical_plate_bootstrap_parameters.png
+:alt: Bootstrap stability of fitted physical plate parameters
+:width: 90%
+
+Bootstrap stability of the physical interpretation. The fitted parameters stay
+close to the oracle values when the plate is refitted on random subsets of the
+observed support.
+```
+
+```{figure} assets/parallel_plate_origin_field/physical_plate_model_selection.png
+:alt: Ray-space comparison of candidate physical models
+:width: 90%
+
+Ray-space model selection after the generic Zernike rayfield has been measured.
+The inclined parallel-plate model is the only compact candidate that explains
+the measured non-central field at both support points and across the image grid.
 ```
 
 This section illustrates a broader workflow: measure the rayfield first, then
