@@ -54,6 +54,45 @@ class PinholeParallelPlateRayField:
         return pinhole_parallel_plate_ray_from_pixel(u, v, self.K, self.params)
 
 
+class PinholeParallelPlateModel(PinholeParallelPlateRayField):
+    """Physical pinhole + inclined parallel-plate model-selection candidate."""
+
+    name = "pinhole_parallel_plate"
+
+    @property
+    def n_parameters(self) -> int:
+        return 3
+
+    def parameter_vector(self) -> np.ndarray:
+        return np.array(
+            [self.params.alpha_deg, self.params.beta_deg, self.params.thickness_mm],
+            dtype=np.float64,
+        )
+
+    @classmethod
+    def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> "PinholeParallelPlateModel":
+        arr = np.asarray(x, dtype=np.float64).reshape(-1)
+        if arr.size != 3:
+            raise ValueError("PinholeParallelPlateModel expects three parameters")
+        params = PinholeParallelPlateFitParams(
+            alpha_deg=float(arr[0]),
+            beta_deg=float(arr[1]),
+            thickness_mm=float(arr[2]),
+            eta=float(kwargs.get("eta", 1.5)),
+            d1_mm=float(kwargs.get("d1_mm", 80.0)),
+        )
+        return cls(np.asarray(kwargs["K"], dtype=np.float64).reshape(3, 3), params)
+
+    def parameter_dict(self) -> dict[str, float]:
+        return {
+            "alpha_deg": float(self.params.alpha_deg),
+            "beta_deg": float(self.params.beta_deg),
+            "thickness_mm": float(self.params.thickness_mm),
+            "eta": float(self.params.eta),
+            "d1_mm": float(self.params.d1_mm),
+        }
+
+
 def _as_synthetic_params(params: PinholeParallelPlateFitParams) -> ParallelPlateSyntheticParams:
     return ParallelPlateSyntheticParams(
         eta=float(params.eta),
@@ -283,6 +322,7 @@ def fit_parallel_plate_to_zernike_rayfield(
 __all__ = [
     "ParallelPlateFromRayfieldFitResult",
     "PinholeParallelPlateFitParams",
+    "PinholeParallelPlateModel",
     "PinholeParallelPlateRayField",
     "fit_parallel_plate_to_zernike_rayfield",
     "intersect_ray_with_z_plane",

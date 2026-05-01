@@ -666,22 +666,43 @@ This is not meant as a full uncertainty budget; it is a quick conditioning
 check. It shows that, once the Zernike rayfield has been measured with broad
 image support, the physical compression step is numerically stable.
 
-Finally, the ray-space fit can be read as a simple model-selection diagnostic.
-The table below reports the average left/right RMS distance to the measured
-Zernike rayfield:
+Finally, the ray-space fit is now exposed as a generic optical model-selection
+diagnostic. The Zernike rayfield is the measured object; the physical candidates
+are judged by how well they compress and explain it. The table below reports
+the average left/right RMS distance to the measured Zernike rayfield:
 
 | Candidate model | Observed support RMS | Full-grid RMS | Interpretation |
 | --- | ---: | ---: | --- |
-| Central | 2.77 mm | 3.69 mm | wrong central model |
-| Fronto-parallel plate | 1.78 mm | 1.96 mm | partially explains a shift, not the tilt |
-| Inclined plate, wrong `eta=1.33` | 0.034 mm | 0.098 mm | can compensate partly via thickness |
-| Inclined plate, correct `eta=1.5` | 0.0028 mm | 0.044 mm | best compact physical explanation |
+| Central pinhole | 2.77 mm | 3.69 mm | wrong central model |
+| Central Brown-Conrady | 2.02 mm | 2.69 mm | bends directions, but cannot create `O(u,v)` |
+| Pinhole + inclined plate | 0.0028 mm | 0.044 mm | best compact physical explanation |
 
-The wrong-index fit is instructive: because `eta` and thickness are partially
-coupled for a parallel plate, the optimizer can still reduce the ray-space
-residual by changing the effective thickness. This is why `eta` is fixed by
-default in the physical interpretation step unless independent optical
-knowledge is available.
+The corresponding stereo-pair BIC values are `-3290` for the central pinhole,
+`-11323` for Brown-Conrady, and `-148648` for the inclined plate. Lower is
+better, so both RMS and BIC select the inclined-plate model. This does **not**
+mean that StereoComplex fit the plate directly from pixels. It means that the
+measured rayfield contains enough information to reject central alternatives in
+ray space.
+
+The Brown-Conrady result is useful as a misspecification test. It has five
+parameters per camera and can bend directions, but it still emits every ray from
+one central point. On an inclined-plate oracle, the missing degree of freedom is
+the pixel-dependent origin field `O(u,v)`, so the residual remains structured.
+
+The reconstruction comparison for the physical candidates is:
+
+| Model | RMS 3D | Ray gap RMS |
+| --- | ---: | ---: |
+| Central pinhole | 2.540 mm | 0.123 mm |
+| Central Brown-Conrady fit to rayfield | 3.814 mm | 0.197 mm |
+| Zernike initial | 0.0033 mm | 0.00042 mm |
+| Pinhole + fitted plate | 0.0101 mm | 0.00062 mm |
+| Oracle | ~0 | ~0 |
+
+Brown-Conrady is not selected, and its stereo reconstruction is worse here
+because each camera bends directions independently while remaining central. The
+ray-space score is the primary diagnostic; the reconstruction table shows the
+same qualitative failure mode.
 
 ```{figure} assets/parallel_plate_origin_field/physical_plate_reconstruction_comparison.png
 :alt: Reconstruction comparison between central Zernike fitted plate and oracle models
@@ -718,6 +739,24 @@ observed support.
 Ray-space model selection after the generic Zernike rayfield has been measured.
 The inclined parallel-plate model is the only compact candidate that explains
 the measured non-central field at both support points and across the image grid.
+```
+
+```{figure} assets/parallel_plate_origin_field/physical_model_selection_bic.png
+:alt: AIC and BIC comparison for physical optical candidates
+:width: 90%
+
+Information-criterion view of the same model-selection problem. The plate wins
+despite using more parameters than the pinhole model because its ray-space
+residual is orders of magnitude lower.
+```
+
+```{figure} assets/parallel_plate_origin_field/brown_vs_zernike_rayfield_heatmap.png
+:alt: Heatmap of Brown-Conrady residual against measured Zernike rayfield
+:width: 80%
+
+Misspecified central Brown-Conrady residual against the measured Zernike
+rayfield. The model can bend directions but cannot reproduce the non-central
+pixel-dependent origin field.
 ```
 
 This section illustrates a broader workflow: measure the rayfield first, then

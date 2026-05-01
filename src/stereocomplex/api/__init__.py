@@ -53,11 +53,21 @@ from stereocomplex.metrics.reconstruction_metrics import (
 from stereocomplex.physics.parallel_plate_fit import (
     ParallelPlateFromRayfieldFitResult,
     PinholeParallelPlateFitParams,
+    PinholeParallelPlateModel,
     PinholeParallelPlateRayField,
     fit_parallel_plate_to_zernike_rayfield,
     intersect_ray_with_z_plane,
     pinhole_parallel_plate_ray_from_pixel,
     rayfield_two_plane_residuals,
+)
+from stereocomplex.physics.central_models import CentralBrownConradyModel, CentralPinholeModel
+from stereocomplex.physics.model_selection import (
+    OpticalModelSelectionReport,
+    PhysicalModelFitResult,
+    PhysicalModelSpec,
+    default_physical_model_specs,
+    fit_physical_model_to_rayfield,
+    select_physical_model_from_rayfield,
 )
 from stereocomplex.rayfields.zernike_origin_field import (
     ZernikeOriginField,
@@ -89,7 +99,13 @@ __all__ = [
     "ParallelPlateImageRenderParams",
     "ParallelPlateFromRayfieldFitResult",
     "ParallelPlateSyntheticParams",
+    "CentralBrownConradyModel",
+    "CentralPinholeModel",
+    "OpticalModelSelectionReport",
+    "PhysicalModelFitResult",
+    "PhysicalModelSpec",
     "PinholeParallelPlateFitParams",
+    "PinholeParallelPlateModel",
     "PinholeParallelPlateRayField",
     "OracleReconstructionFloorReport",
     "RayfieldComparisonReport",
@@ -121,12 +137,14 @@ __all__ = [
     "fit_opencv_stereo_from_image_dirs",
     "fit_opencv_stereo_from_image_pairs",
     "fit_parallel_plate_to_zernike_rayfield",
+    "fit_physical_model_to_rayfield",
     "fit_stereo_central_rayfield_from_dataset",
     "fit_stereo_central_rayfield_from_image_dirs",
     "fit_stereo_central_rayfield_from_image_pairs",
     "fit_stereo_zernike_origin_field",
     "fit_stereo_zernike_origin_field_from_image_dirs",
     "generate_parallel_plate_stereo_dataset",
+    "default_physical_model_specs",
     "intersect_rays_with_z_plane",
     "intersect_ray_with_z_plane",
     "make_default_parallel_plate_charuco_board",
@@ -149,6 +167,7 @@ __all__ = [
     "load_stereo_central_rayfield",
     "run_parallel_plate_origin_field_benchmark",
     "run_parallel_plate_rendered_image_benchmark",
+    "select_physical_model_from_rayfield",
     "save_stereo_central_rayfield",
     "triangulate_two_rays",
 ]

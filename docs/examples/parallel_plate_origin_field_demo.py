@@ -17,9 +17,7 @@ from stereocomplex.metrics.reconstruction_metrics import (
     reconstruct_points_with_origin_fields,
 )
 from stereocomplex.physics.parallel_plate_fit import (
-    PinholeParallelPlateFitParams,
     PinholeParallelPlateRayField,
-    rayfield_two_plane_residuals,
 )
 from stereocomplex.rayfields.zernike_origin_field import ZernikeOriginFieldConfig
 from stereocomplex.synthetic.parallel_plate import transform_points
@@ -375,98 +373,73 @@ def _fit_physical_plate_wide_coverage_case(noise_std_px=0.0):
     return case, physical
 
 
-def _two_plane_rms(field_a, field_b, pixels, z_planes=(100.0, 1000.0)):
-    residuals = rayfield_two_plane_residuals(field_a, field_b, pixels, z_planes=z_planes).reshape(-1, 6)
-    norms = np.linalg.norm(residuals, axis=1)
-    return float(np.sqrt(np.mean(norms**2)))
-
-
 def _physical_model_selection(case, physical):
     dataset = case["dataset"]
     support_left = np.concatenate(dataset.left_pixels, axis=0)
     support_right = np.concatenate(dataset.right_pixels, axis=0)
-    uu, vv = np.meshgrid(
-        np.linspace(0.0, dataset.image_size[0] - 1, 25),
-        np.linspace(0.0, dataset.image_size[1] - 1, 19),
-    )
-    full_pixels = np.column_stack([uu.reshape(-1), vv.reshape(-1)])
-
-    central_left = PinholeParallelPlateRayField(
-        dataset.K_left,
-        PinholeParallelPlateFitParams(alpha_deg=0.0, beta_deg=0.0, thickness_mm=0.0),
-    )
-    central_right = PinholeParallelPlateRayField(
-        dataset.K_right,
-        PinholeParallelPlateFitParams(alpha_deg=0.0, beta_deg=0.0, thickness_mm=0.0),
-    )
-    fronto_left = PinholeParallelPlateRayField(
-        dataset.K_left,
-        PinholeParallelPlateFitParams(alpha_deg=0.0, beta_deg=0.0, thickness_mm=16.0),
-    )
-    fronto_right = PinholeParallelPlateRayField(
-        dataset.K_right,
-        PinholeParallelPlateFitParams(alpha_deg=0.0, beta_deg=0.0, thickness_mm=14.0),
-    )
-    wrong_eta_left = sc.fit_parallel_plate_to_zernike_rayfield(
-        zernike_field=case["fit"].left_field,
+    left_report = sc.select_physical_model_from_rayfield(
+        target_field=case["fit"].left_field,
+        candidate_specs=None,
         K=dataset.K_left,
         image_size=dataset.image_size,
         support_pixels=support_left,
-        eta=1.33,
         grid_shape=(25, 19),
-        oracle_params=dataset.oracle_left_params,
     )
-    wrong_eta_right = sc.fit_parallel_plate_to_zernike_rayfield(
-        zernike_field=case["fit"].right_field,
+    right_report = sc.select_physical_model_from_rayfield(
+        target_field=case["fit"].right_field,
+        candidate_specs=None,
         K=dataset.K_right,
         image_size=dataset.image_size,
         support_pixels=support_right,
-        eta=1.33,
         grid_shape=(25, 19),
-        oracle_params=dataset.oracle_right_params,
     )
-    wrong_eta_left_field = PinholeParallelPlateRayField(dataset.K_left, wrong_eta_left.params)
-    wrong_eta_right_field = PinholeParallelPlateRayField(dataset.K_right, wrong_eta_right.params)
-
-    candidates = {
-        "central": (central_left, central_right),
-        "fronto_parallel": (fronto_left, fronto_right),
-        "wrong_eta_fit": (wrong_eta_left_field, wrong_eta_right_field),
-        "inclined_plate_fit": (physical["plate_model"].left_field, physical["plate_model"].right_field),
-    }
-    out = {}
-    for name, (left_field, right_field) in candidates.items():
-        out[name] = {
-            "left_support_rms_to_zernike_mm": _two_plane_rms(case["fit"].left_field, left_field, support_left),
-            "right_support_rms_to_zernike_mm": _two_plane_rms(case["fit"].right_field, right_field, support_right),
-            "left_full_rms_to_zernike_mm": _two_plane_rms(case["fit"].left_field, left_field, full_pixels),
-            "right_full_rms_to_zernike_mm": _two_plane_rms(case["fit"].right_field, right_field, full_pixels),
-            "left_full_rms_to_oracle_mm": compare_rayfields_on_planes(
-                left_field,
-                dataset.oracle_left_ray_function,
-                dataset.image_size,
-                z_planes=(100.0, 1000.0),
-            ).plane_intersection_rms,
-            "right_full_rms_to_oracle_mm": compare_rayfields_on_planes(
-                right_field,
-                dataset.oracle_right_ray_function,
-                dataset.image_size,
-                z_planes=(100.0, 1000.0),
-            ).plane_intersection_rms,
+    left_by_name = {result.model_name: result for result in left_report.candidates}
+    right_by_name = {result.model_name: result for result in right_report.candidates}
+    common = [name for name in left_by_name if name in right_by_name]
+    combined = {}
+    for name in common:
+        left = left_by_name[name]
+        right = right_by_name[name]
+        combined[name] = {
+            "parameters": int(left.n_parameters + right.n_parameters),
+            "left_support_rms_mm": float(left.support_rms_mm),
+            "right_support_rms_mm": float(right.support_rms_mm),
+            "support_rms_mean_mm": float(0.5 * (left.support_rms_mm + right.support_rms_mm)),
+            "left_full_rms_mm": float(left.full_grid_rms_mm),
+            "right_full_rms_mm": float(right.full_grid_rms_mm),
+            "full_rms_mean_mm": float(0.5 * (left.full_grid_rms_mm + right.full_grid_rms_mm)),
+            "aic_sum": float(left.aic + right.aic),
+            "bic_sum": float(left.bic + right.bic),
+            "left_parameters": left.parameter_dict,
+            "right_parameters": right.parameter_dict,
         }
-    out["wrong_eta_fit"]["left_params"] = {
-        "alpha_deg": wrong_eta_left.params.alpha_deg,
-        "beta_deg": wrong_eta_left.params.beta_deg,
-        "thickness_mm": wrong_eta_left.params.thickness_mm,
-        "eta": wrong_eta_left.params.eta,
+    best_by_bic = min(combined, key=lambda name: combined[name]["bic_sum"])
+    best_by_rms = min(combined, key=lambda name: combined[name]["full_rms_mean_mm"])
+    return {
+        "left_report": left_report,
+        "right_report": right_report,
+        "combined": combined,
+        "best_by_bic": best_by_bic,
+        "best_by_rms": best_by_rms,
+        "brown_model": type(
+            "_BrownStereoModel",
+            (),
+            {
+                "left_field": left_by_name["central_brown_conrady"].model,
+                "right_field": right_by_name["central_brown_conrady"].model,
+                "stereo_transform": dataset.T_right_left,
+            },
+        )(),
+        "plate_model": type(
+            "_SelectedPlateStereoModel",
+            (),
+            {
+                "left_field": left_by_name["pinhole_parallel_plate"].model,
+                "right_field": right_by_name["pinhole_parallel_plate"].model,
+                "stereo_transform": dataset.T_right_left,
+            },
+        )(),
     }
-    out["wrong_eta_fit"]["right_params"] = {
-        "alpha_deg": wrong_eta_right.params.alpha_deg,
-        "beta_deg": wrong_eta_right.params.beta_deg,
-        "thickness_mm": wrong_eta_right.params.thickness_mm,
-        "eta": wrong_eta_right.params.eta,
-    }
-    return out
 
 
 def _physical_bootstrap(case, n_bootstrap=16, fraction=0.65):
@@ -582,28 +555,46 @@ def _plot_physical_plate_vs_zernike_heatmap(case, physical):
     cbar.set_label("ray-space error (mm)")
     fig.tight_layout()
     fig.savefig(OUT / "physical_plate_vs_zernike_rayfield_heatmap.png", dpi=180)
+    fig.savefig(OUT / "plate_vs_zernike_rayfield_heatmap.png", dpi=180)
+    plt.close(fig)
+
+
+def _plot_candidate_vs_zernike_heatmap(case, candidate_field, filename, title):
+    dataset = case["dataset"]
+    u, v, err = _plane_error_between_fields(
+        case["fit"].left_field,
+        candidate_field,
+        dataset.image_size,
+        z_plane=1000.0,
+    )
+    support = np.concatenate(dataset.left_pixels, axis=0)
+    fig, ax = plt.subplots(figsize=(7.0, 4.7))
+    im = ax.imshow(
+        err,
+        extent=[u.min(), u.max(), v.max(), v.min()],
+        cmap="magma",
+        vmin=0.0,
+        vmax=max(float(np.percentile(err, 98)), 1e-6),
+        aspect="auto",
+    )
+    ax.scatter(support[:, 0], support[:, 1], s=8, c="cyan", edgecolors="black", linewidths=0.25, label="observed support")
+    ax.set_title(title)
+    ax.set_xlabel("u (px)")
+    ax.set_ylabel("v (px)")
+    ax.legend(loc="upper right", fontsize=8)
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.set_label("ray-space error at z=1000 mm (mm)")
+    fig.tight_layout()
+    fig.savefig(OUT / filename, dpi=180)
     plt.close(fig)
 
 
 def _plot_physical_model_selection(model_selection):
-    labels = ["central", "fronto\nparallel", "wrong eta\nfit", "inclined\nplate fit"]
-    keys = ["central", "fronto_parallel", "wrong_eta_fit", "inclined_plate_fit"]
-    support = [
-        0.5
-        * (
-            model_selection[key]["left_support_rms_to_zernike_mm"]
-            + model_selection[key]["right_support_rms_to_zernike_mm"]
-        )
-        for key in keys
-    ]
-    full = [
-        0.5
-        * (
-            model_selection[key]["left_full_rms_to_zernike_mm"]
-            + model_selection[key]["right_full_rms_to_zernike_mm"]
-        )
-        for key in keys
-    ]
+    labels = ["central\npinhole", "central\nBrown", "inclined\nplate"]
+    keys = ["central_pinhole", "central_brown_conrady", "pinhole_parallel_plate"]
+    combined = model_selection["combined"]
+    support = [combined[key]["support_rms_mean_mm"] for key in keys]
+    full = [combined[key]["full_rms_mean_mm"] for key in keys]
     x = np.arange(len(keys), dtype=np.float64)
     width = 0.36
     fig, ax = plt.subplots(figsize=(8.8, 4.4))
@@ -620,7 +611,33 @@ def _plot_physical_model_selection(model_selection):
             h = rect.get_height()
             ax.text(rect.get_x() + rect.get_width() / 2.0, h, f"{h:.3g}", ha="center", va="bottom", fontsize=8)
     fig.tight_layout()
+    fig.savefig(OUT / "physical_model_selection_rayfield_rms.png", dpi=180)
     fig.savefig(OUT / "physical_plate_model_selection.png", dpi=180)
+    plt.close(fig)
+
+    bic = [combined[key]["bic_sum"] for key in keys]
+    aic = [combined[key]["aic_sum"] for key in keys]
+    fig, ax = plt.subplots(figsize=(8.8, 4.4))
+    bars = ax.bar(x - width / 2, bic, width, label="BIC", color="#009e73", edgecolor="black")
+    ax.bar(x + width / 2, aic, width, label="AIC", color="#56b4e9", edgecolor="black")
+    ax.set_xticks(x, labels)
+    ax.set_ylabel("information criterion (lower is better)")
+    ax.set_title("AIC/BIC model selection in ray space")
+    ax.grid(True, axis="y", alpha=0.3)
+    ax.legend()
+    for rect, key in zip(bars, keys, strict=True):
+        if key == model_selection["best_by_bic"]:
+            ax.text(
+                rect.get_x() + rect.get_width() / 2.0,
+                rect.get_height(),
+                "selected",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+                fontweight="bold",
+            )
+    fig.tight_layout()
+    fig.savefig(OUT / "physical_model_selection_bic.png", dpi=180)
     plt.close(fig)
 
 
@@ -838,6 +855,40 @@ def _physical_noisy_summary(case, physical):
     }
 
 
+def _physical_model_selection_summary(case, model_selection):
+    truth = case["truth"]
+    brown_reconstruction = reconstruct_points_with_origin_fields(
+        np.concatenate(case["dataset"].left_pixels, axis=0),
+        np.concatenate(case["dataset"].right_pixels, axis=0),
+        model_selection["brown_model"].left_field,
+        model_selection["brown_model"].right_field,
+        case["dataset"].T_right_left,
+    )
+    selected_plate_reconstruction = reconstruct_points_with_origin_fields(
+        np.concatenate(case["dataset"].left_pixels, axis=0),
+        np.concatenate(case["dataset"].right_pixels, axis=0),
+        model_selection["plate_model"].left_field,
+        model_selection["plate_model"].right_field,
+        case["dataset"].T_right_left,
+    )
+    brown_err = _norm_errors(brown_reconstruction, truth)
+    plate_err = _norm_errors(selected_plate_reconstruction, truth)
+    return {
+        "best_by_bic": model_selection["best_by_bic"],
+        "best_by_rms": model_selection["best_by_rms"],
+        "combined": model_selection["combined"],
+        "reconstruction": {
+            "central_rms_3d_mm": float(np.sqrt(np.mean(_norm_errors(case["central"], truth) ** 2))),
+            "brown_rms_3d_mm": float(np.sqrt(np.mean(brown_err**2))),
+            "zernike_rms_3d_mm": float(np.sqrt(np.mean(_norm_errors(case["origin"], truth) ** 2))),
+            "plate_rms_3d_mm": float(np.sqrt(np.mean(plate_err**2))),
+            "oracle_rms_3d_mm": float(np.sqrt(np.mean(_norm_errors(case["oracle_clean"], truth) ** 2))),
+            "brown_ray_gap_rms_mm": float(np.sqrt(np.mean(brown_reconstruction.ray_gap**2))),
+            "plate_ray_gap_rms_mm": float(np.sqrt(np.mean(selected_plate_reconstruction.ray_gap**2))),
+        },
+    }
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     cases = {
@@ -856,15 +907,22 @@ def main():
     bootstrap = _physical_bootstrap(physical_case)
     _plot_physical_plate_reconstruction(physical_case, physical)
     _plot_physical_plate_vs_zernike_heatmap(physical_case, physical)
+    _plot_candidate_vs_zernike_heatmap(
+        physical_case,
+        model_selection["brown_model"].left_field,
+        "brown_vs_zernike_rayfield_heatmap.png",
+        "Central Brown-Conrady vs measured Zernike rayfield at z=1000 mm",
+    )
     _plot_physical_model_selection(model_selection)
     _plot_physical_bootstrap(bootstrap)
     summary = _summary(cases)
     physical_summary = _physical_summary(physical_case, physical)
     physical_noisy_summary = _physical_noisy_summary(physical_noisy_case, physical_noisy)
+    model_selection_summary = _physical_model_selection_summary(physical_case, model_selection)
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     (OUT / "physical_plate_summary.json").write_text(json.dumps(physical_summary, indent=2), encoding="utf-8")
     (OUT / "physical_plate_noisy_summary.json").write_text(json.dumps(physical_noisy_summary, indent=2), encoding="utf-8")
-    (OUT / "physical_plate_model_selection.json").write_text(json.dumps(model_selection, indent=2), encoding="utf-8")
+    (OUT / "physical_plate_model_selection.json").write_text(json.dumps(model_selection_summary, indent=2), encoding="utf-8")
     (OUT / "physical_plate_bootstrap.json").write_text(json.dumps(bootstrap, indent=2), encoding="utf-8")
     rendered_reports = {
         "raw": sc.run_parallel_plate_rendered_image_benchmark(
@@ -885,7 +943,7 @@ def main():
                 "geometric": summary,
                 "physical_plate_fit": physical_summary,
                 "physical_plate_noisy_fit": physical_noisy_summary,
-                "physical_model_selection": model_selection,
+                "physical_model_selection": model_selection_summary,
                 "physical_bootstrap": bootstrap,
                 "rendered_image_ba": rendered_summary,
             },

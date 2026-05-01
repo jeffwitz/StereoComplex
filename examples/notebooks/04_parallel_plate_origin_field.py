@@ -438,8 +438,8 @@ print("  Fitted plate model  : 6 scalar parameters for two independent plates (e
 #
 # 1. the same physical compression with `0.05 px` observation noise;
 # 2. a bootstrap refit on random subsets of the observed support;
-# 3. a ray-space comparison against simpler or deliberately wrong physical
-#    candidates.
+# 3. a ray-space comparison against simpler central physical candidates:
+#    pinhole, Brown-Conrady, and inclined plate.
 #
 # These are not new calibration algorithms. They are diagnostics for the
 # interpretation step. The key question is whether the compact plate remains at
@@ -477,10 +477,13 @@ for side in ["left", "right"]:
     )
 
 print("\nRay-space model selection: average left/right full-grid RMS to Zernike")
-for key in ["central", "fronto_parallel", "wrong_eta_fit", "inclined_plate_fit"]:
-    row = model_selection[key]
-    avg = 0.5 * (row["left_full_rms_to_zernike_mm"] + row["right_full_rms_to_zernike_mm"])
-    print(f"  {key:18s}: {avg:.4f} mm")
+for key in ["central_pinhole", "central_brown_conrady", "pinhole_parallel_plate"]:
+    row = model_selection["combined"][key]
+    print(
+        f"  {key:24s}: RMS={row['full_rms_mean_mm']:.4f} mm, "
+        f"BIC={row['bic_sum']:.1f}"
+    )
+print(f"  selected by BIC       : {model_selection['best_by_bic']}")
 
 
 # %% [markdown]
@@ -506,6 +509,8 @@ for name in [
     "physical_plate_vs_zernike_rayfield_heatmap.png",
     "physical_plate_bootstrap_parameters.png",
     "physical_plate_model_selection.png",
+    "physical_model_selection_bic.png",
+    "brown_vs_zernike_rayfield_heatmap.png",
     "depth_error_map_noise_005px.png",
     "rayfield_plane_error_noise_005px.png",
     "ray_gap_histograms.png",

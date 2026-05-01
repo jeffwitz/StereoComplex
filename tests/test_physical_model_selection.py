@@ -1,0 +1,77 @@
+from __future__ import annotations
+
+import numpy as np
+
+import stereocomplex as sc
+from stereocomplex.synthetic.parallel_plate import ParallelPlateSyntheticParams, parallel_plate_ray_from_pixel
+
+
+class _OracleField:
+    def __init__(self, K: np.ndarray, params: ParallelPlateSyntheticParams):
+        self.K = K
+        self.params = params
+
+    def ray(self, u, v):
+        return parallel_plate_ray_from_pixel(u, v, self.K, self.params)
+
+
+def _camera_matrix() -> np.ndarray:
+    return np.array([[620.0, 0.0, 319.5], [0.0, 620.0, 239.5], [0.0, 0.0, 1.0]], dtype=np.float64)
+
+
+def test_physical_candidates_share_ray_interface():
+    K = _camera_matrix()
+    models = [
+        sc.CentralPinholeModel(K),
+        sc.CentralBrownConradyModel(K, k1=0.01, k2=-0.005, p1=0.001, p2=-0.001, k3=0.0),
+        sc.PinholeParallelPlateModel(
+            K,
+            sc.PinholeParallelPlateFitParams(alpha_deg=12.0, beta_deg=5.0, thickness_mm=8.0),
+        ),
+    ]
+    u = np.array([10.0, 319.5, 620.0], dtype=np.float64)
+    v = np.array([20.0, 239.5, 450.0], dtype=np.float64)
+    for model in models:
+        O, d = model.ray(u, v)
+        assert O.shape == d.shape == (3, 3)
+        assert np.all(np.isfinite(O))
+        assert np.allclose(np.linalg.norm(d, axis=1), 1.0)
+
+
+def test_brown_zero_coefficients_matches_pinhole_by_ray_planes():
+    K = _camera_matrix()
+    pinhole = sc.CentralPinholeModel(K)
+    brown = sc.CentralBrownConradyModel(K)
+    pixels = np.array([[0.0, 0.0], [319.5, 239.5], [639.0, 479.0]], dtype=np.float64)
+
+    residuals = sc.rayfield_two_plane_residuals(pinhole, brown, pixels, z_planes=(100.0, 1000.0))
+    assert np.sqrt(np.mean(residuals**2)) < 1e-12
+
+
+def test_ray_space_selection_prefers_plate_over_central_brown_on_plate_oracle():
+    K = _camera_matrix()
+    truth = ParallelPlateSyntheticParams(eta=1.5, thickness=8.0, alpha_deg=12.0, beta_deg=5.0, d1=80.0)
+    oracle = _OracleField(K, truth)
+
+    report = sc.select_physical_model_from_rayfield(
+        target_field=oracle,
+        candidate_specs=None,
+        K=K,
+        image_size=(640, 480),
+        grid_shape=(11, 9),
+        full_grid_weight=0.0,
+    )
+    by_name = {candidate.model_name: candidate for candidate in report.candidates}
+    plate = by_name["pinhole_parallel_plate"]
+    brown = by_name["central_brown_conrady"]
+    central = by_name["central_pinhole"]
+
+    assert report.best_by_bic == "pinhole_parallel_plate"
+    assert report.best_by_rms == "pinhole_parallel_plate"
+    assert plate.rms_mm < brown.rms_mm
+    assert plate.bic < brown.bic
+    assert plate.rms_mm < central.rms_mm
+    assert brown.rms_mm > 0.1
+    assert abs(plate.parameter_dict["alpha_deg"] - truth.alpha_deg) < 0.2
+    assert abs(plate.parameter_dict["beta_deg"] - truth.beta_deg) < 0.2
+    assert abs(plate.parameter_dict["thickness_mm"] - truth.thickness) < 0.2
