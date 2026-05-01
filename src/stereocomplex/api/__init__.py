@@ -24,6 +24,7 @@ from stereocomplex.benchmarks.parallel_plate_origin_field import (
     make_default_parallel_plate_charuco_board,
     make_default_parallel_plate_charuco_dataset,
     make_default_parallel_plate_dataset,
+    make_parallel_plate_wide_coverage_dataset,
     run_parallel_plate_origin_field_benchmark,
     run_parallel_plate_rendered_image_benchmark,
 )
@@ -131,6 +132,7 @@ __all__ = [
     "make_default_parallel_plate_charuco_board",
     "make_default_parallel_plate_charuco_dataset",
     "make_default_parallel_plate_dataset",
+    "make_parallel_plate_wide_coverage_dataset",
     "normal_from_tilts",
     "oracle_reconstruction_floor_report",
     "parallel_plate_ray_from_pixel",

@@ -333,6 +333,44 @@ def _fit_physical_plate_case(case):
     }
 
 
+def _fit_physical_plate_wide_coverage_case():
+    dataset = sc.make_parallel_plate_wide_coverage_dataset(noise_std_px=0.0)
+    config = ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=4)
+    fit = fit_stereo_zernike_origin_field(
+        observations=dataset,
+        K_left=dataset.K_left,
+        K_right=dataset.K_right,
+        T_right_left_initial=dataset.T_right_left,
+        board_poses_initial=dataset.board_poses,
+        config_left=config,
+        config_right=config,
+        regularization=1e-3,
+        max_nfev=200,
+    )
+    uv_left = np.concatenate(dataset.left_pixels, axis=0)
+    uv_right = np.concatenate(dataset.right_pixels, axis=0)
+    truth = _left_camera_truth(dataset)
+    central = reconstruct_points_central_stereo(uv_left, uv_right, dataset.K_left, dataset.K_right, dataset.T_right_left)
+    origin = reconstruct_points_with_origin_fields(
+        uv_left,
+        uv_right,
+        fit.left_field,
+        fit.right_field,
+        dataset.T_right_left,
+    )
+    oracle_clean = reconstruct_points_with_parallel_plate_oracle(uv_left, uv_right, dataset)
+    case = {
+        "dataset": dataset,
+        "fit": fit,
+        "truth": truth,
+        "central": central,
+        "origin": origin,
+        "oracle_clean": oracle_clean,
+    }
+    physical = _fit_physical_plate_case(case)
+    return case, physical
+
+
 def _plot_physical_plate_reconstruction(case, physical):
     values = [
         float(np.sqrt(np.mean(_norm_errors(case["central"], case["truth"]) ** 2))),
@@ -557,11 +595,11 @@ def main():
     _plot_rayfield_plane_errors(cases["noise-free oracle"], "rayfield_plane_error_noise_free.png")
     _plot_rayfield_plane_errors(cases["0.05 px observation noise"], "rayfield_plane_error_noise_005px.png")
     _plot_ray_gap(cases)
-    physical = _fit_physical_plate_case(cases["noise-free oracle"])
-    _plot_physical_plate_reconstruction(cases["noise-free oracle"], physical)
-    _plot_physical_plate_vs_zernike_heatmap(cases["noise-free oracle"], physical)
+    physical_case, physical = _fit_physical_plate_wide_coverage_case()
+    _plot_physical_plate_reconstruction(physical_case, physical)
+    _plot_physical_plate_vs_zernike_heatmap(physical_case, physical)
     summary = _summary(cases)
-    physical_summary = _physical_summary(cases["noise-free oracle"], physical)
+    physical_summary = _physical_summary(physical_case, physical)
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     (OUT / "physical_plate_summary.json").write_text(json.dumps(physical_summary, indent=2), encoding="utf-8")
     rendered_reports = {

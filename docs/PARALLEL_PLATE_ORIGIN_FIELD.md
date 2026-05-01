@@ -600,28 +600,35 @@ point `I2`, while the measured Zernike field uses a transverse gauge. The
 physical fit is therefore an interpretation of the measured rayfield, not a
 replacement for the generic identification step.
 
-On the noise-free benchmark, fitting independent physical plates to the measured
-left and right Zernike fields gives:
+For this physical-compression step we use a wider-coverage synthetic variant:
+the calibration board is larger and the poses are deliberately shifted toward
+the image borders. This is important because the fitted physical model is judged
+as a rayfield, not only by 3D reconstruction on a few board poses. The cyan
+points in the heatmap below show the actual observed support.
+
+On that noise-free wide-coverage benchmark, fitting independent physical plates
+to the measured left and right Zernike fields gives:
 
 | Camera | `alpha` (deg) | `beta` (deg) | `e` (mm) | Support RMS | Full-grid RMS |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Left | 15.66 | 6.18 | 12.89 | 0.130 mm | 0.398 mm |
-| Right | 13.23 | 8.35 | 11.60 | 0.098 mm | 0.254 mm |
+| Left | 13.01 | 5.01 | 15.98 | 0.0022 mm | 0.034 mm |
+| Right | 10.04 | 7.01 | 13.97 | 0.0035 mm | 0.054 mm |
 
 For comparison, the true oracle parameters are `(13 deg, 5 deg, 16 mm)` on the
-left and `(10 deg, 7 deg, 14 mm)` on the right. The fitted parameters are close
-enough to explain the rayfield in the observed support, but the full-grid
-residual is larger. This is expected: the Zernike rayfield is measured from a
-finite calibration support, while the physical plate extrapolates globally from
-only three parameters.
+left and `(10 deg, 7 deg, 14 mm)` on the right. With the improved image support,
+the fitted parameters recover the oracle to within a few hundredths of a degree
+and a few hundredths of a millimetre. The full-grid residual is still slightly
+larger than the support residual, which is expected: the Zernike field is
+measured from finite calibration poses, while the physical plate extrapolates
+globally from only three parameters.
 
 The reconstruction comparison is:
 
 | Model | RMS 3D | Median 3D | P95 3D | Ray gap RMS |
 | --- | ---: | ---: | ---: | ---: |
-| Central | 2.169 mm | 2.168 mm | 2.694 mm | 0.126 mm |
-| Zernike initial | 0.0099 mm | 0.0050 mm | 0.021 mm | 0.00048 mm |
-| Pinhole + fitted plate | 0.303 mm | 0.246 mm | 0.539 mm | 0.0133 mm |
+| Central | 2.315 mm | 2.348 mm | 3.162 mm | 0.123 mm |
+| Zernike initial | 0.0024 mm | 0.0019 mm | 0.0050 mm | 0.00042 mm |
+| Pinhole + fitted plate | 0.0101 mm | 0.0080 mm | 0.0180 mm | 0.00062 mm |
 | Oracle | ~0 | ~0 | ~0 | ~0 |
 
 The physical model is therefore not the most flexible model in this comparison.

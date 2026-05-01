@@ -324,16 +324,32 @@ print(f"Approximate stereo noise floor: {sigma_z:.3f} mm")
 # Raw origins are never compared directly: the oracle keeps the physical exit
 # point `I2`, while the measured Zernike rayfield uses a transverse gauge. The
 # fitted physical parameters are only an interpretation of the measured rayfield.
+#
+# For this step we deliberately use a wider-coverage synthetic dataset than the
+# compact default benchmark: a larger board and more eccentric poses. Since the
+# fitted plate is judged as a rayfield over the image, not only on the original
+# reconstruction points, the calibration support should explore as much of the
+# image as possible.
 
 # %%
-physical_source = sc.run_parallel_plate_origin_field_benchmark(max_order=4, noise_std_px=0.0)
-physical_dataset = sc.make_default_parallel_plate_dataset(noise_std_px=0.0)
+physical_dataset = sc.make_parallel_plate_wide_coverage_dataset(noise_std_px=0.0)
+physical_config = sc.ZernikeOriginFieldConfig(image_size=physical_dataset.image_size, max_order=4)
+physical_fit = sc.fit_stereo_zernike_origin_field(
+    observations=physical_dataset,
+    K_left=physical_dataset.K_left,
+    K_right=physical_dataset.K_right,
+    T_right_left_initial=physical_dataset.T_right_left,
+    board_poses_initial=physical_dataset.board_poses,
+    config_left=physical_config,
+    config_right=physical_config,
+    regularization=1e-3,
+)
 
 support_left = np.concatenate(physical_dataset.left_pixels, axis=0)
 support_right = np.concatenate(physical_dataset.right_pixels, axis=0)
 
 plate_fit_left = sc.fit_parallel_plate_to_zernike_rayfield(
-    zernike_field=physical_source.fit_result.left_field,
+    zernike_field=physical_fit.left_field,
     K=physical_dataset.K_left,
     image_size=physical_dataset.image_size,
     support_pixels=support_left,
@@ -343,7 +359,7 @@ plate_fit_left = sc.fit_parallel_plate_to_zernike_rayfield(
     oracle_params=physical_dataset.oracle_left_params,
 )
 plate_fit_right = sc.fit_parallel_plate_to_zernike_rayfield(
-    zernike_field=physical_source.fit_result.right_field,
+    zernike_field=physical_fit.right_field,
     K=physical_dataset.K_right,
     image_size=physical_dataset.image_size,
     support_pixels=support_right,
@@ -374,16 +390,22 @@ plate_comparison = sc.compare_3d_reconstruction_with_without_origin_field(
     central_model_result=None,
     origin_field_result=plate_model,
 )
+zernike_physical_comparison = sc.compare_3d_reconstruction_with_without_origin_field(
+    dataset=physical_dataset,
+    central_model_result=None,
+    origin_field_result=physical_fit,
+)
+oracle_physical_floor = sc.oracle_reconstruction_floor_report(physical_dataset).oracle_clean_pixels
 
 print("3D reconstruction with compact physical plate model")
 print(f"  central RMS       : {plate_comparison.central.rms_3d:.3f} mm")
-print(f"  Zernike RMS       : {physical_source.reconstruction_comparison.with_origin_field.rms_3d:.3f} mm")
+print(f"  Zernike RMS       : {zernike_physical_comparison.with_origin_field.rms_3d:.3f} mm")
 print(f"  fitted plate RMS  : {plate_comparison.with_origin_field.rms_3d:.3f} mm")
-print(f"  oracle RMS        : {physical_source.oracle_floor.oracle_clean_pixels.rms_3d:.3e} mm")
+print(f"  oracle RMS        : {oracle_physical_floor.rms_3d:.3e} mm")
 print(f"  fitted plate P95  : {plate_comparison.with_origin_field.p95_3d:.3f} mm")
 print(f"  fitted plate gap  : {plate_comparison.with_origin_field.ray_gap_rms:.4f} mm")
 
-zernike_params = physical_source.fit_result.left_field.coeffs.size + physical_source.fit_result.right_field.coeffs.size
+zernike_params = physical_fit.left_field.coeffs.size + physical_fit.right_field.coeffs.size
 print("\nModel complexity")
 print(f"  Zernike origin field: {zernike_params} scalar coefficients")
 print("  Fitted plate model  : 6 scalar parameters for two independent plates (eta fixed)")

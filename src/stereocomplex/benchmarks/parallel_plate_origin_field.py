@@ -114,6 +114,47 @@ def make_default_parallel_plate_dataset(noise_std_px: float = 0.0) -> SyntheticS
     )
 
 
+def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> SyntheticStereoDataset:
+    """
+    Dataset with a larger board and wider pose coverage for rayfield support plots.
+
+    The default dataset is intentionally small and fast because it is used by
+    multiple regression tests.  This variant is used for physical rayfield
+    interpretation figures where the observed pixel support should cover much
+    more of the image.
+    """
+    image_size = (640, 480)
+    K_left = np.array([[620.0, 0.0, 319.5], [0.0, 620.0, 239.5], [0.0, 0.0, 1.0]])
+    K_right = K_left.copy()
+    baseline = 90.0
+    T_left_world = np.eye(4, dtype=np.float64)
+    T_right_world = make_transform(t=np.array([-baseline, 0.0, 0.0]))
+    board_points = make_grid_board(nx=11, ny=9, spacing=38.0)
+    board_poses = [
+        make_transform(R=_rot_y(-8.0) @ _rot_x(4.0), t=np.array([-62.0, -38.0, 720.0])),
+        make_transform(R=_rot_y(8.0) @ _rot_x(-5.0), t=np.array([72.0, 42.0, 740.0])),
+        make_transform(R=_rot_y(0.0) @ _rot_x(8.0), t=np.array([0.0, -62.0, 760.0])),
+        make_transform(R=_rot_y(-7.0) @ _rot_x(-4.0), t=np.array([84.0, -6.0, 800.0])),
+        make_transform(R=_rot_y(9.0) @ _rot_x(4.0), t=np.array([-78.0, 58.0, 820.0])),
+        make_transform(R=_rot_y(-4.0) @ _rot_x(10.0), t=np.array([16.0, 58.0, 700.0])),
+    ]
+    plate_left = ParallelPlateSyntheticParams(eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0)
+    plate_right = ParallelPlateSyntheticParams(eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0)
+    return generate_parallel_plate_stereo_dataset(
+        object_points=board_points,
+        board_poses=board_poses,
+        K_left=K_left,
+        K_right=K_right,
+        T_left_world=T_left_world,
+        T_right_world=T_right_world,
+        plate_left=plate_left,
+        plate_right=plate_right,
+        image_size=image_size,
+        noise_std_px=noise_std_px,
+        keep_oracle_rayfields=True,
+    )
+
+
 # Frame indices for the extended 10-frame dataset
 EXTENDED_TRAIN_FRAMES: list[int] = list(range(8))
 EXTENDED_HOLDOUT_FRAMES: list[int] = [8, 9]
