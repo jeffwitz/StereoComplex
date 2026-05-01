@@ -25,6 +25,12 @@ versioned directly in Git:
 | `02_ray3d.ipynb` | How the compact central 3D ray-field is calibrated, how the Pycaso-style sweeps are organized, and how the compression experiments are read. | `02_ray3d.py` |
 | `03_rayfield_virtual_rectification.ipynb` | How a ray-field can be turned into virtual rectification maps and then reused with a classic dense stereo pipeline. | `03_rayfield_virtual_rectification.py` |
 | `04_parallel_plate_origin_field.ipynb` | How an inclined parallel-plate oracle creates non-central stereo data, renders ChArUco images with vignetting/blur/noise, and runs Zernike rayfield BA (`O(u,v)`, `d(u,v)`, poses, rig). | `04_parallel_plate_origin_field.py` |
+| `05_noncentral_calibration_from_images.ipynb` | Practical workflow: fit a non-central Zernike origin-field model from two image folders and a ChArUco board definition. | `05_noncentral_calibration_from_images.py` |
+
+Use notebook 04 if you want to understand why and how the non-central model
+works on a controlled physical oracle. Use notebook 05 if you want the shortest
+practical path from left/right calibration images to a fitted non-central
+origin-field model.
 
 ## What to look for
 
@@ -62,6 +68,17 @@ inclined-plate oracle, the central-stereo failure mode, the staged Zernike
 the stereo rig. It also renders ChArUco images with vignetting/blur/noise,
 detects them with OpenCV, and feeds those detections to the same non-central BA.
 It is the executable companion to :doc:`PARALLEL_PLATE_ORIGIN_FIELD`.
+
+### 05 Non-central calibration from images
+
+Use this notebook if you want the practical user-facing path. It starts with two
+image directories and a `CharucoBoardSpec`, then calls
+`fit_stereo_zernike_origin_field_from_image_dirs(...)`. The inclined-plate oracle
+is only used to generate self-contained example images; the notebook is written
+so you can replace `left_dir`, `right_dir`, and `board` with your own data.
+
+This notebook intentionally hides most of the research benchmark details. For
+the scientific validation and complete BA discussion, use notebook 04.
 
 ## Open locally
 

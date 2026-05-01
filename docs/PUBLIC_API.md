@@ -45,6 +45,7 @@ Experimental non-central origin-field imports:
 from stereocomplex.api import (
     ParallelPlateSyntheticParams,
     ZernikeOriginFieldConfig,
+    fit_stereo_zernike_origin_field_from_image_dirs,
     fit_stereo_zernike_origin_field,
     compare_3d_reconstruction_with_without_origin_field,
     oracle_reconstruction_floor_report,
@@ -129,6 +130,46 @@ result = sc.fit_stereo_central_rayfield_from_dataset(
     export_model_dir="models/scene0000_rayfield3d",
 )
 ```
+
+### Experimental non-central calibration from image directories
+
+If you suspect the rig is not well represented by a central/pinhole model, the
+public experimental entry point is:
+
+```python
+from pathlib import Path
+
+import stereocomplex as sc
+
+board = sc.CharucoBoardSpec(
+    squares_x=9,
+    squares_y=6,
+    square_size_mm=20.0,
+    marker_size_mm=15.0,
+    aruco_dictionary="DICT_4X4_50",
+)
+
+fit = sc.fit_stereo_zernike_origin_field_from_image_dirs(
+    left_dir=Path("left"),
+    right_dir=Path("right"),
+    board=board,
+    max_order=4,
+    method2d="rayfield_tps_robust",
+)
+
+print(fit.residual_rms)
+left_field = fit.left_field
+right_field = fit.right_field
+```
+
+This API currently fits a Zernike origin field `O(u,v)` initialized from an
+OpenCV stereo calibration. It is intended for experimental non-central stereo
+systems where a pinhole model leaves systematic ray gaps or reconstruction bias.
+
+The complete `O(u,v), d(u,v), poses, rig` BA remains an advanced benchmark path
+and is documented separately from this practical origin-field API in
+:doc:`PARALLEL_PLATE_ORIGIN_FIELD`. For the guided practical workflow, use
+`examples/notebooks/05_noncentral_calibration_from_images.ipynb`.
 
 ## Corner refinement API
 

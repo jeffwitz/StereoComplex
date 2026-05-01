@@ -1,12 +1,25 @@
 # StereoComplex
 
-Stereo calibration and 3D reconstruction research prototype, built around:
+Lightweight Python toolkit for robust stereo calibration and ray-based 3D
+reconstruction, built around:
 
 - a CPU synthetic-data generator (digital twins) for stereo + ChArUco,
-- a 2D “ray-field” correction (homography + smooth residual field) to improve ChArUco corner localization,
-- an experimental **ray-based 3D reconstruction / calibration** prototype (central ray-field, Zernike basis) designed as a stepping stone towards complex/non-pinhole optics.
+- practical ChArUco workflows: detect, refine, compare raw OpenCV against Ray2D,
+  and export OpenCV-ready data,
+- an experimental **central ray-based 3D reconstruction / calibration** backend,
+- an experimental **non-central Zernike origin-field** backend where each pixel
+  maps to a 3D line rather than to a ray emitted from one fixed pinhole center.
 
-Note on terminology: in this repository, “ray-field” may refer either to (1) a **2D planar warp** learned on the board plane (homography + smooth residual field) or (2) an experimental **3D ray-based model**. The 2D method is not a per-pixel 3D ray model.
+Note on terminology: in this repository, “ray-field” has three precise uses:
+
+| Term | Meaning | Status |
+| --- | --- | --- |
+| Ray2D / planar ray-field | Homography + smooth residual field on the calibration board plane | stable practical preprocessing |
+| Central 3D ray-field | Pixel → 3D direction, shared camera center | experimental |
+| Non-central 3D rayfield | Pixel → 3D line `(O(u,v), d(u,v))` | experimental |
+
+The 2D Ray2D method is not itself a 3D non-central camera model. It improves the
+image observations fed to calibration.
 
 ## Why would you use this?
 
@@ -15,6 +28,9 @@ StereoComplex targets two practical pain points:
 - In many practical stereo systems, calibration accuracy is limited by **2D localization quality** (blur, compression, noise) rather than by the camera model itself.
 - **Fix OpenCV calibration that plateaus** (blur / distortion / compression): refine ChArUco corners before calibration (without assuming a global pinhole model for the refinement).
 - **Reconstruct 3D without a pinhole model (prototype)**: calibrate a compact ray-based stereo model from multi-pose planar observations (**no solvePnP, no known** `K`) and triangulate from rays.
+- **Test non-central stereo assumptions (prototype)**: fit a Zernike origin field
+  `O(u,v)` when a protective glass, inclined window, thick optical stack, or
+  other non-central effect leaves systematic ray gaps.
 
 Engineering footprint: no ROS, no Docker requirement, no C++ toolchain; the core is a Python package using standard scientific libraries.
 
@@ -23,17 +39,50 @@ Visual proof (green = GT, red = OpenCV raw, blue = ray-field):
 ![Micro overlay (left): GT (green), OpenCV raw (red), ray-field (blue)](docs/assets/rayfield_worked_example/micro_overlays/left_best_frame000000.png)
 ![Micro overlay (right): GT (green), OpenCV raw (red), ray-field (blue)](docs/assets/rayfield_worked_example/micro_overlays/right_best_frame000000.png)
 
+## Key contributions
+
+1. **Robust ChArUco refinement without requiring a camera model**:
+   `rayfield_tps_robust` uses a homography plus a smooth residual field on the
+   board plane.
+2. **OpenCV-compatible stereo calibration diagnostics**: compare raw/refined
+   ChArUco points, export OpenCV-ready data, and report reconstruction metrics.
+3. **Central 3D ray-field reconstruction**: learn a compact pixel-to-ray
+   direction model and triangulate from rays.
+4. **Experimental non-central stereo calibration**: fit a Zernike origin field
+   `O(u,v)` so pixels define 3D lines instead of sharing one optical center.
+5. **Synthetic non-central oracle benchmark**: use an inclined parallel-plate
+   generator as a physical oracle without fitting the plate parameters.
+6. **Practical non-central image workflow**: fit a Zernike origin-field model
+   directly from two image folders.
+
 ## Key result: 3D ray-field is remarkably stable under compression
 
 On a synthetic benchmark where we sweep codec quality, the **3D ray-field reconstruction** remains stable under lossy compression, while pinhole-based pipelines remain sensitive to compression artifacts through the 2D localization stage.
 
 ![Compression sweep: triangulation RMS vs codec quality (pinhole vs 3D ray-field)](docs/assets/compression_sweep/tri_rms_rel_depth_percent.png)
 
+## Key result: non-central rendered-image benchmark
+
+On the inclined-plate benchmark, raw OpenCV ChArUco detections impose a high
+reconstruction floor. With Ray2D-refined observations, the same non-central BA
+reaches sub-millimetric reconstruction accuracy:
+
+| Front-end | Central RMS | Oracle-detected RMS | Non-central BA RMS |
+| --- | ---: | ---: | ---: |
+| OpenCV raw | ~4.21 mm | ~3.44 mm | ~3.36 mm |
+| Ray2D refined | ~2.50 mm | ~0.76 mm | ~0.66 mm |
+
+Interpretation: the non-central model works when the 2D observations are good
+enough; front-end quality is the limiting factor on rendered or real images.
+
 ## Highlights (from the provided examples)
 
 - **2D ChArUco accuracy improvement (example)**: RMS corner error drops from ~0.357 px → ~0.219 px (left) and ~0.356 px → ~0.153 px (right) with the 2D ray-field correction.
 - **OpenCV stereo calibration impact (example)**: feeding OpenCV with ray-field-corrected corners improves mono RMS (~0.306/0.302 px → ~0.079/0.061 px), improves stereo RMS (~0.381 px → ~0.163 px), and reduces baseline error in disparity-equivalent pixels (~0.424 px → ~0.205 px).
 - **3D without a pinhole model (prototype)**: a central ray-field can be calibrated from multi-pose planar observations by a point↔ray bundle adjustment (**no solvePnP, no known** `K`), then used to triangulate points (and shows strong robustness to lossy compression in the provided compression sweep).
+- **Non-central stereo (experimental)**: a Zernike origin-field backend fits
+  `O(u,v)` from image folders and is validated on an inclined parallel-plate
+  oracle benchmark.
 
 See `docs/RAYFIELD_WORKED_EXAMPLE.md` and `docs/STEREO_RECONSTRUCTION.md` for full methodology, plots, and definitions.
 
@@ -209,6 +258,46 @@ XYZ_mm, skew_mm = model.triangulate(uvL, uvR)
 ```
 
 See `docs/BRING_YOUR_OWN_DATA.md` for the step-by-step walkthrough.
+
+### Non-central stereo from image folders (experimental)
+
+If a central/pinhole model leaves systematic ray gaps or reconstruction bias,
+fit a Zernike origin field directly from two image folders:
+
+```python
+from pathlib import Path
+
+import stereocomplex as sc
+
+board = sc.CharucoBoardSpec(
+    squares_x=9,
+    squares_y=6,
+    square_size_mm=20.0,
+    marker_size_mm=15.0,
+    aruco_dictionary="DICT_4X4_50",
+)
+
+fit = sc.fit_stereo_zernike_origin_field_from_image_dirs(
+    left_dir=Path("my_data/left"),
+    right_dir=Path("my_data/right"),
+    board=board,
+    max_order=4,
+    method2d="rayfield_tps_robust",
+)
+
+print(fit.residual_rms)
+left_field = fit.left_field
+right_field = fit.right_field
+```
+
+Use `examples/notebooks/05_noncentral_calibration_from_images.ipynb` for the
+practical workflow, and `examples/notebooks/04_parallel_plate_origin_field.ipynb`
+for the controlled scientific benchmark.
+
+Current non-central status: experimental. It requires diverse board poses,
+depends strongly on 2D detection quality, and higher Zernike orders need more
+data. Check train/test poses and support-aware rayfield metrics before claiming
+deployment-grade calibration.
 
 ### Dataset v0 scene (public API)
 

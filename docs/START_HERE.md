@@ -1,6 +1,8 @@
 # Start Here
 
-Goal: establish a **reproducible** and **measurable** baseline for stereo calibration, ChArUco identification, and ray-based reconstruction.
+Goal: establish a **reproducible** and **measurable** baseline for stereo
+calibration, ChArUco identification, and ray-based reconstruction, from classic
+OpenCV-compatible workflows to experimental central and non-central ray models.
 
 ## Installation (recommended)
 
@@ -26,9 +28,33 @@ StereoComplex is built around:
 
 - a synthetic stereo dataset generator (CPU) with GT correspondences,
 - ChArUco detection evaluation against GT,
-- a 2D “ray-field” correction (`rayfield_tps_robust`) to improve corner localization,
+- a 2D Ray2D / planar ray-field correction (`rayfield_tps_robust`) to improve
+  corner localization,
 - a stereo calibration / triangulation evaluation pipeline (OpenCV),
-- an experimental central 3D ray-field (Zernike) calibrated by point↔ray bundle adjustment.
+- an experimental central 3D ray-field (Zernike) calibrated by point↔ray bundle
+  adjustment,
+- an experimental non-central Zernike origin-field backend where each pixel maps
+  to a 3D line through `O(u,v)` and `d(u,v)`, not necessarily to a ray emitted
+  from a fixed pinhole center,
+- an inclined parallel-plate oracle benchmark for validating non-central
+  reconstruction without fitting a glass model,
+- a practical image-folder API for fitting a non-central origin-field model from
+  calibration images.
+
+## Which path should I use?
+
+1. **I just want a better OpenCV calibration**
+   → use `fit_opencv_stereo_from_image_dirs(..., method2d="rayfield_tps_robust")`.
+2. **I want a ray-based central 3D model**
+   → use `fit_stereo_central_rayfield_from_image_dirs(...)`.
+3. **I suspect my system is non-central**
+   → start with notebook 05 and
+   `fit_stereo_zernike_origin_field_from_image_dirs(...)`.
+4. **I want to understand the scientific validation**
+   → read notebook 04 and :doc:`PARALLEL_PLATE_ORIGIN_FIELD`.
+
+Ray2D is a 2D correction of board-plane observations. The non-central backend is
+a separate 3D line-based model.
 
 ## What is already implemented
 
@@ -41,6 +67,8 @@ StereoComplex is built around:
 - Stereo calibration + reconstruction study: `docs/STEREO_RECONSTRUCTION.md`
 - Robustness sweep: `docs/ROBUSTNESS_SWEEP.md`
 - Central 3D ray-field + point↔ray bundle adjustment: `docs/RAYFIELD3D_RECONSTRUCTION.md`
+- Non-central calibration from image folders: `docs/NONCENTRAL_FROM_IMAGES.md`
+- Non-central inclined-plate oracle benchmark: `docs/PARALLEL_PLATE_ORIGIN_FIELD.md`
 
 ## Notebook walkthroughs
 
@@ -55,6 +83,7 @@ The notebooks are then available as:
 - `examples/notebooks/02_ray3d.ipynb` and `examples/notebooks/02_ray3d.py`
 - `examples/notebooks/03_rayfield_virtual_rectification.ipynb` and `examples/notebooks/03_rayfield_virtual_rectification.py`
 - `examples/notebooks/04_parallel_plate_origin_field.ipynb` and `examples/notebooks/04_parallel_plate_origin_field.py`
+- `examples/notebooks/05_noncentral_calibration_from_images.ipynb` and `examples/notebooks/05_noncentral_calibration_from_images.py`
 
 They reuse the committed synthetic images, overlays, and JSON summaries already stored in this repository.
 The two sample scenes used by the notebooks are versioned in Git, so the notebooks open
@@ -65,7 +94,7 @@ without having to regenerate the benchmark data first.
 ### Quickstart for your own stereo folders
 
 If you already have `left/*.png`, `right/*.png`, and a known ChArUco board, the
-shortest public API path is:
+shortest public API path for a central ray-based model is:
 
 ```python
 from pathlib import Path
@@ -92,6 +121,35 @@ result = sc.fit_stereo_central_rayfield_from_image_dirs(
 The full walkthrough is here:
 
 - :doc:`BRING_YOUR_OWN_DATA`
+
+For a non-central Zernike origin-field model from the same kind of image
+folders:
+
+```python
+from pathlib import Path
+
+import stereocomplex as sc
+
+board = sc.CharucoBoardSpec(
+    squares_x=9,
+    squares_y=6,
+    square_size_mm=20.0,
+    marker_size_mm=15.0,
+    aruco_dictionary="DICT_4X4_50",
+)
+
+fit = sc.fit_stereo_zernike_origin_field_from_image_dirs(
+    left_dir=Path("my_data/left"),
+    right_dir=Path("my_data/right"),
+    board=board,
+    max_order=4,
+    method2d="rayfield_tps_robust",
+)
+```
+
+The practical non-central walkthrough is here:
+
+- :doc:`NONCENTRAL_FROM_IMAGES`
 
 ### Quickstart for the versioned synthetic dataset
 
@@ -132,5 +190,6 @@ Run the stereo calibration/reconstruction comparison (OpenCV):
 ## Next steps (recommended)
 
 - Try the public calibration wrappers on your own stereo folders: :doc:`BRING_YOUR_OWN_DATA`
-- Extend the simulator and add more varied scenes/optics (including non-central behavior).
-- Generalize the 3D ray-field from **central** to **non-central** (pixel → 3D line).
+- If the central/pinhole assumptions remain biased, try the non-central image-folder path: :doc:`NONCENTRAL_FROM_IMAGES`
+- For non-central validation details, read the inclined-plate oracle page: :doc:`PARALLEL_PLATE_ORIGIN_FIELD`
+- Extend the simulator and add more varied real scenes/optics.

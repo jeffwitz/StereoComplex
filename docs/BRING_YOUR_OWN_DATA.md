@@ -10,6 +10,7 @@ to:
 
 - a baseline **OpenCV raw vs Ray2D + OpenCV** comparison,
 - a calibrated StereoComplex model,
+- optionally an experimental non-central Zernike origin-field model,
 - an exported `models/<name>/model.json + weights.npz`,
 - and then `model.triangulate(...)` in Python.
 
@@ -108,6 +109,46 @@ What this does:
 3. initialize poses from homographies,
 4. run the central stereo ray-field bundle adjustment,
 5. optionally export a reusable model directory.
+
+### Option C: fit an experimental non-central origin field
+
+Use this when a central/pinhole model leaves systematic ray gaps or
+reconstruction bias, for example with protective glass, an inclined window, a
+thick optical stack, or a diopter-like setup.
+
+```python
+from pathlib import Path
+
+import stereocomplex as sc
+
+board = sc.CharucoBoardSpec(
+    squares_x=9,
+    squares_y=6,
+    square_size_mm=20.0,
+    marker_size_mm=15.0,
+    aruco_dictionary="DICT_4X4_50",
+)
+
+fit = sc.fit_stereo_zernike_origin_field_from_image_dirs(
+    left_dir=Path("my_data/left"),
+    right_dir=Path("my_data/right"),
+    board=board,
+    max_order=4,
+    method2d="rayfield_tps_robust",
+)
+
+print(fit.residual_rms)
+left_field = fit.left_field
+right_field = fit.right_field
+```
+
+This path fits a Zernike origin field `O(u,v)` initialized from an OpenCV stereo
+calibration. It is experimental and should be checked with diverse board poses,
+train/test pose splits, and support-aware rayfield metrics before deployment.
+
+For the practical walkthrough, see :doc:`NONCENTRAL_FROM_IMAGES`. For the
+controlled physical oracle and complete BA discussion, see
+:doc:`PARALLEL_PLATE_ORIGIN_FIELD`.
 
 ## Later: load and triangulate
 
