@@ -552,6 +552,108 @@ A back-of-the-envelope stereo propagation gives the same order of magnitude:
 This is why the noisy result should be interpreted as near the expected
 stereo-noise floor for this geometry.
 
+## From measured rayfield to physical model: fitting a thin parallel plate
+
+The previous sections fit a generic Zernike rayfield. We can now use that
+rayfield as a measured geometric object and ask a different question:
+
+> can a low-dimensional physical model explain the measured non-central
+> rayfield?
+
+This is not the same as fitting the glass plate directly from ChArUco pixels.
+The physical model is fitted **after** the generic rayfield has been identified.
+This turns the optical inverse problem into a model-selection problem in the
+space of 3D rays:
+
+```{math}
+\theta^\star =
+\arg\min_\theta
+D^2
+\left(
+\widehat{\mathcal R}_Z,
+\mathcal R_{\mathrm{plate}}(\theta)
+\right).
+```
+
+Here `\widehat{\mathcal R}_Z` is the measured Zernike rayfield and
+`\mathcal R_{\mathrm{plate}}(\theta)` is a pinhole + inclined parallel-plate
+rayfield. In this first implementation, the fitted physical parameters are
+`\theta=(\alpha,\beta,e)` for each camera, with `\eta=1.5` fixed. The plate
+distance `d1` is not fitted because changing it moves `I2` along the emergent
+ray and therefore does not change the 3D line.
+
+The rayfield distance is computed by intersections with two reference planes:
+
+```{math}
+D^2 =
+\sum_k
+\left|A_Z^k-A_{\mathrm{plate}}^k\right|^2
++
+\left|B_Z^k-B_{\mathrm{plate}}^k\right|^2,
+\qquad
+A=\mathcal R\cap\Pi_{z_0},\quad
+B=\mathcal R\cap\Pi_{z_1}.
+```
+
+Raw origins are never compared directly: the oracle keeps the physical exit
+point `I2`, while the measured Zernike field uses a transverse gauge. The
+physical fit is therefore an interpretation of the measured rayfield, not a
+replacement for the generic identification step.
+
+On the noise-free benchmark, fitting independent physical plates to the measured
+left and right Zernike fields gives:
+
+| Camera | `alpha` (deg) | `beta` (deg) | `e` (mm) | Support RMS | Full-grid RMS |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Left | 15.66 | 6.18 | 12.89 | 0.130 mm | 0.398 mm |
+| Right | 13.23 | 8.35 | 11.60 | 0.098 mm | 0.254 mm |
+
+For comparison, the true oracle parameters are `(13 deg, 5 deg, 16 mm)` on the
+left and `(10 deg, 7 deg, 14 mm)` on the right. The fitted parameters are close
+enough to explain the rayfield in the observed support, but the full-grid
+residual is larger. This is expected: the Zernike rayfield is measured from a
+finite calibration support, while the physical plate extrapolates globally from
+only three parameters.
+
+The reconstruction comparison is:
+
+| Model | RMS 3D | Median 3D | P95 3D | Ray gap RMS |
+| --- | ---: | ---: | ---: | ---: |
+| Central | 2.169 mm | 2.168 mm | 2.694 mm | 0.126 mm |
+| Zernike initial | 0.0099 mm | 0.0050 mm | 0.021 mm | 0.00048 mm |
+| Pinhole + fitted plate | 0.303 mm | 0.246 mm | 0.539 mm | 0.0133 mm |
+| Oracle | ~0 | ~0 | ~0 | ~0 |
+
+The physical model is therefore not the most flexible model in this comparison.
+The Zernike rayfield is the measured geometric object and remains the best
+training fit. The value of the fitted plate is **compression and
+interpretability**: it explains most of the non-central reconstruction bias with
+six scalar parameters for the stereo pair (`alpha`, `beta`, `e` per camera,
+with `eta` fixed), instead of a larger Zernike coefficient field.
+
+```{figure} assets/parallel_plate_origin_field/physical_plate_reconstruction_comparison.png
+:alt: Reconstruction comparison between central Zernike fitted plate and oracle models
+:width: 80%
+
+Physical compression of the measured rayfield. The fitted plate is far more
+compact than the generic Zernike field and still removes most of the central
+model bias, but it is not expected to beat the generic rayfield on training
+residuals.
+```
+
+```{figure} assets/parallel_plate_origin_field/physical_plate_vs_zernike_rayfield_heatmap.png
+:alt: Heatmap of fitted plate versus measured Zernike rayfield
+:width: 80%
+
+Ray-space residual between the fitted plate model and the measured Zernike
+rayfield on the `z=1000 mm` plane. Cyan points show the observed calibration
+support. Errors outside that support mostly measure extrapolation differences.
+```
+
+This section illustrates a broader workflow: measure the rayfield first, then
+compare optical models in ray space. Les points 2D servent à mesurer le champ de
+rayons ; le champ de rayons sert ensuite à identifier l'optique.
+
 ```{figure} assets/parallel_plate_origin_field/reconstruction_error_distributions.png
 :alt: 3D reconstruction error distributions for central stereo and identified origin-field stereo
 :width: 100%

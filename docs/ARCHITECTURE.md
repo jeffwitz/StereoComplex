@@ -21,6 +21,9 @@ ray-based stereo models, without being blocked by OptiX.
   rayfields.
 - `src/stereocomplex/calibration/fit_zernike_origin_field.py`: experimental
   non-central origin-field calibration and staged/complete point-to-ray BA.
+- `src/stereocomplex/physics/parallel_plate_fit.py`: second-stage physical
+  interpretation of a measured rayfield as a compact pinhole + inclined
+  parallel-plate model.
 - `src/stereocomplex/benchmarks/parallel_plate_origin_field.py`: controlled
   non-central benchmark, oracle floors, rendered-image evaluation, and Ray2D
   front-end comparison.

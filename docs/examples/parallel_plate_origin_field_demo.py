@@ -16,6 +16,7 @@ from stereocomplex.metrics.reconstruction_metrics import (
     reconstruct_points_central_stereo,
     reconstruct_points_with_origin_fields,
 )
+from stereocomplex.physics.parallel_plate_fit import PinholeParallelPlateRayField
 from stereocomplex.rayfields.zernike_origin_field import ZernikeOriginFieldConfig
 from stereocomplex.synthetic.parallel_plate import transform_points
 
@@ -270,6 +271,136 @@ def _plot_ray_gap(cases):
     plt.close(fig)
 
 
+def _fit_physical_plate_case(case):
+    dataset = case["dataset"]
+    support_left = np.concatenate(dataset.left_pixels, axis=0)
+    support_right = np.concatenate(dataset.right_pixels, axis=0)
+    left_fit = sc.fit_parallel_plate_to_zernike_rayfield(
+        zernike_field=case["fit"].left_field,
+        K=dataset.K_left,
+        image_size=dataset.image_size,
+        support_pixels=support_left,
+        z_planes=(100.0, 1000.0),
+        grid_shape=(25, 19),
+        oracle_params=dataset.oracle_left_params,
+    )
+    right_fit = sc.fit_parallel_plate_to_zernike_rayfield(
+        zernike_field=case["fit"].right_field,
+        K=dataset.K_right,
+        image_size=dataset.image_size,
+        support_pixels=support_right,
+        z_planes=(100.0, 1000.0),
+        grid_shape=(25, 19),
+        oracle_params=dataset.oracle_right_params,
+    )
+    plate_model = type(
+        "_PlateStereoModel",
+        (),
+        {
+            "left_field": PinholeParallelPlateRayField(dataset.K_left, left_fit.params),
+            "right_field": PinholeParallelPlateRayField(dataset.K_right, right_fit.params),
+            "stereo_transform": dataset.T_right_left,
+        },
+    )()
+    uv_left = np.concatenate(dataset.left_pixels, axis=0)
+    uv_right = np.concatenate(dataset.right_pixels, axis=0)
+    plate_reconstruction = reconstruct_points_with_origin_fields(
+        uv_left,
+        uv_right,
+        plate_model.left_field,
+        plate_model.right_field,
+        plate_model.stereo_transform,
+    )
+    left_plate_vs_oracle = compare_rayfields_on_planes(
+        plate_model.left_field,
+        dataset.oracle_left_ray_function,
+        dataset.image_size,
+        z_planes=(100.0, 1000.0),
+    )
+    right_plate_vs_oracle = compare_rayfields_on_planes(
+        plate_model.right_field,
+        dataset.oracle_right_ray_function,
+        dataset.image_size,
+        z_planes=(100.0, 1000.0),
+    )
+    return {
+        "left_fit": left_fit,
+        "right_fit": right_fit,
+        "plate_model": plate_model,
+        "plate_reconstruction": plate_reconstruction,
+        "left_plate_vs_oracle": left_plate_vs_oracle,
+        "right_plate_vs_oracle": right_plate_vs_oracle,
+    }
+
+
+def _plot_physical_plate_reconstruction(case, physical):
+    values = [
+        float(np.sqrt(np.mean(_norm_errors(case["central"], case["truth"]) ** 2))),
+        float(np.sqrt(np.mean(_norm_errors(case["origin"], case["truth"]) ** 2))),
+        float(np.sqrt(np.mean(_norm_errors(physical["plate_reconstruction"], case["truth"]) ** 2))),
+        float(np.sqrt(np.mean(_norm_errors(case["oracle_clean"], case["truth"]) ** 2))),
+    ]
+    labels = ["central", "Zernike\nrayfield", "fitted\nplate", "oracle"]
+    colors = ["#d55e00", "#0072b2", "#e69f00", "#009e73"]
+    fig, ax = plt.subplots(figsize=(8.0, 4.4))
+    bars = ax.bar(labels, values, color=colors, edgecolor="black", alpha=0.85)
+    ax.set_ylabel("3D RMS error (mm)")
+    ax.set_title("Physical compression of the measured rayfield")
+    ax.grid(True, axis="y", alpha=0.3)
+    ax.set_yscale("log")
+    for rect, val in zip(bars, values, strict=True):
+        ax.text(rect.get_x() + rect.get_width() / 2.0, val, f"{val:.3g}", ha="center", va="bottom", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(OUT / "physical_plate_reconstruction_comparison.png", dpi=180)
+    plt.close(fig)
+
+
+def _plane_error_between_fields(field_a, field_b, image_size, z_plane=1000.0, grid_shape=(31, 23)):
+    width, height = image_size
+    nx, ny = grid_shape
+    u = np.linspace(0.0, width - 1, nx)
+    v = np.linspace(0.0, height - 1, ny)
+    uu, vv = np.meshgrid(u, v)
+    uf = uu.reshape(-1)
+    vf = vv.reshape(-1)
+    Oa, da = field_a.ray(uf, vf)
+    Ob, db = field_b.ray(uf, vf)
+    Pa = intersect_rays_with_z_plane(Oa, da, z_plane)
+    Pb = intersect_rays_with_z_plane(Ob, db, z_plane)
+    err = np.linalg.norm(Pa - Pb, axis=1).reshape(ny, nx)
+    return u, v, err
+
+
+def _plot_physical_plate_vs_zernike_heatmap(case, physical):
+    dataset = case["dataset"]
+    u, v, err = _plane_error_between_fields(
+        case["fit"].left_field,
+        physical["plate_model"].left_field,
+        dataset.image_size,
+        z_plane=1000.0,
+    )
+    support = np.concatenate(dataset.left_pixels, axis=0)
+    fig, ax = plt.subplots(figsize=(7.0, 4.7))
+    im = ax.imshow(
+        err,
+        extent=[u.min(), u.max(), v.max(), v.min()],
+        cmap="magma",
+        vmin=0.0,
+        vmax=max(float(np.percentile(err, 98)), 1e-6),
+        aspect="auto",
+    )
+    ax.scatter(support[:, 0], support[:, 1], s=8, c="cyan", edgecolors="black", linewidths=0.25, label="observed support")
+    ax.set_title("Fitted plate vs measured Zernike rayfield at z=1000 mm")
+    ax.set_xlabel("u (px)")
+    ax.set_ylabel("v (px)")
+    ax.legend(loc="upper right", fontsize=8)
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.set_label("ray-space error (mm)")
+    fig.tight_layout()
+    fig.savefig(OUT / "physical_plate_vs_zernike_rayfield_heatmap.png", dpi=180)
+    plt.close(fig)
+
+
 def _rendered_payload(report):
     central = report.reconstruction_comparison.central
     oracle = report.oracle_detected
@@ -385,6 +516,35 @@ def _summary(cases):
     return out
 
 
+def _physical_summary(case, physical):
+    truth = case["truth"]
+    plate_err = _norm_errors(physical["plate_reconstruction"], truth)
+    return {
+        "left_fit": {
+            "alpha_deg": physical["left_fit"].params.alpha_deg,
+            "beta_deg": physical["left_fit"].params.beta_deg,
+            "thickness_mm": physical["left_fit"].params.thickness_mm,
+            "rayfield_rms_support_mm": physical["left_fit"].rayfield_rms_support_mm,
+            "rayfield_rms_full_mm": physical["left_fit"].rayfield_rms_full_mm,
+            "parameter_error": physical["left_fit"].parameter_error,
+        },
+        "right_fit": {
+            "alpha_deg": physical["right_fit"].params.alpha_deg,
+            "beta_deg": physical["right_fit"].params.beta_deg,
+            "thickness_mm": physical["right_fit"].params.thickness_mm,
+            "rayfield_rms_support_mm": physical["right_fit"].rayfield_rms_support_mm,
+            "rayfield_rms_full_mm": physical["right_fit"].rayfield_rms_full_mm,
+            "parameter_error": physical["right_fit"].parameter_error,
+        },
+        "plate_rms_3d_mm": float(np.sqrt(np.mean(plate_err**2))),
+        "plate_median_3d_mm": float(np.median(plate_err)),
+        "plate_p95_3d_mm": float(np.percentile(plate_err, 95)),
+        "plate_ray_gap_rms_mm": float(np.sqrt(np.mean(physical["plate_reconstruction"].ray_gap**2))),
+        "left_plate_vs_oracle_plane_rms_mm": physical["left_plate_vs_oracle"].plane_intersection_rms,
+        "right_plate_vs_oracle_plane_rms_mm": physical["right_plate_vs_oracle"].plane_intersection_rms,
+    }
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     cases = {
@@ -397,8 +557,13 @@ def main():
     _plot_rayfield_plane_errors(cases["noise-free oracle"], "rayfield_plane_error_noise_free.png")
     _plot_rayfield_plane_errors(cases["0.05 px observation noise"], "rayfield_plane_error_noise_005px.png")
     _plot_ray_gap(cases)
+    physical = _fit_physical_plate_case(cases["noise-free oracle"])
+    _plot_physical_plate_reconstruction(cases["noise-free oracle"], physical)
+    _plot_physical_plate_vs_zernike_heatmap(cases["noise-free oracle"], physical)
     summary = _summary(cases)
+    physical_summary = _physical_summary(cases["noise-free oracle"], physical)
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    (OUT / "physical_plate_summary.json").write_text(json.dumps(physical_summary, indent=2), encoding="utf-8")
     rendered_reports = {
         "raw": sc.run_parallel_plate_rendered_image_benchmark(
             OUT / "rendered_image_ba" / "images_raw",
@@ -412,7 +577,7 @@ def main():
         ),
     }
     rendered_summary = _plot_rendered_image_benchmarks(rendered_reports)
-    print(json.dumps({"geometric": summary, "rendered_image_ba": rendered_summary}, indent=2))
+    print(json.dumps({"geometric": summary, "physical_plate_fit": physical_summary, "rendered_image_ba": rendered_summary}, indent=2))
 
 
 if __name__ == "__main__":

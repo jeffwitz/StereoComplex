@@ -44,7 +44,9 @@ Experimental non-central origin-field imports:
 ```python
 from stereocomplex.api import (
     ParallelPlateSyntheticParams,
+    PinholeParallelPlateFitParams,
     ZernikeOriginFieldConfig,
+    fit_parallel_plate_to_zernike_rayfield,
     fit_stereo_zernike_origin_field_from_image_dirs,
     fit_stereo_zernike_origin_field,
     compare_3d_reconstruction_with_without_origin_field,
@@ -170,6 +172,28 @@ The complete `O(u,v), d(u,v), poses, rig` BA remains an advanced benchmark path
 and is documented separately from this practical origin-field API in
 :doc:`PARALLEL_PLATE_ORIGIN_FIELD`. For the guided practical workflow, use
 `examples/notebooks/05_noncentral_calibration_from_images.ipynb`.
+
+### Experimental physical plate fit from a measured rayfield
+
+Notebook 04 also exposes a second-stage interpretation tool:
+
+```python
+plate_fit = sc.fit_parallel_plate_to_zernike_rayfield(
+    zernike_field=fit.left_field,
+    K=fit.left_field.K,
+    image_size=fit.left_field.config.image_size,
+    eta=1.5,
+    support_pixels=observed_pixels,
+)
+
+print(plate_fit.params)
+print(plate_fit.rayfield_rms_support_mm)
+```
+
+This does **not** replace the generic Zernike fit. It treats the fitted rayfield
+as a measured geometric object, then asks whether a compact pinhole + inclined
+parallel-plate model can explain it in ray space. The residual is computed from
+intersections with two z-planes, not by comparing raw ray origins.
 
 ## Corner refinement API
 

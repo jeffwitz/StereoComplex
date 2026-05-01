@@ -7,15 +7,15 @@
     "fit_success": true,
     "fit_residual_rms_mm": 0.3818551733115176,
     "fit_residual_p95_mm": 0.5835812045407965,
-    "central_rms_3d_mm": 4.212943059436297,
-    "central_p95_3d_mm": 7.356697442603455,
-    "oracle_detected_rms_3d_mm": 3.4400216169230773,
-    "oracle_detected_p95_3d_mm": 6.634211191388801,
+    "central_rms_3d_mm": 4.212943059432899,
+    "central_p95_3d_mm": 7.35669744260836,
+    "oracle_detected_rms_3d_mm": 3.4400216169228943,
+    "oracle_detected_p95_3d_mm": 6.634211191389733,
     "oracle_detected_ray_gap_rms_mm": 0.2622825902612412,
-    "ba_rms_3d_mm": 3.3602950130388805,
-    "ba_p95_3d_mm": 6.371009705745378,
-    "ba_ray_gap_rms_mm": 0.251489145267787,
-    "improvement_rms_factor": 1.253742020593104
+    "ba_rms_3d_mm": 3.3602950130392304,
+    "ba_p95_3d_mm": 6.371009705741884,
+    "ba_ray_gap_rms_mm": 0.25148914526778654,
+    "improvement_rms_factor": 1.2537420205919623
   },
   "ray2d": {
     "method2d": "rayfield_tps_robust",
@@ -25,14 +25,14 @@
     "fit_success": true,
     "fit_residual_rms_mm": 0.08220088452176479,
     "fit_residual_p95_mm": 0.15808829413572606,
-    "central_rms_3d_mm": 2.4982670366164674,
-    "central_p95_3d_mm": 3.3019048514055966,
-    "oracle_detected_rms_3d_mm": 0.7631945408831042,
-    "oracle_detected_p95_3d_mm": 1.4469763832694669,
-    "oracle_detected_ray_gap_rms_mm": 0.06060840376916965,
-    "ba_rms_3d_mm": 0.6575520280939057,
-    "ba_p95_3d_mm": 1.3394138452109934,
-    "ba_ray_gap_rms_mm": 0.05487843670400062,
-    "improvement_rms_factor": 3.799345040206746
+    "central_rms_3d_mm": 2.4982670366109874,
+    "central_p95_3d_mm": 3.301904851395867,
+    "oracle_detected_rms_3d_mm": 0.76319454088203,
+    "oracle_detected_p95_3d_mm": 1.4469763832694067,
+    "oracle_detected_ray_gap_rms_mm": 0.06060840376916955,
+    "ba_rms_3d_mm": 0.6575520280943012,
+    "ba_p95_3d_mm": 1.3394138452181372,
+    "ba_ray_gap_rms_mm": 0.054878436704000146,
+    "improvement_rms_factor": 3.799345040196126
   }
 }

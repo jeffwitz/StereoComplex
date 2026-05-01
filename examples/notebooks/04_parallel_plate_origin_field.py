@@ -90,6 +90,7 @@
 from pathlib import Path
 import numpy as np
 from IPython.display import Image, display
+from types import SimpleNamespace
 
 import stereocomplex as sc
 
@@ -284,7 +285,131 @@ print(f"Approximate stereo noise floor: {sigma_z:.3f} mm")
 
 
 # %% [markdown]
-# ## 7. Show the generated figures
+# ## 7. From measured rayfield to physical model: fitting a thin parallel plate
+#
+# The previous sections fitted a generic Zernike rayfield. We now use that
+# fitted rayfield as a measured geometric object and ask a different question:
+#
+# > can a low-dimensional physical model explain the measured non-central
+# > rayfield?
+#
+# This is not the same as fitting the glass plate directly from ChArUco points.
+# The physical model is fitted **after** the generic rayfield has been
+# identified. This turns the optical inverse problem into a model-selection
+# problem in the space of 3D rays:
+#
+# $$
+# \theta^\star =
+# \arg\min_\theta
+# D^2\left(
+# \widehat{\mathcal R}_Z,
+# \mathcal R_{\mathrm{plate}}(\theta)
+# \right).
+# $$
+#
+# The distance $D$ is computed by intersecting both rayfields with two reference
+# planes:
+#
+# $$
+# D^2 =
+# \sum_k
+# \left|A_Z^k-A_{\mathrm{plate}}^k\right|^2
+# +
+# \left|B_Z^k-B_{\mathrm{plate}}^k\right|^2,
+# \qquad
+# A=\mathcal R\cap\Pi_{z_0},\quad
+# B=\mathcal R\cap\Pi_{z_1}.
+# $$
+#
+# Raw origins are never compared directly: the oracle keeps the physical exit
+# point `I2`, while the measured Zernike rayfield uses a transverse gauge. The
+# fitted physical parameters are only an interpretation of the measured rayfield.
+
+# %%
+physical_source = sc.run_parallel_plate_origin_field_benchmark(max_order=4, noise_std_px=0.0)
+physical_dataset = sc.make_default_parallel_plate_dataset(noise_std_px=0.0)
+
+support_left = np.concatenate(physical_dataset.left_pixels, axis=0)
+support_right = np.concatenate(physical_dataset.right_pixels, axis=0)
+
+plate_fit_left = sc.fit_parallel_plate_to_zernike_rayfield(
+    zernike_field=physical_source.fit_result.left_field,
+    K=physical_dataset.K_left,
+    image_size=physical_dataset.image_size,
+    support_pixels=support_left,
+    eta=1.5,
+    z_planes=(100.0, 1000.0),
+    grid_shape=(25, 19),
+    oracle_params=physical_dataset.oracle_left_params,
+)
+plate_fit_right = sc.fit_parallel_plate_to_zernike_rayfield(
+    zernike_field=physical_source.fit_result.right_field,
+    K=physical_dataset.K_right,
+    image_size=physical_dataset.image_size,
+    support_pixels=support_right,
+    eta=1.5,
+    z_planes=(100.0, 1000.0),
+    grid_shape=(25, 19),
+    oracle_params=physical_dataset.oracle_right_params,
+)
+
+print("Physical plate fitted to measured Zernike rayfield")
+for side, plate_fit in [("left", plate_fit_left), ("right", plate_fit_right)]:
+    print(f"\n{side}")
+    print(f"  alpha       : {plate_fit.params.alpha_deg:.3f} deg")
+    print(f"  beta        : {plate_fit.params.beta_deg:.3f} deg")
+    print(f"  thickness   : {plate_fit.params.thickness_mm:.3f} mm")
+    print(f"  support RMS : {plate_fit.rayfield_rms_support_mm:.3f} mm")
+    print(f"  full RMS    : {plate_fit.rayfield_rms_full_mm:.3f} mm")
+    print(f"  param error : {plate_fit.parameter_error}")
+
+# %%
+plate_model = SimpleNamespace(
+    left_field=sc.PinholeParallelPlateRayField(physical_dataset.K_left, plate_fit_left.params),
+    right_field=sc.PinholeParallelPlateRayField(physical_dataset.K_right, plate_fit_right.params),
+    stereo_transform=physical_dataset.T_right_left,
+)
+plate_comparison = sc.compare_3d_reconstruction_with_without_origin_field(
+    dataset=physical_dataset,
+    central_model_result=None,
+    origin_field_result=plate_model,
+)
+
+print("3D reconstruction with compact physical plate model")
+print(f"  central RMS       : {plate_comparison.central.rms_3d:.3f} mm")
+print(f"  Zernike RMS       : {physical_source.reconstruction_comparison.with_origin_field.rms_3d:.3f} mm")
+print(f"  fitted plate RMS  : {plate_comparison.with_origin_field.rms_3d:.3f} mm")
+print(f"  oracle RMS        : {physical_source.oracle_floor.oracle_clean_pixels.rms_3d:.3e} mm")
+print(f"  fitted plate P95  : {plate_comparison.with_origin_field.p95_3d:.3f} mm")
+print(f"  fitted plate gap  : {plate_comparison.with_origin_field.ray_gap_rms:.4f} mm")
+
+zernike_params = physical_source.fit_result.left_field.coeffs.size + physical_source.fit_result.right_field.coeffs.size
+print("\nModel complexity")
+print(f"  Zernike origin field: {zernike_params} scalar coefficients")
+print("  Fitted plate model  : 6 scalar parameters for two independent plates (eta fixed)")
+
+# %% [markdown]
+# The physical model is not expected to beat the generic Zernike rayfield on
+# training residuals. Its value is **compression and interpretability**: it tests
+# whether most of the measured non-central rayfield can be explained by a few
+# physical parameters.
+#
+# In this benchmark the fitted plate is much more compact and still improves
+# strongly over the central model. Any remaining difference with the Zernike
+# field should be read as a model-selection residual: either the measured
+# rayfield is not perfectly constrained outside the observed support, or the
+# compact plate model extrapolates differently from the generic Zernike field.
+#
+# This section illustrates the broader workflow:
+#
+# > measure the rayfield first, then compare optical models in ray space.
+#
+# In French: les points 2D servent à mesurer le champ de rayons ; le champ de
+# rayons sert ensuite à identifier l'optique.
+
+
+# %% [markdown]
+# ## 8. Show the generated figures
 #
 # The figure-generation script is:
 #
@@ -302,6 +427,8 @@ if not ASSET_DIR.exists():
 
 for name in [
     "reconstruction_error_distributions.png",
+    "physical_plate_reconstruction_comparison.png",
+    "physical_plate_vs_zernike_rayfield_heatmap.png",
     "depth_error_map_noise_005px.png",
     "rayfield_plane_error_noise_005px.png",
     "ray_gap_histograms.png",
@@ -313,7 +440,7 @@ for name in [
 
 
 # %% [markdown]
-# ## 8. Lower-level API: explicit dataset, fit, comparison
+# ## 9. Lower-level API: explicit dataset, fit, comparison
 #
 # The high-level benchmark is convenient, but the lower-level calls are the actual
 # API pieces. Notice that the fit receives the synthetic observations and initial
@@ -388,7 +515,7 @@ print(f"left rayfield two-plane RMS: {left_rayfield.plane_intersection_rms:.3f} 
 
 
 # %% [markdown]
-# ## 9. Bundle-adjustment roadmap: from rendered images to real images
+# ## 10. Bundle-adjustment roadmap: from rendered images to real images
 #
 # This notebook now validates both the full geometric BA core on image
 # coordinates and the rendered-image front-end. `O(u,v)`, `d(u,v)`, board poses,
