@@ -41,7 +41,6 @@ class PhysicalModelFitResult:
     full_grid_rms_mm: float
     aic: float
     bic: float
-    mdl_score: float | None
     parameter_vector: np.ndarray
     parameter_dict: dict[str, float]
 
@@ -91,6 +90,9 @@ def _residual_norm_stats(residuals: np.ndarray) -> tuple[float, float, float]:
 
 
 def _aic_bic(rss: float, n: int, p: int) -> tuple[float, float]:
+    # n = number of residual scalars (6 × n_pixels for two-plane residuals),
+    # not independent pixel observations. Consistent across candidates, so the
+    # relative BIC ordering is preserved despite differing from the textbook formula.
     rss_per_scalar = max(float(rss) / max(int(n), 1), 1e-30)
     aic = 2.0 * float(p) + float(n) * np.log(rss_per_scalar)
     bic = float(p) * np.log(max(float(n), 1.0)) + float(n) * np.log(rss_per_scalar)
@@ -147,6 +149,7 @@ def fit_physical_model_to_rayfield(
     full_grid_weight: float = 0.25,
     robust_loss: str = "huber",
     max_nfev: int = 2000,
+    name: str | None = None,
     **model_kwargs,
 ) -> PhysicalModelFitResult:
     """Fit or score a physical model against a target rayfield in ray space."""
@@ -205,17 +208,24 @@ def fit_physical_model_to_rayfield(
 
     fitted_model = model_at(sol_x)
     combined = combined_residuals(sol_x)
-    support_res = rayfield_two_plane_residuals(target_field, fitted_model, support, z_planes=z_planes)
-    full_res = rayfield_two_plane_residuals(target_field, fitted_model, full_pixels, z_planes=z_planes)
     rms, median, p95 = _residual_norm_stats(combined)
-    support_rms = _residual_norm_stats(support_res)[0]
-    full_rms = _residual_norm_stats(full_res)[0]
     rss = float(np.sum(combined * combined))
     n_res = int(combined.size)
     aic, bic = _aic_bic(rss, n_res, p)
+    # Slice combined to recover per-region unweighted residuals without extra
+    # rayfield evaluations. Layout: [sw*support | fgw*full] (when fgw > 0).
+    n_support_flat = support.shape[0] * 6
+    support_rms = _residual_norm_stats(combined[:n_support_flat] / float(support_weight))[0]
+    if full_grid_weight > 0:
+        full_rms = _residual_norm_stats(combined[n_support_flat:] / float(full_grid_weight))[0]
+    else:
+        full_rms = _residual_norm_stats(
+            rayfield_two_plane_residuals(target_field, fitted_model, full_pixels, z_planes=z_planes)
+        )[0]
     parameter_dict = fitted_model.parameter_dict() if hasattr(fitted_model, "parameter_dict") else {}
+    model_name = name if name is not None else str(getattr(fitted_model, "name", model_class.__name__))
     return PhysicalModelFitResult(
-        model_name=str(getattr(fitted_model, "name", model_class.__name__)),
+        model_name=model_name,
         model=fitted_model,
         success=success,
         message=message,
@@ -230,7 +240,6 @@ def fit_physical_model_to_rayfield(
         full_grid_rms_mm=full_rms,
         aic=aic,
         bic=bic,
-        mdl_score=None,
         parameter_vector=sol_x,
         parameter_dict=parameter_dict,
     )
@@ -266,32 +275,12 @@ def select_physical_model_from_rayfield(
                 support_pixels=support_pixels,
                 support_weight=support_weight,
                 full_grid_weight=full_grid_weight,
+                name=spec.name,
                 **kwargs,
             )
         except Exception as exc:  # pragma: no cover - surfaced in report for users
             warnings.append(f"{spec.name} failed: {exc}")
             continue
-        if result.model_name != spec.name:
-            result = PhysicalModelFitResult(
-                model_name=spec.name,
-                model=result.model,
-                success=result.success,
-                message=result.message,
-                n_parameters=result.n_parameters,
-                n_samples=result.n_samples,
-                n_residual_scalars=result.n_residual_scalars,
-                rss=result.rss,
-                rms_mm=result.rms_mm,
-                median_mm=result.median_mm,
-                p95_mm=result.p95_mm,
-                support_rms_mm=result.support_rms_mm,
-                full_grid_rms_mm=result.full_grid_rms_mm,
-                aic=result.aic,
-                bic=result.bic,
-                mdl_score=result.mdl_score,
-                parameter_vector=result.parameter_vector,
-                parameter_dict=result.parameter_dict,
-            )
         results.append(result)
     if not results:
         raise RuntimeError("all physical candidate fits failed")
