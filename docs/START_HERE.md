@@ -41,6 +41,14 @@ StereoComplex is built around:
 - a practical image-folder API for fitting a non-central origin-field model from
   calibration images.
 
+## Three workflows
+
+| Workflow | Entry point | Tutorial |
+| --- | --- | --- |
+| **Fix OpenCV calibration** that plateaus on blur / distortion | `fit_opencv_stereo_from_image_dirs(..., method2d="rayfield_tps_robust")` | :doc:`BRING_YOUR_OWN_DATA` |
+| **Non-central calibration** when a pinhole model leaves systematic bias | `fit_stereo_zernike_origin_field_from_image_dirs(...)` | :doc:`NONCENTRAL_FROM_IMAGES` |
+| **Identify physical optics** from a measured rayfield | `select_physical_model_from_rayfield(...)` | :doc:`IDENTIFY_MY_OPTICS` |
+
 ## Which path should I use?
 
 1. **I just want a better OpenCV calibration**
@@ -50,7 +58,10 @@ StereoComplex is built around:
 3. **I suspect my system is non-central**
    → start with notebook 05 and
    `fit_stereo_zernike_origin_field_from_image_dirs(...)`.
-4. **I want to understand the scientific validation**
+4. **I want to identify what physical optics best explain my rayfield**
+   → use `select_physical_model_from_rayfield(...)` and read
+   :doc:`IDENTIFY_MY_OPTICS`.
+5. **I want to understand the scientific validation**
    → read notebook 04 and :doc:`PARALLEL_PLATE_ORIGIN_FIELD`.
 
 Ray2D is a 2D correction of board-plane observations. The non-central backend is

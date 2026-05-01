@@ -54,6 +54,24 @@ Visual proof (green = GT, red = OpenCV raw, blue = ray-field):
    generator as a physical oracle without fitting the plate parameters.
 6. **Practical non-central image workflow**: fit a Zernike origin-field model
    directly from two image folders.
+7. **Ray-space optical model identification**: fit and compare physical models
+   (central pinhole, Brown-Conrady, inclined parallel plate) to a measured
+   Zernike rayfield, with formal BIC-based selection to identify the most
+   compact physical explanation.
+
+## Key result: optical model identification
+
+Once a Zernike rayfield is measured, `select_physical_model_from_rayfield`
+fits each candidate and scores by BIC. On the inclined-plate benchmark:
+
+| Candidate model | Support RMS | Full-grid RMS | BIC |
+| --- | ---: | ---: | ---: |
+| Central pinhole | 2.77 mm | 3.69 mm | −3 290 |
+| Central Brown-Conrady | 2.02 mm | 2.69 mm | −11 323 |
+| Pinhole + inclined plate | **0.003 mm** | **0.044 mm** | **−148 648** |
+
+Lower BIC is better. The inclined-plate model wins unambiguously: it is the
+most compact physical explanation of the measured rayfield on this oracle.
 
 ## Key result: 3D ray-field is remarkably stable under compression
 
@@ -122,6 +140,28 @@ Editable install:
 ```bash
 .venv/bin/python -m pip install -e .
 ```
+
+## Quickstart: optical model identification
+
+After fitting a Zernike origin field, ask which physical model best explains it:
+
+```python
+import stereocomplex as sc
+
+# fit is a StereoZernikeOriginFieldFitResult from fit_stereo_zernike_origin_field_from_image_dirs
+report = sc.select_physical_model_from_rayfield(
+    target_field=fit.left_field,
+    candidate_specs=None,          # default: pinhole, Brown-Conrady, inclined plate
+    K=fit.left_field.K,
+    image_size=fit.left_field.config.image_size,
+)
+
+print(report.best_by_bic)         # e.g. "pinhole_parallel_plate"
+for row in report.rows():
+    print(row)
+```
+
+Full tutorial: `docs/IDENTIFY_MY_OPTICS.md`
 
 ## Quickstart (CPU dataset generator)
 

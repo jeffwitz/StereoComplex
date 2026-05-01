@@ -10,6 +10,37 @@ StereoComplex is a research prototype, but it exposes a small **public API** mea
   before a 1.0 API.
 - Everything else (`stereocomplex.core`, `stereocomplex.eval`, `paper/`, `docs/examples/`) is **internal** and may change without notice.
 
+## Namespace structure (v0.3+)
+
+`stereocomplex.__all__` contains ~24 symbols split into two tiers:
+
+**Tier 1 — primary entry points** (13 symbols): the functions and dataclasses
+you call in 95 % of sessions (`fit_opencv_stereo_from_image_dirs`,
+`fit_stereo_zernike_origin_field_from_image_dirs`,
+`select_physical_model_from_rayfield`, `detect_charuco_corners`,
+`refine_charuco_corners`, `load/save_stereo_central_rayfield`,
+`build_charuco_board`, `CharucoBoardSpec`, `StereoImagePair`,
+`PhysicalModelSpec`, `StereoCentralRayFieldModel`).
+
+**Tier 2 — result/report dataclasses** (11 symbols): types returned by Tier 1
+functions (`StereoOpenCVCalibration{Result,Report}`,
+`StereoCentralRayFieldFit{Result,Report}`,
+`StereoZernikeOriginFieldFitResult`, `ParallelPlateFromRayfieldFitResult`,
+`PhysicalModelFitResult`, `OpticalModelSelectionReport`,
+`Reconstruction{Result,ErrorReport,ComparisonReport}`).
+
+**Advanced composition** (`stereocomplex.advanced`): lower-level functions for
+expert pipelines (`fit_stereo_zernike_origin_field`,
+`fit_physical_model_to_rayfield`, `reconstruct_points_*`,
+`compare_3d_reconstruction_with_without_origin_field`, etc.).
+
+**Sub-namespaces**: `stereocomplex.synthetic`, `stereocomplex.physics`,
+`stereocomplex.rayfields` each expose their respective symbol sets.
+
+Symbols not in Tier 1/2 remain accessible at the top level with a
+`DeprecationWarning` until v1.0; from v0.3 they should be imported from
+their sub-namespace.
+
 ## Recommended imports
 
 Top-level re-exports (stable):
@@ -31,7 +62,6 @@ from stereocomplex.api import (
     build_charuco_board,
     detect_charuco_corners,
     fit_opencv_stereo_from_image_dirs,
-    fit_stereo_central_rayfield_from_dataset,
     fit_stereo_central_rayfield_from_image_dirs,
     load_stereo_central_rayfield,
     refine_charuco_corners,
@@ -39,20 +69,35 @@ from stereocomplex.api import (
 )
 ```
 
-Experimental non-central origin-field imports:
+Advanced / composition imports:
 
 ```python
-from stereocomplex.api import (
-    ParallelPlateSyntheticParams,
-    PinholeParallelPlateFitParams,
-    ZernikeOriginFieldConfig,
-    fit_parallel_plate_to_zernike_rayfield,
-    fit_stereo_zernike_origin_field_from_image_dirs,
+from stereocomplex.advanced import (
     fit_stereo_zernike_origin_field,
+    fit_physical_model_to_rayfield,
     compare_3d_reconstruction_with_without_origin_field,
     oracle_reconstruction_floor_report,
     compare_rayfields_on_planes,
-    run_parallel_plate_origin_field_benchmark,
+    reconstruct_points_central_stereo,
+    reconstruct_points_with_origin_fields,
+    triangulate_two_rays,
+)
+from stereocomplex.physics import (
+    CentralPinholeModel,
+    CentralBrownConradyModel,
+    PinholeParallelPlateModel,
+    PinholeParallelPlateRayField,
+    default_physical_model_specs,
+)
+from stereocomplex.rayfields import (
+    ZernikeOriginField,
+    ZernikeRayField,
+    ZernikeOriginFieldConfig,
+)
+from stereocomplex.synthetic import (
+    ParallelPlateSyntheticParams,
+    generate_parallel_plate_stereo_dataset,
+    render_parallel_plate_charuco_images,
 )
 ```
 
@@ -194,6 +239,57 @@ This does **not** replace the generic Zernike fit. It treats the fitted rayfield
 as a measured geometric object, then asks whether a compact pinhole + inclined
 parallel-plate model can explain it in ray space. The residual is computed from
 intersections with two z-planes, not by comparing raw ray origins.
+
+## Optical model identification
+
+After fitting a non-central Zernike origin field, ask which physical optics
+model best compresses it in ray space:
+
+```python
+import stereocomplex as sc
+
+# fit is a StereoZernikeOriginFieldFitResult
+report = sc.select_physical_model_from_rayfield(
+    target_field=fit.left_field,
+    candidate_specs=None,          # default: pinhole, Brown-Conrady, inclined plate
+    K=fit.left_field.K,
+    image_size=fit.left_field.config.image_size,
+)
+
+print(report.best_by_bic)         # "pinhole_parallel_plate", "central_brown_conrady", ...
+for row in report.rows():
+    print(row)                     # model, n_params, rms_mm, support_rms_mm, bic, selected_bic
+```
+
+`OpticalModelSelectionReport.best_by_bic` gives the name of the winning
+candidate under the Bayesian Information Criterion. `rows()` returns a list
+of dicts suitable for `pandas.DataFrame(report.rows())`.
+
+To add a custom candidate, implement the `PhysicalRayFieldModel` protocol and
+wrap it in a `PhysicalModelSpec`:
+
+```python
+from stereocomplex.physics import PhysicalModelSpec
+from stereocomplex.advanced import fit_physical_model_to_rayfield
+
+my_spec = PhysicalModelSpec(
+    name="my_model",
+    model_class=MyModel,
+    initial_parameters=np.array([...]),
+    bounds=(np.array([...]), np.array([...])),
+    model_kwargs={"eta": 1.5},
+)
+result = fit_physical_model_to_rayfield(
+    model_class=my_spec.model_class,
+    target_field=fit.left_field,
+    K=K,
+    image_size=image_size,
+    name=my_spec.name,
+    **my_spec.model_kwargs,
+)
+```
+
+Full tutorial: :doc:`IDENTIFY_MY_OPTICS`
 
 ## Corner refinement API
 
