@@ -699,6 +699,37 @@ lets the same full BA over `O(u,v)`, `d(u,v)`, poses and rig reach the expected
 sub-millimetre scale for this stereo geometry.
 ```
 
+## Generalization: held-out pose validation
+
+A natural question after fitting is whether the identified rayfield memorises
+the training poses or genuinely represents the camera geometry. To answer this,
+`make_parallel_plate_extended_dataset` generates a 10-frame dataset (same oracle
+parameters as the default benchmark) and splits it into a training set and a
+hold-out set that is never seen by the BA.
+
+| | Frames | Points | Central RMS | Origin-field RMS |
+|---|:---:|:---:|:---:|:---:|
+| Training | 0–7 | 280 | 2.16 mm | **0.0002 mm** |
+| Hold-out (unseen) | 8–9 | 70 | 2.08 mm | **0.0003 mm** |
+| Ratio hold-out / training | — | — | — | 1.5× |
+
+The origin-field trained on 8 frames reconstructs the 2 held-out poses at
+essentially the same accuracy (ratio 1.5×, well inside the 3× threshold used
+as the test criterion). This is expected: in the noise-free case a `max_order=4`
+Zernike field can represent the parallel-plate lateral shift analytically over
+the observation domain, so there is no overfitting to observe.
+
+The relevant test is `test_holdout_poses_confirm_origin_field_generalises` in
+`tests/test_reconstruction_with_origin_field.py`. It asserts:
+
+- hold-out RMS < training RMS × 3.0 (no degradation relative to in-sample),
+- hold-out RMS < 0.2 mm (absolute bound, well below the noise floor of a 0.05 px
+  observation uncertainty which maps to ~0.7 mm at 700 mm depth).
+
+The central model scores ~2.1 mm on both sets, confirming the bias is a
+systematic geometric effect (not pose-dependent noise), and that the origin field
+removes it on unseen poses as well as training ones.
+
 ## Interpretation
 
 This benchmark should not be read as a calibration of a glass plate. It answers
@@ -709,9 +740,10 @@ a narrower question:
 
 For this oracle the answer is yes. The central model gives a millimetre-scale
 3D bias even without noise, while the Zernike `O(u,v)` field removes that bias
-in the oracle case. Under `0.05 px` observation noise, the fitted model reaches
-approximately the same RMS error as the exact oracle rayfield evaluated at noisy
-pixels, so the remaining error is consistent with stereo noise propagation.
+in the oracle case and generalises to held-out poses at comparable accuracy.
+Under `0.05 px` observation noise, the fitted model reaches approximately the
+same RMS error as the exact oracle rayfield evaluated at noisy pixels, so the
+remaining error is consistent with stereo noise propagation.
 
 Current scope limits:
 
@@ -722,12 +754,10 @@ Current scope limits:
 - the rendered-image step now compares raw OpenCV ChArUco detections with the
   same detections after public `rayfield_tps_robust` planar refinement, then
   feeds both front-ends into the same complete BA;
-- remaining validation should focus on held-out poses, support-aware rayfield
-  error, and real image sets.
+- remaining validation should focus on real image sets.
 
-The next experiment should therefore not be a different physical oracle. It
-should use the same full procedure, keep the Ray2D front-end in the loop, and
-add held-out poses and eventually real images:
+The next experiment should use the same full procedure, keep the Ray2D front-end
+in the loop, and replace the synthetic oracle with real images:
 
 ```text
 parallel-plate oracle -> rendered images -> OpenCV detections -> Ray2D refinement

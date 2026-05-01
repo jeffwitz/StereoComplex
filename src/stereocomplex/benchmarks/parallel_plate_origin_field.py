@@ -114,6 +114,57 @@ def make_default_parallel_plate_dataset(noise_std_px: float = 0.0) -> SyntheticS
     )
 
 
+# Frame indices for the extended 10-frame dataset
+EXTENDED_TRAIN_FRAMES: list[int] = list(range(8))
+EXTENDED_HOLDOUT_FRAMES: list[int] = [8, 9]
+
+
+def make_parallel_plate_extended_dataset(noise_std_px: float = 0.0) -> SyntheticStereoDataset:
+    """
+    10-frame dataset for hold-out generalization validation.
+
+    Frames 0–7 (``EXTENDED_TRAIN_FRAMES``) are used for fitting.
+    Frames 8–9 (``EXTENDED_HOLDOUT_FRAMES``) are reserved for held-out evaluation
+    and must never enter the BA.  Same oracle as `make_default_parallel_plate_dataset`.
+    """
+    image_size = (640, 480)
+    K_left = np.array([[620.0, 0.0, 319.5], [0.0, 620.0, 239.5], [0.0, 0.0, 1.0]])
+    K_right = K_left.copy()
+    baseline = 90.0
+    T_left_world = np.eye(4, dtype=np.float64)
+    T_right_world = make_transform(t=np.array([-baseline, 0.0, 0.0]))
+    board_points = make_grid_board()
+    board_poses = [
+        # Training frames (0-7): varied XY offset and depth
+        make_transform(t=np.array([-28.0, -18.0, 650.0])),
+        make_transform(t=np.array([24.0,  16.0,  720.0])),
+        make_transform(t=np.array([0.0,  -24.0,  800.0])),
+        make_transform(t=np.array([34.0,  22.0,  900.0])),
+        make_transform(t=np.array([-35.0, 25.0,  680.0])),
+        make_transform(t=np.array([15.0, -28.0,  760.0])),
+        make_transform(t=np.array([-12.0, 10.0,  840.0])),
+        make_transform(t=np.array([28.0, -12.0,  780.0])),
+        # Hold-out frames (8-9): unseen positions not in training set
+        make_transform(t=np.array([-42.0, -8.0,  710.0])),
+        make_transform(t=np.array([38.0,  28.0,  860.0])),
+    ]
+    plate_left = ParallelPlateSyntheticParams(eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0)
+    plate_right = ParallelPlateSyntheticParams(eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0)
+    return generate_parallel_plate_stereo_dataset(
+        object_points=board_points,
+        board_poses=board_poses,
+        K_left=K_left,
+        K_right=K_right,
+        T_left_world=T_left_world,
+        T_right_world=T_right_world,
+        plate_left=plate_left,
+        plate_right=plate_right,
+        image_size=image_size,
+        noise_std_px=noise_std_px,
+        keep_oracle_rayfields=True,
+    )
+
+
 def make_default_parallel_plate_charuco_board() -> CharucoBoardSpec:
     """Return the ChArUco board used by the rendered non-central image demo."""
     return CharucoBoardSpec(

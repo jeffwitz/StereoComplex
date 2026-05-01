@@ -3,13 +3,18 @@ from __future__ import annotations
 import numpy as np
 
 from stereocomplex.benchmarks.parallel_plate_origin_field import (
+    EXTENDED_HOLDOUT_FRAMES,
+    EXTENDED_TRAIN_FRAMES,
     make_default_parallel_plate_dataset,
+    make_parallel_plate_extended_dataset,
     run_parallel_plate_rendered_image_benchmark,
 )
 from stereocomplex.calibration.fit_zernike_origin_field import fit_stereo_zernike_origin_field
 from stereocomplex.metrics.reconstruction_metrics import (
     compare_3d_reconstruction_with_without_origin_field,
     oracle_reconstruction_floor_report,
+    reconstruct_points_with_origin_fields,
+    reconstruction_error_report,
     triangulate_two_rays,
 )
 from stereocomplex.rayfields.zernike_origin_field import ZernikeOriginFieldConfig
@@ -110,6 +115,48 @@ def test_full_rayfield_pose_and_rig_ba_reaches_clean_reconstruction_scale():
     assert isinstance(fit_result.left_field, ZernikeRayField)
     assert np.linalg.norm(fit_result.stereo_transform[:3, 3] - dataset.T_right_left[:3, 3]) < 1e-3
     assert report.with_origin_field.rms_3d < 0.1
+
+
+def test_holdout_poses_confirm_origin_field_generalises():
+    """Fit on 8 frames, evaluate on 2 unseen frames — checks that the model generalises."""
+    full = make_parallel_plate_extended_dataset(noise_std_px=0.0)
+    train_ds = full.subset(EXTENDED_TRAIN_FRAMES)
+    test_ds = full.subset(EXTENDED_HOLDOUT_FRAMES)
+
+    config = ZernikeOriginFieldConfig(image_size=full.image_size, max_order=4)
+    fit = fit_stereo_zernike_origin_field(
+        observations=train_ds,
+        K_left=full.K_left,
+        K_right=full.K_right,
+        T_right_left_initial=full.T_right_left,
+        board_poses_initial=train_ds.board_poses,
+        config_left=config,
+        config_right=config,
+        regularization=1e-6,
+    )
+    assert fit.success
+
+    def _truth(ds):
+        return np.concatenate([
+            transform_points(ds.T_left_world, transform_points(T, ds.object_points))
+            for T in ds.board_poses
+        ])
+
+    # In-sample
+    uvL_tr = np.concatenate(train_ds.left_pixels)
+    uvR_tr = np.concatenate(train_ds.right_pixels)
+    res_train = reconstruct_points_with_origin_fields(uvL_tr, uvR_tr, fit.left_field, fit.right_field, fit.stereo_transform)
+    rep_train = reconstruction_error_report(res_train, _truth(train_ds))
+
+    # Hold-out (unseen poses)
+    uvL_ho = np.concatenate(test_ds.left_pixels)
+    uvR_ho = np.concatenate(test_ds.right_pixels)
+    res_ho = reconstruct_points_with_origin_fields(uvL_ho, uvR_ho, fit.left_field, fit.right_field, fit.stereo_transform)
+    rep_ho = reconstruction_error_report(res_ho, _truth(test_ds))
+
+    # Hold-out accuracy must be comparable to in-sample (no overfitting)
+    assert rep_ho.rms_3d < rep_train.rms_3d * 3.0
+    assert rep_ho.rms_3d < 0.2  # well below the 0.05 px noise floor (~0.7 mm)
 
 
 def test_rendered_image_detection_pipeline_improves_over_central_model(tmp_path):

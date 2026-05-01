@@ -67,6 +67,23 @@ class SyntheticStereoDataset:
 
         return _ray
 
+    def subset(self, indices: Sequence[int]) -> "SyntheticStereoDataset":
+        """Return a new dataset restricted to the frames at *indices*."""
+        idx = list(indices)
+        return SyntheticStereoDataset(
+            object_points=self.object_points,
+            board_poses=[self.board_poses[i] for i in idx],
+            left_pixels=[self.left_pixels[i] for i in idx],
+            right_pixels=[self.right_pixels[i] for i in idx],
+            K_left=self.K_left,
+            K_right=self.K_right,
+            T_left_world=self.T_left_world,
+            T_right_world=self.T_right_world,
+            image_size=self.image_size,
+            oracle_left_params=self.oracle_left_params,
+            oracle_right_params=self.oracle_right_params,
+        )
+
 
 def _normalize(v: np.ndarray, *, axis: int = -1) -> np.ndarray:
     v = np.asarray(v, dtype=np.float64)
