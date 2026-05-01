@@ -1239,6 +1239,14 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
     Returns
     -------
     StereoZernikeOriginFieldFitResult
+
+    Notes
+    -----
+    All frames are restricted to the intersection of corners visible in EVERY
+    frame, because `SyntheticStereoDataset` requires a single shared
+    `object_points` array.  Corners not detected in all frames are dropped.
+    If this intersection is too small, add more frames with full board coverage
+    or reduce `min_common_corners`.
     """
     import cv2  # type: ignore
 
@@ -1345,6 +1353,8 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
     )
     K_left = np.asarray(K_left_cv, dtype=np.float64)
     K_right = np.asarray(K_right_cv, dtype=np.float64)
+    # Distortion coefficients seed solvePnP but are intentionally not forwarded to
+    # the Zernike BA: the origin field O(u,v) absorbs non-pinhole behaviour directly.
     dist_left = np.asarray(dist_left_cv, dtype=np.float64).reshape(-1)
     R_rl_arr = np.asarray(R_rl, dtype=np.float64)
     t_rl_arr = np.asarray(t_rl, dtype=np.float64).reshape(3)
@@ -1353,7 +1363,10 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
     T_right_left[:3, :3] = R_rl_arr
     T_right_left[:3, 3] = t_rl_arr
 
-    # global intersection ensures a single shared object_points array across frames
+    # SyntheticStereoDataset requires a single shared object_points array, so we
+    # restrict to corners visible in EVERY frame.  Frames with partial board
+    # coverage are restricted to this global intersection; corners unique to a
+    # subset of frames are dropped.
     global_common: set[int] = set(frame_common_ids[0])
     for cids in frame_common_ids[1:]:
         global_common = global_common.intersection(cids)
