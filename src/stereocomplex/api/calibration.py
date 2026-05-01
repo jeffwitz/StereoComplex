@@ -1195,6 +1195,231 @@ def fit_stereo_central_rayfield_from_image_dirs(
     )
 
 
+def fit_stereo_zernike_origin_field_from_image_dirs(
+    *,
+    left_dir: str | Path,
+    right_dir: str | Path,
+    board: CharucoBoardSpec,
+    max_order: int = 4,
+    max_pairs: int = 0,
+    method2d: RefineMethod = "raw",
+    min_common_corners: int = 10,
+    tps_lam: float = 10.0,
+    huber_c: float = 3.0,
+    iters: int = 3,
+    regularization: float = 1e-6,
+    max_nfev: int = 200,
+):
+    """
+    Calibrate a non-central stereo Zernike origin-field model from image directories.
+
+    Detects ChArUco corners, runs OpenCV mono+stereo calibration to obtain K and
+    the stereo rig transform, solves per-frame board poses, then fits a Zernike
+    origin field O(u,v) on top of the pinhole directions.
+
+    Parameters
+    ----------
+    left_dir, right_dir:
+        Directories containing sorted left/right calibration images (same count).
+    board:
+        ChArUco board specification.
+    max_order:
+        Maximum Zernike radial order for the origin field.
+    max_pairs:
+        Cap on the number of image pairs used (0 = use all).
+    method2d:
+        Corner refinement method passed to refine_charuco_corners.
+    min_common_corners:
+        Minimum corners common to left and right per frame.
+    regularization:
+        L2 regularization weight on the Zernike origin coefficients.
+    max_nfev:
+        Maximum function evaluations for the Zernike BA.
+
+    Returns
+    -------
+    StereoZernikeOriginFieldFitResult
+    """
+    import cv2  # type: ignore
+
+    from stereocomplex.calibration.fit_zernike_origin_field import fit_stereo_zernike_origin_field  # noqa: PLC0415
+    from stereocomplex.rayfields.zernike_origin_field import ZernikeOriginFieldConfig  # noqa: PLC0415
+    from stereocomplex.synthetic.parallel_plate import SyntheticStereoDataset  # noqa: PLC0415
+
+    left_paths = _sorted_image_paths(Path(left_dir))
+    right_paths = _sorted_image_paths(Path(right_dir))
+    if not left_paths or not right_paths:
+        raise FileNotFoundError("no images found in left_dir/right_dir")
+    if len(left_paths) != len(right_paths):
+        raise ValueError("left_dir and right_dir must contain the same number of images")
+    if max_pairs and max_pairs > 0:
+        left_paths = left_paths[: int(max_pairs)]
+        right_paths = right_paths[: int(max_pairs)]
+
+    runtime = _build_charuco_runtime(board)
+    chess3 = np.asarray(runtime.board.getChessboardCorners(), dtype=np.float64)
+    image_size: tuple[int, int] | None = None
+
+    frame_maps_left: list[dict[int, np.ndarray]] = []
+    frame_maps_right: list[dict[int, np.ndarray]] = []
+    frame_common_ids: list[list[int]] = []
+    obj_left: list[np.ndarray] = []
+    img_left_cv: list[np.ndarray] = []
+    obj_right: list[np.ndarray] = []
+    img_right_cv: list[np.ndarray] = []
+
+    for left_path, right_path in zip(left_paths, right_paths, strict=True):
+        img_l = _ensure_gray_u8(left_path)
+        img_r = _ensure_gray_u8(right_path)
+        if image_size is None:
+            image_size = (int(img_l.shape[1]), int(img_l.shape[0]))
+        if img_l.shape != img_r.shape or (int(img_l.shape[1]), int(img_l.shape[0])) != image_size:
+            continue
+
+        det_l = _detect_view(runtime, img_l)
+        det_r = _detect_view(runtime, img_r)
+        if det_l is None or det_r is None:
+            continue
+
+        xy_l = _refine_detection_points(
+            runtime=runtime, detection=det_l, method2d=method2d,
+            tps_lam=tps_lam, huber_c=huber_c, iters=iters,
+        )
+        xy_r = _refine_detection_points(
+            runtime=runtime, detection=det_r, method2d=method2d,
+            tps_lam=tps_lam, huber_c=huber_c, iters=iters,
+        )
+        ids_l = np.asarray(det_l.charuco_ids, dtype=np.int32).reshape(-1)
+        ids_r = np.asarray(det_r.charuco_ids, dtype=np.int32).reshape(-1)
+        map_l = _dict_from_ids_xy(ids_l, xy_l)
+        map_r = _dict_from_ids_xy(ids_r, xy_r)
+        common_ids = sorted(set(map_l).intersection(map_r))
+        if len(common_ids) < int(min_common_corners):
+            continue
+
+        frame_maps_left.append(map_l)
+        frame_maps_right.append(map_r)
+        frame_common_ids.append(common_ids)
+
+        if ids_l.size >= 4:
+            obj_left.append(chess3[ids_l].astype(np.float32).reshape(-1, 3))
+            img_left_cv.append(xy_l.astype(np.float32).reshape(-1, 2))
+        if ids_r.size >= 4:
+            obj_right.append(chess3[ids_r].astype(np.float32).reshape(-1, 3))
+            img_right_cv.append(xy_r.astype(np.float32).reshape(-1, 2))
+
+    if not frame_common_ids:
+        raise RuntimeError("no usable stereo frames after ChArUco detection")
+    assert image_size is not None
+    if len(obj_left) < 2 or len(obj_right) < 2:
+        raise RuntimeError("not enough frames for mono calibration (need ≥ 2 per side)")
+
+    _, K_left_cv, dist_left_cv, _, _ = cv2.calibrateCamera(
+        obj_left, img_left_cv, image_size, None, None, flags=0,
+        criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 1e-9),
+    )
+    _, K_right_cv, dist_right_cv, _, _ = cv2.calibrateCamera(
+        obj_right, img_right_cv, image_size, None, None, flags=0,
+        criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 1e-9),
+    )
+
+    obj_stereo = [
+        chess3[np.asarray(cids, dtype=np.int32)].astype(np.float32).reshape(-1, 3)
+        for cids in frame_common_ids
+    ]
+    img_stereo_l = [
+        np.stack([frame_maps_left[i][c] for c in frame_common_ids[i]], axis=0).astype(np.float32)
+        for i in range(len(frame_common_ids))
+    ]
+    img_stereo_r = [
+        np.stack([frame_maps_right[i][c] for c in frame_common_ids[i]], axis=0).astype(np.float32)
+        for i in range(len(frame_common_ids))
+    ]
+
+    _, K_left_cv, dist_left_cv, K_right_cv, dist_right_cv, R_rl, t_rl, _, _ = cv2.stereoCalibrate(
+        obj_stereo, img_stereo_l, img_stereo_r,
+        K_left_cv, dist_left_cv, K_right_cv, dist_right_cv,
+        image_size,
+        criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 1e-9),
+        flags=cv2.CALIB_FIX_INTRINSIC,
+    )
+    K_left = np.asarray(K_left_cv, dtype=np.float64)
+    K_right = np.asarray(K_right_cv, dtype=np.float64)
+    dist_left = np.asarray(dist_left_cv, dtype=np.float64).reshape(-1)
+    R_rl_arr = np.asarray(R_rl, dtype=np.float64)
+    t_rl_arr = np.asarray(t_rl, dtype=np.float64).reshape(3)
+
+    T_right_left = np.eye(4, dtype=np.float64)
+    T_right_left[:3, :3] = R_rl_arr
+    T_right_left[:3, 3] = t_rl_arr
+
+    # global intersection ensures a single shared object_points array across frames
+    global_common: set[int] = set(frame_common_ids[0])
+    for cids in frame_common_ids[1:]:
+        global_common = global_common.intersection(cids)
+    global_ids = sorted(global_common)
+    if len(global_ids) < int(min_common_corners):
+        raise RuntimeError(
+            f"only {len(global_ids)} corners visible in every frame; need {min_common_corners}. "
+            "Try reducing min_common_corners or adding more frames with full board coverage."
+        )
+
+    object_points_3d = chess3[np.asarray(global_ids, dtype=np.int32)].astype(np.float64)
+    board_poses: list[np.ndarray] = []
+    left_pixels: list[np.ndarray] = []
+    right_pixels: list[np.ndarray] = []
+
+    for i in range(len(frame_common_ids)):
+        uv_l = np.stack([frame_maps_left[i][c] for c in global_ids], axis=0).astype(np.float64)
+        uv_r = np.stack([frame_maps_right[i][c] for c in global_ids], axis=0).astype(np.float64)
+        obj_pts_f = object_points_3d.astype(np.float32).reshape(-1, 3)
+        success, rvec, tvec = cv2.solvePnP(
+            obj_pts_f,
+            uv_l.astype(np.float32).reshape(-1, 2),
+            K_left.astype(np.float32),
+            dist_left.astype(np.float32),
+        )
+        if not success:
+            continue
+        R_board, _ = cv2.Rodrigues(rvec)
+        T_board = np.eye(4, dtype=np.float64)
+        T_board[:3, :3] = np.asarray(R_board, dtype=np.float64)
+        T_board[:3, 3] = np.asarray(tvec, dtype=np.float64).reshape(3)
+        board_poses.append(T_board)
+        left_pixels.append(uv_l)
+        right_pixels.append(uv_r)
+
+    if not board_poses:
+        raise RuntimeError("solvePnP failed for all frames")
+
+    dataset = SyntheticStereoDataset(
+        object_points=object_points_3d,
+        board_poses=board_poses,
+        left_pixels=left_pixels,
+        right_pixels=right_pixels,
+        K_left=K_left,
+        K_right=K_right,
+        T_left_world=np.eye(4, dtype=np.float64),
+        T_right_world=T_right_left.copy(),
+        image_size=image_size,
+        oracle_left_params=None,
+        oracle_right_params=None,
+    )
+
+    config = ZernikeOriginFieldConfig(image_size=image_size, max_order=int(max_order))
+    return fit_stereo_zernike_origin_field(
+        observations=dataset,
+        K_left=K_left,
+        K_right=K_right,
+        T_right_left_initial=T_right_left,
+        board_poses_initial=board_poses,
+        config_left=config,
+        config_right=config,
+        regularization=float(regularization),
+        max_nfev=int(max_nfev),
+    )
+
+
 def fit_stereo_central_rayfield_from_dataset(
     *,
     dataset_root: str | Path,

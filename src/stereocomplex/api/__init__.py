@@ -13,6 +13,7 @@ from stereocomplex.api.calibration import (
     fit_stereo_central_rayfield_from_dataset,
     fit_stereo_central_rayfield_from_image_dirs,
     fit_stereo_central_rayfield_from_image_pairs,
+    fit_stereo_zernike_origin_field_from_image_dirs,
 )
 from stereocomplex.api.corner_refinement import refine_charuco_corners
 from stereocomplex.api.model_io import load_stereo_central_rayfield, save_stereo_central_rayfield
@@ -110,6 +111,7 @@ __all__ = [
     "fit_stereo_central_rayfield_from_image_dirs",
     "fit_stereo_central_rayfield_from_image_pairs",
     "fit_stereo_zernike_origin_field",
+    "fit_stereo_zernike_origin_field_from_image_dirs",
     "generate_parallel_plate_stereo_dataset",
     "intersect_rays_with_z_plane",
     "make_default_parallel_plate_charuco_board",
