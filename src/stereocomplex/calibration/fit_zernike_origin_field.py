@@ -149,7 +149,12 @@ def fit_stereo_zernike_origin_field(
 
     T_RL_initial = np.asarray(T_right_left_initial, dtype=np.float64).reshape(4, 4)
     left_board_initial = _left_board_poses(board_poses_initial, observations.T_left_world)
-    P_left_frames = _frame_points_from_left_board_poses(observations.object_points, left_board_initial)
+    all_obj_per_frame = (
+        observations.per_frame_object_points
+        if observations.per_frame_object_points is not None
+        else [observations.object_points] * len(observations.left_pixels)
+    )
+    P_left_frames = [transform_points(T, obj) for T, obj in zip(left_board_initial, all_obj_per_frame)]
 
     frame_data: list[tuple[np.ndarray, np.ndarray]] = []
     for uvL, uvR, P_L in zip(observations.left_pixels, observations.right_pixels, P_left_frames, strict=True):
@@ -274,7 +279,7 @@ def fit_stereo_zernike_origin_field(
             rig_params,
             T_RL_current,
         ) = unpack(p)
-        P_left_current = _frame_points_from_left_board_poses(observations.object_points, left_board_poses)
+        P_left_current = [transform_points(T, obj) for T, obj in zip(left_board_poses, all_obj_per_frame)]
         R_RL = T_RL_current[:3, :3]
         t_RL = T_RL_current[:3, 3]
         parts: list[np.ndarray] = []
@@ -314,7 +319,7 @@ def fit_stereo_zernike_origin_field(
         T_RL_final,
     ) = unpack(sol.x)
     left_field, right_field = make_fields(left_origin, right_origin, left_direction, right_direction)
-    P_left_final = _frame_points_from_left_board_poses(observations.object_points, left_board_poses)
+    P_left_final = [transform_points(T, obj) for T, obj in zip(left_board_poses, all_obj_per_frame)]
     R_RL = T_RL_final[:3, :3]
     t_RL = T_RL_final[:3, 3]
 

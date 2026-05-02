@@ -201,8 +201,9 @@ def reconstruction_error_report(result: ReconstructionResult, true_points: np.nd
 
 def _dataset_left_camera_points(dataset: SyntheticStereoDataset) -> np.ndarray:
     pts: list[np.ndarray] = []
-    for T_board_world in dataset.board_poses:
-        P_world = transform_points(T_board_world, dataset.object_points)
+    for i, T_board_world in enumerate(dataset.board_poses):
+        obj = dataset.per_frame_object_points[i] if dataset.per_frame_object_points is not None else dataset.object_points
+        P_world = transform_points(T_board_world, obj)
         pts.append(transform_points(dataset.T_left_world, P_world))
     return np.concatenate(pts, axis=0)
 

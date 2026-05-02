@@ -238,6 +238,7 @@ def make_default_parallel_plate_charuco_dataset(noise_std_px: float = 0.0) -> Sy
     T_left_world = np.eye(4, dtype=np.float64)
     T_right_world = make_transform(t=np.array([-baseline, 0.0, 0.0]))
     board_poses = [
+        # Central poses — board fully inside image
         make_transform(R=_rot_y(-10.0) @ _rot_x(5.0), t=np.array([-34.0, -24.0, 650.0])),
         make_transform(R=_rot_y(8.0) @ _rot_x(-6.0), t=np.array([28.0, 20.0, 690.0])),
         make_transform(R=_rot_y(0.0) @ _rot_x(8.0), t=np.array([0.0, -28.0, 730.0])),
@@ -248,6 +249,15 @@ def make_default_parallel_plate_charuco_dataset(noise_std_px: float = 0.0) -> Sy
         make_transform(R=_rot_y(-12.0) @ _rot_x(0.0), t=np.array([20.0, -24.0, 780.0])),
         make_transform(R=_rot_y(4.0) @ _rot_x(12.0), t=np.array([-36.0, 12.0, 740.0])),
         make_transform(R=_rot_y(0.0) @ _rot_x(-8.0), t=np.array([6.0, 28.0, 820.0])),
+        # Edge-coverage poses — board partially outside image so that the union of
+        # observations spans the full 640×480 pixel area, eliminating extrapolation
+        # at image edges for the Zernike fit.  Corner poses are intentionally
+        # omitted: combining extreme X and Y offsets simultaneously pushes too many
+        # ArUco markers outside the image, preventing ChArUco corner identification.
+        make_transform(R=_rot_y(6.0), t=np.array([-185.0, 0.0, 650.0])),   # left edge
+        make_transform(R=_rot_y(-6.0), t=np.array([185.0, 0.0, 650.0])),   # right edge
+        make_transform(R=_rot_x(-6.0), t=np.array([0.0, -125.0, 650.0])),  # top edge
+        make_transform(R=_rot_x(6.0), t=np.array([0.0, 125.0, 650.0])),    # bottom edge
     ]
     plate_left = ParallelPlateSyntheticParams(eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0)
     plate_right = ParallelPlateSyntheticParams(eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0)
@@ -373,8 +383,11 @@ def run_parallel_plate_rendered_image_benchmark(
         origin_field_result=fit_result,
     )
     oracle_detected = oracle_reconstruction_floor_report(detected).oracle_observed_pixels
-    n_common = int(detected.object_points.shape[0])
     n_frames = len(detected.left_pixels)
+    # n_common_corners = min per-frame detected corner count (each frame may see a
+    # different subset when edge-coverage poses partially extend outside the image)
+    n_common = min(pix.shape[0] for pix in detected.left_pixels)
+    n_total = sum(pix.shape[0] for pix in detected.left_pixels)
     return RenderedImageBenchmarkReport(
         fit_result=fit_result,
         reconstruction_comparison=reconstruction_comparison,
@@ -384,5 +397,5 @@ def run_parallel_plate_rendered_image_benchmark(
         method2d=method2d,
         n_common_corners=n_common,
         n_frames=n_frames,
-        n_points_total=n_common * n_frames,
+        n_points_total=n_total,
     )

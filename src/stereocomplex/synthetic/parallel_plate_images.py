@@ -147,16 +147,18 @@ def detected_observations_from_rendered_parallel_plate(
     """
     Detect ChArUco corners in rendered images and return BA-ready observations.
 
-    The returned `SyntheticStereoDataset` keeps only corner ids detected in every
-    stereo frame, so each frame shares the same object-point array required by
-    the current geometric BA.
+    Each frame contributes its own detected corner subset. Frames with different
+    board poses (including poses where part of the board is outside the image)
+    naturally see different corners. ``per_frame_object_points`` carries the
+    per-frame 3D point arrays so the BA handles variable-size observation sets.
     """
     all_ids, all_object_points = charuco_inner_corners_object_points(rendered.board)
     object_by_id = {int(cid): all_object_points[i] for i, cid in enumerate(all_ids.tolist())}
 
-    left_maps: list[dict[int, np.ndarray]] = []
-    right_maps: list[dict[int, np.ndarray]] = []
-    common_all: set[int] | None = None
+    per_frame_obj: list[np.ndarray] = []
+    per_frame_left: list[np.ndarray] = []
+    per_frame_right: list[np.ndarray] = []
+
     for left_path, right_path in zip(rendered.left_images, rendered.right_images, strict=True):
         det_left = detect_charuco_corners(image=left_path, board=rendered.board)
         det_right = detect_charuco_corners(image=right_path, board=rendered.board)
@@ -166,23 +168,20 @@ def detected_observations_from_rendered_parallel_plate(
         right_xy = refine_charuco_corners(method=method2d, board=rendered.board, detections=det_right)
         left_map = {int(cid): left_xy[i] for i, cid in enumerate(det_left.charuco_ids.tolist())}
         right_map = {int(cid): right_xy[i] for i, cid in enumerate(det_right.charuco_ids.tolist())}
-        common = set(left_map).intersection(right_map).intersection(object_by_id)
-        common_all = set(common) if common_all is None else common_all.intersection(common)
-        left_maps.append(left_map)
-        right_maps.append(right_map)
+        common = sorted(set(left_map).intersection(right_map).intersection(object_by_id))
+        if len(common) < int(min_common_corners):
+            raise RuntimeError(f"only {len(common)} common ChArUco corners in frame {left_path.name}")
+        per_frame_obj.append(np.stack([object_by_id[cid] for cid in common]))
+        per_frame_left.append(np.stack([left_map[cid] for cid in common]).astype(np.float64))
+        per_frame_right.append(np.stack([right_map[cid] for cid in common]).astype(np.float64))
 
-    ids = sorted(common_all or [])
-    if len(ids) < int(min_common_corners):
-        raise RuntimeError(f"only {len(ids)} common ChArUco corners detected in all frames")
-    object_points = np.stack([object_by_id[cid] for cid in ids], axis=0)
-    left_pixels = [np.stack([m[cid] for cid in ids], axis=0).astype(np.float64) for m in left_maps]
-    right_pixels = [np.stack([m[cid] for cid in ids], axis=0).astype(np.float64) for m in right_maps]
     base = rendered.dataset
     return SyntheticStereoDataset(
-        object_points=object_points,
+        object_points=all_object_points,
         board_poses=base.board_poses,
-        left_pixels=left_pixels,
-        right_pixels=right_pixels,
+        left_pixels=per_frame_left,
+        right_pixels=per_frame_right,
+        per_frame_object_points=per_frame_obj,
         K_left=base.K_left,
         K_right=base.K_right,
         T_left_world=base.T_left_world,

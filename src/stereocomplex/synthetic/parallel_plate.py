@@ -39,6 +39,7 @@ class SyntheticStereoDataset:
     image_size: tuple[int, int]
     oracle_left_params: ParallelPlateSyntheticParams | None = None
     oracle_right_params: ParallelPlateSyntheticParams | None = None
+    per_frame_object_points: list[np.ndarray] | None = None
 
     @property
     def T_right_left(self) -> np.ndarray:
@@ -82,6 +83,10 @@ class SyntheticStereoDataset:
             image_size=self.image_size,
             oracle_left_params=self.oracle_left_params,
             oracle_right_params=self.oracle_right_params,
+            per_frame_object_points=(
+                [self.per_frame_object_points[i] for i in idx]
+                if self.per_frame_object_points is not None else None
+            ),
         )
 
 
