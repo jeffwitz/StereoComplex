@@ -849,7 +849,9 @@ optimizes `O(u,v)`, `d(u,v)`, board poses, and the stereo rig from the detected
 2D points.
 
 The rendered benchmark now follows a more realistic acquisition rule than the
-first smoke test: it uses 10 stereo poses and a larger `12 x 9` ChArUco board.
+first smoke test: it uses 14 stereo poses (including 4 axis-aligned edge poses
+where roughly a quarter of the board extends outside the image) and a larger
+`12 x 9` ChArUco board.
 This is consistent with common calibration guidance:
 [MathWorks recommends](https://www.mathworks.com/help/vision/ug/prepare-camera-and-capture-images-for-camera-calibration.html)
 at least `10-20` images and a target covering at least about 20% of the image,
@@ -872,22 +874,28 @@ Two 2D front-ends are compared:
 - **Ray2D refined**: the detected ArUco marker corners are used to run the
   public `rayfield_tps_robust` planar refinement before the same non-central BA.
 
-| Front-end | Frames | Corners/frame | Total points |
+The 4 edge poses cover regions near each image border where a quarter of the
+board hangs outside the frame. ChArUco inner corners that lack an adjacent
+visible ArUco marker cannot be identified, so each edge frame contributes its
+own detected-corner subset. The per-frame corner counts therefore vary, and the
+table reports the minimum across all frames and the total pooled count.
+
+| Front-end | Frames | Min corners/frame | Total points |
 | --- | ---: | ---: | ---: |
-| OpenCV raw | 10 | 59 | 590 |
-| Ray2D refined | 10 | 59 | 590 |
+| OpenCV raw | 14 | 52 | 1139 |
+| Ray2D refined | 14 | 52 | 1139 |
 
 | Front-end | Central RMS (mm) | Oracle RMS (mm) | BA RMS (mm) | Gain |
 | --- | ---: | ---: | ---: | ---: |
-| OpenCV raw | 4.213 | 3.440 | 3.360 | 1.25x |
-| Ray2D refined | 2.498 | 0.763 | 0.658 | 3.80x |
+| OpenCV raw | 4.266 | 3.250 | 3.159 | 1.35x |
+| Ray2D refined | 2.677 | 0.785 | 0.727 | 3.68x |
 
 The result changes the diagnosis. With raw OpenCV ChArUco corners, the oracle
-detected floor is already high (`3.44 mm`) and the complete BA only reaches
-`3.36 mm`: the limiting factor is the raw detector/rasterization front-end. With
+detected floor is already high (`3.25 mm`) and the complete BA only reaches
+`3.16 mm`: the limiting factor is the raw detector/rasterization front-end. With
 the Ray2D planar refinement, the same rendered images and the same BA pipeline
-drop to `0.658 mm` RMS, slightly below the oracle detected raw-pixel floor for
-the refined coordinates (`0.763 mm`). This is consistent with the geometric
+drop to `0.727 mm` RMS, slightly below the oracle detected raw-pixel floor for
+the refined coordinates (`0.785 mm`). This is consistent with the geometric
 noise-floor estimate above and confirms that the non-central BA was not the main
 bottleneck in the raw rendered test.
 
