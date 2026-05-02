@@ -1,34 +1,34 @@
 {
   "left_fit": {
-    "alpha_deg": 13.01297785350388,
-    "beta_deg": 5.005060953310709,
-    "thickness_mm": 15.982189360471308,
-    "rayfield_rms_support_mm": 0.002158474678975366,
-    "rayfield_rms_full_mm": 0.03406586485419651,
+    "alpha_deg": 13.001433822252094,
+    "beta_deg": 5.000920960488549,
+    "thickness_mm": 15.997088027535591,
+    "rayfield_rms_support_mm": 0.0006792319356705224,
+    "rayfield_rms_full_mm": 0.010930761067584786,
     "parameter_error": {
-      "alpha_deg": 0.012977853503880254,
-      "beta_deg": 0.005060953310708882,
-      "thickness_mm": -0.017810639528692107,
+      "alpha_deg": 0.00143382225209443,
+      "beta_deg": 0.0009209604885489497,
+      "thickness_mm": -0.002911972464408663,
       "eta": 0.0
     }
   },
   "right_fit": {
-    "alpha_deg": 10.043718471997984,
-    "beta_deg": 7.012450058873329,
-    "thickness_mm": 13.96892294237271,
-    "rayfield_rms_support_mm": 0.0034519503357000976,
-    "rayfield_rms_full_mm": 0.05423067443371128,
+    "alpha_deg": 10.005870335073654,
+    "beta_deg": 7.001825181448051,
+    "thickness_mm": 13.995903264196977,
+    "rayfield_rms_support_mm": 0.0006021162266829909,
+    "rayfield_rms_full_mm": 0.013141148968888535,
     "parameter_error": {
-      "alpha_deg": 0.043718471997983954,
-      "beta_deg": 0.012450058873328729,
-      "thickness_mm": -0.031077057627289406,
+      "alpha_deg": 0.005870335073653976,
+      "beta_deg": 0.0018251814480514383,
+      "thickness_mm": -0.004096735803022611,
       "eta": 0.0
     }
   },
-  "plate_rms_3d_mm": 0.010087540757996324,
-  "plate_median_3d_mm": 0.008044019329443129,
-  "plate_p95_3d_mm": 0.01799451880587943,
-  "plate_ray_gap_rms_mm": 0.0006238455652219571,
-  "left_plate_vs_oracle_plane_rms_mm": 0.0035074415069988323,
-  "right_plate_vs_oracle_plane_rms_mm": 0.006676517377567706
+  "plate_rms_3d_mm": 0.0018095514788211806,
+  "plate_median_3d_mm": 0.0017140247930876279,
+  "plate_p95_3d_mm": 0.002579316337397107,
+  "plate_ray_gap_rms_mm": 6.051181872117355e-05,
+  "left_plate_vs_oracle_plane_rms_mm": 0.0006023482464552526,
+  "right_plate_vs_oracle_plane_rms_mm": 0.0008851122207769599
 }

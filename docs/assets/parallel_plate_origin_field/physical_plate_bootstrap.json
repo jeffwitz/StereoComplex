@@ -1,20 +1,20 @@
 {
   "left": {
     "n_bootstrap": 16,
-    "alpha_mean_deg": 13.004534717121015,
-    "alpha_std_deg": 0.0002056511459695504,
-    "beta_mean_deg": 5.0017641471342635,
-    "beta_std_deg": 0.00021757544096607468,
-    "thickness_mean_mm": 15.993773440373648,
-    "thickness_std_mm": 0.0003480382263050073
+    "alpha_mean_deg": 13.000596984970908,
+    "alpha_std_deg": 0.00010625352936766975,
+    "beta_mean_deg": 5.000336971083635,
+    "beta_std_deg": 8.999713090481692e-05,
+    "thickness_mean_mm": 15.998870608626262,
+    "thickness_std_mm": 0.00014969221237826056
   },
   "right": {
     "n_bootstrap": 16,
-    "alpha_mean_deg": 10.014600315845271,
-    "alpha_std_deg": 0.0007387146887726306,
-    "beta_mean_deg": 7.004292469833622,
-    "beta_std_deg": 0.000312115121753206,
-    "thickness_mean_mm": 13.989370765771504,
-    "thickness_std_mm": 0.0004960277453153806
+    "alpha_mean_deg": 10.001926021129812,
+    "alpha_std_deg": 0.00020954025773780766,
+    "beta_mean_deg": 7.000617243859027,
+    "beta_std_deg": 0.00010076535484969893,
+    "thickness_mean_mm": 13.998612681397361,
+    "thickness_std_mm": 0.0001658401209465524
   }
 }

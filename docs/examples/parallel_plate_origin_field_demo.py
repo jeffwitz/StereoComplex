@@ -38,8 +38,13 @@ OUT = ROOT / "docs" / "assets" / "parallel_plate_origin_field"
 
 def _left_camera_truth(dataset):
     pts = []
-    for pose in dataset.board_poses:
-        pts.append(transform_points(dataset.T_left_world, transform_points(pose, dataset.object_points)))
+    for i, pose in enumerate(dataset.board_poses):
+        obj = (
+            dataset.per_frame_object_points[i]
+            if dataset.per_frame_object_points is not None
+            else dataset.object_points
+        )
+        pts.append(transform_points(dataset.T_left_world, transform_points(pose, obj)))
     return np.concatenate(pts, axis=0)
 
 

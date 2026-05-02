@@ -114,6 +114,28 @@ def make_default_parallel_plate_dataset(noise_std_px: float = 0.0) -> SyntheticS
     )
 
 
+def _board_visibility_mask(
+    board_points: np.ndarray,
+    tx: float,
+    ty: float,
+    tz: float,
+    baseline: float,
+    K: np.ndarray,
+    image_size: tuple[int, int],
+) -> np.ndarray:
+    """Return boolean mask of board points projecting inside both cameras (pinhole approx)."""
+    W, H = image_size
+    fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
+    x = board_points[:, 0] + tx
+    y = board_points[:, 1] + ty
+    u_left = fx * x / tz + cx
+    v = fy * y / tz + cy
+    u_right = fx * (x - baseline) / tz + cx
+    in_left = (u_left >= 0.0) & (u_left <= W - 1) & (v >= 0.0) & (v <= H - 1)
+    in_right = (u_right >= 0.0) & (u_right <= W - 1) & (v >= 0.0) & (v <= H - 1)
+    return in_left & in_right
+
+
 def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> SyntheticStereoDataset:
     """
     Dataset with a larger board and wider pose coverage for rayfield support plots.
@@ -122,6 +144,12 @@ def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> Synt
     multiple regression tests.  This variant is used for physical rayfield
     interpretation figures where the observed pixel support should cover much
     more of the image.
+
+    Six central poses keep the full 11x9 board within both cameras.  Four
+    axis-aligned edge poses shift the board to each image border so that the
+    union of observations spans the full 640x480 pixel area.  Edge poses use a
+    per-frame object-point subset: only board points that project inside both
+    cameras are retained, avoiding clipped/incorrect correspondences.
     """
     image_size = (640, 480)
     K_left = np.array([[620.0, 0.0, 319.5], [0.0, 620.0, 239.5], [0.0, 0.0, 1.0]])
@@ -129,8 +157,12 @@ def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> Synt
     baseline = 90.0
     T_left_world = np.eye(4, dtype=np.float64)
     T_right_world = make_transform(t=np.array([-baseline, 0.0, 0.0]))
-    board_points = make_grid_board(nx=11, ny=9, spacing=38.0)
-    board_poses = [
+    all_board_points = make_grid_board(nx=11, ny=9, spacing=38.0)
+    plate_left = ParallelPlateSyntheticParams(eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0)
+    plate_right = ParallelPlateSyntheticParams(eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0)
+
+    # Central poses — full board visible in both cameras
+    central_poses = [
         make_transform(R=_rot_y(-8.0) @ _rot_x(4.0), t=np.array([-62.0, -38.0, 720.0])),
         make_transform(R=_rot_y(8.0) @ _rot_x(-5.0), t=np.array([72.0, 42.0, 740.0])),
         make_transform(R=_rot_y(0.0) @ _rot_x(8.0), t=np.array([0.0, -62.0, 760.0])),
@@ -138,11 +170,9 @@ def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> Synt
         make_transform(R=_rot_y(9.0) @ _rot_x(4.0), t=np.array([-78.0, 58.0, 820.0])),
         make_transform(R=_rot_y(-4.0) @ _rot_x(10.0), t=np.array([16.0, 58.0, 700.0])),
     ]
-    plate_left = ParallelPlateSyntheticParams(eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0)
-    plate_right = ParallelPlateSyntheticParams(eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0)
-    return generate_parallel_plate_stereo_dataset(
-        object_points=board_points,
-        board_poses=board_poses,
+    central_dataset = generate_parallel_plate_stereo_dataset(
+        object_points=all_board_points,
+        board_poses=central_poses,
         K_left=K_left,
         K_right=K_right,
         T_left_world=T_left_world,
@@ -152,6 +182,59 @@ def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> Synt
         image_size=image_size,
         noise_std_px=noise_std_px,
         keep_oracle_rayfields=True,
+    )
+
+    # Edge-coverage poses — board shifts toward each image border.
+    # tx=±145 mm places the left camera's outermost board column at u=0/639.
+    # ty=±99 mm places the top/bottom board row at v=0/479.
+    # The right camera then clips at u≈86 for the horizontal poses (baseline
+    # geometry); only board points visible in both cameras are included.
+    edge_specs = [
+        (make_transform(R=_rot_y(6.0),  t=np.array([-145.0,   0.0, 650.0])), -145.0,   0.0, 650.0),
+        (make_transform(R=_rot_y(-6.0), t=np.array([ 145.0,   0.0, 650.0])),  145.0,   0.0, 650.0),
+        (make_transform(R=_rot_x(-6.0), t=np.array([   0.0, -99.0, 650.0])),    0.0, -99.0, 650.0),
+        (make_transform(R=_rot_x(6.0),  t=np.array([   0.0,  99.0, 650.0])),    0.0,  99.0, 650.0),
+    ]
+
+    board_poses = list(central_dataset.board_poses)
+    left_pixels: list[np.ndarray] = list(central_dataset.left_pixels)
+    right_pixels: list[np.ndarray] = list(central_dataset.right_pixels)
+    per_frame_obj: list[np.ndarray] = [all_board_points] * len(central_poses)
+
+    for pose, tx, ty, tz in edge_specs:
+        mask = _board_visibility_mask(all_board_points, tx, ty, tz, baseline, K_left, image_size)
+        visible_pts = all_board_points[mask]
+        edge_ds = generate_parallel_plate_stereo_dataset(
+            object_points=visible_pts,
+            board_poses=[pose],
+            K_left=K_left,
+            K_right=K_right,
+            T_left_world=T_left_world,
+            T_right_world=T_right_world,
+            plate_left=plate_left,
+            plate_right=plate_right,
+            image_size=image_size,
+            noise_std_px=noise_std_px,
+            keep_oracle_rayfields=True,
+        )
+        board_poses.append(pose)
+        left_pixels.append(edge_ds.left_pixels[0])
+        right_pixels.append(edge_ds.right_pixels[0])
+        per_frame_obj.append(visible_pts)
+
+    return SyntheticStereoDataset(
+        object_points=all_board_points,
+        board_poses=board_poses,
+        left_pixels=left_pixels,
+        right_pixels=right_pixels,
+        per_frame_object_points=per_frame_obj,
+        K_left=K_left,
+        K_right=K_right,
+        T_left_world=T_left_world,
+        T_right_world=T_right_world,
+        image_size=image_size,
+        oracle_left_params=plate_left,
+        oracle_right_params=plate_right,
     )
 
 

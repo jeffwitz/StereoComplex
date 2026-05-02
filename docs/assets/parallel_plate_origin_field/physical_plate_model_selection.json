@@ -4,75 +4,75 @@
   "combined": {
     "central_pinhole": {
       "parameters": 0,
-      "left_support_rms_mm": 2.691002571244926,
-      "right_support_rms_mm": 2.846753352129366,
-      "support_rms_mean_mm": 2.768877961687146,
-      "left_full_rms_mm": 4.033649035560001,
-      "right_full_rms_mm": 3.3559838972875062,
-      "full_rms_mean_mm": 3.6948164664237533,
-      "aic_sum": -3290.0945106773797,
-      "bic_sum": -3290.0945106773797,
+      "left_support_rms_mm": 2.797740237260708,
+      "right_support_rms_mm": 2.9792863435943846,
+      "support_rms_mean_mm": 2.8885132904275466,
+      "left_full_rms_mm": 4.04770927365234,
+      "right_full_rms_mm": 3.372024437752295,
+      "full_rms_mean_mm": 3.709866855702318,
+      "aic_sum": -415.55293043477263,
+      "bic_sum": -415.55293043477263,
       "left_parameters": {},
       "right_parameters": {}
     },
     "central_brown_conrady": {
       "parameters": 10,
-      "left_support_rms_mm": 2.0362044959157846,
-      "right_support_rms_mm": 2.0007702323901,
-      "support_rms_mean_mm": 2.0184873641529424,
-      "left_full_rms_mm": 2.953034114703175,
-      "right_full_rms_mm": 2.4199809759270017,
-      "full_rms_mean_mm": 2.6865075453150884,
-      "aic_sum": -11390.238764153832,
-      "bic_sum": -11322.5763803513,
+      "left_support_rms_mm": 2.0864048272702855,
+      "right_support_rms_mm": 2.065626721215109,
+      "support_rms_mean_mm": 2.0760157742426975,
+      "left_full_rms_mm": 2.93205650831749,
+      "right_full_rms_mm": 2.478964052776072,
+      "full_rms_mean_mm": 2.7055102805467808,
+      "aic_sum": -11695.628939526337,
+      "bic_sum": -11625.06404305476,
       "left_parameters": {
-        "k1": 0.12264455973671715,
-        "k2": -0.6430001442175016,
-        "p1": -0.0024322674715475502,
-        "p2": -0.005307745597437308,
-        "k3": 0.9999999999999994
+        "k1": 0.12040448492734394,
+        "k2": -0.6271017414844215,
+        "p1": -0.002243470789901819,
+        "p2": -0.005152953861122012,
+        "k3": 0.999999999999976
       },
       "right_parameters": {
-        "k1": 0.11182570741916945,
-        "k2": -0.637578594948154,
-        "p1": -0.00304836534222193,
-        "p2": -0.0030443172485393284,
-        "k3": 0.999999999999999
+        "k1": 0.10798409406058039,
+        "k2": -0.628821154556032,
+        "p1": -0.002666716889613879,
+        "p2": -0.0033582125966901497,
+        "k3": 0.9999999999999892
       }
     },
     "pinhole_parallel_plate": {
       "parameters": 6,
-      "left_support_rms_mm": 0.002158474678975366,
-      "right_support_rms_mm": 0.0034519503357000976,
-      "support_rms_mean_mm": 0.002805212507337732,
-      "left_full_rms_mm": 0.03406586485419651,
-      "right_full_rms_mm": 0.05423067443371128,
-      "full_rms_mean_mm": 0.044148269643953894,
-      "aic_sum": -148688.5461603353,
-      "bic_sum": -148647.9487300538,
+      "left_support_rms_mm": 0.0006792319356705224,
+      "right_support_rms_mm": 0.0006021162266829909,
+      "support_rms_mean_mm": 0.0006406740811767567,
+      "left_full_rms_mm": 0.010930761067584786,
+      "right_full_rms_mm": 0.013141148968888535,
+      "full_rms_mean_mm": 0.01203595501823666,
+      "aic_sum": -247310.49322249554,
+      "bic_sum": -247268.1542846126,
       "left_parameters": {
-        "alpha_deg": 13.01297785350388,
-        "beta_deg": 5.005060953310709,
-        "thickness_mm": 15.982189360471308,
+        "alpha_deg": 13.001433822252094,
+        "beta_deg": 5.000920960488549,
+        "thickness_mm": 15.997088027535591,
         "eta": 1.5,
         "d1_mm": 80.0
       },
       "right_parameters": {
-        "alpha_deg": 10.043718471997984,
-        "beta_deg": 7.012450058873329,
-        "thickness_mm": 13.96892294237271,
+        "alpha_deg": 10.005870335073654,
+        "beta_deg": 7.001825181448051,
+        "thickness_mm": 13.995903264196977,
         "eta": 1.5,
         "d1_mm": 80.0
       }
     }
   },
   "reconstruction": {
-    "central_rms_3d_mm": 2.5402202089104593,
-    "brown_rms_3d_mm": 3.8140766617361566,
-    "zernike_rms_3d_mm": 0.003343730740054447,
-    "plate_rms_3d_mm": 0.010087540757996324,
-    "oracle_rms_3d_mm": 1.2955234050291253e-11,
-    "brown_ray_gap_rms_mm": 0.1973963329291726,
-    "plate_ray_gap_rms_mm": 0.0006238455652219571
+    "central_rms_3d_mm": 2.712244899683496,
+    "brown_rms_3d_mm": 3.6239572795027852,
+    "zernike_rms_3d_mm": 0.002050247760161893,
+    "plate_rms_3d_mm": 0.0018095514788211806,
+    "oracle_rms_3d_mm": 1.1297048382965234e-11,
+    "brown_ray_gap_rms_mm": 0.21045925178726463,
+    "plate_ray_gap_rms_mm": 6.051181872117355e-05
   }
 }

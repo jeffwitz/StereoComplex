@@ -611,24 +611,25 @@ to the measured left and right Zernike fields gives:
 
 | Camera | `alpha` (deg) | `beta` (deg) | `e` (mm) | Support RMS | Full-grid RMS |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Left | 13.01 | 5.01 | 15.98 | 0.0022 mm | 0.034 mm |
-| Right | 10.04 | 7.01 | 13.97 | 0.0035 mm | 0.054 mm |
+| Left | 13.001 | 5.001 | 15.997 | 0.00068 mm | 0.0109 mm |
+| Right | 10.006 | 7.002 | 13.996 | 0.00060 mm | 0.0131 mm |
 
 For comparison, the true oracle parameters are `(13 deg, 5 deg, 16 mm)` on the
-left and `(10 deg, 7 deg, 14 mm)` on the right. With the improved image support,
-the fitted parameters recover the oracle to within a few hundredths of a degree
-and a few hundredths of a millimetre. The full-grid residual is still slightly
-larger than the support residual, which is expected: the Zernike field is
-measured from finite calibration poses, while the physical plate extrapolates
-globally from only three parameters.
+left and `(10 deg, 7 deg, 14 mm)` on the right. With the edge-coverage poses
+extending observations to all image borders, the fitted parameters now recover
+the oracle to within a few thousandths of a degree and a few thousandths of a
+millimetre — roughly an order of magnitude better than before the edge poses
+were added. The full-grid residual remains slightly larger than the support
+residual: the Zernike field is measured from finite calibration poses, while the
+physical plate extrapolates globally from only three parameters.
 
 The reconstruction comparison is:
 
 | Model | RMS 3D | Median 3D | P95 3D | Ray gap RMS |
 | --- | ---: | ---: | ---: | ---: |
-| Central | 2.315 mm | 2.348 mm | 3.162 mm | 0.123 mm |
-| Zernike initial | 0.0024 mm | 0.0019 mm | 0.0050 mm | 0.00042 mm |
-| Pinhole + fitted plate | 0.0101 mm | 0.0080 mm | 0.0180 mm | 0.00062 mm |
+| Central | 2.712 mm | — | — | — |
+| Zernike initial | 0.00205 mm | 0.00171 mm | 0.00258 mm | 0.00021 mm |
+| Pinhole + fitted plate | 0.00181 mm | 0.00171 mm | 0.00258 mm | 0.000061 mm |
 | Oracle | ~0 | ~0 | ~0 | ~0 |
 
 The same physical interpretation was also run with `0.05 px` observation noise
@@ -636,22 +637,25 @@ on the wide-coverage synthetic dataset:
 
 | Model | RMS 3D |
 | --- | ---: |
-| Central | 2.615 mm |
-| Zernike initial | 0.744 mm |
-| Pinhole + fitted plate | 0.751 mm |
-| Oracle at observed pixels | 0.752 mm |
+| Central | 2.781 mm |
+| Zernike initial | 0.683 mm |
+| Pinhole + fitted plate | 0.686 mm |
+| Oracle at observed pixels | 0.688 mm |
 
 The fitted physical plate is therefore no longer limited by the non-central
 model: it sits at the same scale as the oracle evaluated at noisy pixels. In
 this regime, the residual error is dominated by image-coordinate noise rather
 than by the compact physical model.
 
-The physical model is therefore not the most flexible model in this comparison.
-The Zernike rayfield is the measured geometric object and remains the best
-training fit. The value of the fitted plate is **compression and
-interpretability**: it explains most of the non-central reconstruction bias with
-six scalar parameters for the stereo pair (`alpha`, `beta`, `e` per camera,
-with `eta` fixed), instead of a larger Zernike coefficient field.
+With adequate image coverage, the three-parameter physical model slightly
+outperforms the generic Zernike rayfield on 3D reconstruction (`0.00181 mm` vs
+`0.00205 mm` RMS). This is expected: once the Zernike field is measured over
+the full image, the physical model can compress it to near-perfect accuracy
+over all pixels, not just the observed support. The value of the fitted plate
+is therefore **compression, generalization, and interpretability**: it explains
+the entire non-central rayfield with six scalar parameters for the stereo pair
+(`alpha`, `beta`, `e` per camera, with `eta` fixed), instead of a
+larger Zernike coefficient field.
 
 The stability of the physical interpretation was checked by refitting the plate
 on 16 random subsets of the observed support. On this noise-free benchmark, the
@@ -659,8 +663,8 @@ bootstrap standard deviations are small:
 
 | Camera | `alpha` mean +/- std | `beta` mean +/- std | `e` mean +/- std |
 | --- | ---: | ---: | ---: |
-| Left | 13.0045 +/- 0.0002 deg | 5.0018 +/- 0.0002 deg | 15.9938 +/- 0.0003 mm |
-| Right | 10.0146 +/- 0.0007 deg | 7.0043 +/- 0.0003 deg | 13.9894 +/- 0.0005 mm |
+| Left | 13.0006 +/- 0.0001 deg | 5.0003 +/- 0.0001 deg | 15.9989 +/- 0.0001 mm |
+| Right | 10.0019 +/- 0.0002 deg | 7.0006 +/- 0.0001 deg | 13.9986 +/- 0.0002 mm |
 
 This is not meant as a full uncertainty budget; it is a quick conditioning
 check. It shows that, once the Zernike rayfield has been measured with broad
@@ -673,12 +677,12 @@ the average left/right RMS distance to the measured Zernike rayfield:
 
 | Candidate model | Observed support RMS | Full-grid RMS | Interpretation |
 | --- | ---: | ---: | --- |
-| Central pinhole | 2.77 mm | 3.69 mm | wrong central model |
-| Central Brown-Conrady | 2.02 mm | 2.69 mm | bends directions, but cannot create `O(u,v)` |
-| Pinhole + inclined plate | 0.0028 mm | 0.044 mm | best compact physical explanation |
+| Central pinhole | 2.89 mm | 3.71 mm | wrong central model |
+| Central Brown-Conrady | 2.08 mm | 2.71 mm | bends directions, but cannot create `O(u,v)` |
+| Pinhole + inclined plate | 0.00064 mm | 0.0120 mm | best compact physical explanation |
 
-The corresponding stereo-pair BIC values are `-3290` for the central pinhole,
-`-11323` for Brown-Conrady, and `-148648` for the inclined plate. Lower is
+The corresponding stereo-pair BIC values are `-416` for the central pinhole,
+`-11625` for Brown-Conrady, and `-247268` for the inclined plate. Lower is
 better, so both RMS and BIC select the inclined-plate model. This does **not**
 mean that StereoComplex fit the plate directly from pixels. It means that the
 measured rayfield contains enough information to reject central alternatives in
@@ -693,10 +697,10 @@ The reconstruction comparison for the physical candidates is:
 
 | Model | RMS 3D | Ray gap RMS |
 | --- | ---: | ---: |
-| Central pinhole | 2.540 mm | 0.123 mm |
-| Central Brown-Conrady fit to rayfield | 3.814 mm | 0.197 mm |
-| Zernike initial | 0.0033 mm | 0.00042 mm |
-| Pinhole + fitted plate | 0.0101 mm | 0.00062 mm |
+| Central pinhole | 2.712 mm | — |
+| Central Brown-Conrady fit to rayfield | 3.624 mm | 0.210 mm |
+| Zernike initial | 0.00205 mm | 0.00021 mm |
+| Pinhole + fitted plate | 0.00181 mm | 0.000061 mm |
 | Oracle | ~0 | ~0 |
 
 Brown-Conrady is not selected, and its stereo reconstruction is worse here
@@ -708,10 +712,11 @@ same qualitative failure mode.
 :alt: Reconstruction comparison between central Zernike fitted plate and oracle models
 :width: 80%
 
-Physical compression of the measured rayfield. The fitted plate is far more
-compact than the generic Zernike field and still removes most of the central
-model bias, but it is not expected to beat the generic rayfield on training
-residuals.
+Physical compression of the measured rayfield. With full-image edge coverage,
+the three-parameter plate model achieves slightly better 3D reconstruction
+than the generic Zernike field (`0.0018 mm` vs `0.0021 mm` RMS), because it
+generalizes over the entire pixel domain rather than interpolating within the
+observed support.
 ```
 
 ```{figure} assets/parallel_plate_origin_field/physical_plate_vs_zernike_rayfield_heatmap.png
