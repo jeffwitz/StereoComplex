@@ -146,10 +146,11 @@ def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> Synt
     more of the image.
 
     Six central poses keep the full 11x9 board within both cameras.  Four
-    axis-aligned edge poses shift the board to each image border so that the
-    union of observations spans the full 640x480 pixel area.  Edge poses use a
-    per-frame object-point subset: only board points that project inside both
-    cameras are retained, avoiding clipped/incorrect correspondences.
+    axis-aligned paired edge poses cover the top/bottom/right image borders.
+    One additional left-only monocular frame (empty right_pixels sentinel)
+    fills the left-edge gap that paired stereo geometry cannot reach:
+    u_min_paired = baseline * fx / z = 90 * 620 / 650 ≈ 86 px.  The total is
+    11 frames; only the monocular frame contributes no right-camera residuals.
     """
     image_size = (640, 480)
     K_left = np.array([[620.0, 0.0, 319.5], [0.0, 620.0, 239.5], [0.0, 0.0, 1.0]])
@@ -184,14 +185,20 @@ def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> Synt
         keep_oracle_rayfields=True,
     )
 
-    # Edge-coverage poses — board shifts toward each image border.
-    # tx=±145 mm places the left camera's outermost board column at u=0/639.
-    # ty=±99 mm places the top/bottom board row at v=0/479.
-    # The right camera then clips at u≈86 for the horizontal poses (baseline
-    # geometry); only board points visible in both cameras are included.
+    # Paired edge poses.  The mask uses the translation only (pinhole approx).
+    # Rotations are chosen so that after the plate model the extreme board
+    # points remain inside the image (plate shifts can push marginal pinhole
+    # pixels outside the sensor boundary and trigger boundary-clipping in
+    # project_point_with_parallel_plate, corrupting the observation).
+    # Left  (tx=-145, rot_y=+6°): extreme left board column shifts from
+    #   u_pinhole≈0 to u_pinhole≈10 px, u_plate stays above 0.
+    # Right (tx=+143, no rotation): board_x=+190 → u_plate≈638.6 px (safe).
+    # Top   (ty=-99, rot_x=-6°): extreme top row shifts from v_pinhole≈0.4 px
+    #   to v_plate≈6.6 px (safe without clipping).
+    # Bottom (ty=+99, rot_x=+6°): symmetric.
     edge_specs = [
         (make_transform(R=_rot_y(6.0),  t=np.array([-145.0,   0.0, 650.0])), -145.0,   0.0, 650.0),
-        (make_transform(R=_rot_y(-6.0), t=np.array([ 145.0,   0.0, 650.0])),  145.0,   0.0, 650.0),
+        (make_transform(t=np.array([ 143.0,   0.0, 650.0])),                   143.0,   0.0, 650.0),
         (make_transform(R=_rot_x(-6.0), t=np.array([   0.0, -99.0, 650.0])),    0.0, -99.0, 650.0),
         (make_transform(R=_rot_x(6.0),  t=np.array([   0.0,  99.0, 650.0])),    0.0,  99.0, 650.0),
     ]
@@ -221,6 +228,32 @@ def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> Synt
         left_pixels.append(edge_ds.left_pixels[0])
         right_pixels.append(edge_ds.right_pixels[0])
         per_frame_obj.append(visible_pts)
+
+    # Left-only monocular frame: board at tx=-138 mm with ALL columns.
+    # tx=-138 (not -145) keeps board_x=-190 → u_plate≈1.8 px (safe); at -145
+    # the plate model clips that column to u=0, corrupting the observation.
+    # The left camera sees u_left ∈ [~2, ~370] px — fills the [0, ~86] gap
+    # that paired stereo cannot reach (u_min_paired ≈ 86 px at z=650 mm).
+    # right_pixels is an empty (0×2) sentinel; fit_stereo_zernike_origin_field
+    # skips right-camera residuals for frames where right_pixels.shape[0] == 0.
+    left_only_pose = make_transform(t=np.array([-138.0, 0.0, 650.0]))
+    left_only_ds = generate_parallel_plate_stereo_dataset(
+        object_points=all_board_points,
+        board_poses=[left_only_pose],
+        K_left=K_left,
+        K_right=K_right,
+        T_left_world=T_left_world,
+        T_right_world=T_right_world,
+        plate_left=plate_left,
+        plate_right=plate_right,
+        image_size=image_size,
+        noise_std_px=noise_std_px,
+        keep_oracle_rayfields=False,
+    )
+    board_poses.append(left_only_pose)
+    left_pixels.append(left_only_ds.left_pixels[0])
+    right_pixels.append(np.zeros((0, 2), dtype=np.float64))
+    per_frame_obj.append(all_board_points)
 
     return SyntheticStereoDataset(
         object_points=all_board_points,

@@ -161,7 +161,10 @@ def fit_stereo_zernike_origin_field(
         uvL_arr = np.asarray(uvL, dtype=np.float64).reshape(-1, 2)
         uvR_arr = np.asarray(uvR, dtype=np.float64).reshape(-1, 2)
         P_L_arr = np.asarray(P_L, dtype=np.float64).reshape(-1, 3)
-        if uvL_arr.shape != uvR_arr.shape or uvL_arr.shape[0] != P_L_arr.shape[0]:
+        is_left_only = uvR_arr.shape[0] == 0
+        if not is_left_only and uvL_arr.shape != uvR_arr.shape:
+            raise ValueError("inconsistent observation shapes")
+        if uvL_arr.shape[0] != P_L_arr.shape[0]:
             raise ValueError("inconsistent observation shapes")
         frame_data.append((uvL_arr, uvR_arr))
 
@@ -173,9 +176,13 @@ def fit_stereo_zernike_origin_field(
     d0_right_per_frame: list[np.ndarray] = []
     for uvL_arr, uvR_arr in frame_data:
         A_left_per_frame.append(left0.basis(uvL_arr[:, 0], uvL_arr[:, 1]))
-        A_right_per_frame.append(right0.basis(uvR_arr[:, 0], uvR_arr[:, 1]))
         d0_left_per_frame.append(left0.direction(uvL_arr[:, 0], uvL_arr[:, 1]))
-        d0_right_per_frame.append(right0.direction(uvR_arr[:, 0], uvR_arr[:, 1]))
+        if uvR_arr.shape[0] > 0:
+            A_right_per_frame.append(right0.basis(uvR_arr[:, 0], uvR_arr[:, 1]))
+            d0_right_per_frame.append(right0.direction(uvR_arr[:, 0], uvR_arr[:, 1]))
+        else:
+            A_right_per_frame.append(np.zeros((0, n_terms), dtype=np.float64))
+            d0_right_per_frame.append(np.zeros((0, 3), dtype=np.float64))
     _gauge_left = config_left.enforce_transverse_gauge
     _gauge_right = config_right.enforce_transverse_gauge
 
@@ -284,11 +291,12 @@ def fit_stereo_zernike_origin_field(
         t_RL = T_RL_current[:3, 3]
         parts: list[np.ndarray] = []
         for i, ((uvL_arr, uvR_arr), P_L_arr) in enumerate(zip(frame_data, P_left_current, strict=True)):
-            P_R_arr = (R_RL @ P_L_arr.T).T + t_RL.reshape(1, 3)
             O_L, d_L = _ray_cached(A_left_per_frame[i], d0_left_per_frame[i], left_origin, left_direction, _gauge_left)
-            O_R, d_R = _ray_cached(A_right_per_frame[i], d0_right_per_frame[i], right_origin, right_direction, _gauge_right)
             parts.append(_point_line_residual(P_L_arr, O_L, d_L).reshape(-1))
-            parts.append(_point_line_residual(P_R_arr, O_R, d_R).reshape(-1))
+            if uvR_arr.shape[0] > 0:
+                P_R_arr = (R_RL @ P_L_arr.T).T + t_RL.reshape(1, 3)
+                O_R, d_R = _ray_cached(A_right_per_frame[i], d0_right_per_frame[i], right_origin, right_direction, _gauge_right)
+                parts.append(_point_line_residual(P_R_arr, O_R, d_R).reshape(-1))
         if sqrt_reg > 0:
             reg_left = (np.sqrt(weights)[:, None] * left_origin).reshape(-1)
             reg_right = (np.sqrt(weights)[:, None] * right_origin).reshape(-1)
@@ -325,11 +333,12 @@ def fit_stereo_zernike_origin_field(
 
     residual_norms: list[np.ndarray] = []
     for (uvL_arr, uvR_arr), P_L_arr in zip(frame_data, P_left_final, strict=True):
-        P_R_arr = (R_RL @ P_L_arr.T).T + t_RL.reshape(1, 3)
         O_L, d_L = left_field.ray(uvL_arr[:, 0], uvL_arr[:, 1])
-        O_R, d_R = right_field.ray(uvR_arr[:, 0], uvR_arr[:, 1])
         residual_norms.append(np.linalg.norm(_point_line_residual(P_L_arr, O_L, d_L), axis=1))
-        residual_norms.append(np.linalg.norm(_point_line_residual(P_R_arr, O_R, d_R), axis=1))
+        if uvR_arr.shape[0] > 0:
+            P_R_arr = (R_RL @ P_L_arr.T).T + t_RL.reshape(1, 3)
+            O_R, d_R = right_field.ray(uvR_arr[:, 0], uvR_arr[:, 1])
+            residual_norms.append(np.linalg.norm(_point_line_residual(P_R_arr, O_R, d_R), axis=1))
     all_norms = np.concatenate(residual_norms, axis=0)
     rms, median, p95 = _residual_stats(all_norms)
     return StereoZernikeOriginFieldFitResult(

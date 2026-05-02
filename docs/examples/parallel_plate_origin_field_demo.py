@@ -48,6 +48,23 @@ def _left_camera_truth(dataset):
     return np.concatenate(pts, axis=0)
 
 
+def _paired_pixels_and_truth(dataset):
+    """Return (uv_left, uv_right, truth) using only frames where both cameras observed."""
+    lefts, rights, truths = [], [], []
+    for i, (lp, rp) in enumerate(zip(dataset.left_pixels, dataset.right_pixels)):
+        if rp.shape[0] == 0:
+            continue
+        lefts.append(lp)
+        rights.append(rp)
+        obj = (
+            dataset.per_frame_object_points[i]
+            if dataset.per_frame_object_points is not None
+            else dataset.object_points
+        )
+        truths.append(transform_points(dataset.T_left_world, transform_points(dataset.board_poses[i], obj)))
+    return np.concatenate(lefts, axis=0), np.concatenate(rights, axis=0), np.concatenate(truths, axis=0)
+
+
 def _fit_case(noise_std_px: float):
     dataset = make_default_parallel_plate_dataset(noise_std_px=noise_std_px)
     dataset_clean = make_default_parallel_plate_dataset(noise_std_px=0.0)
@@ -309,11 +326,11 @@ def _fit_physical_plate_case(case):
             "stereo_transform": dataset.T_right_left,
         },
     )()
-    uv_left = np.concatenate(dataset.left_pixels, axis=0)
-    uv_right = np.concatenate(dataset.right_pixels, axis=0)
+    uv_left_paired = np.concatenate([lp for lp, rp in zip(dataset.left_pixels, dataset.right_pixels) if rp.shape[0] > 0], axis=0)
+    uv_right_paired = np.concatenate([rp for rp in dataset.right_pixels if rp.shape[0] > 0], axis=0)
     plate_reconstruction = reconstruct_points_with_origin_fields(
-        uv_left,
-        uv_right,
+        uv_left_paired,
+        uv_right_paired,
         plate_model.left_field,
         plate_model.right_field,
         plate_model.stereo_transform,
@@ -354,9 +371,7 @@ def _fit_physical_plate_wide_coverage_case(noise_std_px=0.0):
         regularization=1e-3,
         max_nfev=200,
     )
-    uv_left = np.concatenate(dataset.left_pixels, axis=0)
-    uv_right = np.concatenate(dataset.right_pixels, axis=0)
-    truth = _left_camera_truth(dataset)
+    uv_left, uv_right, truth = _paired_pixels_and_truth(dataset)
     central = reconstruct_points_central_stereo(uv_left, uv_right, dataset.K_left, dataset.K_right, dataset.T_right_left)
     origin = reconstruct_points_with_origin_fields(
         uv_left,
@@ -862,16 +877,17 @@ def _physical_noisy_summary(case, physical):
 
 def _physical_model_selection_summary(case, model_selection):
     truth = case["truth"]
+    uv_left_ms, uv_right_ms, _ = _paired_pixels_and_truth(case["dataset"])
     brown_reconstruction = reconstruct_points_with_origin_fields(
-        np.concatenate(case["dataset"].left_pixels, axis=0),
-        np.concatenate(case["dataset"].right_pixels, axis=0),
+        uv_left_ms,
+        uv_right_ms,
         model_selection["brown_model"].left_field,
         model_selection["brown_model"].right_field,
         case["dataset"].T_right_left,
     )
     selected_plate_reconstruction = reconstruct_points_with_origin_fields(
-        np.concatenate(case["dataset"].left_pixels, axis=0),
-        np.concatenate(case["dataset"].right_pixels, axis=0),
+        uv_left_ms,
+        uv_right_ms,
         model_selection["plate_model"].left_field,
         model_selection["plate_model"].right_field,
         case["dataset"].T_right_left,
