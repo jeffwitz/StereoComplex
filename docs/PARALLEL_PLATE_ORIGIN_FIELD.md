@@ -671,8 +671,14 @@ image support, the physical compression step is numerically stable.
 
 Finally, the ray-space fit is now exposed as a generic optical model-selection
 diagnostic. The Zernike rayfield is the measured object; the physical candidates
-are judged by how well they compress and explain it. The table below reports
-the average left/right RMS distance to the measured Zernike rayfield:
+are judged by how well they compress and explain it. The mathematical
+definitions of the central pinhole, central Brown-Conrady, inclined
+parallel-plate, CMO channel, two-plane residual, AIC and BIC are centralized in
+[Identify My Optics](IDENTIFY_MY_OPTICS.md#mathematical-model-catalogue). This
+page keeps only the inclined-plate benchmark results.
+
+The table below reports the average left/right RMS distance to the measured
+Zernike rayfield:
 
 | Candidate model | Observed support RMS | Full-grid RMS | Interpretation |
 | --- | ---: | ---: | --- |
@@ -686,11 +692,10 @@ better, so both RMS and BIC select the inclined-plate model. This does **not**
 mean that StereoComplex fit the plate directly from pixels. It means that the
 measured rayfield contains enough information to reject central alternatives in
 ray space.
-
-The Brown-Conrady result is useful as a misspecification test. It has five
-parameters per camera and can bend directions, but it still emits every ray from
-one central point. On an inclined-plate oracle, the missing degree of freedom is
-the pixel-dependent origin field `O(u,v)`, so the residual remains structured.
+The Brown-Conrady row is a misspecification test: as defined in
+[Identify My Optics](IDENTIFY_MY_OPTICS.md#candidate-1-central-brown-conrady-stereo),
+it is central and therefore cannot reproduce the pixel-dependent origin field
+of the plate oracle.
 
 The reconstruction comparison for the physical candidates is:
 

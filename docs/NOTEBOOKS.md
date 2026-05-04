@@ -26,6 +26,7 @@ versioned directly in Git:
 | `03_rayfield_virtual_rectification.ipynb` | How a ray-field can be turned into virtual rectification maps and then reused with a classic dense stereo pipeline. | `03_rayfield_virtual_rectification.py` |
 | `04_parallel_plate_origin_field.ipynb` | How an inclined parallel-plate oracle creates non-central stereo data, renders ChArUco images with vignetting/blur/noise, and runs Zernike rayfield BA (`O(u,v)`, `d(u,v)`, poses, rig). | `04_parallel_plate_origin_field.py` |
 | `05_noncentral_calibration_from_images.ipynb` | Practical workflow: fit a non-central Zernike origin-field model from two image folders and a ChArUco board definition. | `05_noncentral_calibration_from_images.py` |
+| `06_cmo_model_selection.ipynb` | CMO workflow: generate a ChArUco CMO scene, measure generic Zernike `O(u,v), d(u,v)` rayfields, then select among pinhole, Brown-Conrady, plate, and CMO physical candidates. | `06_cmo_model_selection.py` |
 
 Use notebook 04 if you want to understand why and how the non-central model
 works on a controlled physical oracle. Use notebook 05 if you want the shortest
@@ -79,6 +80,17 @@ so you can replace `left_dir`, `right_dir`, and `board` with your own data.
 
 This notebook intentionally hides most of the research benchmark details. For
 the scientific validation and complete BA discussion, use notebook 04.
+
+### 06 CMO model selection
+
+Use this notebook if you want the ray-space model-selection story on a CMO-like
+optical system. It generates a ChArUco CMO scene from the shared
+`stereocomplex.physics` model, fits generic Zernike `O(u,v), d(u,v)` rayfields
+to the generated rays, and then compares physical candidates in ray space. The
+CMO generator and the CMO fitting candidate share the same Brown-Conrady and
+polynomial ray-aberration implementation.
+
+Scientific companion page: [CMO model selection](CMO_MODEL_SELECTION.md).
 
 ## Open locally
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from collections.abc import Callable
 
 import numpy as np
 
@@ -113,9 +112,9 @@ def pinhole_parallel_plate_ray_from_pixel(
     return parallel_plate_ray_from_pixel(u, v, K, _as_synthetic_params(params))
 
 
-def intersect_ray_with_z_plane(O: np.ndarray, d: np.ndarray, z: float) -> np.ndarray:
+def intersect_ray_with_z_plane(origin_points: np.ndarray, d: np.ndarray, z: float) -> np.ndarray:
     """Intersect one or more rays with the plane `z = constant`."""
-    origin = np.asarray(O, dtype=np.float64).reshape(-1, 3)
+    origin = np.asarray(origin_points, dtype=np.float64).reshape(-1, 3)
     direction = np.asarray(d, dtype=np.float64).reshape(-1, 3)
     denom = direction[:, 2]
     if np.any(np.abs(denom) < 1e-12):
@@ -130,14 +129,14 @@ def _eval_rayfield(
     v: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
     if hasattr(field, "ray"):
-        O, d = field.ray(u, v)
+        origins, d = field.ray(u, v)
     elif callable(field):
-        O, d = field(u, v)
+        origins, d = field(u, v)
     else:
         raise TypeError("rayfield must expose .ray(u, v) or be callable")
-    O = np.asarray(O, dtype=np.float64).reshape(-1, 3)
+    origins = np.asarray(origins, dtype=np.float64).reshape(-1, 3)
     d = np.asarray(d, dtype=np.float64).reshape(-1, 3)
-    return O, d / np.linalg.norm(d, axis=1, keepdims=True)
+    return origins, d / np.linalg.norm(d, axis=1, keepdims=True)
 
 
 def _grid_pixels(image_size: tuple[int, int], grid_shape: tuple[int, int]) -> np.ndarray:

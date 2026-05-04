@@ -36,6 +36,7 @@ Motivation: in many practical stereo systems, calibration accuracy is limited by
 4. **Experimental non-central stereo calibration.** The non-central backend fits a Zernike origin field ``O(u,v)``, so each pixel defines a 3D line instead of sharing one optical center.
 5. **Synthetic non-central oracle benchmark.** An inclined parallel-plate model generates physically plausible non-central stereo data without fitting plate parameters.
 6. **Practical non-central image workflow.** A public experimental API fits a Zernike origin-field model directly from two image folders.
+7. **Ray-space optical model selection.** A measured Zernike rayfield can be used to compare compact physical hypotheses such as central Brown-Conrady, inclined plate, and CMO polynomial-channel models.
 
 .. rubric:: Ray-field terminology
 
@@ -179,6 +180,9 @@ start with the notebook series:
 - `05_noncentral_calibration_from_images.ipynb` shows the practical image-folder
   workflow: left/right images plus a ChArUco board definition to a fitted
   non-central Zernike origin-field model.
+- `06_cmo_model_selection.ipynb` demonstrates CMO rayfield measurement and
+  optical model selection: ChArUco CMO generation, generic Zernike ``O,d``
+  fields, then BIC selection among pinhole, Brown, plate, and CMO candidates.
 
 Companion `.py` exports are stored next to the notebooks for quick inspection in
 any text editor.
@@ -200,21 +204,34 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 
 .. rubric:: Documentation map
 
-- I want a practical guide: :doc:`FIX_MY_CALIBRATION`
-- I want to run on my own stereo folders: :doc:`BRING_YOUR_OWN_DATA`
-- I want to calibrate a non-central stereo system from image folders: :doc:`NONCENTRAL_FROM_IMAGES`
-- I want alternatives and scope/positioning: :doc:`ALTERNATIVES_POSITIONING`
-- I want the full worked example (plots + overlays): :doc:`RAYFIELD_WORKED_EXAMPLE`
-- I want the notebook walkthroughs: :doc:`NOTEBOOKS`
-- I want stereo/3D metrics and baseline-in-pixels: :doc:`STEREO_RECONSTRUCTION`
-- I want multi-case robustness results: :doc:`ROBUSTNESS_SWEEP`
-- I want to load/export models and reconstruct via an API: :doc:`RECONSTRUCTION_API`
-- I want the public API contract: :doc:`PUBLIC_API`
-- I want compression robustness for 3D reconstruction: :doc:`COMPRESSION_RECONSTRUCTION`
-- I want the math and ray-based calibration: :doc:`RAYFIELD3D_RECONSTRUCTION`
-- I want dense stereo via virtual rectification (ray-field): :doc:`RAYFIELD_VIRTUAL_RECTIFY`
-- I want the scientific non-central oracle benchmark: :doc:`PARALLEL_PLATE_ORIGIN_FIELD`
-- Licensing: :doc:`LICENSE`
+- Getting started:
+  :doc:`START_HERE`,
+  :doc:`BRING_YOUR_OWN_DATA`,
+  :doc:`NONCENTRAL_FROM_IMAGES`,
+  :doc:`FIX_MY_CALIBRATION`,
+  :doc:`NOTEBOOKS`.
+- ChArUco and 2D refinement:
+  :doc:`CHARUCO_IDENTIFICATION`,
+  :doc:`RAYFIELD_WORKED_EXAMPLE`.
+- Ray-based calibration and reconstruction:
+  :doc:`STEREO_RECONSTRUCTION`,
+  :doc:`RECONSTRUCTION_API`,
+  :doc:`RAYFIELD3D_RECONSTRUCTION`,
+  :doc:`RAYFIELD_VIRTUAL_RECTIFY`.
+- Optical model identification and scientific benchmarks:
+  :doc:`IDENTIFY_MY_OPTICS`,
+  :doc:`PARALLEL_PLATE_ORIGIN_FIELD`,
+  :doc:`CMO_MODEL_SELECTION`,
+  :doc:`PYCASO_Z_SWEEP`,
+  :doc:`COMPRESSION_RECONSTRUCTION`,
+  :doc:`ROBUSTNESS_SWEEP`.
+- Reference:
+  :doc:`PUBLIC_API`,
+  :doc:`ARCHITECTURE`,
+  :doc:`DATASET_SPEC`,
+  :doc:`CONVENTIONS`,
+  :doc:`ALTERNATIVES_POSITIONING`,
+  :doc:`LICENSE`.
 
 .. toctree::
    :maxdepth: 2
@@ -225,12 +242,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
    BRING_YOUR_OWN_DATA
    NONCENTRAL_FROM_IMAGES
    FIX_MY_CALIBRATION
-   ALTERNATIVES_POSITIONING
    NOTEBOOKS
-   LICENSE
-   ARCHITECTURE
-   DATASET_SPEC
-   CONVENTIONS
 
 .. toctree::
    :maxdepth: 2
@@ -242,15 +254,34 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 
 .. toctree::
    :maxdepth: 2
-   :caption: Calibration / 3D
+   :caption: Ray-based calibration / 3D
    :hidden:
 
    STEREO_RECONSTRUCTION
-   ROBUSTNESS_SWEEP
-   COMPRESSION_RECONSTRUCTION
    RECONSTRUCTION_API
-   PUBLIC_API
    RAYFIELD3D_RECONSTRUCTION
    RAYFIELD_VIRTUAL_RECTIFY
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Optical models / benchmarks
+   :hidden:
+
+   IDENTIFY_MY_OPTICS
    PARALLEL_PLATE_ORIGIN_FIELD
+   CMO_MODEL_SELECTION
    PYCASO_Z_SWEEP
+   COMPRESSION_RECONSTRUCTION
+   ROBUSTNESS_SWEEP
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference
+   :hidden:
+
+   PUBLIC_API
+   ARCHITECTURE
+   DATASET_SPEC
+   CONVENTIONS
+   ALTERNATIVES_POSITIONING
+   LICENSE

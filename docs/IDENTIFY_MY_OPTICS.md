@@ -1,8 +1,61 @@
 # Identify My Optics
 
+Which optical model explains my measured rayfield?
+
 This tutorial shows how to use `select_physical_model_from_rayfield` to
 determine which physical optical model best explains a measured Zernike
 rayfield.
+
+## Short version
+
+StereoComplex does not first try to guess the optical model directly from the
+images. It uses the images to measure a generic rayfield, then asks which
+compact physical model explains that measured rayfield.
+
+```text
+ChArUco images
+      ↓
+2D detection and optional Ray2D refinement
+      ↓
+Measured Zernike rayfield: pixel → 3D line
+      ↓
+Physical candidates
+  - central pinhole stereo
+  - central Brown-Conrady stereo
+  - pinhole + inclined plate stereo
+  - CMO polynomial stereo channels
+      ↓
+Ray-space error + BIC
+      ↓
+Most plausible compact optical explanation
+```
+
+The central idea is:
+
+```text
+Measure the rayfield first; explain the optics second.
+```
+
+In French:
+
+```text
+Les points 2D servent à mesurer le champ de rayons ; le champ de rayons sert
+ensuite à identifier l'optique.
+```
+
+## Prerequisites
+
+Before reading the mathematical reference, keep these five ideas in mind:
+
+1. A **central** stereo camera assumes that all rays of one view pass through
+   one camera center.
+2. A **non-central** system allows each pixel to define its own 3D line.
+3. A **rayfield** is a function `pixel → 3D line`, written
+   `(u,v) → (O(u,v), d(u,v))`.
+4. A physical optical model is useful if it explains that measured rayfield
+   with few parameters.
+5. AIC/BIC compare fit quality against model complexity; a richer model must
+   reduce the residual enough to justify its extra parameters.
 
 ## Mental model
 
@@ -22,6 +75,485 @@ Think of the workflow in two stages:
 The two stages are independent. If the Zernike fit is good, the physical
 interpretation is reliable. If the Zernike fit is noisy, the physical
 interpretation will reflect that noise.
+
+## Read The Report Like An Engineer
+
+Start with the RMS columns, then use BIC to check whether the lower residual is
+worth the extra parameters.
+
+| Model behaviour | Engineering interpretation |
+| --- | --- |
+| `central_pinhole` has high RMS | The system is probably not well described by a pure central stereo model. |
+| `central_brown_conrady` improves RMS but remains high | Central distortion helps, but the model still cannot explain non-central origins. |
+| `pinhole_parallel_plate` has low RMS and wins BIC | The measured rayfield looks like a stereo system viewed through inclined plates. |
+| `cmo_polynomial_channel` has low RMS and wins BIC | The measured rayfield looks more like a CMO/effective sub-pupil model. |
+| Support RMS is low but full-grid RMS is high | The model explains observed board pixels but extrapolates poorly outside the calibration support. |
+
+Do not read the winner as an absolute truth. Read it as the most compact
+candidate among the models you tested. If all candidates have high residuals,
+the correct interpretation is: none of the proposed physical families explains
+the measured rayfield well enough.
+
+## Mathematical model catalogue
+
+This is the advanced reference definition of the physical candidates used by
+StereoComplex model selection. You do not need all of it for a first run.
+Benchmark pages such as
+[Inclined parallel-plate oracle](PARALLEL_PLATE_ORIGIN_FIELD.md) and
+[CMO model selection](CMO_MODEL_SELECTION.md) report experiments; the model
+families themselves are defined here.
+
+### Common stereo geometry
+
+The model-selection candidates are stereo optical models. Each candidate is
+defined for a left and a right channel, with explicit intrinsics and stereo
+geometry.
+
+For channel `c\in\{L,R\}`, the pixel intrinsic matrix is
+
+```{math}
+K_c=
+\begin{pmatrix}
+f_{x,c} & 0 & c_{x,c}\\
+0 & f_{y,c} & c_{y,c}\\
+0 & 0 & 1
+\end{pmatrix}.
+```
+
+The corresponding normalized pixel coordinate is
+
+```{math}
+\pi_{K_c}^{-1}(u_c,v_c)=
+\left(
+\frac{u_c-c_{x,c}}{f_{x,c}},
+\frac{v_c-c_{y,c}}{f_{y,c}}
+\right)
+=(x_{d,c},y_{d,c}).
+```
+
+The stereo transform maps left-camera coordinates to right-camera coordinates:
+
+```{math}
+T_{R\leftarrow L}=
+\begin{bmatrix}
+R_{R\leftarrow L} & t_{R\leftarrow L}\\
+0 & 1
+\end{bmatrix},
+\qquad
+B=\|t_{R\leftarrow L}\|.
+```
+
+`B` is the stereo baseline. In the current model-selection API, `K_L`, `K_R`
+and the stereo transform are supplied by the upstream calibration or by the
+synthetic benchmark. They are part of the model definition, but they are not
+re-estimated by `select_physical_model_from_rayfield`.
+
+The left model is evaluated in the left channel frame:
+
+```{math}
+\mathcal R_L(u_L,v_L)=
+\left(O_L(u_L,v_L),d_L(u_L,v_L)\right).
+```
+
+The right model is naturally evaluated in the right channel frame:
+
+```{math}
+\mathcal R_R^R(u_R,v_R)=
+\left(O_R^R(u_R,v_R),d_R^R(u_R,v_R)\right).
+```
+
+For stereo reconstruction or stereo ray comparison, the right ray is expressed
+in the left frame:
+
+```{math}
+O_R^L = R_{L\leftarrow R}O_R^R+t_{L\leftarrow R},
+\qquad
+d_R^L = R_{L\leftarrow R}d_R^R.
+```
+
+For a rectified symmetric toy rig one may write
+
+```{math}
+C_L=\left(-\frac{B}{2},0,0\right)^T,
+\qquad
+C_R=\left(+\frac{B}{2},0,0\right)^T,
+```
+
+but the implementation generally uses the full transform `T_{R\leftarrow L}`.
+
+The full stereo candidate should therefore be read as
+
+```{math}
+\mathcal M =
+\left(
+\mathcal R_L(\cdot;K_L,T_{R\leftarrow L},\theta_L),
+\mathcal R_R(\cdot;K_R,T_{R\leftarrow L},\theta_R)
+\right),
+```
+
+where `\theta_L,\theta_R` are the model-specific optical parameters. A future
+joint fit could promote `K_L,K_R,T_{R\leftarrow L}` into the optimized vector,
+but the documented ray-space model-selection benchmarks keep them fixed and
+fit only the physical candidate parameters.
+
+### Ray-space comparison
+
+After the intrinsic and stereo geometry have been specified, every candidate is
+evaluated as a pixel-to-line map
+
+```{math}
+\mathcal R_c(u_c,v_c)=\left(O_c(u_c,v_c),d_c(u_c,v_c)\right),
+\qquad \|d_c(u_c,v_c)\|=1.
+```
+
+The corresponding 3D line is
+
+```{math}
+X_c(\lambda)=O_c(u_c,v_c)+\lambda d_c(u_c,v_c).
+```
+
+The point `O_c` is a representative point on the line, not an observable by
+itself. Two origins that differ by a longitudinal displacement represent the
+same line:
+
+```{math}
+\left(O_c,d_c\right)\equiv\left(O_c+\lambda d_c,d_c\right).
+```
+
+StereoComplex compares a measured rayfield and a candidate by intersecting
+their lines with two reference planes in the same channel frame:
+
+```{math}
+A=\mathcal R_c\cap\Pi_{z_0},
+\qquad
+B=\mathcal R_c\cap\Pi_{z_1}.
+```
+
+For a measured Zernike rayfield `\widehat{\mathcal R}_{Z,c}` and a physical
+candidate `\mathcal R_{M,c}(\theta_c)`, the residual at pixel
+`p_k=(u_k,v_k)` is
+
+```{math}
+r_{c,k}(\theta_c)=
+\begin{bmatrix}
+A_{Z,c,k}-A_{M,c,k}(\theta_c)\\
+B_{Z,c,k}-B_{M,c,k}(\theta_c)
+\end{bmatrix}.
+```
+
+The fitted physical parameters for one channel solve
+
+```{math}
+\theta_c^\star =
+\arg\min_{\theta_c}
+\sum_k \left\|r_{c,k}(\theta_c)\right\|^2.
+```
+
+In the current implementation the selection report is built by fitting each
+channel independently and then comparing the same candidate family across
+channels. The benchmark tables may report left/right scores separately or their
+average. Raw ray origins are never compared directly.
+
+### Candidate 0: central pinhole stereo
+
+The central pinhole stereo model is defined by the two intrinsic matrices and
+the stereo baseline or transform:
+
+```{math}
+\mathcal M_{\mathrm{pinhole}} =
+\left(K_L,K_R,T_{R\leftarrow L}\right).
+```
+
+For channel `c`, let
+
+```{math}
+(x_c,y_c)=\pi_{K_c}^{-1}(u_c,v_c).
+```
+
+The channel-frame direction is
+
+```{math}
+d_{0,c}(u_c,v_c)=
+\frac{(x_c,y_c,1)^T}{\sqrt{x_c^2+y_c^2+1}}.
+```
+
+The left and right rays are
+
+```{math}
+\mathcal R_L(u_L,v_L)=\left(0,d_{0,L}(u_L,v_L)\right),
+```
+
+```{math}
+\mathcal R_R^R(u_R,v_R)=\left(0,d_{0,R}(u_R,v_R)\right),
+```
+
+with the right ray transformed to the left frame using `T_{L\leftarrow R}` when
+triangulating. The physical-model-selection parameter vector is empty:
+
+```{math}
+\theta_{\mathrm{pinhole}}=\varnothing.
+```
+
+The focal lengths and principal points are not absent; they are the fixed
+entries of `K_L` and `K_R`. The baseline is the fixed norm
+`B=\|t_{R\leftarrow L}\|`.
+
+### Candidate 1: central Brown-Conrady stereo
+
+The Brown-Conrady stereo model adds per-channel distortion parameters to the
+central pinhole stereo geometry:
+
+```{math}
+\mathcal M_{\mathrm{Brown}}=
+\left(
+K_L,K_R,T_{R\leftarrow L},
+\theta_{\mathrm{Brown},L},
+\theta_{\mathrm{Brown},R}
+\right),
+```
+
+with
+
+```{math}
+\theta_{\mathrm{Brown},c}=
+(k_{1,c},k_{2,c},p_{1,c},p_{2,c},k_{3,c}).
+```
+
+The focal lengths, principal points and baseline remain the fixed
+`K_L,K_R,T_{R\leftarrow L}` values. For channel `c`,
+`(x_{d,c},y_{d,c})=\pi_{K_c}^{-1}(u_c,v_c)` are interpreted as distorted
+normalized coordinates. The undistorted coordinates `(x_c,y_c)` satisfy
+
+```{math}
+x_{d,c} =
+x_c\left(1+k_{1,c}r_c^2+k_{2,c}r_c^4+k_{3,c}r_c^6\right)
++2p_{1,c}x_cy_c+p_{2,c}(r_c^2+2x_c^2),
+```
+
+```{math}
+y_{d,c} =
+y_c\left(1+k_{1,c}r_c^2+k_{2,c}r_c^4+k_{3,c}r_c^6\right)
++p_{1,c}(r_c^2+2y_c^2)+2p_{2,c}x_cy_c,
+```
+
+where `r_c^2=x_c^2+y_c^2`. The channel ray remains central:
+
+```{math}
+\mathcal R_c(u_c,v_c)=
+\left(
+0,
+\frac{(x_c,y_c,1)^T}{\sqrt{x_c^2+y_c^2+1}}
+\right).
+```
+
+Brown-Conrady can bend the direction field, but it cannot create a
+pixel-dependent origin field. It is therefore a useful misspecification test on
+non-central optics.
+
+### Candidate 2: pinhole stereo plus inclined parallel plates
+
+The inclined-plate stereo model keeps the same stereo intrinsics and baseline,
+but places a plate in front of each channel:
+
+```{math}
+\mathcal M_{\mathrm{plate}}=
+\left(
+K_L,K_R,T_{R\leftarrow L},
+\theta_{\mathrm{plate},L},
+\theta_{\mathrm{plate},R},
+\eta_L,\eta_R,d_{1,L},d_{1,R}
+\right).
+```
+
+The fitted per-channel parameters are
+
+```{math}
+\theta_{\mathrm{plate},c}=(\alpha_c,\beta_c,e_c).
+```
+
+The refractive index `\eta_c` and the first-interface distance `d_{1,c}` are
+fixed by default. For channel `c`, the pinhole direction before the plate is
+
+```{math}
+s_c(u_c,v_c)=
+\frac{(x_c,y_c,1)^T}{\sqrt{x_c^2+y_c^2+1}},
+\qquad
+(x_c,y_c)=\pi_{K_c}^{-1}(u_c,v_c).
+```
+
+The plate normal is
+
+```{math}
+q_c(\alpha_c,\beta_c)=
+\frac{(\tan\alpha_c,\tan\beta_c,1)^T}
+{\sqrt{\tan^2\alpha_c+\tan^2\beta_c+1}}.
+```
+
+Define
+
+```{math}
+c_c=q_c\cdot s_c,
+\qquad
+s_{\perp,c}=s_c-c_cq_c,
+\qquad
+\beta_{g,c}=\sqrt{1-\frac{\|s_{\perp,c}\|^2}{\eta_c^2}}.
+```
+
+The direction inside the plate, entry point, and exit point are
+
+```{math}
+s_{g,c}=\frac{s_{\perp,c}}{\eta_c}+\beta_{g,c}q_c,
+\qquad
+I_{1,c}=\frac{d_{1,c}}{q_c\cdot s_c}s_c,
+\qquad
+I_{2,c}=I_{1,c}+\frac{e_c}{\beta_{g,c}}s_{g,c}.
+```
+
+The channel ray is
+
+```{math}
+\mathcal R_{\mathrm{plate},c}(u_c,v_c)=
+\left(I_{2,c}(u_c,v_c),s_c(u_c,v_c)\right).
+```
+
+The exit point `I_{2,c}` is not set to zero. Changing `d_{1,c}` moves
+`I_{2,c}` along the emergent line and is therefore a longitudinal gauge for a
+parallel plate; this is why `d_{1,c}` is fixed in the default fit. The baseline
+still comes from `T_{R\leftarrow L}` and is not replaced by the plate thickness.
+
+### Candidate 3: CMO polynomial stereo channels
+
+The CMO stereo model uses effective sub-pupil origins rather than a conventional
+large camera-center baseline. The fixed and fitted quantities are:
+
+```{math}
+\mathcal M_{\mathrm{CMO}}=
+\left(
+K_L,K_R,
+R_L,R_R,
+O_L,O_R,
+\theta_{\mathrm{dist},L},\theta_{\mathrm{dist},R},
+\theta_{\mathrm{aberr},L},\theta_{\mathrm{aberr},R}
+\right).
+```
+
+For channel `c`, the intrinsic matrix is
+
+```{math}
+K_c=
+\begin{pmatrix}
+f_{x,c} & 0 & c_{x,c}\\
+0 & f_{y,c} & c_{y,c}\\
+0 & 0 & 1
+\end{pmatrix}.
+```
+
+The effective CMO stereo baseline is the distance between fitted sub-pupil
+origins:
+
+```{math}
+B_{\mathrm{CMO}}=\|O_R-O_L\|.
+```
+
+In the current independent channel fit, each channel estimates its own
+effective origin
+
+```{math}
+O_c=(O_{x,c},O_{y,c},0)^T,
+```
+
+so the reported stereo CMO baseline is reconstructed afterwards from the left
+and right fitted origins. The current fittable candidate keeps `K_c`, image size
+`(W,H)` and channel orientation `R_c` fixed, and fits
+
+```{math}
+\theta_{\mathrm{CMO},c}=
+\left[
+O_{x,c},O_{y,c},
+k_{1,c},k_{2,c},p_{1,c},p_{2,c},k_{3,c},
+a^x_{1,c},\ldots,a^x_{m,c},
+a^y_{1,c},\ldots,a^y_{m,c}
+\right].
+```
+
+The pixel-to-direction pipeline is
+
+```{math}
+(x_{d,c},y_{d,c})=\pi_{K_c}^{-1}(u_c,v_c),
+```
+
+```{math}
+(x_c,y_c)=D_{\mathrm{Brown}}^{-1}
+(x_{d,c},y_{d,c};
+k_{1,c},k_{2,c},p_{1,c},p_{2,c},k_{3,c}),
+```
+
+```{math}
+\Delta x_c(x_c,y_c)=
+\sum_{\ell=1}^{m} a^x_{\ell,c}\phi_\ell(x_c,y_c),
+\qquad
+\Delta y_c(x_c,y_c)=
+\sum_{\ell=1}^{m} a^y_{\ell,c}\phi_\ell(x_c,y_c).
+```
+
+The channel-frame direction is
+
+```{math}
+d_{\mathrm{cam},c}(u_c,v_c)=
+\frac{(x_c+\Delta x_c,\;y_c+\Delta y_c,\;1)^T}
+{\sqrt{(x_c+\Delta x_c)^2+(y_c+\Delta y_c)^2+1}}.
+```
+
+The output ray is
+
+```{math}
+\mathcal R_{\mathrm{CMO},c}(u_c,v_c)=
+\left(
+O_c,
+R_c\,d_{\mathrm{cam},c}(u_c,v_c)
+\right).
+```
+
+In the synthetic CMO generator there can also be a common aberration
+`\theta_{\mathrm{common}}` and differential channel aberrations
+`\theta_{\mathrm{diff},L},\theta_{\mathrm{diff},R}`:
+
+```{math}
+\theta_{\mathrm{aberr},c}
+=
+\theta_{\mathrm{common}}+\theta_{\mathrm{diff},c}.
+```
+
+The current model-selection candidate fits only this effective per-channel sum.
+It does not yet decompose common and differential aberrations in a shared stereo
+fit. The rendered CMO generator and the fittable CMO candidate use the same
+intrinsics, Brown-Conrady, sub-pupil-origin, and polynomial ray-aberration
+primitives from `stereocomplex.physics`, so generation and fitting do not
+maintain two separate implementations of the optical model.
+
+### Information criteria
+
+For each candidate, let
+
+```{math}
+RSS=\sum_i r_i^2,
+```
+
+where `r_i` are scalar residual components. With `N` scalar residuals and `p`
+fitted parameters, StereoComplex reports
+
+```{math}
+\mathrm{AIC}=2p+N\log\left(\frac{RSS}{N}\right),
+```
+
+```{math}
+\mathrm{BIC}=p\log(N)+N\log\left(\frac{RSS}{N}\right).
+```
+
+In the current implementation, `N` is the number of residual scalars
+(`6 × N_pixels` for two-plane residuals), not the number of independent pixel
+observations. This convention is used consistently across candidates, so the
+relative ranking within one report is meaningful.
 
 ## Minimum example
 
@@ -65,7 +597,7 @@ for row in report.rows():
 
 | Key | Description |
 | --- | --- |
-| `model` | Model name (`central_pinhole`, `central_brown_conrady`, `pinhole_parallel_plate`). |
+| `model` | Model name, for example `central_pinhole`, `central_brown_conrady`, `pinhole_parallel_plate`, or `cmo_polynomial_channel`. |
 | `parameters` | Number of free parameters fitted. |
 | `rms_mm` | Overall RMS distance between model and target rayfield at two reference planes, in mm. |
 | `support_rms_mm` | RMS on the observed pixel support only. |
@@ -162,10 +694,7 @@ report = sc.select_physical_model_from_rayfield(
 ## Pitfalls
 
 **BIC counts residual scalars, not independent pixel observations.**
-The residual vector has shape `(N_pixels × 6,)` — 3D errors at two reference
-planes. The BIC formula uses `n = N_pixels × 6`. This is consistent across
-all candidates, so relative ordering is preserved, but the absolute BIC value
-is not the textbook version (which would use `n = N_pixels`).
+See [Information criteria](#information-criteria) for the exact convention.
 
 **Support vs. extrapolation.**
 By default, `full_grid_weight=0.25` adds a dense evaluation grid weighted at

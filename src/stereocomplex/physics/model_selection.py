@@ -255,6 +255,7 @@ def select_physical_model_from_rayfield(
     support_pixels: np.ndarray | None = None,
     support_weight: float = 1.0,
     full_grid_weight: float = 0.25,
+    max_nfev: int = 2000,
 ) -> OpticalModelSelectionReport:
     """Fit candidate physical models and select the best in ray space."""
     specs = default_physical_model_specs() if candidate_specs is None else list(candidate_specs)
@@ -275,6 +276,7 @@ def select_physical_model_from_rayfield(
                 support_pixels=support_pixels,
                 support_weight=support_weight,
                 full_grid_weight=full_grid_weight,
+                max_nfev=max_nfev,
                 name=spec.name,
                 **kwargs,
             )

@@ -56,6 +56,18 @@ calibration path.
 It now obtains the calibration model through the public API before building the
 virtual rectification maps.
 
+## 06 CMO model selection
+
+`06_cmo_model_selection.ipynb` shows, with the companion script
+`06_cmo_model_selection.py`:
+
+- a synthetic CMO stereo model generated from `stereocomplex.physics`,
+- ChArUco rendering through the same ray model used for fitting,
+- generic Zernike `O(u,v), d(u,v)` rayfield measurement,
+- physical model fitting against the measured rayfields,
+- and AIC/BIC selection between pinhole, Brown-Conrady, parallel-plate, and CMO
+  polynomial-channel candidates.
+
 ## Open locally
 
 Open the notebooks from the repository root so relative paths resolve cleanly:

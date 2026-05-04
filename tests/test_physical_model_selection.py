@@ -36,9 +36,9 @@ def test_physical_candidates_share_ray_interface():
     u = np.array([10.0, 319.5, 620.0], dtype=np.float64)
     v = np.array([20.0, 239.5, 450.0], dtype=np.float64)
     for model in models:
-        O, d = model.ray(u, v)
-        assert O.shape == d.shape == (3, 3)
-        assert np.all(np.isfinite(O))
+        origins, d = model.ray(u, v)
+        assert origins.shape == d.shape == (3, 3)
+        assert np.all(np.isfinite(origins))
         assert np.allclose(np.linalg.norm(d, axis=1), 1.0)
 
 

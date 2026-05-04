@@ -39,8 +39,8 @@ class CentralPinholeModel:
     def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         uf, vf = _as_flat_pixels(u, v)
         d = pinhole_ray_from_pixel(uf, vf, self.K).reshape(-1, 3)
-        O = np.zeros_like(d)
-        return O, d
+        origins = np.zeros_like(d)
+        return origins, d
 
 
 def brown_conrady_distort_normalized(
@@ -148,8 +148,8 @@ class CentralBrownConradyModel:
         x, y = undistort_brown_normalized(xd, yd, self.k1, self.k2, self.p1, self.p2, self.k3)
         d = np.column_stack([x, y, np.ones_like(x)])
         d = d / np.linalg.norm(d, axis=1, keepdims=True)
-        O = np.zeros_like(d)
-        return O, d
+        origins = np.zeros_like(d)
+        return origins, d
 
 
 __all__ = [

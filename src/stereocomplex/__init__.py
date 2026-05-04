@@ -1,4 +1,3 @@
-from stereocomplex import meta
 from stereocomplex.api import (
     # Tier 1 — user entry points
     CharucoBoardSpec,
