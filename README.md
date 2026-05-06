@@ -55,9 +55,9 @@ Visual proof (green = GT, red = OpenCV raw, blue = ray-field):
 6. **Practical non-central image workflow**: fit a Zernike origin-field model
    directly from two image folders.
 7. **Ray-space optical model identification**: fit and compare physical models
-   (central pinhole, Brown-Conrady, inclined parallel plate) to a measured
-   Zernike rayfield, with formal BIC-based selection to identify the most
-   compact physical explanation.
+   (central pinhole, Brown-Conrady, inclined parallel plate, CMO channel) to a
+   measured Zernike rayfield, with formal BIC-based selection to identify the
+   most compact physical explanation.
 
 ## Key result: optical model identification
 
@@ -66,9 +66,9 @@ fits each candidate and scores by BIC. On the inclined-plate benchmark:
 
 | Candidate model | Support RMS | Full-grid RMS | BIC |
 | --- | ---: | ---: | ---: |
-| Central pinhole | 2.77 mm | 3.69 mm | −3 290 |
-| Central Brown-Conrady | 2.02 mm | 2.69 mm | −11 323 |
-| Pinhole + inclined plate | **0.003 mm** | **0.044 mm** | **−148 648** |
+| Central pinhole | 2.99 mm | 3.71 mm | +1 052 |
+| Central Brown-Conrady | 2.14 mm | 2.65 mm | −10 772 |
+| Pinhole + inclined plate | **0.00026 mm** | **0.00335 mm** | **−306 399** |
 
 Lower BIC is better. The inclined-plate model wins unambiguously: it is the
 most compact physical explanation of the measured rayfield on this oracle.

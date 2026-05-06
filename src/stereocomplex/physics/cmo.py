@@ -374,7 +374,9 @@ class CMOChannelRayField:
         shape = uu.shape
         uf = uu.reshape(-1)
         vf = vv.reshape(-1)
-        x_dist, y_dist = self.channel.intrinsics.pixel_to_norm(uf, vf)
+        uv = np.column_stack([uf, vf])
+        uv_ideal = _inverse_sensor_warp_pixels(uv, self.channel.sensor_warp, self.channel.intrinsics)
+        x_dist, y_dist = self.channel.intrinsics.pixel_to_norm(uv_ideal[:, 0], uv_ideal[:, 1])
         x, y = self.channel.distortion.undistort(x_dist, y_dist)
         aberration = self.common_aberration.add(self.channel.differential_aberration)
         dx, dy = aberration.delta(x, y)
@@ -529,7 +531,7 @@ class CMOPlaneTargetSpec:
     squares_y: int = 7
     square_size_mm: float = 1.0
     pixels_per_square: int = 80
-    pattern: Literal["checker", "charuco"] = "checker"
+    pattern: Literal["checker", "charuco"] = "charuco"
     marker_size_ratio: float = 0.70
 
     @property
@@ -549,21 +551,36 @@ class CMOPlaneTargetSpec:
         return ids, xy
 
     def make_texture_u8(self) -> Array:
-        if self.pattern == "charuco" and cv2 is not None:
+        if self.pattern == "charuco":
+            if cv2 is None or not hasattr(cv2, "aruco"):
+                raise RuntimeError("CMO ChArUco texture generation requires OpenCV aruco support")
             try:
                 aruco = cv2.aruco
                 dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_1000)
-                board = aruco.CharucoBoard(
-                    (int(self.squares_x), int(self.squares_y)),
-                    float(self.square_size_mm),
-                    float(self.marker_size_ratio * self.square_size_mm),
-                    dictionary,
-                )
+                if hasattr(aruco, "CharucoBoard"):
+                    board = aruco.CharucoBoard(
+                        (int(self.squares_x), int(self.squares_y)),
+                        float(self.square_size_mm),
+                        float(self.marker_size_ratio * self.square_size_mm),
+                        dictionary,
+                    )
+                else:  # pragma: no cover - old OpenCV compatibility path
+                    board = aruco.CharucoBoard_create(
+                        int(self.squares_x),
+                        int(self.squares_y),
+                        float(self.square_size_mm),
+                        float(self.marker_size_ratio * self.square_size_mm),
+                        dictionary,
+                    )
                 w = int(self.squares_x * self.pixels_per_square)
                 h = int(self.squares_y * self.pixels_per_square)
-                return board.generateImage((w, h)).astype(np.uint8)
-            except Exception:
-                pass
+                if hasattr(board, "generateImage"):
+                    return board.generateImage((w, h)).astype(np.uint8)
+                img = np.zeros((h, w), dtype=np.uint8)  # pragma: no cover - old OpenCV compatibility path
+                board.draw((w, h), img)
+                return img.astype(np.uint8)
+            except Exception as exc:
+                raise RuntimeError("Could not generate ChArUco CMO texture") from exc
         return self._make_checker_texture_u8()
 
     def _make_checker_texture_u8(self) -> Array:
@@ -655,6 +672,17 @@ def apply_sensor_warp(img_u8: Array, warp: SensorWarp, intr: CMOIntrinsics) -> A
     )
 
 
+def _inverse_sensor_warp_pixels(uv_observed: Array, warp: SensorWarp, intr: CMOIntrinsics) -> Array:
+    """Approximate ideal pixel coordinates from observed warped coordinates."""
+    if not warp.du_coeff_px and not warp.dv_coeff_px:
+        return np.asarray(uv_observed, dtype=np.float64)
+    observed = np.asarray(uv_observed, dtype=np.float64)
+    ideal = observed.copy()
+    for _ in range(5):
+        ideal = observed - warp.delta_px(ideal, intr)
+    return ideal
+
+
 def apply_blur_noise(
     img_u8: Array,
     blur_sigma_px: float,
@@ -703,7 +731,6 @@ def render_cmo_channel_image(
     img = np.clip(img.astype(np.float64) * channel.vignetting.gain(channel.intrinsics), 0, 255).astype(
         np.uint8
     )
-    img = apply_sensor_warp(img, channel.sensor_warp, channel.intrinsics)
     return apply_blur_noise(img, blur_sigma_px, noise_std_gray, rng)
 
 
@@ -728,6 +755,54 @@ def project_cmo_points_approx(
     return uv
 
 
+def project_cmo_points(
+    channel: CMOChannelSpec,
+    common_aberration: PolynomialRayAberration,
+    xyz_world_mm: Array,
+    *,
+    max_nfev: int = 40,
+) -> Array:
+    """Project sparse world points by fitting the shared CMO pixel-to-line model.
+
+    This is the sparse counterpart of the renderer's pixel -> ray -> plane
+    model. The first-order projection is only used as the optimizer
+    initialization; the returned pixel minimizes point-to-ray distance.
+    """
+    from scipy.optimize import least_squares  # type: ignore
+
+    points = np.asarray(xyz_world_mm, dtype=np.float64).reshape(-1, 3)
+    initial = project_cmo_points_approx(channel, common_aberration, points)
+    rayfield = CMOChannelRayField(channel=channel, common_aberration=common_aberration)
+    out = np.full((points.shape[0], 2), np.nan, dtype=np.float64)
+
+    lower = np.array([-float(channel.intrinsics.width), -float(channel.intrinsics.height)])
+    upper = np.array([2.0 * float(channel.intrinsics.width), 2.0 * float(channel.intrinsics.height)])
+    center = np.array([channel.intrinsics.cx, channel.intrinsics.cy], dtype=np.float64)
+
+    for idx, point in enumerate(points):
+        x0 = initial[idx]
+        if not np.all(np.isfinite(x0)):
+            x0 = center
+        x0 = np.clip(x0, lower + 1e-6, upper - 1e-6)
+
+        def residual(uv: Array) -> Array:
+            origin, direction = rayfield.ray(np.array([uv[0]]), np.array([uv[1]]))
+            return np.cross(point - origin.reshape(3), direction.reshape(3))
+
+        result = least_squares(
+            residual,
+            x0=x0,
+            bounds=(lower, upper),
+            loss="linear",
+            max_nfev=int(max_nfev),
+            xtol=1e-11,
+            ftol=1e-11,
+            gtol=1e-11,
+        )
+        out[idx] = result.x
+    return out
+
+
 def project_cmo_target_corners(
     cmo: CMOStereoSpec,
     target: CMOPlaneTargetSpec,
@@ -736,8 +811,8 @@ def project_cmo_target_corners(
     """Project target inner corners into both CMO channels."""
     ids, xy = target.inner_corners_local_mm()
     xyz = pose.local_to_world(xy)
-    uv_left = project_cmo_points_approx(cmo.left, cmo.common_aberration, xyz)
-    uv_right = project_cmo_points_approx(cmo.right, cmo.common_aberration, xyz)
+    uv_left = project_cmo_points(cmo.left, cmo.common_aberration, xyz)
+    uv_right = project_cmo_points(cmo.right, cmo.common_aberration, xyz)
 
     def in_image(uv: Array, intr: CMOIntrinsics) -> Array:
         return (
@@ -818,7 +893,7 @@ def generate_cmo_plane_dataset(
         "model_notes": [
             "The renderer and sparse projection both use stereocomplex.physics.cmo.",
             "CMOChannelRayField is the shared pixel-to-line physics model.",
-            "Sparse GT projection is approximate for polynomial ray aberration terms.",
+            "Sparse GT projection minimizes point-to-ray distance with the same CMOChannelRayField.",
         ],
     }
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
@@ -899,7 +974,7 @@ def make_reference_cmo_scenario() -> tuple[CMOStereoSpec, CMOPlaneTargetSpec, li
         squares_y=7,
         square_size_mm=2.0,
         pixels_per_square=80,
-        pattern="checker",
+        pattern="charuco",
     )
     poses = [
         pose_from_euler_xyz(+0.00, +0.00, +0.00, (0.0, 0.0, 180.0)),
@@ -929,6 +1004,7 @@ __all__ = [
     "make_reference_cmo_scenario",
     "normalize_vectors",
     "pose_from_euler_xyz",
+    "project_cmo_points",
     "project_cmo_points_approx",
     "project_cmo_target_corners",
     "rays_from_cmo_pixels",

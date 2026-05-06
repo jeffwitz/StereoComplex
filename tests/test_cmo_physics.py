@@ -4,6 +4,7 @@ from dataclasses import replace
 import json
 
 import numpy as np
+import pytest
 
 from stereocomplex.physics.cmo import (
     BrownConrady,
@@ -14,13 +15,16 @@ from stereocomplex.physics.cmo import (
     CMOPolynomialChannelModel,
     CMOStereoSpec,
     PolynomialRayAberration,
+    SensorWarp,
     Vignetting,
     generate_cmo_plane_dataset,
     pose_from_euler_xyz,
+    project_cmo_points,
     project_cmo_target_corners,
     rays_from_cmo_pixels,
     render_cmo_channel_image,
 )
+import stereocomplex.physics.cmo as cmo_module
 from stereocomplex.physics import (
     CentralBrownConradyModel,
     CentralPinholeModel,
@@ -129,6 +133,54 @@ def test_cmo_dataset_writes_expected_files(tmp_path) -> None:
     assert gt["corner_id"].size > 0
     assert gt["uv_left_px"].shape[1] == 2
     assert gt["uv_right_px"].shape[1] == 2
+
+
+def test_cmo_charuco_texture_does_not_silently_fallback_to_checker(monkeypatch) -> None:
+    target = CMOPlaneTargetSpec(
+        squares_x=5,
+        squares_y=4,
+        square_size_mm=2.0,
+        pixels_per_square=12,
+        pattern="charuco",
+    )
+
+    monkeypatch.setattr(cmo_module, "cv2", None)
+    with pytest.raises(RuntimeError, match="ChArUco"):
+        target.make_texture_u8()
+
+
+def test_cmo_sparse_projection_matches_shared_pixel_to_ray_model() -> None:
+    intr = CMOIntrinsics(width=120, height=90, fx=110.0, fy=112.0, cx=59.5, cy=44.5)
+    channel = CMOChannelSpec(
+        name="left",
+        intrinsics=intr,
+        origin_world_mm=(-2.5, 0.2, 0.0),
+        distortion=BrownConrady(k1=-0.08, k2=0.02, p1=5.0e-4, p2=-3.0e-4),
+        differential_aberration=PolynomialRayAberration(
+            coeff_x={"x": 6.0e-4, "x2": 9.0e-4},
+            coeff_y={"y": -5.0e-4, "xy": 7.0e-4},
+        ),
+        sensor_warp=SensorWarp(
+            du_coeff_px={"xy": 0.18},
+            dv_coeff_px={"x2": -0.11},
+        ),
+    )
+    common = PolynomialRayAberration(coeff_x={"y2": -4.0e-4}, coeff_y={"xy": 3.0e-4})
+    points = np.array(
+        [
+            [-3.0, -2.0, 60.0],
+            [0.0, 0.0, 65.0],
+            [4.0, 2.5, 70.0],
+        ],
+        dtype=np.float64,
+    )
+
+    uv = project_cmo_points(channel, common, points)
+    origins, directions = CMOChannelRayField(channel, common).ray(uv[:, 0], uv[:, 1])
+    distances = np.linalg.norm(np.cross(points - origins.reshape(-1, 3), directions.reshape(-1, 3)), axis=1)
+
+    assert np.all(np.isfinite(uv))
+    assert np.max(distances) < 1e-7
 
 
 def test_vignetting_changes_image_intensity_but_not_projection() -> None:

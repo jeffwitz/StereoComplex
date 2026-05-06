@@ -153,6 +153,6 @@
   "model_notes": [
     "The renderer and sparse projection both use stereocomplex.physics.cmo.",
     "CMOChannelRayField is the shared pixel-to-line physics model.",
-    "Sparse GT projection is approximate for polynomial ray aberration terms."
+    "Sparse GT projection minimizes point-to-ray distance with the same CMOChannelRayField."
   ]
 }

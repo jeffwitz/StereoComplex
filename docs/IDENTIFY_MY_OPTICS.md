@@ -539,21 +539,22 @@ For each candidate, let
 RSS=\sum_i r_i^2,
 ```
 
-where `r_i` are scalar residual components. With `N` scalar residuals and `p`
-fitted parameters, StereoComplex reports
+where `r_i` are scalar residual components. Let `N_s` be the number of scalar
+residuals and `N_p` the number of sampled pixel/ray observations. For the
+two-plane residual, `N_s = 6 N_p`. StereoComplex reports
 
 ```{math}
-\mathrm{AIC}=2p+N\log\left(\frac{RSS}{N}\right),
+\mathrm{AIC}=2p+N_s\log\left(\frac{RSS}{N_s}\right),
 ```
 
 ```{math}
-\mathrm{BIC}=p\log(N)+N\log\left(\frac{RSS}{N}\right).
+\mathrm{BIC}=p\log(N_p)+N_s\log\left(\frac{RSS}{N_s}\right).
 ```
 
-In the current implementation, `N` is the number of residual scalars
-(`6 × N_pixels` for two-plane residuals), not the number of independent pixel
-observations. This convention is used consistently across candidates, so the
-relative ranking within one report is meaningful.
+The likelihood term uses scalar metric residuals. The BIC complexity penalty
+uses sampled pixels as the independent observation count. This keeps the
+penalty tied to the number of independent rays while retaining the metric
+information from both reference planes.
 
 ## Minimum example
 
@@ -599,7 +600,7 @@ for row in report.rows():
 | --- | --- |
 | `model` | Model name, for example `central_pinhole`, `central_brown_conrady`, `pinhole_parallel_plate`, or `cmo_polynomial_channel`. |
 | `parameters` | Number of free parameters fitted. |
-| `rms_mm` | Overall RMS distance between model and target rayfield at two reference planes, in mm. |
+| `rms_mm` | Primary unweighted RMS distance on the observed support, in mm. If no separate support is supplied, this is the full-grid RMS. |
 | `support_rms_mm` | RMS on the observed pixel support only. |
 | `full_grid_rms_mm` | RMS on a dense full-image grid (extrapolation quality). |
 | `bic` | Bayesian Information Criterion (lower is better). |
@@ -620,15 +621,15 @@ for row in report.rows():
 
 ## Example result on the inclined-plate oracle
 
-On the synthetic inclined-plate benchmark, the output looks like:
+On the synthetic inclined-plate benchmark, the stereo-pair summary looks like:
 
 | model | parameters | rms_mm | support_rms_mm | full_grid_rms_mm | bic | selected_bic |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| central_pinhole | 0 | 2.770 | 2.770 | 3.690 | −3 290 | False |
-| central_brown_conrady | 5 | 2.020 | 2.020 | 2.690 | −11 323 | False |
-| pinhole_parallel_plate | 3 | 0.003 | 0.003 | 0.044 | −148 648 | **True** |
+| central_pinhole | 0 | 2.990 | 2.990 | 3.714 | +1 052 | False |
+| central_brown_conrady | 10 | 2.143 | 2.143 | 2.649 | −10 772 | False |
+| pinhole_parallel_plate | 6 | 0.000258 | 0.000258 | 0.00335 | −306 399 | **True** |
 
-The plate model wins by a factor of ~13× in BIC and by ~700× in RMS relative
+The plate model wins by a factor of more than 8000× in support RMS relative
 to Brown-Conrady. This is expected: the oracle is an inclined plate, and the
 plate model has the right structural degrees of freedom.
 
@@ -693,8 +694,10 @@ report = sc.select_physical_model_from_rayfield(
 
 ## Pitfalls
 
-**BIC counts residual scalars, not independent pixel observations.**
-See [Information criteria](#information-criteria) for the exact convention.
+**BIC uses a mixed scalar/observation convention.**
+See [Information criteria](#information-criteria) for the exact convention:
+the fit likelihood uses scalar residual components, while the BIC penalty uses
+sampled pixels/rays as independent observations.
 
 **Support vs. extrapolation.**
 By default, `full_grid_weight=0.25` adds a dense evaluation grid weighted at

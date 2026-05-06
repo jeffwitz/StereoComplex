@@ -89,13 +89,19 @@ def _residual_norm_stats(residuals: np.ndarray) -> tuple[float, float, float]:
     )
 
 
-def _aic_bic(rss: float, n: int, p: int) -> tuple[float, float]:
-    # n = number of residual scalars (6 × n_pixels for two-plane residuals),
-    # not independent pixel observations. Consistent across candidates, so the
-    # relative BIC ordering is preserved despite differing from the textbook formula.
-    rss_per_scalar = max(float(rss) / max(int(n), 1), 1e-30)
-    aic = 2.0 * float(p) + float(n) * np.log(rss_per_scalar)
-    bic = float(p) * np.log(max(float(n), 1.0)) + float(n) * np.log(rss_per_scalar)
+def _aic_bic(rss: float, n_residual_scalars: int, n_observations: int, p: int) -> tuple[float, float]:
+    """Return Gaussian AIC/BIC for the weighted ray-space objective.
+
+    The likelihood term uses the scalar residual count because the two-plane
+    ray distance contributes six metric residual components per sampled pixel.
+    The BIC parameter penalty uses the number of sampled pixel observations,
+    which is the defensible independent-sample count for model selection.
+    """
+    rss_per_scalar = max(float(rss) / max(int(n_residual_scalars), 1), 1e-30)
+    n_scalar = float(max(int(n_residual_scalars), 1))
+    n_obs = float(max(int(n_observations), 1))
+    aic = 2.0 * float(p) + n_scalar * np.log(rss_per_scalar)
+    bic = float(p) * np.log(n_obs) + n_scalar * np.log(rss_per_scalar)
     return float(aic), float(bic)
 
 
@@ -159,10 +165,16 @@ def fit_physical_model_to_rayfield(
     full_pixels = _grid_pixels(image_size, grid_shape)
     if support_pixels is None:
         support = full_pixels
+        include_full_grid = False
     else:
         support = np.asarray(support_pixels, dtype=np.float64).reshape(-1, 2)
+        include_full_grid = full_grid_weight > 0
     if support.size == 0:
         raise ValueError("support_pixels must not be empty")
+    if support_weight <= 0:
+        raise ValueError("support_weight must be strictly positive")
+    if full_grid_weight < 0:
+        raise ValueError("full_grid_weight must be non-negative")
 
     if initial_parameters is None:
         initial_parameters = np.zeros(0, dtype=np.float64)
@@ -177,7 +189,7 @@ def fit_physical_model_to_rayfield(
         blocks = [
             float(support_weight) * rayfield_two_plane_residuals(target_field, model, support, z_planes=z_planes),
         ]
-        if full_grid_weight > 0:
+        if include_full_grid:
             blocks.append(
                 float(full_grid_weight)
                 * rayfield_two_plane_residuals(target_field, model, full_pixels, z_planes=z_planes)
@@ -208,16 +220,20 @@ def fit_physical_model_to_rayfield(
 
     fitted_model = model_at(sol_x)
     combined = combined_residuals(sol_x)
-    rms, median, p95 = _residual_norm_stats(combined)
     rss = float(np.sum(combined * combined))
     n_res = int(combined.size)
-    aic, bic = _aic_bic(rss, n_res, p)
+    n_samples = int(support.shape[0] + (full_pixels.shape[0] if include_full_grid else 0))
+    aic, bic = _aic_bic(rss, n_res, n_samples, p)
     # Slice combined to recover per-region unweighted residuals without extra
     # rayfield evaluations. Layout: [sw*support | fgw*full] (when fgw > 0).
     n_support_flat = support.shape[0] * 6
-    support_rms = _residual_norm_stats(combined[:n_support_flat] / float(support_weight))[0]
-    if full_grid_weight > 0:
+    support_stats = _residual_norm_stats(combined[:n_support_flat] / float(support_weight))
+    rms, median, p95 = support_stats
+    support_rms = support_stats[0]
+    if include_full_grid:
         full_rms = _residual_norm_stats(combined[n_support_flat:] / float(full_grid_weight))[0]
+    elif support_pixels is None:
+        full_rms = support_rms
     else:
         full_rms = _residual_norm_stats(
             rayfield_two_plane_residuals(target_field, fitted_model, full_pixels, z_planes=z_planes)
@@ -230,7 +246,7 @@ def fit_physical_model_to_rayfield(
         success=success,
         message=message,
         n_parameters=p,
-        n_samples=int(support.shape[0] + (full_pixels.shape[0] if full_grid_weight > 0 else 0)),
+        n_samples=n_samples,
         n_residual_scalars=n_res,
         rss=rss,
         rms_mm=rms,

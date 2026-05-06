@@ -6,7 +6,12 @@ import numpy as np
 
 
 class PhysicalRayFieldModel(Protocol):
-    """Protocol for physical optical candidates compared in ray space."""
+    """Protocol for physical optical candidates compared in ray space.
+
+    A model maps image coordinates to 3D lines in one camera/channel frame. The
+    returned origin is only one representative point on each line; candidates
+    are compared through line geometry, not through raw origin equality.
+    """
 
     name: str
 

@@ -23,16 +23,16 @@
     "n_common_corners": 52,
     "n_points_total": 1139,
     "fit_success": true,
-    "fit_residual_rms_mm": 0.10248584877362817,
-    "fit_residual_p95_mm": 0.19043217762883624,
-    "central_rms_3d_mm": 2.676946332061892,
+    "fit_residual_rms_mm": 0.102485943342816,
+    "fit_residual_p95_mm": 0.19043167018354942,
+    "central_rms_3d_mm": 2.676946332061811,
     "central_p95_3d_mm": 3.684476214754213,
-    "oracle_detected_rms_3d_mm": 0.7851965427116505,
-    "oracle_detected_p95_3d_mm": 1.5239273105523146,
-    "oracle_detected_ray_gap_rms_mm": 0.07906900320742108,
-    "ba_rms_3d_mm": 0.727022409750898,
-    "ba_p95_3d_mm": 1.4249888299373774,
-    "ba_ray_gap_rms_mm": 0.07242206814174491,
-    "improvement_rms_factor": 3.6820685252041985
+    "oracle_detected_rms_3d_mm": 0.7851965427116777,
+    "oracle_detected_p95_3d_mm": 1.5239273105527722,
+    "oracle_detected_ray_gap_rms_mm": 0.07906900320742125,
+    "ba_rms_3d_mm": 0.7270208166469213,
+    "ba_p95_3d_mm": 1.4249663354055193,
+    "ba_ray_gap_rms_mm": 0.07242186700134577,
+    "improvement_rms_factor": 3.6820765936360718
   }
 }

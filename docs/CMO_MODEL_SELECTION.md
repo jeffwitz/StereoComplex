@@ -122,8 +122,8 @@ CMO oracle with:
 
 | Channel | Zernike coefficients | Rayfield RMS | Median | P95 |
 |---|---:|---:|---:|---:|
-| left | 60 | 0.115 mm | 0.094 mm | 0.169 mm |
-| right | 60 | 0.102 mm | 0.084 mm | 0.152 mm |
+| left | 60 | 0.115 mm | 0.094 mm | 0.171 mm |
+| right | 60 | 0.102 mm | 0.085 mm | 0.153 mm |
 
 These numbers should be read as the fidelity of the generic rayfield
 measurement before any physical interpretation is applied.
@@ -151,9 +151,9 @@ that line.
 For each physical candidate, StereoComplex reports RMS rayfield error and
 information criteria. The exact AIC/BIC convention is documented in
 [Identify My Optics](IDENTIFY_MY_OPTICS.md#information-criteria). In short, the
-current implementation counts residual scalars, not independent image pixels;
-the convention is used consistently across all candidates, so the relative
-ordering is meaningful for this benchmark.
+likelihood term uses the scalar two-plane residual components, while the BIC
+complexity penalty uses the number of sampled pixels as the independent
+observation count.
 
 ## Results
 
@@ -161,14 +161,14 @@ The CMO candidate is selected by BIC on both channels.
 
 | Channel | Candidate | Parameters | RMS | Support RMS | Full-grid RMS | BIC | Selected |
 |---|---|---:|---:|---:|---:|---:|---|
-| left | central pinhole | 0 | 7.064 mm | 10.227 mm | 9.914 mm | 3075.7 | no |
-| left | central Brown-Conrady | 5 | 3.260 mm | 4.697 mm | 4.704 mm | 866.6 | no |
-| left | pinhole + plate | 3 | 7.154 mm | 10.364 mm | 10.004 mm | 3134.4 | no |
-| left | CMO polynomial channel | 17 | 0.029 mm | 0.042 mm | 0.040 mm | -12763.1 | yes |
-| right | central pinhole | 0 | 6.513 mm | 9.425 mm | 9.159 mm | 2839.7 | no |
-| right | central Brown-Conrady | 5 | 3.205 mm | 4.618 mm | 4.624 mm | 817.0 | no |
-| right | pinhole + plate | 3 | 6.528 mm | 9.455 mm | 9.133 mm | 2868.3 | no |
-| right | CMO polynomial channel | 17 | 0.026 mm | 0.037 mm | 0.036 mm | -13107.3 | yes |
+| left | central pinhole | 0 | 10.234 mm | 10.234 mm | 9.921 mm | 3077.7 | no |
+| left | central Brown-Conrady | 5 | 4.709 mm | 4.709 mm | 4.714 mm | 864.8 | no |
+| left | pinhole + plate | 3 | 10.369 mm | 10.369 mm | 10.010 mm | 3130.7 | no |
+| left | CMO polynomial channel | 17 | 0.042 mm | 0.042 mm | 0.040 mm | -12785.9 | yes |
+| right | central pinhole | 0 | 9.430 mm | 9.430 mm | 9.164 mm | 2841.3 | no |
+| right | central Brown-Conrady | 5 | 4.623 mm | 4.623 mm | 4.630 mm | 811.3 | no |
+| right | pinhole + plate | 3 | 9.459 mm | 9.459 mm | 9.137 mm | 2864.2 | no |
+| right | CMO polynomial channel | 17 | 0.038 mm | 0.038 mm | 0.036 mm | -13105.7 | yes |
 
 ```{figure} assets/cmo_model_selection/cmo_model_selection_rms.png
 :alt: CMO model selection rayfield RMS
@@ -193,8 +193,8 @@ The effective CMO origins are recovered accurately:
 
 | Channel | True origin `(x,y)` | Fitted origin `(x,y)` |
 |---|---:|---:|
-| left | `(-4.000, 0.150)` mm | `(-3.9999, 0.1500)` mm |
-| right | `(4.000, -0.100)` mm | `(4.0001, -0.1000)` mm |
+| left | `(-4.000, 0.150)` mm | `(-3.9999, 0.1510)` mm |
+| right | `(4.000, -0.100)` mm | `(4.0001, -0.1007)` mm |
 
 The Brown-Conrady coefficients are recovered as an effective channel model, not
 as a unique physical decomposition. In this setup the polynomial ray aberration

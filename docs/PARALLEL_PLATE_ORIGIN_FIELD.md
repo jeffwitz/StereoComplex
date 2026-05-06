@@ -687,7 +687,7 @@ Zernike rayfield:
 | Pinhole + inclined plate | 0.000258 mm | 0.00335 mm | best compact physical explanation |
 
 The corresponding stereo-pair BIC values are `+1052` for the central pinhole,
-`-10754` for Brown-Conrady, and `-306389` for the inclined plate. Lower is
+`-10772` for Brown-Conrady, and `-306399` for the inclined plate. Lower is
 better, so both RMS and BIC select the inclined-plate model. This does **not**
 mean that StereoComplex fit the plate directly from pixels. It means that the
 measured rayfield contains enough information to reject central alternatives in
