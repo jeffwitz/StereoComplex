@@ -126,5 +126,25 @@
       "aberr_y_xy": 0.0008837269059430633,
       "aberr_y_y2": -0.0023194050632265205
     }
+  },
+  "complete_cmo_ba": {
+    "success": true,
+    "n_observations": 384,
+    "incidence_rms_mm": 0.0003959728433716696,
+    "incidence_p95_mm": 0.0007401760938181081,
+    "left_rayfield_rms_mm": 0.01392835933369701,
+    "right_rayfield_rms_mm": 0.012443730816767352,
+    "pose_translation_rms_mm": 0.05071096390934814,
+    "pose_rotation_rms_deg": 0.007592537716253131,
+    "left_origin_error_mm": [
+      -0.001187009286870655,
+      -0.0003703052637590021
+    ],
+    "right_origin_error_mm": [
+      0.000243454336396276,
+      0.0001442567107352022
+    ],
+    "left_parameter_l2": 1.0046487275714016,
+    "right_parameter_l2": 0.8160382929215916
   }
 }

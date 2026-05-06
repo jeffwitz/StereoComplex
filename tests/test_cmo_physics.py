@@ -5,6 +5,7 @@ import json
 
 import numpy as np
 import pytest
+from scipy.spatial.transform import Rotation
 
 from stereocomplex.physics.cmo import (
     BrownConrady,
@@ -17,6 +18,8 @@ from stereocomplex.physics.cmo import (
     PolynomialRayAberration,
     SensorWarp,
     Vignetting,
+    cmo_polynomial_channel_parameters_from_spec,
+    fit_cmo_stereo_model_and_poses_from_zernike_rayfields,
     generate_cmo_plane_dataset,
     pose_from_euler_xyz,
     project_cmo_points,
@@ -343,3 +346,93 @@ def test_model_selection_prefers_cmo_on_cmo_oracle() -> None:
     assert report.best_by_bic == "cmo_polynomial_channel"
     assert by_name["cmo_polynomial_channel"].rms_mm < by_name["central_brown_conrady"].rms_mm
     assert by_name["cmo_polynomial_channel"].rms_mm < by_name["pinhole_parallel_plate"].rms_mm
+
+
+def test_cmo_stereo_ba_recovers_effective_channels_and_poses_from_rayfields() -> None:
+    intr = CMOIntrinsics(width=160, height=120, fx=180.0, fy=180.0, cx=79.5, cy=59.5)
+    common = PolynomialRayAberration(coeff_x={"x2": 7.0e-4}, coeff_y={"xy": 4.0e-4})
+    cmo = CMOStereoSpec(
+        left=CMOChannelSpec(
+            name="left",
+            intrinsics=intr,
+            origin_world_mm=(-3.0, 0.2, 0.0),
+            distortion=BrownConrady(k1=-0.04, k2=0.01, p1=2.0e-4, p2=-3.0e-4),
+            differential_aberration=PolynomialRayAberration(
+                coeff_x={"x": 5.0e-4},
+                coeff_y={"y": -3.0e-4},
+            ),
+        ),
+        right=CMOChannelSpec(
+            name="right",
+            intrinsics=intr,
+            origin_world_mm=(3.0, -0.1, 0.0),
+            distortion=BrownConrady(k1=-0.035, k2=0.008, p1=-2.0e-4, p2=2.0e-4),
+            differential_aberration=PolynomialRayAberration(
+                coeff_x={"x": -4.0e-4},
+                coeff_y={"y": 3.0e-4},
+            ),
+        ),
+        common_aberration=common,
+    )
+    target = CMOPlaneTargetSpec(
+        squares_x=5,
+        squares_y=4,
+        square_size_mm=2.0,
+        pixels_per_square=12,
+        pattern="charuco",
+    )
+    poses = [
+        pose_from_euler_xyz(0.0, 0.0, 0.0, (0.0, 0.0, 55.0)),
+        pose_from_euler_xyz(0.04, -0.03, 0.02, (1.2, -0.8, 60.0)),
+    ]
+    ids, xy_all = target.inner_corners_local_mm()
+    object_frames = []
+    left_frames = []
+    right_frames = []
+    for pose in poses:
+        gt = project_cmo_target_corners(cmo, target, pose)
+        object_frames.append(xy_all[gt["corner_id"]])
+        left_frames.append(gt["uv_left_px"])
+        right_frames.append(gt["uv_right_px"])
+
+    terms = CMOPolynomialChannelModel.default_terms()
+    left_truth = cmo_polynomial_channel_parameters_from_spec(cmo.left, common, terms)
+    right_truth = cmo_polynomial_channel_parameters_from_spec(cmo.right, common, terms)
+    left_initial = left_truth.copy()
+    right_initial = right_truth.copy()
+    left_initial[:2] += np.array([0.4, -0.25])
+    right_initial[:2] += np.array([-0.35, 0.2])
+    left_initial[2:7] = 0.0
+    right_initial[2:7] = 0.0
+    pose_initials = [
+        pose_from_euler_xyz(0.01, -0.01, 0.005, (0.15, -0.12, 55.3)),
+        pose_from_euler_xyz(0.05, -0.04, 0.025, (1.35, -0.95, 60.2)),
+    ]
+
+    result = fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
+        left_field=CMOChannelRayField(cmo.left, cmo.common_aberration),
+        right_field=CMOChannelRayField(cmo.right, cmo.common_aberration),
+        K=intr.as_K(),
+        image_size=(intr.width, intr.height),
+        object_points=object_frames,
+        left_pixels=left_frames,
+        right_pixels=right_frames,
+        pose_initials=pose_initials,
+        initial_left_parameters=left_initial,
+        initial_right_parameters=right_initial,
+        aberration_terms=terms,
+        rayfield_weight=0.5,
+        pose_regularization=0.0,
+        max_nfev=300,
+    )
+
+    assert result.success
+    assert result.incidence_rms_mm < 1e-5
+    assert result.left_rayfield_rms_mm < 1e-4
+    assert result.right_rayfield_rms_mm < 1e-4
+    assert abs(result.left_model.origin_x_mm - cmo.left.origin[0]) < 1e-4
+    assert abs(result.right_model.origin_x_mm - cmo.right.origin[0]) < 1e-4
+    for fitted, truth in zip(result.poses, poses, strict=True):
+        assert np.linalg.norm(fitted.t - truth.t) < 1e-4
+        d_rot = Rotation.from_matrix(fitted.R @ truth.R.T).magnitude()
+        assert np.degrees(d_rot) < 1e-4

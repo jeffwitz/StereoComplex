@@ -22,13 +22,6 @@ The central idea is:
 Measure the rayfield first; explain the optics second.
 ```
 
-In French:
-
-```text
-Les points 2D servent à mesurer le champ de rayons ; le champ de rayons sert
-ensuite à identifier l'optique.
-```
-
 ## Why this is a separate notebook
 
 Notebook 04 demonstrates the non-central Zernike pipeline on an inclined
@@ -92,6 +85,11 @@ The CMO model-selection candidate, `CMOPolynomialChannelModel`, reuses the same
 Brown-Conrady and polynomial ray-aberration primitives. It fits one effective
 channel at a time. The mathematical definition of this candidate is centralized
 in [Identify My Optics](IDENTIFY_MY_OPTICS.md#candidate-3-cmo-polynomial-stereo-channels).
+The scientific background for the CMO polynomial model is also centralized in
+[Identify My Optics](IDENTIFY_MY_OPTICS.md#scientific-background-for-the-cmo-polynomial-model):
+the model combines common-main-objective stereo geometry, generic non-central
+camera calibration, Brown-Conrady distortion, and low-order polynomial
+aberration surrogates.
 
 Because the notebook fits channels independently, the fitted aberration
 coefficients represent an effective channel aberration: common CMO aberration
@@ -202,6 +200,54 @@ and Brown terms are partially correlated, so individual Brown coefficients
 should not be over-interpreted. The key physically stable result is the
 ray-space score and the effective origin recovery.
 
+## Complete CMO rayfield bundle adjustment
+
+The final notebook section runs a coupled bundle adjustment on the selected CMO
+family. The unknown vector contains:
+
+```{math}
+x=
+\left[
+\theta_L,\theta_R,\xi_1,\ldots,\xi_N
+\right],
+```
+
+where `\theta_L` and `\theta_R` are the effective CMO channel parameter vectors
+(origin, Brown-Conrady coefficients and polynomial ray-aberration
+coefficients), and `\xi_i` are board-pose parameters.
+
+The objective combines two pieces of information:
+
+1. **ChArUco incidence:** transformed board corners must lie on the CMO rays
+   associated with the observed pixels;
+2. **Rayfield anchoring:** the fitted CMO channels must stay close to the
+   measured Zernike `O,d` rayfields in the two-plane ray metric.
+
+This is intentionally different from the previous independent model-selection
+step. It tests whether the selected CMO parameterization remains well posed
+when optical parameters and board poses are refined together.
+
+On the controlled synthetic case, initialized from the model-selection result
+and slightly perturbed board poses, the complete BA gives:
+
+| Metric | Value |
+|---|---:|
+| ChArUco observations | 384 |
+| Incidence RMS | 0.00040 mm |
+| Incidence P95 | 0.00074 mm |
+| Left rayfield RMS to Zernike | 0.0139 mm |
+| Right rayfield RMS to Zernike | 0.0124 mm |
+| Pose translation RMS | 0.0507 mm |
+| Pose rotation RMS | 0.0076 deg |
+| Left effective-origin error | `(-0.0012, -0.0004)` mm |
+| Right effective-origin error | `(0.0002, 0.0001)` mm |
+
+These values show that the selected pseudo-CMO family is usable not only as a
+ray-space classifier, but also as a compact bundle-adjustment parameterization.
+As above, individual Brown and polynomial coefficients remain correlated; the
+scientifically stable checks are incidence, ray-space residuals, effective
+origin recovery and pose recovery.
+
 ## Scientific interpretation
 
 The experiment is not meant to prove that every CMO can be identified from one
@@ -214,7 +260,8 @@ synthetic image. It validates a more specific methodological point:
 4. an inclined parallel plate is non-central but is the wrong physical family
    for this CMO rayfield;
 5. the CMO candidate wins despite a larger parameter count because it removes
-   the structured ray-space residual.
+   the structured ray-space residual;
+6. once selected, the CMO parameterization supports coupled optical/pose BA.
 
 This supports the intended StereoComplex workflow:
 
@@ -232,7 +279,9 @@ This page describes a controlled synthetic benchmark. The current notebook:
 - measures the generic rayfield directly from oracle rays, not yet from
   detected image points;
 - uses one ChArUco rendered pose only for the visual generator check;
-- does not estimate uncertainty or perform train/test splits.
+- does not estimate uncertainty or perform train/test splits;
+- fits effective per-channel CMO parameters, not a decomposed common-objective
+  plus differential-channel optical design.
 
 The next natural step is to connect this page to the full image-based pipeline:
 render multiple ChArUco poses, detect them, fit the Zernike rayfield by BA, and

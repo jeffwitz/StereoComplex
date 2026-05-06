@@ -50,7 +50,10 @@ from stereocomplex.physics import (
     PolynomialRayAberration,
     SensorWarp,
     Vignetting,
+    cmo_polynomial_channel_parameters_from_spec,
+    fit_cmo_stereo_model_and_poses_from_zernike_rayfields,
     generate_cmo_plane_dataset,
+    project_cmo_target_corners,
     rayfield_two_plane_residuals,
     render_cmo_channel_image,
     select_physical_model_from_rayfield,
@@ -438,7 +441,157 @@ for name, truth, params in [
 
 
 # %% [markdown]
-# ## 6. Visualize model selection
+# ## 6. Complete CMO rayfield BA: optics and board poses
+#
+# Model selection fitted each channel independently in ray space. We now run a
+# more coupled benchmark: optimize the left/right effective CMO parameters and
+# several board poses together.
+#
+# This is still not a detector benchmark. The measured Zernike fields provide
+# the pixel-to-line observations, while synthetic ChArUco correspondences provide
+# the board geometry. The objective combines:
+#
+# - point-to-line incidence of ChArUco corners with the fitted CMO rays;
+# - a ray-space anchor that keeps the fitted CMO channels close to the measured
+#   Zernike rayfields;
+# - optional pose regularization, set to zero here because the problem is
+#   well-constrained in this controlled case.
+#
+# The purpose is to check that the CMO parameterization is not only selectable,
+# but also sufficiently well posed for joint optical/pose refinement once a
+# generic rayfield has been measured.
+
+# %%
+ba_poses_truth = [
+    pose_from_euler_xyz(+0.00, +0.00, +0.00, (0.0, 0.0, 180.0)),
+    pose_from_euler_xyz(+0.04, -0.03, +0.02, (-4.0, +2.0, 188.0)),
+    pose_from_euler_xyz(-0.05, +0.05, -0.03, (+3.5, -2.5, 176.0)),
+    pose_from_euler_xyz(+0.07, +0.02, +0.04, (+5.0, +1.0, 194.0)),
+]
+
+corner_ids, corner_xy = target.inner_corners_local_mm()
+object_frames = []
+left_pixel_frames = []
+right_pixel_frames = []
+
+for board_pose in ba_poses_truth:
+    gt = project_cmo_target_corners(cmo, target, board_pose)
+    object_frames.append(corner_xy[gt["corner_id"]])
+    left_pixel_frames.append(gt["uv_left_px"])
+    right_pixel_frames.append(gt["uv_right_px"])
+
+pose_initials = [
+    pose_from_euler_xyz(+0.01, -0.01, +0.005, (+0.2, -0.1, 180.3)),
+    pose_from_euler_xyz(+0.05, -0.04, +0.025, (-3.8, +1.8, 188.2)),
+    pose_from_euler_xyz(-0.04, +0.04, -0.020, (+3.7, -2.7, 176.2)),
+    pose_from_euler_xyz(+0.08, +0.01, +0.035, (+5.2, +0.8, 194.2)),
+]
+
+terms = CMOPolynomialChannelModel.default_terms()
+left_initial = np.array(
+    [
+        selected_params(left_report)[key]
+        for key in [
+            "origin_x_mm",
+            "origin_y_mm",
+            "k1",
+            "k2",
+            "p1",
+            "p2",
+            "k3",
+        ]
+    ]
+    + [selected_params(left_report)[f"aberr_x_{name}"] for name in terms]
+    + [selected_params(left_report)[f"aberr_y_{name}"] for name in terms],
+    dtype=np.float64,
+)
+right_initial = np.array(
+    [
+        selected_params(right_report)[key]
+        for key in [
+            "origin_x_mm",
+            "origin_y_mm",
+            "k1",
+            "k2",
+            "p1",
+            "p2",
+            "k3",
+        ]
+    ]
+    + [selected_params(right_report)[f"aberr_x_{name}"] for name in terms]
+    + [selected_params(right_report)[f"aberr_y_{name}"] for name in terms],
+    dtype=np.float64,
+)
+
+ba_result = fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
+    left_field=left_zernike,
+    right_field=right_zernike,
+    K=K,
+    image_size=IMAGE_SIZE,
+    object_points=object_frames,
+    left_pixels=left_pixel_frames,
+    right_pixels=right_pixel_frames,
+    pose_initials=pose_initials,
+    initial_left_parameters=left_initial,
+    initial_right_parameters=right_initial,
+    aberration_terms=terms,
+    rayfield_weight=0.35,
+    pose_regularization=0.0,
+    max_nfev=500,
+)
+
+
+def pose_errors(fitted, truth):
+    t_err = []
+    r_err = []
+    for pose_fit, pose_true in zip(fitted, truth, strict=True):
+        t_err.append(np.linalg.norm(pose_fit.t - pose_true.t))
+        # angle of relative rotation in degrees
+        cos_angle = np.clip((np.trace(pose_fit.R @ pose_true.R.T) - 1.0) / 2.0, -1.0, 1.0)
+        r_err.append(np.degrees(np.arccos(cos_angle)))
+    return np.asarray(t_err), np.asarray(r_err)
+
+
+t_err, r_err = pose_errors(ba_result.poses, ba_poses_truth)
+left_truth_params = cmo_polynomial_channel_parameters_from_spec(cmo.left, cmo.common_aberration, terms)
+right_truth_params = cmo_polynomial_channel_parameters_from_spec(cmo.right, cmo.common_aberration, terms)
+
+print("Complete CMO rayfield BA")
+print(f"  success              : {ba_result.success}")
+print(f"  observations          : {ba_result.n_observations}")
+print(f"  incidence RMS         : {ba_result.incidence_rms_mm:.5f} mm")
+print(f"  incidence P95         : {ba_result.incidence_p95_mm:.5f} mm")
+print(f"  left rayfield RMS     : {ba_result.left_rayfield_rms_mm:.5f} mm")
+print(f"  right rayfield RMS    : {ba_result.right_rayfield_rms_mm:.5f} mm")
+print(f"  pose translation RMS  : {np.sqrt(np.mean(t_err**2)):.5f} mm")
+print(f"  pose rotation RMS     : {np.sqrt(np.mean(r_err**2)):.5f} deg")
+print(
+    "  left origin truth/BA  : "
+    f"{cmo.left.origin[:2]} / {[ba_result.left_model.origin_x_mm, ba_result.left_model.origin_y_mm]}"
+)
+print(
+    "  right origin truth/BA : "
+    f"{cmo.right.origin[:2]} / {[ba_result.right_model.origin_x_mm, ba_result.right_model.origin_y_mm]}"
+)
+
+
+# %% [markdown]
+# Individual Brown and polynomial coefficients are partly correlated in this
+# compact CMO channel model. The stable engineering checks are therefore:
+# origin recovery, pose recovery, incidence residual, and ray-space residual to
+# the measured Zernike fields. The parameter vectors are still reported for
+# auditability.
+
+# %%
+left_param_error = ba_result.left_model.parameter_vector() - left_truth_params
+right_param_error = ba_result.right_model.parameter_vector() - right_truth_params
+print("CMO BA parameter-vector errors")
+print(f"  left  L2: {np.linalg.norm(left_param_error):.5e}")
+print(f"  right L2: {np.linalg.norm(right_param_error):.5e}")
+
+
+# %% [markdown]
+# ## 7. Visualize model selection
 
 # %%
 def rows_to_arrays(report):
@@ -481,7 +634,7 @@ show_or_close(fig)
 
 
 # %% [markdown]
-# ## 7. Save a compact JSON report
+# ## 8. Save a compact JSON report
 
 # %%
 summary = {
@@ -495,6 +648,26 @@ summary = {
         "rows": right_report.rows(),
         "cmo_parameters": selected_params(right_report),
     },
+    "complete_cmo_ba": {
+        "success": ba_result.success,
+        "n_observations": ba_result.n_observations,
+        "incidence_rms_mm": ba_result.incidence_rms_mm,
+        "incidence_p95_mm": ba_result.incidence_p95_mm,
+        "left_rayfield_rms_mm": ba_result.left_rayfield_rms_mm,
+        "right_rayfield_rms_mm": ba_result.right_rayfield_rms_mm,
+        "pose_translation_rms_mm": float(np.sqrt(np.mean(t_err**2))),
+        "pose_rotation_rms_deg": float(np.sqrt(np.mean(r_err**2))),
+        "left_origin_error_mm": (
+            np.array([ba_result.left_model.origin_x_mm, ba_result.left_model.origin_y_mm])
+            - cmo.left.origin[:2]
+        ).tolist(),
+        "right_origin_error_mm": (
+            np.array([ba_result.right_model.origin_x_mm, ba_result.right_model.origin_y_mm])
+            - cmo.right.origin[:2]
+        ).tolist(),
+        "left_parameter_l2": float(np.linalg.norm(left_param_error)),
+        "right_parameter_l2": float(np.linalg.norm(right_param_error)),
+    },
 }
 (ASSET_DIR / "cmo_model_selection_summary.json").write_text(
     json.dumps(summary, indent=2),
@@ -504,7 +677,7 @@ print(json.dumps(summary["left"]["rows"], indent=2))
 
 
 # %% [markdown]
-# ## 8. Interpretation
+# ## 9. Interpretation
 #
 # The CMO candidate is not selected because the notebook tells the selector that
 # the oracle is a CMO. The selector only sees the measured Zernike rayfield and

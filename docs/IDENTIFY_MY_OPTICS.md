@@ -36,12 +36,6 @@ The central idea is:
 Measure the rayfield first; explain the optics second.
 ```
 
-In French:
-
-```text
-Les points 2D servent à mesurer le champ de rayons ; le champ de rayons sert
-ensuite à identifier l'optique.
-```
 
 ## Prerequisites
 
@@ -530,6 +524,52 @@ fit. The rendered CMO generator and the fittable CMO candidate use the same
 intrinsics, Brown-Conrady, sub-pupil-origin, and polynomial ray-aberration
 primitives from `stereocomplex.physics`, so generation and fitting do not
 maintain two separate implementations of the optical model.
+
+### Scientific background for the CMO polynomial model
+
+The CMO polynomial channel model is an **effective ray-space model**, not a
+full lens-design model. Its purpose is to provide a compact, identifiable
+parameterization for measured CMO-like rayfields. The model is built from
+standard pieces rather than from a single named closed-form microscope model:
+
+| Model block | Role in StereoComplex | Background |
+|---|---|---|
+| Common-main-objective stereo geometry | left/right effective sub-pupil origins and channel rays through a shared objective family | Nikon MicroscopyU describes CMO stereomicroscopes as designs where image-forming light enters a common main objective and is separated into two optical paths; its optical-path tutorial describes the two parallel bundles used by the channels. |
+| Generic / non-central camera model | pixel `\rightarrow` 3D line, allowing a channel not to have one unique pinhole center | Grossberg and Nayar's raxel model and the general-camera calibration papers by Sturm and by Ramalingam, Sturm and Lodha motivate ray-based calibration for arbitrary cameras. |
+| Brown-Conrady distortion | central radial/tangential direction component per channel | Conrady's decentering distortion model and Brown's photogrammetric lens-distortion model are the classical sources for the radial/decentering distortion family used in calibration software. |
+| Smooth polynomial ray aberration | low-order angular surrogate for residual optical aberration | Optical aberrations are commonly represented by low-order polynomial bases, especially Zernike-type bases on pupils; see Born and Wolf and Mahajan for standard optical-aberration background. |
+
+The implemented polynomial terms are therefore best interpreted as a
+low-order **angular aberration surrogate** in normalized ray coordinates. They
+are not a direct wavefront expansion, and their coefficients should not be read
+as unique lens-design parameters. In practice, the stable physical quantities
+are the ray-space residuals, effective sub-pupil origins, recovered stereo
+baseline, and pose consistency; individual Brown and polynomial coefficients
+can be correlated.
+
+Useful references:
+
+- M. D. Grossberg and S. K. Nayar, "The Raxel Imaging Model and Ray-Based
+  Calibration," *International Journal of Computer Vision*, 61(2), 119-137,
+  2005. PDF: <https://www.cs.columbia.edu/CAVE/publications/pdfs/Grossberg_IJCV05.pdf>
+- P. Sturm, "Multi-view Geometry for General Camera Models," *CVPR*, 2005.
+- S. Ramalingam, P. Sturm and S. K. Lodha, "Towards Complete Generic Camera
+  Calibration," *CVPR*, 2005. PDF:
+  <https://perception.inrialpes.fr/Publications/2005/RSL05a/RamalingamSturmLodha-cvpr05.pdf>
+- A. E. Conrady, "Decentred Lens-Systems," *Monthly Notices of the Royal
+  Astronomical Society*, 79, 384-390, 1919.
+- D. C. Brown, "Decentering Distortion of Lenses," *Photogrammetric
+  Engineering*, 32(3), 444-462, 1966.
+- M. Born and E. Wolf, *Principles of Optics*, 7th expanded edition,
+  Cambridge University Press, 1999.
+- V. N. Mahajan, "Zernike Circle Polynomials and Optical Aberrations of
+  Systems with Circular Pupils," *Applied Optics*, 33(34), 8121-8124, 1994.
+  DOI page: <https://opg.optica.org/abstract.cfm?uri=ao-33-34-8121>
+- Nikon MicroscopyU, "Introduction to Stereomicroscopy" and
+  "Stereomicroscope Optical Pathways" for technical background on Greenough
+  and common-main-objective stereomicroscope layouts:
+  <https://www.microscopyu.com/techniques/stereomicroscopy/introduction-to-stereomicroscopy>,
+  <https://www.microscopyu.com/tutorials/smzpaths>.
 
 ### Information criteria
 
