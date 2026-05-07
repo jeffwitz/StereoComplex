@@ -95,6 +95,13 @@ Because the notebook fits channels independently, the fitted aberration
 coefficients represent an effective channel aberration: common CMO aberration
 plus left/right differential aberration.
 
+StereoComplex now also includes a compact shared-rig physical CMO model,
+`CMOPhysicalStereoModel`, documented in
+[Physical CMO Model](CMO_PHYSICAL_MODEL.md). That model is not a replacement
+for the polynomial surrogate: it tests a stronger optical hypothesis where the
+two channels share a common main objective, a sub-pupil baseline, and a
+chief-ray crossover at the working plane.
+
 ## Generic Zernike rayfield measurement
 
 The notebook first measures the CMO rayfield using a generic Zernike model with
@@ -136,6 +143,7 @@ The physical candidates fitted in notebook 06 are:
 | central Brown-Conrady | 5 | central rays with radial/tangential direction bending |
 | pinhole + inclined parallel plate | 3 | a non-central parallel-plate line family |
 | CMO polynomial channel | 17 | effective sub-pupil origin, Brown-Conrady, and polynomial ray aberration |
+| physical CMO stereo | 18 shared | common objective, shared sub-pupil baseline, and chief-ray convergence |
 
 All candidates are fitted to the measured Zernike rayfield using the shared
 two-plane ray residual defined in

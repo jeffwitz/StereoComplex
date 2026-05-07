@@ -24,6 +24,7 @@ Physical candidates
   - central Brown-Conrady stereo
   - pinhole + inclined plate stereo
   - CMO polynomial stereo channels
+  - physical CMO stereo model
       ↓
 Ray-space error + BIC
       ↓
@@ -81,6 +82,7 @@ worth the extra parameters.
 | `central_brown_conrady` improves RMS but remains high | Central distortion helps, but the model still cannot explain non-central origins. |
 | `pinhole_parallel_plate` has low RMS and wins BIC | The measured rayfield looks like a stereo system viewed through inclined plates. |
 | `cmo_polynomial_channel` has low RMS and wins BIC | The measured rayfield looks more like a CMO/effective sub-pupil model. |
+| `cmo_physical_stereo` has low RMS and wins BIC | The measured stereo rayfields are compatible with a shared-objective CMO geometry. |
 | Support RMS is low but full-grid RMS is high | The model explains observed board pixels but extrapolates poorly outside the calibration support. |
 
 Do not read the winner as an absolute truth. Read it as the most compact
@@ -524,6 +526,69 @@ fit. The rendered CMO generator and the fittable CMO candidate use the same
 intrinsics, Brown-Conrady, sub-pupil-origin, and polynomial ray-aberration
 primitives from `stereocomplex.physics`, so generation and fitting do not
 maintain two separate implementations of the optical model.
+
+### Candidate 4: physical CMO stereo model
+
+The physical CMO model is a shared-rig stereo candidate:
+
+```{math}
+\mathcal M_{\mathrm{CMO,phys}} =
+\left(
+f_{\mathrm{obj}},
+Z_w,
+b,
+f_{\mathrm{tube}},
+c_x,c_y,
+p,
+\theta_y,
+\theta_{\mathrm{Brown},L},
+\theta_{\mathrm{Brown},R}
+\right).
+```
+
+It is defined in detail in [Physical CMO Model](CMO_PHYSICAL_MODEL.md). The
+main difference from the polynomial surrogate is structural: the two channels
+share the same main-objective geometry, their effective sub-pupils are
+separated by the baseline `b`, and their chief rays converge to the working
+plane `Z_w`.
+
+For channel `c`, with `s_L=-1` and `s_R=+1`, the effective sub-pupil is
+
+```{math}
+S_c =
+\left(
+s_c\frac{b}{2},
+0,
+Z_w-f_{\mathrm{obj}}
+\right)^T,
+```
+
+and the pixel-selected point on the working plane is
+
+```{math}
+P_c(u,v)=
+\left(
+Z_w\alpha_x,
+Z_w\alpha_y,
+Z_w
+\right)^T,
+```
+
+where `(\alpha_x,\alpha_y)` are angular coordinates obtained from pixel pitch,
+tube focal length and Brown-Conrady undistortion. The CMO ray is
+
+```{math}
+\mathcal R_c(u,v)=
+\left(
+S_c,
+\frac{P_c(u,v)-S_c}{\|P_c(u,v)-S_c\|}
+\right).
+```
+
+From ray geometry alone, `f_tube` and pixel pitch are identifiable through
+their ratio `p/f_tube`, not separately. This is why the physical CMO reference
+page reports this as an identifiability limit rather than hiding it in the
+optimizer.
 
 ### Scientific background for the CMO polynomial model
 

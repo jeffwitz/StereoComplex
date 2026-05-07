@@ -220,6 +220,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
   :doc:`RAYFIELD_VIRTUAL_RECTIFY`.
 - Optical model identification and scientific benchmarks:
   :doc:`IDENTIFY_MY_OPTICS`,
+  :doc:`CMO_PHYSICAL_MODEL`,
   :doc:`PARALLEL_PLATE_ORIGIN_FIELD`,
   :doc:`CMO_MODEL_SELECTION`,
   :doc:`PYCASO_Z_SWEEP`,
@@ -268,6 +269,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
    :hidden:
 
    IDENTIFY_MY_OPTICS
+   CMO_PHYSICAL_MODEL
    PARALLEL_PLATE_ORIGIN_FIELD
    CMO_MODEL_SELECTION
    PYCASO_Z_SWEEP

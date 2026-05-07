@@ -92,7 +92,7 @@ Compared to the grid backend, TPS is usually more stable when the residual field
 
 This method was an intermediate step: the idea is to replace a global `K` by a spatially varying field, under a low-frequency assumption.
 
-Note: in the current code, `kfield` does **not** interpolate a pinhole matrix \(K\) in the strict sense. Instead, it builds
+Note: in the current code, `kfield` does **not** interpolate a pinhole matrix $K$ in the strict sense. Instead, it builds
 a smoothed field of local **affine** (first-order) models obtained by **linearizing** the plane→image mapping.
 
 #### Linearization (Jacobian)
@@ -102,7 +102,7 @@ Consider an unknown (potentially complex) mapping between the board plane and th
 - `u = u(x,y)`
 - `v = v(x,y)`
 
-Around a reference point \((x_q, y_q)\), we can write a first-order Taylor expansion:
+Around a reference point $(x_q, y_q)$, we can write a first-order Taylor expansion:
 
 - `u(x,y) ≈ u_q + (∂u/∂x)_q · (x-x_q) + (∂u/∂y)_q · (y-y_q)`
 - `v(x,y) ≈ v_q + (∂v/∂x)_q · (x-x_q) + (∂v/∂y)_q · (y-y_q)`
@@ -119,19 +119,19 @@ then smooth/interpolate it to obtain a low-frequency approximation.
 
 #### Construction (what the code does)
 
-- choose an anchor grid in board coordinates \((x,y)\);
+- choose an anchor grid in board coordinates $(x,y)$;
 - at each anchor, fit a local affine model by weighted least squares (nearest ArUco neighbors):
   ```{math}
   u(x,y)=a_0 + a_1 x + a_2 y,\quad v(x,y)=b_0 + b_1 x + b_2 y
   ```
-  where `a1,a2,b1,b2` estimate the local Jacobian \((\partial u/\partial x, \partial u/\partial y, \partial v/\partial x, \partial v/\partial y)\).
-- smooth each parameter \((a_0,a_1,a_2,b_0,b_1,b_2)\) on the grid (Gaussian);
-- for a query point \((x,y)\), bilinearly interpolate these parameters and apply the affine mapping.
+  where `a1,a2,b1,b2` estimate the local Jacobian $(\partial u/\partial x, \partial u/\partial y, \partial v/\partial x, \partial v/\partial y)$.
+- smooth each parameter $(a_0,a_1,a_2,b_0,b_1,b_2)$ on the grid (Gaussian);
+- for a query point $(x,y)$, bilinearly interpolate these parameters and apply the affine mapping.
 
 Why this is not sufficient:
 
 - a local affine model does not capture projective effects (and even less distortion) over the full board;
-- directly interpolating a matrix \(K\) is not “geometrically stable” (constraints on \(f_x,f_y\), etc.).
+- directly interpolating a matrix $K$ is not “geometrically stable” (constraints on $f_x,f_y$, etc.).
 
 In practice, `rayfield` (homography + smoothed residual field) matches the “low-frequency” intuition while remaining numerically stable.
 
