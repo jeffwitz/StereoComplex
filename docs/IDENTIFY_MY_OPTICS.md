@@ -23,8 +23,8 @@ Physical candidates
   - central pinhole stereo
   - central Brown-Conrady stereo
   - pinhole + inclined plate stereo
-  - CMO polynomial stereo channels
-  - physical CMO stereo model
+  - non-central polynomial surrogate channels
+  - physical CMO shared-rig model
       ↓
 Ray-space error + BIC
       ↓
@@ -81,7 +81,7 @@ worth the extra parameters.
 | `central_pinhole` has high RMS | The system is probably not well described by a pure central stereo model. |
 | `central_brown_conrady` improves RMS but remains high | Central distortion helps, but the model still cannot explain non-central origins. |
 | `pinhole_parallel_plate` has low RMS and wins BIC | The measured rayfield looks like a stereo system viewed through inclined plates. |
-| `cmo_polynomial_channel` has low RMS and wins BIC | The measured rayfield looks more like a CMO/effective sub-pupil model. |
+| `cmo_polynomial_channel` has low RMS and wins BIC | The measured rayfield is best explained by an independent-channel non-central surrogate; no shared CMO geometry is detected. |
 | `cmo_physical_stereo` has low RMS and wins BIC | The measured stereo rayfields are compatible with a shared-objective CMO geometry. |
 | Support RMS is low but full-grid RMS is high | The model explains observed board pixels but extrapolates poorly outside the calibration support. |
 
@@ -424,7 +424,7 @@ The exit point `I_{2,c}` is not set to zero. Changing `d_{1,c}` moves
 parallel plate; this is why `d_{1,c}` is fixed in the default fit. The baseline
 still comes from `T_{R\leftarrow L}` and is not replaced by the plate thickness.
 
-### Candidate 3: CMO polynomial stereo channels
+### Candidate 3: non-central polynomial surrogate channels
 
 The CMO stereo model uses effective sub-pupil origins rather than a conventional
 large camera-center baseline. The fixed and fitted quantities are:
@@ -612,9 +612,9 @@ for real microscopes where the two sensors are not mechanically aligned to the
 same principal point; horizontal offset can still correlate with the fitted
 sub-pupil baseline, so the ray-space residual is the primary validation.
 
-### Scientific background for the CMO polynomial model
+### Scientific background for the polynomial surrogate
 
-The CMO polynomial channel model is an **effective ray-space model**, not a
+The polynomial channel model is an **effective ray-space model**, not a
 full lens-design model. Its purpose is to provide a compact, identifiable
 parameterization for measured CMO-like rayfields. The model is built from
 standard pieces rather than from a single named closed-form microscope model:

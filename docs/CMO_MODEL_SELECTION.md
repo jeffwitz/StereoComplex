@@ -89,7 +89,9 @@ generic polynomial surrogate, it could easily contain smooth non-central effects
 that no true CMO can represent. Using the physical CMO as the oracle tests
 whether the physically constrained model can recover its own structure from the
 measured `O,d` fields, and whether the more generic polynomial surrogate is
-penalized for using extra degrees of freedom without matching the structure.
+detected as misspecified — it leaves a large structural residual because its
+per-channel pinhole parameterisation cannot produce the convergent chief rays
+that are the geometric signature of a shared CMO.
 
 The polynomial candidate, `CMOPolynomialChannelModel`, is still scientifically
 useful. It is a generic non-central **effective channel** model. It can represent
@@ -146,7 +148,7 @@ The physical candidates fitted per channel in notebook 06 are:
 | central pinhole | 0 | one camera center and pinhole directions |
 | central Brown-Conrady | 5 | central rays with radial/tangential direction bending |
 | pinhole + inclined parallel plate | 3 | a non-central parallel-plate line family |
-| CMO polynomial channel | 17 | independent effective sub-pupil origin, Brown-Conrady, and polynomial ray aberration |
+| polynomial surrogate channel | 17 | independent effective sub-pupil origin, Brown-Conrady, and polynomial ray aberration |
 
 The shared physical CMO is then fitted as a stereo model:
 
@@ -172,16 +174,16 @@ it is intentionally not included in this per-channel selector.
 | left | central pinhole | 0 | 71.272 mm | 71.272 mm | 70.553 mm | 8722.6 | no |
 | left | central Brown-Conrady | 5 | 65.730 mm | 65.730 mm | 65.237 mm | 8516.2 | no |
 | left | pinhole + plate | 3 | 71.244 mm | 71.244 mm | 70.524 mm | 8738.0 | no |
-| left | CMO polynomial channel | 17 | 59.759 mm | 59.759 mm | 59.395 mm | 8306.1 | yes |
+| left | polynomial surrogate channel | 17 | 59.759 mm | 59.759 mm | 59.395 mm | 8306.1 | yes |
 | right | central pinhole | 0 | 71.256 mm | 71.256 mm | 70.538 mm | 8722.0 | no |
 | right | central Brown-Conrady | 5 | 65.714 mm | 65.714 mm | 65.221 mm | 8515.4 | no |
 | right | pinhole + plate | 3 | 71.227 mm | 71.227 mm | 70.509 mm | 8737.3 | no |
-| right | CMO polynomial channel | 17 | 59.743 mm | 59.743 mm | 59.380 mm | 8305.3 | yes |
+| right | polynomial surrogate channel | 17 | 59.743 mm | 59.743 mm | 59.380 mm | 8305.3 | yes |
 
 The polynomial surrogate is the best **among independent per-channel families**,
-but the large residual shows that it is not the right compact explanation for
-this physical-CMO oracle. The fitted coefficients also hit several bounds,
-which is a useful misspecification symptom.
+but the large residual (~60 mm RMS) is a structural floor, not a fitting defect:
+the per-channel pinhole model cannot produce convergent chief rays. The fitted
+coefficients also hit several bounds, which is a useful misspecification symptom.
 
 ```{figure} assets/cmo_model_selection/cmo_model_selection_rms.png
 :alt: Per-channel CMO model selection rayfield RMS
@@ -226,8 +228,9 @@ magnitude better than the independent polynomial surrogate.
 :alt: Shared physical CMO versus polynomial surrogate BIC
 :width: 85%
 
-Delta-BIC for the same complete fit. The physical CMO has both the lower
-residual and fewer parameters, so the selection is unambiguous on this oracle.
+Delta-BIC for the same complete fit. The physical CMO dominates both in RMS
+(structure) and in parameter count (compactness), but the RMS gap — driven by the
+structural mismatch documented above — is the decisive factor.
 ```
 
 The recovered identifiable quantities are:
@@ -248,8 +251,8 @@ baseline, angular scale, ray-space residuals, and BIC.
 
 ## Scientific interpretation
 
-The experiment is not meant to prove that every CMO can be identified from one
-synthetic image. It validates a more specific methodological point:
+The experiment validates a structural claim rather than a parametric-compactness
+claim:
 
 1. a generic Zernike `O,d` rayfield can act as a measured geometric object;
 2. physical candidates can be fitted afterwards in ray space;
@@ -257,12 +260,31 @@ synthetic image. It validates a more specific methodological point:
    non-central origins;
 4. an inclined parallel plate is non-central but is the wrong physical family
    for this CMO rayfield;
-5. the independent polynomial surrogate remains useful for generic non-central
-   microscopes, but it is not a substitute for the shared CMO geometry when the
-   hardware really is a common-main-objective system;
-6. on a true physical-CMO oracle, the shared physical CMO wins both in RMS and
-   BIC because it explains the measured rayfield with fewer, physically coupled
-   parameters.
+5. the polynomial surrogate leaves a large structural residual (~60 mm RMS)
+   because it is a per-channel pinhole model: at the principal point its
+   direction is always `(0,0,1)`, whereas a true CMO has convergent chief rays
+   with a non-zero x-component at centre field.  No polynomial aberration can
+   correct this since all aberration terms vanish at `(x_norm,y_norm)=(0,0)`;
+6. the shared physical CMO model recovers its oracle to sub-micron RMS because
+   it encodes the correct geometric structure: all rays of one channel pass
+   through a single sub-pupil, and the two chief rays converge to the working
+   plane.
+
+The BIC gap is therefore driven by two effects: the CMO model has both lower RMS
+and fewer parameters, but the dominant factor is the RMS gap — the polynomial
+surrogate is structurally misspecified for this rayfield, not merely
+over-parameterised.
+
+The scientific message is:
+
+```text
+a true CMO imposes a shared stereo structure that independent per-channel
+models fundamentally miss, not just one they represent with more parameters.
+```
+
+This is a stronger and more specific claim than "the CMO wins by compactness".
+It means model selection can detect the *signature* of a shared objective, not
+just score a fit.
 
 This supports the intended StereoComplex workflow:
 
