@@ -90,6 +90,13 @@ candidate among the models you tested. If all candidates have high residuals,
 the correct interpretation is: none of the proposed physical families explains
 the measured rayfield well enough.
 
+For CMO-like microscopes, distinguish the two CMO candidates carefully. Use the
+physical CMO model when the instrument plausibly has one common main objective,
+a shared sub-pupil baseline, and chief-ray convergence. Use the polynomial
+surrogate when the hardware is less constrained or unknown, for example
+Greenough-like microscopes with independent objectives, decentered relay optics,
+tilted sensor stacks, protective windows, or generic non-central stereo rigs.
+
 ## Mathematical model catalogue
 
 This is the advanced reference definition of the physical candidates used by
@@ -526,6 +533,12 @@ fit. The rendered CMO generator and the fittable CMO candidate use the same
 intrinsics, Brown-Conrady, sub-pupil-origin, and polynomial ray-aberration
 primitives from `stereocomplex.physics`, so generation and fitting do not
 maintain two separate implementations of the optical model.
+
+This candidate should be read as a generic non-central surrogate. It is useful
+when a true common-main-objective constraint would be too strong: independent
+objective microscopes, unknown stereo microscopes, asymmetric relay optics,
+tilted sensors, or channel-specific windows can all create smooth rayfields that
+are not representable by the physical CMO model below.
 
 ### Candidate 4: physical CMO stereo model
 

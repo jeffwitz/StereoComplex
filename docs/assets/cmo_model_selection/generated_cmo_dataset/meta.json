@@ -15,14 +15,14 @@
       "intrinsics": {
         "width": 320,
         "height": 240,
-        "fx": 310.0,
-        "fy": 310.0,
+        "fx": 1000.0,
+        "fy": 1000.0,
         "cx": 159.5,
         "cy": 119.5
       },
       "origin_world_mm": [
-        -4.0,
-        0.15,
+        0.0,
+        0.0,
         0.0
       ],
       "R_cam_to_world": [
@@ -43,32 +43,24 @@
         ]
       ],
       "distortion": {
-        "k1": -0.08,
-        "k2": 0.018,
-        "p1": 0.0002,
-        "p2": -0.0001,
+        "k1": 0.0,
+        "k2": 0.0,
+        "p1": 0.0,
+        "p2": 0.0,
         "k3": 0.0
       },
       "differential_aberration": {
-        "coeff_x": {
-          "x": 0.0008
-        },
-        "coeff_y": {
-          "y": -0.0006
-        }
+        "coeff_x": {},
+        "coeff_y": {}
       },
       "sensor_warp": {
-        "du_coeff_px": {
-          "xy": 0.18
-        },
-        "dv_coeff_px": {
-          "x2": -0.12
-        }
+        "du_coeff_px": {},
+        "dv_coeff_px": {}
       },
       "vignetting": {
-        "strength": 0.18,
+        "strength": 0.16,
         "floor": 0.55,
-        "x_shift": -0.05,
+        "x_shift": -0.04,
         "y_shift": 0.0
       }
     },
@@ -77,14 +69,14 @@
       "intrinsics": {
         "width": 320,
         "height": 240,
-        "fx": 310.0,
-        "fy": 310.0,
+        "fx": 1000.0,
+        "fy": 1000.0,
         "cx": 159.5,
         "cy": 119.5
       },
       "origin_world_mm": [
-        4.0,
-        -0.1,
+        0.0,
+        0.0,
         0.0
       ],
       "R_cam_to_world": [
@@ -105,50 +97,37 @@
         ]
       ],
       "distortion": {
-        "k1": -0.072,
-        "k2": 0.015,
-        "p1": -0.0002,
-        "p2": 0.0001,
+        "k1": 0.0,
+        "k2": 0.0,
+        "p1": 0.0,
+        "p2": 0.0,
         "k3": 0.0
       },
       "differential_aberration": {
-        "coeff_x": {
-          "x": -0.0008
-        },
-        "coeff_y": {
-          "y": 0.0006
-        }
+        "coeff_x": {},
+        "coeff_y": {}
       },
       "sensor_warp": {
-        "du_coeff_px": {
-          "xy": -0.15
-        },
-        "dv_coeff_px": {
-          "y2": 0.1
-        }
+        "du_coeff_px": {},
+        "dv_coeff_px": {}
       },
       "vignetting": {
-        "strength": 0.18,
+        "strength": 0.16,
         "floor": 0.55,
-        "x_shift": 0.05,
+        "x_shift": 0.04,
         "y_shift": 0.0
       }
     },
     "common_aberration": {
-      "coeff_x": {
-        "x2": 0.002,
-        "y2": -0.0015
-      },
-      "coeff_y": {
-        "xy": 0.001
-      }
+      "coeff_x": {},
+      "coeff_y": {}
     }
   },
   "sim_params": {
     "image_format": "png",
     "blur_sigma_px": 0.6,
     "noise_std_gray": 0.0,
-    "seed": 11
+    "seed": 0
   },
   "model_notes": [
     "The renderer and sparse projection both use stereocomplex.physics.cmo.",

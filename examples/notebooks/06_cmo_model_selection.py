@@ -19,10 +19,9 @@
 # > The 2D/ray observations measure the rayfield; the rayfield is then used to
 # > identify and compare optical models.
 #
-# In this notebook the CMO generator, the CMO fitting candidate, Brown-Conrady
-# distortion, vignetting, sensor warp, and ray aberrations all come from
-# `stereocomplex.physics`. There is no second implementation of the optical
-# model hidden in the generator.
+# In this notebook the CMO oracle and the CMO physical fitting candidate are the
+# same shared-rig model from `stereocomplex.physics`. The polynomial model is
+# tested as a more generic surrogate, not used to generate the fields.
 
 # %%
 from __future__ import annotations
@@ -36,29 +35,23 @@ import numpy as np
 from scipy.optimize import least_squares
 
 from stereocomplex.physics import (
-    BrownConrady,
-    CMOChannelRayField,
-    CMOChannelSpec,
     CMOIntrinsics,
+    CMOPhysicalStereoModel,
     CMOPolynomialChannelModel,
     CMOPlaneTargetSpec,
-    CMOStereoSpec,
     CentralBrownConradyModel,
     CentralPinholeModel,
     PhysicalModelSpec,
     PinholeParallelPlateModel,
-    PolynomialRayAberration,
-    SensorWarp,
     Vignetting,
-    cmo_polynomial_channel_parameters_from_spec,
-    fit_cmo_stereo_model_and_poses_from_zernike_rayfields,
+    fit_cmo_physical_stereo_model_to_rayfields,
     generate_cmo_plane_dataset,
-    project_cmo_target_corners,
+    intersect_rays_with_plane,
     rayfield_two_plane_residuals,
-    render_cmo_channel_image,
+    sample_cmo_target_texture,
     select_physical_model_from_rayfield,
 )
-from stereocomplex.physics.cmo import pose_from_euler_xyz
+from stereocomplex.physics.cmo import CMOChannelSpec, CMOStereoSpec, pose_from_euler_xyz
 from stereocomplex.rayfields import (
     ZernikeOriginFieldConfig,
     ZernikeRayField,
@@ -88,84 +81,72 @@ def show_or_close(fig) -> None:
 
 
 # %% [markdown]
-# ## 1. Build a synthetic CMO stereo model
+# ## 1. Build a physical CMO stereo oracle
 #
-# The CMO model has:
+# The oracle is the compact shared-rig CMO model:
 #
-# - one common polynomial ray aberration shared by both channels;
-# - left/right differential aberrations;
-# - per-channel Brown-Conrady distortion;
-# - per-channel sensor warp and vignetting;
-# - two effective sub-pupil origins.
+# - one common main objective focal length;
+# - one working plane where both chief rays cross the optical axis;
+# - one sub-pupil baseline shared by the two channels;
+# - one tube-lens scale and pixel pitch;
+# - per-channel Brown-Conrady distortion.
 #
-# The model-selection step below fits each channel independently. The fitted CMO
-# candidate therefore estimates the **effective** channel model: origin,
-# Brown-Conrady terms, and the sum of common plus differential aberrations.
+# This matters for model selection: the polynomial channel model is more
+# generic, so it could generate rayfields that the physical CMO cannot represent.
+# Here we do the stricter experiment and generate the fields with the physical
+# CMO, then ask whether the physical CMO beats the generic surrogate as a compact
+# explanation of the measured `O,d` fields.
 
 # %%
 IMAGE_SIZE = (320, 240)
+F_OBJ_MM = 80.0
+WORKING_DISTANCE_MM = 120.0
+B_MM = 8.0
+F_TUBE_MM = 50.0
+PIXEL_PITCH_MM = 0.05
+CX = (IMAGE_SIZE[0] - 1) / 2.0
+CY = (IMAGE_SIZE[1] - 1) / 2.0
+
+physical_cmo = CMOPhysicalStereoModel(
+    f_obj_mm=F_OBJ_MM,
+    working_distance_mm=WORKING_DISTANCE_MM,
+    b_mm=B_MM,
+    f_tube_mm=F_TUBE_MM,
+    cx_principal_px=CX,
+    cy_principal_px=CY,
+    pixel_pitch_mm=PIXEL_PITCH_MM,
+    distortion_left=(-0.04, 0.01, 2.0e-4, -1.0e-4, 0.0),
+    distortion_right=(-0.035, 0.008, -2.0e-4, 1.0e-4, 0.0),
+    image_size=IMAGE_SIZE,
+)
+
 intr = CMOIntrinsics(
     width=IMAGE_SIZE[0],
     height=IMAGE_SIZE[1],
-    fx=310.0,
-    fy=310.0,
-    cx=(IMAGE_SIZE[0] - 1) / 2.0,
-    cy=(IMAGE_SIZE[1] - 1) / 2.0,
-)
-
-common = PolynomialRayAberration(
-    coeff_x={"x2": +2.0e-3, "y2": -1.5e-3},
-    coeff_y={"xy": +1.0e-3},
-)
-left_diff = PolynomialRayAberration(
-    coeff_x={"x": +8.0e-4},
-    coeff_y={"y": -6.0e-4},
-)
-right_diff = PolynomialRayAberration(
-    coeff_x={"x": -8.0e-4},
-    coeff_y={"y": +6.0e-4},
-)
-
-cmo = CMOStereoSpec(
-    left=CMOChannelSpec(
-        name="left",
-        intrinsics=intr,
-        origin_world_mm=(-4.0, 0.15, 0.0),
-        distortion=BrownConrady(k1=-0.08, k2=0.018, p1=2.0e-4, p2=-1.0e-4),
-        differential_aberration=left_diff,
-        sensor_warp=SensorWarp(du_coeff_px={"xy": 0.18}, dv_coeff_px={"x2": -0.12}),
-        vignetting=Vignetting(strength=0.18, floor=0.55, x_shift=-0.05),
-    ),
-    right=CMOChannelSpec(
-        name="right",
-        intrinsics=intr,
-        origin_world_mm=(+4.0, -0.10, 0.0),
-        distortion=BrownConrady(k1=-0.072, k2=0.015, p1=-2.0e-4, p2=1.0e-4),
-        differential_aberration=right_diff,
-        sensor_warp=SensorWarp(du_coeff_px={"xy": -0.15}, dv_coeff_px={"y2": 0.10}),
-        vignetting=Vignetting(strength=0.18, floor=0.55, x_shift=+0.05),
-    ),
-    common_aberration=common,
+    fx=F_TUBE_MM / PIXEL_PITCH_MM,
+    fy=F_TUBE_MM / PIXEL_PITCH_MM,
+    cx=CX,
+    cy=CY,
 )
 K = intr.as_K()
+left_true = physical_cmo.channel("left")
+right_true = physical_cmo.channel("right")
 
-left_true = CMOChannelRayField(cmo.left, cmo.common_aberration, name="left_cmo_oracle")
-right_true = CMOChannelRayField(cmo.right, cmo.common_aberration, name="right_cmo_oracle")
-
-print("CMO channel origins")
-print(f"  left : {cmo.left.origin}")
-print(f"  right: {cmo.right.origin}")
+print("Physical CMO oracle")
+print(f"  f_obj / working distance : {F_OBJ_MM:.1f} / {WORKING_DISTANCE_MM:.1f} mm")
+print(f"  sub-pupil baseline       : {B_MM:.1f} mm")
+print(f"  angular pixel scale      : {PIXEL_PITCH_MM / F_TUBE_MM:.4e} rad/px")
 
 
 # %% [markdown]
-# ## 2. Render a small CMO calibration scene
+# ## 2. Render a small physical-CMO calibration scene
 #
 # The rendered image is not used for the fits below. It is included to show that
 # the same physics object can generate images and rayfields. The renderer uses:
 #
 # $$
-# \text{pixel}\rightarrow\text{CMO ray}\rightarrow\text{target plane}
-# \rightarrow\text{texture sample}.
+# \text{pixel}\rightarrow\text{physical CMO ray}\rightarrow
+# \text{target plane}\rightarrow\text{texture sample}.
 # $$
 
 # %%
@@ -179,26 +160,61 @@ target = CMOPlaneTargetSpec(
 pose = pose_from_euler_xyz(0.0, 0.0, 0.0, (0.0, 0.0, 180.0))
 texture = target.make_texture_u8()
 
-left_img = render_cmo_channel_image(
-    cmo,
-    cmo.left,
-    target,
-    pose,
-    texture,
-    blur_sigma_px=0.6,
-    noise_std_gray=0.0,
-    rng=np.random.default_rng(3),
+render_intr_left = CMOChannelSpec(
+    name="left",
+    intrinsics=intr,
+    origin_world_mm=(0.0, 0.0, 0.0),
+    vignetting=Vignetting(strength=0.16, floor=0.55, x_shift=-0.04),
 )
-right_img = render_cmo_channel_image(
-    cmo,
-    cmo.right,
-    target,
-    pose,
-    texture,
-    blur_sigma_px=0.6,
-    noise_std_gray=0.0,
-    rng=np.random.default_rng(4),
+render_intr_right = CMOChannelSpec(
+    name="right",
+    intrinsics=intr,
+    origin_world_mm=(0.0, 0.0, 0.0),
+    vignetting=Vignetting(strength=0.16, floor=0.55, x_shift=+0.04),
 )
+
+
+def render_physical_cmo_channel(channel: str) -> np.ndarray:
+    u, v = intr.pixel_grid()
+    origins, directions = physical_cmo.ray(u, v, channel)  # same physics used by fitting
+    X_world, valid = intersect_rays_with_plane(origins, directions, pose)
+    X_local = pose.world_to_local(X_world)
+    xy = X_local[..., :2]
+    inside = (
+        valid
+        & (xy[..., 0] >= -0.5 * target.width_mm)
+        & (xy[..., 0] <= +0.5 * target.width_mm)
+        & (xy[..., 1] >= -0.5 * target.height_mm)
+        & (xy[..., 1] <= +0.5 * target.height_mm)
+    )
+    sampled = sample_cmo_target_texture(target, texture, xy, inside, interpolation="linear")
+    img = np.full_like(sampled, 20, dtype=np.uint8)
+    img[inside] = sampled[inside]
+    channel_spec = render_intr_left if channel == "left" else render_intr_right
+    return np.clip(img.astype(float) * channel_spec.vignetting.gain(intr), 0.0, 255.0).astype(np.uint8)
+
+
+left_img = render_physical_cmo_channel("left")
+right_img = render_physical_cmo_channel("right")
+
+# Also write a tiny ChArUco dataset with the existing polynomial renderer API so
+# downstream image-front-end examples still have files to inspect. It is not used
+# for the rayfield fits below.
+render_only_cmo = CMOStereoSpec(
+    left=render_intr_left,
+    right=render_intr_right,
+)
+
+dataset_dir = ASSET_DIR / "generated_cmo_dataset"
+generate_cmo_plane_dataset(
+    out_dir=dataset_dir,
+    cmo=render_only_cmo,
+    target=target,
+    poses=[pose],
+    noise_std_gray=0.0,
+    blur_sigma_px=0.6,
+)
+print(f"Wrote {dataset_dir.relative_to(ROOT)}")
 
 fig, axes = plt.subplots(1, 2, figsize=(10, 4), constrained_layout=True)
 axes[0].imshow(left_img, cmap="gray", vmin=0, vmax=255)
@@ -209,25 +225,6 @@ for ax in axes:
     ax.axis("off")
 fig.savefig(ASSET_DIR / "cmo_rendered_pair.png", dpi=160)
 show_or_close(fig)
-
-
-# %% [markdown]
-# We can also write a tiny dataset with the same physics. This keeps the example
-# concrete for later image-based front-ends, while the rest of the notebook stays
-# focused on ray-space model selection.
-
-# %%
-dataset_dir = ASSET_DIR / "generated_cmo_dataset"
-generate_cmo_plane_dataset(
-    out_dir=dataset_dir,
-    cmo=cmo,
-    target=target,
-    poses=[pose],
-    blur_sigma_px=0.6,
-    noise_std_gray=0.0,
-    seed=11,
-)
-print(f"Wrote {dataset_dir.relative_to(ROOT)}")
 
 
 # %% [markdown]
@@ -415,183 +412,103 @@ print_report("Right measured Zernike rayfield", right_report)
 
 
 # %% [markdown]
-# ## 5. Read the fitted CMO parameters
+# ## 5. Shared physical CMO vs polynomial surrogate
 #
-# The fitted CMO candidate estimates one effective channel model. Because this
-# notebook fits channels independently, the recovered aberration coefficients are
-# the sum of common and differential channel effects.
+# The previous table fits every candidate per channel. That is useful for
+# diagnostics, but it is not the fairest comparison for a real CMO: the physical
+# model shares one stereo rig across both channels. We therefore run a shared
+# physical CMO fit on the left and right measured `O,d` rayfields together, and
+# compare it to the two independent polynomial-channel fits.
+#
+# The polynomial surrogate is still useful. It can represent optical systems that
+# are not constrained by a common main objective: Greenough-like microscopes with
+# independent objectives, decentered relays, tilted sensor stacks, unknown
+# protective windows, or generic non-central stereo rigs. Its cost is lower
+# interpretability and more degrees of freedom.
 
 # %%
-def selected_params(report) -> dict[str, float]:
+def selected_candidate(report, name: str):
     by_name = {candidate.model_name: candidate for candidate in report.candidates}
-    return by_name["cmo_polynomial_channel"].parameter_dict
+    return by_name[name]
 
 
-for name, truth, params in [
-    ("left", cmo.left, selected_params(left_report)),
-    ("right", cmo.right, selected_params(right_report)),
-]:
-    print(name)
-    print(f"  origin truth: {truth.origin[:2]}")
-    print(f"  origin fit  : {[params['origin_x_mm'], params['origin_y_mm']]}")
-    print(f"  k1 truth/fit: {truth.distortion.k1:+.5f} / {params['k1']:+.5f}")
-    print(f"  k2 truth/fit: {truth.distortion.k2:+.5f} / {params['k2']:+.5f}")
-    print(f"  p1 truth/fit: {truth.distortion.p1:+.5e} / {params['p1']:+.5e}")
-    print(f"  p2 truth/fit: {truth.distortion.p2:+.5e} / {params['p2']:+.5e}")
+poly_left = selected_candidate(left_report, "cmo_polynomial_channel")
+poly_right = selected_candidate(right_report, "cmo_polynomial_channel")
+poly_combined_rms = float(np.sqrt(0.5 * (poly_left.rms_mm**2 + poly_right.rms_mm**2)))
+poly_combined_bic = float(poly_left.bic + poly_right.bic)
+poly_combined_aic = float(poly_left.aic + poly_right.aic)
+poly_parameter_count = int(poly_left.n_parameters + poly_right.n_parameters)
 
+physical_initial = physical_cmo.parameter_vector().copy()
+physical_initial[:4] *= np.array([1.03, 0.98, 1.05, 0.97])
+physical_initial[4:6] += np.array([0.25, -0.15])
+physical_initial[8:18] *= 0.8
 
-# %% [markdown]
-# ## 6. Complete CMO rayfield BA: optics and board poses
-#
-# Model selection fitted each channel independently in ray space. We now run a
-# more coupled benchmark: optimize the left/right effective CMO parameters and
-# several board poses together.
-#
-# This is still not a detector benchmark. The measured Zernike fields provide
-# the pixel-to-line observations, while synthetic ChArUco correspondences provide
-# the board geometry. The objective combines:
-#
-# - point-to-line incidence of ChArUco corners with the fitted CMO rays;
-# - a ray-space anchor that keeps the fitted CMO channels close to the measured
-#   Zernike rayfields;
-# - optional pose regularization, set to zero here because the problem is
-#   well-constrained in this controlled case.
-#
-# The purpose is to check that the CMO parameterization is not only selectable,
-# but also sufficiently well posed for joint optical/pose refinement once a
-# generic rayfield has been measured.
-
-# %%
-ba_poses_truth = [
-    pose_from_euler_xyz(+0.00, +0.00, +0.00, (0.0, 0.0, 180.0)),
-    pose_from_euler_xyz(+0.04, -0.03, +0.02, (-4.0, +2.0, 188.0)),
-    pose_from_euler_xyz(-0.05, +0.05, -0.03, (+3.5, -2.5, 176.0)),
-    pose_from_euler_xyz(+0.07, +0.02, +0.04, (+5.0, +1.0, 194.0)),
-]
-
-corner_ids, corner_xy = target.inner_corners_local_mm()
-object_frames = []
-left_pixel_frames = []
-right_pixel_frames = []
-
-for board_pose in ba_poses_truth:
-    gt = project_cmo_target_corners(cmo, target, board_pose)
-    object_frames.append(corner_xy[gt["corner_id"]])
-    left_pixel_frames.append(gt["uv_left_px"])
-    right_pixel_frames.append(gt["uv_right_px"])
-
-pose_initials = [
-    pose_from_euler_xyz(+0.01, -0.01, +0.005, (+0.2, -0.1, 180.3)),
-    pose_from_euler_xyz(+0.05, -0.04, +0.025, (-3.8, +1.8, 188.2)),
-    pose_from_euler_xyz(-0.04, +0.04, -0.020, (+3.7, -2.7, 176.2)),
-    pose_from_euler_xyz(+0.08, +0.01, +0.035, (+5.2, +0.8, 194.2)),
-]
-
-terms = CMOPolynomialChannelModel.default_terms()
-left_initial = np.array(
-    [
-        selected_params(left_report)[key]
-        for key in [
-            "origin_x_mm",
-            "origin_y_mm",
-            "k1",
-            "k2",
-            "p1",
-            "p2",
-            "k3",
-        ]
-    ]
-    + [selected_params(left_report)[f"aberr_x_{name}"] for name in terms]
-    + [selected_params(left_report)[f"aberr_y_{name}"] for name in terms],
-    dtype=np.float64,
-)
-right_initial = np.array(
-    [
-        selected_params(right_report)[key]
-        for key in [
-            "origin_x_mm",
-            "origin_y_mm",
-            "k1",
-            "k2",
-            "p1",
-            "p2",
-            "k3",
-        ]
-    ]
-    + [selected_params(right_report)[f"aberr_x_{name}"] for name in terms]
-    + [selected_params(right_report)[f"aberr_y_{name}"] for name in terms],
-    dtype=np.float64,
-)
-
-ba_result = fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
+physical_fit = fit_cmo_physical_stereo_model_to_rayfields(
     left_field=left_zernike,
     right_field=right_zernike,
-    K=K,
     image_size=IMAGE_SIZE,
-    object_points=object_frames,
-    left_pixels=left_pixel_frames,
-    right_pixels=right_pixel_frames,
-    pose_initials=pose_initials,
-    initial_left_parameters=left_initial,
-    initial_right_parameters=right_initial,
-    aberration_terms=terms,
-    rayfield_weight=0.35,
-    pose_regularization=0.0,
-    max_nfev=500,
+    initial_parameters=physical_initial,
+    z_planes=(80.0, 260.0),
+    grid_shape=(13, 11),
+    support_pixels_left=support_left,
+    support_pixels_right=support_right,
+    full_grid_weight=0.35,
+    max_nfev=800,
 )
 
+truth_params = physical_cmo.parameter_vector()
+fit_params = physical_fit.parameter_vector
+angular_scale_truth = truth_params[6] / truth_params[3]
+angular_scale_fit = fit_params[6] / fit_params[3]
 
-def pose_errors(fitted, truth):
-    t_err = []
-    r_err = []
-    for pose_fit, pose_true in zip(fitted, truth, strict=True):
-        t_err.append(np.linalg.norm(pose_fit.t - pose_true.t))
-        # angle of relative rotation in degrees
-        cos_angle = np.clip((np.trace(pose_fit.R @ pose_true.R.T) - 1.0) / 2.0, -1.0, 1.0)
-        r_err.append(np.degrees(np.arccos(cos_angle)))
-    return np.asarray(t_err), np.asarray(r_err)
+comparison_rows = [
+    {
+        "model": "polynomial_surrogate",
+        "parameters": poly_parameter_count,
+        "rms_mm": poly_combined_rms,
+        "left_rms_mm": float(poly_left.rms_mm),
+        "right_rms_mm": float(poly_right.rms_mm),
+        "bic": poly_combined_bic,
+        "aic": poly_combined_aic,
+    },
+    {
+        "model": "physical_cmo_shared",
+        "parameters": physical_fit.n_parameters,
+        "rms_mm": float(physical_fit.rms_mm),
+        "left_rms_mm": float(physical_fit.left_rms_mm),
+        "right_rms_mm": float(physical_fit.right_rms_mm),
+        "bic": float(physical_fit.bic),
+        "aic": float(physical_fit.aic),
+    },
+]
 
-
-t_err, r_err = pose_errors(ba_result.poses, ba_poses_truth)
-left_truth_params = cmo_polynomial_channel_parameters_from_spec(cmo.left, cmo.common_aberration, terms)
-right_truth_params = cmo_polynomial_channel_parameters_from_spec(cmo.right, cmo.common_aberration, terms)
-
-print("Complete CMO rayfield BA")
-print(f"  success              : {ba_result.success}")
-print(f"  observations          : {ba_result.n_observations}")
-print(f"  incidence RMS         : {ba_result.incidence_rms_mm:.5f} mm")
-print(f"  incidence P95         : {ba_result.incidence_p95_mm:.5f} mm")
-print(f"  left rayfield RMS     : {ba_result.left_rayfield_rms_mm:.5f} mm")
-print(f"  right rayfield RMS    : {ba_result.right_rayfield_rms_mm:.5f} mm")
-print(f"  pose translation RMS  : {np.sqrt(np.mean(t_err**2)):.5f} mm")
-print(f"  pose rotation RMS     : {np.sqrt(np.mean(r_err**2)):.5f} deg")
-print(
-    "  left origin truth/BA  : "
-    f"{cmo.left.origin[:2]} / {[ba_result.left_model.origin_x_mm, ba_result.left_model.origin_y_mm]}"
-)
-print(
-    "  right origin truth/BA : "
-    f"{cmo.right.origin[:2]} / {[ba_result.right_model.origin_x_mm, ba_result.right_model.origin_y_mm]}"
-)
+print("Shared physical CMO vs polynomial surrogate")
+for row in comparison_rows:
+    print(
+        f"  {row['model']:<24s} "
+        f"p={row['parameters']:>2d} "
+        f"rms={row['rms_mm']:.5f} mm "
+        f"left={row['left_rms_mm']:.5f} "
+        f"right={row['right_rms_mm']:.5f} "
+        f"BIC={row['bic']:.1f}"
+    )
+print("Physical CMO identifiable parameters")
+print(f"  f_obj truth/fit        : {truth_params[0]:.4f} / {fit_params[0]:.4f} mm")
+print(f"  working truth/fit      : {truth_params[1]:.4f} / {fit_params[1]:.4f} mm")
+print(f"  baseline truth/fit     : {truth_params[2]:.4f} / {fit_params[2]:.4f} mm")
+print(f"  angular scale truth/fit: {angular_scale_truth:.6e} / {angular_scale_fit:.6e}")
 
 
 # %% [markdown]
-# Individual Brown and polynomial coefficients are partly correlated in this
-# compact CMO channel model. The stable engineering checks are therefore:
-# origin recovery, pose recovery, incidence residual, and ray-space residual to
-# the measured Zernike fields. The parameter vectors are still reported for
-# auditability.
-
-# %%
-left_param_error = ba_result.left_model.parameter_vector() - left_truth_params
-right_param_error = ba_result.right_model.parameter_vector() - right_truth_params
-print("CMO BA parameter-vector errors")
-print(f"  left  L2: {np.linalg.norm(left_param_error):.5e}")
-print(f"  right L2: {np.linalg.norm(right_param_error):.5e}")
-
+# The physical CMO was used to generate the rayfields. On this controlled case it
+# should therefore achieve a similar or better ray-space fit with fewer
+# parameters. The polynomial surrogate remains valuable when this structural CMO
+# hypothesis is false: it can absorb smooth non-central effects without assuming
+# a shared objective, shared sub-pupil baseline, or chief-ray crossover.
 
 # %% [markdown]
-# ## 7. Visualize model selection
+# ## 6. Visualize model selection
 
 # %%
 def rows_to_arrays(report):
@@ -632,41 +549,49 @@ ax.legend()
 fig.savefig(ASSET_DIR / "cmo_model_selection_bic.png", dpi=160)
 show_or_close(fig)
 
+fig, ax = plt.subplots(figsize=(6.5, 4), constrained_layout=True)
+labels_compare = [row["model"].replace("_", "\n") for row in comparison_rows]
+rms_compare = [row["rms_mm"] for row in comparison_rows]
+colors = ["#7aa6c2", "#2d6a4f"]
+ax.bar(labels_compare, rms_compare, color=colors)
+ax.set_yscale("log")
+ax.set_ylabel("stereo rayfield RMS [mm]")
+ax.set_title("Physical CMO vs polynomial surrogate")
+fig.savefig(ASSET_DIR / "cmo_physical_vs_polynomial_rms.png", dpi=160)
+show_or_close(fig)
+
+fig, ax = plt.subplots(figsize=(6.5, 4), constrained_layout=True)
+bic_compare = np.array([row["bic"] for row in comparison_rows], dtype=float)
+ax.bar(labels_compare, bic_compare - np.min(bic_compare), color=colors)
+ax.set_ylabel("ΔBIC from best")
+ax.set_title("Shared physical CMO is penalized less")
+fig.savefig(ASSET_DIR / "cmo_physical_vs_polynomial_bic.png", dpi=160)
+show_or_close(fig)
+
 
 # %% [markdown]
-# ## 8. Save a compact JSON report
+# ## 7. Save a compact JSON report
 
 # %%
 summary = {
     "left": {
         "best_by_bic": left_report.best_by_bic,
         "rows": left_report.rows(),
-        "cmo_parameters": selected_params(left_report),
+        "polynomial_parameters": poly_left.parameter_dict,
     },
     "right": {
         "best_by_bic": right_report.best_by_bic,
         "rows": right_report.rows(),
-        "cmo_parameters": selected_params(right_report),
+        "polynomial_parameters": poly_right.parameter_dict,
     },
-    "complete_cmo_ba": {
-        "success": ba_result.success,
-        "n_observations": ba_result.n_observations,
-        "incidence_rms_mm": ba_result.incidence_rms_mm,
-        "incidence_p95_mm": ba_result.incidence_p95_mm,
-        "left_rayfield_rms_mm": ba_result.left_rayfield_rms_mm,
-        "right_rayfield_rms_mm": ba_result.right_rayfield_rms_mm,
-        "pose_translation_rms_mm": float(np.sqrt(np.mean(t_err**2))),
-        "pose_rotation_rms_deg": float(np.sqrt(np.mean(r_err**2))),
-        "left_origin_error_mm": (
-            np.array([ba_result.left_model.origin_x_mm, ba_result.left_model.origin_y_mm])
-            - cmo.left.origin[:2]
-        ).tolist(),
-        "right_origin_error_mm": (
-            np.array([ba_result.right_model.origin_x_mm, ba_result.right_model.origin_y_mm])
-            - cmo.right.origin[:2]
-        ).tolist(),
-        "left_parameter_l2": float(np.linalg.norm(left_param_error)),
-        "right_parameter_l2": float(np.linalg.norm(right_param_error)),
+    "physical_vs_polynomial": comparison_rows,
+    "physical_cmo_fit": {
+        "success": physical_fit.success,
+        "message": physical_fit.message,
+        "parameter_dict": physical_fit.parameter_dict,
+        "truth_parameter_dict": physical_cmo.parameter_dict(),
+        "angular_scale_truth": float(angular_scale_truth),
+        "angular_scale_fit": float(angular_scale_fit),
     },
 }
 (ASSET_DIR / "cmo_model_selection_summary.json").write_text(
@@ -677,16 +602,19 @@ print(json.dumps(summary["left"]["rows"], indent=2))
 
 
 # %% [markdown]
-# ## 9. Interpretation
+# ## 8. Interpretation
 #
-# The CMO candidate is not selected because the notebook tells the selector that
+# The physical CMO is not selected because the notebook tells the selector that
 # the oracle is a CMO. The selector only sees the measured Zernike rayfield and
 # ray-space residuals. Central pinhole and central Brown-Conrady can bend
-# directions, but they cannot represent a shifted effective sub-pupil origin.
-# The inclined-plate model can create non-central rays, but its geometry is the
-# wrong physical family for this CMO oracle.
+# directions, but they cannot represent the shared non-central sub-pupil
+# geometry. The inclined-plate model can create non-central rays, but its
+# geometry is the wrong physical family for this CMO oracle.
 #
-# The CMO polynomial channel wins when its lower residual compensates for its
-# larger parameter count in BIC. That is the intended scientific message:
+# The polynomial surrogate is the right engineering fallback for systems whose
+# structure is unknown or not CMO-like. On this true-CMO oracle, however, the
+# shared physical CMO should be preferred when it reaches the same ray-space
+# accuracy with fewer effective degrees of freedom. That is the intended
+# scientific message:
 #
 # > Measure the rayfield first; explain the optics second.
