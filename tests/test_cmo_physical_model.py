@@ -285,7 +285,7 @@ def test_polynomial_surrogate_structural_mismatch_at_chief_ray() -> None:
     O_cmo, d_cmo = truth.ray(np.array([63.5]), np.array([47.5]), "left")
     assert abs(float(d_cmo[0, 0])) > 0.05, "CMO chief ray must have significant x-deviation"
 
-    # Polynomial model at centre pixel: x_norm=0, y_norm=0 → d_cam=(0,0,1).
+    # Polynomial model at centre pixel: x_norm=0, y_norm=0 -> d_cam=(0,0,1).
     poly = CMOPolynomialChannelModel(
         K=K, image_size=image_size, origin_x_mm=-10.0, origin_y_mm=0.0,
         aberration_terms=terms,
@@ -296,6 +296,68 @@ def test_polynomial_surrogate_structural_mismatch_at_chief_ray() -> None:
     # The two rays point in fundamentally different directions.
     angular_error_rad = float(np.arccos(np.clip(np.dot(d_cmo.reshape(-1, 3)[0], d_poly.reshape(-1, 3)[0]), -1.0, 1.0)))
     assert angular_error_rad > 0.05, f"expected >50 mrad structural mismatch, got {angular_error_rad:.4f} rad"
+
+
+def test_polynomial_surrogate_fails_even_with_constant_aberration_term() -> None:
+    """The polynomial surrogate cannot fit a CMO rayfield even with a constant term.
+
+    A natural counter-argument to the chief-ray test is "just add a constant
+    aberration term so d != (0,0,1) at the principal point."  This test
+    includes the ``"1"`` term in the aberration basis.  After fitting, the
+    chief-ray direction at centre field matches the CMO oracle (the constant
+    term handles that), but the overall RMS remains above 10 mm because all
+    rays of the polynomial model still pass through a single origin at z=0,
+    while the CMO rays pass through a sub-pupil at z=40.  The constant term
+    fixes the direction at one pixel; it does not remove the structural
+    origin mismatch.
+    """
+    truth = _truth_model(distortion=True)
+    image_size = (128, 96)
+    pixels = np.array(
+        [[u, v] for v in np.linspace(8.0, 119.0, 8) for u in np.linspace(8.0, 119.0, 8)],
+        dtype=np.float64,
+    )
+    intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=180.0, fy=180.0, cx=63.5, cy=47.5)
+    terms_const = ("1", "x", "y", "x2", "xy", "y2")
+
+    wide_bounds = (
+        np.r_[[-60.0, -30.0, -2.0, -2.0, -1.0, -1.0, -2.0], -0.5 * np.ones(2 * len(terms_const))],
+        np.r_[[+60.0, +30.0, +2.0, +2.0, +1.0, +1.0, +2.0], +0.5 * np.ones(2 * len(terms_const))],
+    )
+
+    result = fit_physical_model_to_rayfield(
+        CMOPolynomialChannelModel,
+        truth.channel("left"),
+        K=intr.as_K(),
+        image_size=image_size,
+        initial_parameters=np.zeros(7 + 2 * len(terms_const), dtype=np.float64),
+        bounds=wide_bounds,
+        support_pixels=pixels,
+        full_grid_weight=0.0,
+        max_nfev=4000,
+        name="poly_constant",
+        cmo_image_size=image_size,
+        aberration_terms=terms_const,
+    )
+
+    # The constant term lets the model match the chief-ray direction at centre …
+    fitted = CMOPolynomialChannelModel.from_parameter_vector(
+        result.parameter_vector, K=intr.as_K(), cmo_image_size=image_size,
+        aberration_terms=terms_const,
+    )
+    _, d_cmo_c = truth.ray(np.array([63.5]), np.array([47.5]), "left")
+    _, d_fit_c = fitted.ray(np.array([63.5]), np.array([47.5]))
+    angular_error_deg = float(np.degrees(
+        np.arccos(np.clip(np.dot(d_cmo_c.reshape(-1, 3)[0], d_fit_c.reshape(-1, 3)[0]), -1.0, 1.0))
+    ))
+    assert angular_error_deg < 2.0, (
+        f"constant term should match chief ray at centre, got {angular_error_deg:.2f} deg"
+    )
+
+    # … but the overall RMS floor remains high: the single-origin bottleneck persists.
+    assert result.rms_mm > 0.5, (
+        f"polynomial surrogate structural floor should be >> 0.1 mm, got {result.rms_mm:.4f} mm"
+    )
 
 
 def test_polynomial_surrogate_rms_plateaus_with_relaxed_bounds() -> None:

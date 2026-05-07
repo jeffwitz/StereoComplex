@@ -260,11 +260,11 @@ claim:
    non-central origins;
 4. an inclined parallel plate is non-central but is the wrong physical family
    for this CMO rayfield;
-5. the polynomial surrogate leaves a large structural residual (~60 mm RMS)
-   because it is a per-channel pinhole model: at the principal point its
-   direction is always `(0,0,1)`, whereas a true CMO has convergent chief rays
-   with a non-zero x-component at centre field.  No polynomial aberration can
-   correct this since all aberration terms vanish at `(x_norm,y_norm)=(0,0)`;
+5. even when the polynomial surrogate is given a constant aberration term
+   so that its chief-ray direction can match the CMO at centre field, the
+   overall RMS stays above 40 mm.  The bottleneck is geometric, not a missing
+   basis function: all rays of the polynomial model pass through a single
+   origin at `z=0`, whereas all CMO rays pass through a sub-pupil at `z=40`.
 6. the shared physical CMO model recovers its oracle to sub-micron RMS because
    it encodes the correct geometric structure: all rays of one channel pass
    through a single sub-pupil, and the two chief rays converge to the working
