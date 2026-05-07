@@ -442,13 +442,14 @@ poly_parameter_count = int(poly_left.n_parameters + poly_right.n_parameters)
 physical_initial = physical_cmo.parameter_vector().copy()
 physical_initial[:4] *= np.array([1.03, 0.98, 1.05, 0.97])
 physical_initial[4:6] += np.array([0.25, -0.15])
-physical_initial[8:18] *= 0.8
+physical_initial[7:17] *= 0.8
 
 physical_fit = fit_cmo_physical_stereo_model_to_rayfields(
     left_field=left_zernike,
     right_field=right_zernike,
     image_size=IMAGE_SIZE,
     initial_parameters=physical_initial,
+    pixel_pitch_mm=PIXEL_PITCH_MM,
     z_planes=(80.0, 260.0),
     grid_shape=(13, 11),
     support_pixels_left=support_left,
@@ -459,8 +460,8 @@ physical_fit = fit_cmo_physical_stereo_model_to_rayfields(
 
 truth_params = physical_cmo.parameter_vector()
 fit_params = physical_fit.parameter_vector
-angular_scale_truth = truth_params[6] / truth_params[3]
-angular_scale_fit = fit_params[6] / fit_params[3]
+angular_scale_truth = PIXEL_PITCH_MM / truth_params[3]
+angular_scale_fit = PIXEL_PITCH_MM / fit_params[3]
 
 comparison_rows = [
     {

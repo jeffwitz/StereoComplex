@@ -42,7 +42,7 @@ class PhysicalModelFitResult:
     aic: float
     bic: float
     parameter_vector: np.ndarray
-    parameter_dict: dict[str, float]
+    parameter_dict: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -139,6 +139,65 @@ def _make_model(model_class: type, x: np.ndarray, K: np.ndarray, model_kwargs: d
     if hasattr(model_class, "from_parameter_vector"):
         return model_class.from_parameter_vector(x, K=K, **model_kwargs)
     return model_class(K=K, **model_kwargs)
+
+
+def _as_stereo_selection_result(
+    *,
+    name: str,
+    left: PhysicalModelFitResult,
+    right: PhysicalModelFitResult,
+) -> PhysicalModelFitResult:
+    rss = float(left.rss + right.rss)
+    n_res = int(left.n_residual_scalars + right.n_residual_scalars)
+    n_samples = int(left.n_samples + right.n_samples)
+    p = int(left.n_parameters + right.n_parameters)
+    aic, bic = _aic_bic(rss, n_res, n_samples, p)
+    rms = float(np.sqrt(0.5 * (left.rms_mm**2 + right.rms_mm**2)))
+    support_rms = float(np.sqrt(0.5 * (left.support_rms_mm**2 + right.support_rms_mm**2)))
+    full_rms = float(np.sqrt(0.5 * (left.full_grid_rms_mm**2 + right.full_grid_rms_mm**2)))
+    median = float(0.5 * (left.median_mm + right.median_mm))
+    p95 = float(max(left.p95_mm, right.p95_mm))
+    return PhysicalModelFitResult(
+        model_name=name,
+        model=left.model,
+        success=bool(left.success and right.success),
+        message=f"left: {left.message}; right: {right.message}",
+        n_parameters=p,
+        n_samples=n_samples,
+        n_residual_scalars=n_res,
+        rss=rss,
+        rms_mm=rms,
+        median_mm=median,
+        p95_mm=p95,
+        support_rms_mm=support_rms,
+        full_grid_rms_mm=full_rms,
+        aic=aic,
+        bic=bic,
+        parameter_vector=np.r_[left.parameter_vector, right.parameter_vector],
+        parameter_dict={"left": left.parameter_dict, "right": right.parameter_dict},
+    )
+
+
+def _as_shared_cmo_selection_result(name: str, result: Any) -> PhysicalModelFitResult:
+    return PhysicalModelFitResult(
+        model_name=name,
+        model=result.model,
+        success=bool(result.success),
+        message=str(result.message),
+        n_parameters=int(result.n_parameters),
+        n_samples=int(result.n_samples),
+        n_residual_scalars=int(result.n_residual_scalars),
+        rss=float(result.rss),
+        rms_mm=float(result.rms_mm),
+        median_mm=float("nan"),
+        p95_mm=float("nan"),
+        support_rms_mm=float(result.rms_mm),
+        full_grid_rms_mm=float(result.rms_mm),
+        aic=float(result.aic),
+        bic=float(result.bic),
+        parameter_vector=np.asarray(result.parameter_vector, dtype=np.float64),
+        parameter_dict=result.parameter_dict,
+    )
 
 
 def fit_physical_model_to_rayfield(
@@ -272,30 +331,106 @@ def select_physical_model_from_rayfield(
     support_weight: float = 1.0,
     full_grid_weight: float = 0.25,
     max_nfev: int = 2000,
+    target_right=None,
+    K_right: np.ndarray | None = None,
+    support_pixels_right: np.ndarray | None = None,
 ) -> OpticalModelSelectionReport:
-    """Fit candidate physical models and select the best in ray space."""
+    """Fit candidate physical models and select the best in ray space.
+
+    With only ``target_field`` this keeps the historical single-channel
+    behavior. When ``target_right`` is provided, non-shared candidates are fitted
+    independently to both channels and aggregated, while stereo-shared
+    candidates such as ``CMOPhysicalStereoModel`` are fitted once with their
+    shared parameter vector.
+    """
+    from stereocomplex.physics.cmo_physical import (
+        CMOPhysicalStereoModel,
+        fit_cmo_physical_stereo_model_to_rayfields,
+    )
+
     specs = default_physical_model_specs() if candidate_specs is None else list(candidate_specs)
     results: list[PhysicalModelFitResult] = []
     warnings: list[str] = []
+    K_r = np.asarray(K if K_right is None else K_right, dtype=np.float64).reshape(3, 3)
+    stereo_mode = target_right is not None
     for spec in specs:
         kwargs = dict(spec.model_kwargs or {})
         try:
-            result = fit_physical_model_to_rayfield(
-                model_class=spec.model_class,
-                target_field=target_field,
-                K=K,
-                image_size=image_size,
-                initial_parameters=spec.initial_parameters,
-                bounds=spec.bounds,
-                z_planes=z_planes,
-                grid_shape=grid_shape,
-                support_pixels=support_pixels,
-                support_weight=support_weight,
-                full_grid_weight=full_grid_weight,
-                max_nfev=max_nfev,
-                name=spec.name,
-                **kwargs,
-            )
+            if stereo_mode and bool(getattr(spec.model_class, "is_stereo_shared", False)):
+                if spec.model_class is not CMOPhysicalStereoModel:
+                    raise NotImplementedError(f"stereo-shared dispatch is not implemented for {spec.model_class}")
+                pixel_pitch = kwargs.pop("pixel_pitch_mm", None)
+                if pixel_pitch is None:
+                    raise ValueError("pixel_pitch_mm is required for CMOPhysicalStereoModel selection")
+                result = _as_shared_cmo_selection_result(
+                    spec.name,
+                    fit_cmo_physical_stereo_model_to_rayfields(
+                        left_field=target_field,
+                        right_field=target_right,
+                        image_size=image_size,
+                        initial_parameters=spec.initial_parameters,
+                        bounds=spec.bounds,
+                        pixel_pitch_mm=float(pixel_pitch),
+                        z_planes=z_planes,
+                        grid_shape=grid_shape,
+                        support_pixels_left=support_pixels,
+                        support_pixels_right=support_pixels_right,
+                        support_weight=support_weight,
+                        full_grid_weight=full_grid_weight,
+                        max_nfev=max_nfev,
+                    ),
+                )
+            elif stereo_mode:
+                left = fit_physical_model_to_rayfield(
+                    model_class=spec.model_class,
+                    target_field=target_field,
+                    K=K,
+                    image_size=image_size,
+                    initial_parameters=spec.initial_parameters,
+                    bounds=spec.bounds,
+                    z_planes=z_planes,
+                    grid_shape=grid_shape,
+                    support_pixels=support_pixels,
+                    support_weight=support_weight,
+                    full_grid_weight=full_grid_weight,
+                    max_nfev=max_nfev,
+                    name=f"{spec.name}_left",
+                    **kwargs,
+                )
+                right = fit_physical_model_to_rayfield(
+                    model_class=spec.model_class,
+                    target_field=target_right,
+                    K=K_r,
+                    image_size=image_size,
+                    initial_parameters=spec.initial_parameters,
+                    bounds=spec.bounds,
+                    z_planes=z_planes,
+                    grid_shape=grid_shape,
+                    support_pixels=support_pixels_right,
+                    support_weight=support_weight,
+                    full_grid_weight=full_grid_weight,
+                    max_nfev=max_nfev,
+                    name=f"{spec.name}_right",
+                    **kwargs,
+                )
+                result = _as_stereo_selection_result(name=spec.name, left=left, right=right)
+            else:
+                result = fit_physical_model_to_rayfield(
+                    model_class=spec.model_class,
+                    target_field=target_field,
+                    K=K,
+                    image_size=image_size,
+                    initial_parameters=spec.initial_parameters,
+                    bounds=spec.bounds,
+                    z_planes=z_planes,
+                    grid_shape=grid_shape,
+                    support_pixels=support_pixels,
+                    support_weight=support_weight,
+                    full_grid_weight=full_grid_weight,
+                    max_nfev=max_nfev,
+                    name=spec.name,
+                    **kwargs,
+                )
         except Exception as exc:  # pragma: no cover - surfaced in report for users
             warnings.append(f"{spec.name} failed: {exc}")
             continue

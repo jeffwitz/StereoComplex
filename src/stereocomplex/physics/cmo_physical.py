@@ -84,8 +84,11 @@ class CMOPhysicalStereoModel:
     working plane.
 
     Sensor coordinates are converted to object-plane coordinates through the
-    tube-lens focal length and pixel pitch. Brown-Conrady coefficients model
-    residual per-channel direction distortion at the angle level.
+    tube-lens focal length and pixel pitch. The per-channel distortion is an
+    effective direction distortion ``D_c``, parameterized by five
+    Brown-Conrady-like coefficients applied to normalized angular coordinates.
+    It absorbs residual aberrations of the tube lens and main objective; it is
+    not a derivation from one specific physical aberration model.
     """
 
     f_obj_mm: float
@@ -99,17 +102,35 @@ class CMOPhysicalStereoModel:
     distortion_left: tuple[float, float, float, float, float] = (0.0, 0.0, 0.0, 0.0, 0.0)
     distortion_right: tuple[float, float, float, float, float] = (0.0, 0.0, 0.0, 0.0, 0.0)
     image_size: tuple[int, int] | None = None
+    share_principal_point: bool = True
+    delta_cx_diff_px: float = 0.0
+    delta_cy_diff_px: float = 0.0
     name: str = "cmo_physical_stereo"
+    is_stereo_shared: bool = True
 
     @property
     def n_parameters(self) -> int:
-        return 18
+        return 17 if self.share_principal_point else 19
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs) -> "CMOPhysicalStereoModel":
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
-        if arr.size != 18:
-            raise ValueError("CMOPhysicalStereoModel expects 18 parameters")
+        if "pixel_pitch_mm" not in kwargs:
+            raise ValueError("pixel_pitch_mm must be provided as a fixed CMOPhysicalStereoModel parameter")
+        share_principal_point = bool(kwargs.get("share_principal_point", True))
+        expected = 17 if share_principal_point else 19
+        if arr.size != expected:
+            raise ValueError(f"CMOPhysicalStereoModel expects {expected} parameters")
+        if share_principal_point:
+            delta_cx_diff = 0.0
+            delta_cy_diff = 0.0
+            theta_idx = 6
+            left_start = 7
+        else:
+            delta_cx_diff = float(arr[6])
+            delta_cy_diff = float(arr[7])
+            theta_idx = 8
+            left_start = 9
         return cls(
             f_obj_mm=float(arr[0]),
             working_distance_mm=float(arr[1]),
@@ -117,28 +138,35 @@ class CMOPhysicalStereoModel:
             f_tube_mm=float(arr[3]),
             cx_principal_px=float(arr[4]),
             cy_principal_px=float(arr[5]),
-            pixel_pitch_mm=float(arr[6]),
-            theta_axis_tilt_rad=float(arr[7]),
-            distortion_left=tuple(float(v) for v in arr[8:13]),  # type: ignore[arg-type]
-            distortion_right=tuple(float(v) for v in arr[13:18]),  # type: ignore[arg-type]
+            pixel_pitch_mm=float(kwargs["pixel_pitch_mm"]),
+            theta_axis_tilt_rad=float(arr[theta_idx]),
+            distortion_left=tuple(float(v) for v in arr[left_start : left_start + 5]),  # type: ignore[arg-type]
+            distortion_right=tuple(float(v) for v in arr[left_start + 5 : left_start + 10]),  # type: ignore[arg-type]
             image_size=kwargs.get("image_size"),
+            share_principal_point=share_principal_point,
+            delta_cx_diff_px=delta_cx_diff,
+            delta_cy_diff_px=delta_cy_diff,
         )
 
     def parameter_vector(self) -> Array:
-        return np.r_[
+        common = [
             self.f_obj_mm,
             self.working_distance_mm,
             self.b_mm,
             self.f_tube_mm,
             self.cx_principal_px,
             self.cy_principal_px,
-            self.pixel_pitch_mm,
-            self.theta_axis_tilt_rad,
+        ]
+        if not self.share_principal_point:
+            common.extend([self.delta_cx_diff_px, self.delta_cy_diff_px])
+        common.append(self.theta_axis_tilt_rad)
+        return np.r_[
+            np.asarray(common, dtype=np.float64),
             np.asarray(self.distortion_left, dtype=np.float64),
             np.asarray(self.distortion_right, dtype=np.float64),
         ].astype(np.float64)
 
-    def parameter_dict(self) -> dict[str, float]:
+    def flat_parameter_dict(self) -> dict[str, float]:
         keys = ("k1", "k2", "p1", "p2", "k3")
         params = {
             "f_obj_mm": float(self.f_obj_mm),
@@ -147,15 +175,39 @@ class CMOPhysicalStereoModel:
             "f_tube_mm": float(self.f_tube_mm),
             "cx_principal_px": float(self.cx_principal_px),
             "cy_principal_px": float(self.cy_principal_px),
-            "pixel_pitch_mm": float(self.pixel_pitch_mm),
             "theta_axis_tilt_rad": float(self.theta_axis_tilt_rad),
         }
+        if not self.share_principal_point:
+            params.update(
+                {
+                    "delta_cx_diff_px": float(self.delta_cx_diff_px),
+                    "delta_cy_diff_px": float(self.delta_cy_diff_px),
+                }
+            )
         params.update({f"left_{k}": float(v) for k, v in zip(keys, self.distortion_left, strict=True)})
         params.update({f"right_{k}": float(v) for k, v in zip(keys, self.distortion_right, strict=True)})
         return params
 
+    def parameter_dict(self) -> dict[str, object]:
+        fixed = {
+            "pixel_pitch_mm": float(self.pixel_pitch_mm),
+            "image_width": float(self.image_size[0]) if self.image_size is not None else float("nan"),
+            "image_height": float(self.image_size[1]) if self.image_size is not None else float("nan"),
+            "share_principal_point": bool(self.share_principal_point),
+        }
+        return {"free": self.flat_parameter_dict(), "fixed": fixed}
+
     def channel(self, channel: Literal["left", "right"]) -> "CMOPhysicalChannelModel":
         return CMOPhysicalChannelModel(rig=self, channel=channel)
+
+    def principal_point_for_channel(self, channel: Literal["left", "right"]) -> tuple[float, float]:
+        if self.share_principal_point:
+            return float(self.cx_principal_px), float(self.cy_principal_px)
+        sign = -1.0 if channel == "left" else 1.0
+        return (
+            float(self.cx_principal_px) + sign * 0.5 * float(self.delta_cx_diff_px),
+            float(self.cy_principal_px) + sign * 0.5 * float(self.delta_cy_diff_px),
+        )
 
     def ray(self, u: Array, v: Array, channel: Literal["left", "right"]) -> tuple[Array, Array]:
         uu, vv = np.broadcast_arrays(np.asarray(u, dtype=np.float64), np.asarray(v, dtype=np.float64))
@@ -163,8 +215,9 @@ class CMOPhysicalStereoModel:
         uf = uu.reshape(-1)
         vf = vv.reshape(-1)
 
-        alpha_x_d = (uf - float(self.cx_principal_px)) * float(self.pixel_pitch_mm) / float(self.f_tube_mm)
-        alpha_y_d = (vf - float(self.cy_principal_px)) * float(self.pixel_pitch_mm) / float(self.f_tube_mm)
+        cx, cy = self.principal_point_for_channel(channel)
+        alpha_x_d = (uf - cx) * float(self.pixel_pitch_mm) / float(self.f_tube_mm)
+        alpha_y_d = (vf - cy) * float(self.pixel_pitch_mm) / float(self.f_tube_mm)
         coeffs = self.distortion_left if channel == "left" else self.distortion_right
         alpha_x, alpha_y = undistort_brown_normalized(alpha_x_d, alpha_y_d, *coeffs, n_iter=10)
 
@@ -201,6 +254,7 @@ class CMOPhysicalChannelModel:
     rig: CMOPhysicalStereoModel
     channel: Literal["left", "right"]
     name: str = "cmo_physical_channel"
+    is_stereo_shared: bool = True
 
     @property
     def n_parameters(self) -> int:
@@ -211,13 +265,18 @@ class CMOPhysicalChannelModel:
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs) -> "CMOPhysicalChannelModel":
-        rig = CMOPhysicalStereoModel.from_parameter_vector(x, image_size=kwargs.get("image_size"))
+        rig = CMOPhysicalStereoModel.from_parameter_vector(
+            x,
+            image_size=kwargs.get("image_size"),
+            pixel_pitch_mm=kwargs.get("pixel_pitch_mm"),
+            share_principal_point=kwargs.get("share_principal_point", True),
+        )
         channel = kwargs.get("channel", "left")
         if channel not in {"left", "right"}:
             raise ValueError("channel must be 'left' or 'right'")
         return cls(rig=rig, channel=channel)
 
-    def parameter_dict(self) -> dict[str, float]:
+    def parameter_dict(self) -> dict[str, object]:
         return self.rig.parameter_dict()
 
     def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
@@ -241,7 +300,7 @@ class CMOPhysicalStereoFitResult:
     aic: float
     bic: float
     parameter_vector: Array
-    parameter_dict: dict[str, float]
+    parameter_dict: dict[str, object]
 
 
 def fit_cmo_physical_stereo_model_to_rayfields(
@@ -251,6 +310,7 @@ def fit_cmo_physical_stereo_model_to_rayfields(
     initial_parameters: Array,
     bounds: tuple[Array, Array] | None = None,
     *,
+    pixel_pitch_mm: float,
     z_planes: tuple[float, float] = (50.0, 250.0),
     grid_shape: tuple[int, int] = (17, 13),
     support_pixels_left: Array | None = None,
@@ -263,15 +323,21 @@ def fit_cmo_physical_stereo_model_to_rayfields(
     """Fit the shared physical CMO rig to left/right measured rayfields."""
 
     x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
-    if x0.size != 18:
-        raise ValueError("initial_parameters must contain 18 values")
+    if x0.size not in {17, 19}:
+        raise ValueError("initial_parameters must contain 17 shared-PP or 19 aligned-PP values")
+    share_principal_point = x0.size == 17
     full = _grid_pixels(image_size, grid_shape)
     support_l = full if support_pixels_left is None else np.asarray(support_pixels_left, dtype=np.float64).reshape(-1, 2)
     support_r = full if support_pixels_right is None else np.asarray(support_pixels_right, dtype=np.float64).reshape(-1, 2)
     include_full = full_grid_weight > 0 and (support_pixels_left is not None or support_pixels_right is not None)
 
     def model_at(x: Array) -> CMOPhysicalStereoModel:
-        return CMOPhysicalStereoModel.from_parameter_vector(x, image_size=image_size)
+        return CMOPhysicalStereoModel.from_parameter_vector(
+            x,
+            image_size=image_size,
+            pixel_pitch_mm=pixel_pitch_mm,
+            share_principal_point=share_principal_point,
+        )
 
     def residuals(x: Array) -> Array:
         model = model_at(x)
@@ -295,12 +361,18 @@ def fit_cmo_physical_stereo_model_to_rayfields(
         return np.concatenate(blocks)
 
     if bounds is None:
+        if share_principal_point:
+            lower_common = [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, -0.25]
+            upper_common = [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 0.25]
+        else:
+            lower_common = [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, -50.0, -50.0, -0.25]
+            upper_common = [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 50.0, 50.0, 0.25]
         lower = np.array(
-            [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, 1e-6, -0.25] + [-1.0, -1.0, -0.1, -0.1, -1.0] * 2,
+            lower_common + [-1.0, -1.0, -0.1, -0.1, -1.0] * 2,
             dtype=np.float64,
         )
         upper = np.array(
-            [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 0.1, 0.25] + [1.0, 1.0, 0.1, 0.1, 1.0] * 2,
+            upper_common + [1.0, 1.0, 0.1, 0.1, 1.0] * 2,
             dtype=np.float64,
         )
         bounds = (lower, upper)

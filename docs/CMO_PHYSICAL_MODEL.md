@@ -14,7 +14,7 @@ A CMO stereo microscope is modeled as:
 1. one common main objective;
 2. two effective left/right sub-pupils separated by a baseline $b$;
 3. two tube-lens/sensor channels with identical pixel pitch;
-4. optional per-channel Brown-Conrady distortion at the angular level.
+4. optional per-channel effective direction distortion at the angular level.
 
 The model enforces a structural CMO constraint: the left and right chief rays
 converge toward the working point on the main optical axis. This is different
@@ -32,7 +32,7 @@ The shared rig parameters are:
 | $b$ | left/right sub-pupil separation |
 | $f_{\mathrm{tube}}$ | effective tube-lens focal length |
 | $c_x,c_y$ | shared principal point in pixels |
-| $p$ | pixel pitch in mm |
+| $p$ | pixel pitch in mm, fixed from the sensor datasheet |
 | $\theta_y$ | small global tilt around the vertical axis |
 
 Each channel also has Brown-Conrady coefficients
@@ -43,7 +43,8 @@ Each channel also has Brown-Conrady coefficients
 (k_1,k_2,p_1,p_2,k_3)_R.
 ```
 
-The default vector therefore has 18 scalars:
+The default optimized vector has 17 scalars. The pixel pitch is fixed from
+external sensor information, not optimized from ray geometry:
 
 ```{math}
 \theta =
@@ -54,12 +55,25 @@ b,
 f_{\mathrm{tube}},
 c_x,
 c_y,
-p,
 \theta_y,
 \mathbf d_L,
 \mathbf d_R
 \right].
 ```
+
+An optional aligned-sensor mode adds two effective degrees of freedom:
+
+```{math}
+\delta c_{x,L}=-\frac{1}{2}\Delta c_x,
+\qquad
+\delta c_{x,R}=+\frac{1}{2}\Delta c_x,
+```
+
+and analogously for `y`. This keeps the gauge centered while allowing the two
+sensor principal points to be shifted relative to each other. In that mode the
+optimized vector has 19 scalars. The horizontal relative offset can correlate
+with the fitted sub-pupil baseline, so the most robust validation remains the
+rayfield residual and recovered shared geometry.
 
 ## Ray Construction
 
@@ -72,8 +86,8 @@ angular coordinates:
 \alpha_y^d = \frac{(v-c_y)p}{f_{\mathrm{tube}}}.
 ```
 
-The distorted angular coordinates are undistorted with the channel's
-Brown-Conrady coefficients:
+The distorted angular coordinates are undistorted with the channel's effective
+direction-distortion coefficients:
 
 ```{math}
 (\alpha_x,\alpha_y)
@@ -84,6 +98,14 @@ D_{\mathrm{Brown}}^{-1}
 k_1,k_2,p_1,p_2,k_3
 \right).
 ```
+
+### Effective vs physical distortion
+
+The five per-channel coefficients are **Brown-Conrady-like coefficients applied
+to normalized angular coordinates**. They define an effective parameterization
+`\mathcal D_c`, intended to absorb residual direction errors from the tube lens,
+relay optics and main objective. They should not be read as a derivation from a
+specific Seidel or wavefront-aberration model.
 
 Let $s_L=-1$ and $s_R=+1$. The effective sub-pupil point is
 
@@ -131,8 +153,9 @@ pair of independent non-central polynomial channels.
 
 From ray geometry alone, $f_{\mathrm{tube}}$ and pixel pitch $p$ appear through
 the ratio $p/f_{\mathrm{tube}}$. They are not separately identifiable unless
-one of them is fixed by external information. StereoComplex therefore reports
-and tests the identifiable angular scale $p/f_{\mathrm{tube}}`.
+one of them is fixed by external information. StereoComplex therefore fixes
+`pixel_pitch_mm` from the sensor specification and optimizes `f_tube_mm`; the
+identifiable angular scale remains $p/f_{\mathrm{tube}}`.
 
 Similarly, strong Brown radial coefficients can be correlated if the observed
 field of view is narrow. The robust validation quantities are:

@@ -14,6 +14,7 @@ class PhysicalRayFieldModel(Protocol):
     """
 
     name: str
+    is_stereo_shared: bool
 
     @property
     def n_parameters(self) -> int:

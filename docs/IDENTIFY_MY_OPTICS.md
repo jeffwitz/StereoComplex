@@ -552,10 +552,10 @@ Z_w,
 b,
 f_{\mathrm{tube}},
 c_x,c_y,
-p,
 \theta_y,
-\theta_{\mathrm{Brown},L},
-\theta_{\mathrm{Brown},R}
+\theta_{\mathcal D,L},
+\theta_{\mathcal D,R};
+p\ \mathrm{fixed}
 \right).
 ```
 
@@ -587,8 +587,9 @@ Z_w
 \right)^T,
 ```
 
-where `(\alpha_x,\alpha_y)` are angular coordinates obtained from pixel pitch,
-tube focal length and Brown-Conrady undistortion. The CMO ray is
+where `(\alpha_x,\alpha_y)` are angular coordinates obtained from fixed pixel
+pitch, tube focal length and effective Brown-Conrady-like direction
+undistortion. The CMO ray is
 
 ```{math}
 \mathcal R_c(u,v)=
@@ -599,9 +600,17 @@ S_c,
 ```
 
 From ray geometry alone, `f_tube` and pixel pitch are identifiable through
-their ratio `p/f_tube`, not separately. This is why the physical CMO reference
-page reports this as an identifiability limit rather than hiding it in the
-optimizer.
+their ratio `p/f_tube`, not separately. StereoComplex therefore fixes
+`pixel_pitch_mm` from sensor metadata and optimizes `f_tube_mm`. The physical
+CMO reference page reports this as an identifiability limit rather than hiding
+it in the optimizer.
+
+The default shared-principal-point mode has 17 fitted parameters. An aligned
+sensor mode adds two centered principal-point offset degrees of freedom,
+`(\Delta c_x,\Delta c_y)`, and has 19 fitted parameters. This mode is useful
+for real microscopes where the two sensors are not mechanically aligned to the
+same principal point; horizontal offset can still correlate with the fitted
+sub-pupil baseline, so the ray-space residual is the primary validation.
 
 ### Scientific background for the CMO polynomial model
 
