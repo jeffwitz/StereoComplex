@@ -414,6 +414,7 @@ class CMOPolynomialChannelModel:
     image_size: tuple[int, int]
     origin_x_mm: float = 0.0
     origin_y_mm: float = 0.0
+    origin_z_mm: float = 0.0
     k1: float = 0.0
     k2: float = 0.0
     p1: float = 0.0
@@ -426,7 +427,7 @@ class CMOPolynomialChannelModel:
 
     @property
     def n_parameters(self) -> int:
-        return 7 + 2 * len(self.aberration_terms)
+        return 8 + 2 * len(self.aberration_terms)
 
     @classmethod
     def default_terms(cls) -> tuple[str, ...]:
@@ -441,6 +442,7 @@ class CMOPolynomialChannelModel:
                     [
                         self.origin_x_mm,
                         self.origin_y_mm,
+                        self.origin_z_mm,
                         self.k1,
                         self.k2,
                         self.p1,
@@ -461,7 +463,7 @@ class CMOPolynomialChannelModel:
         image_size = kwargs.get("cmo_image_size", kwargs.get("image_size"))
         if image_size is None:
             raise ValueError("CMOPolynomialChannelModel requires cmo_image_size")
-        expected = 7 + 2 * len(terms)
+        expected = 8 + 2 * len(terms)
         if arr.size != expected:
             raise ValueError(f"CMOPolynomialChannelModel expects {expected} parameters")
         return cls(
@@ -469,13 +471,14 @@ class CMOPolynomialChannelModel:
             image_size=tuple(image_size),
             origin_x_mm=float(arr[0]),
             origin_y_mm=float(arr[1]),
-            k1=float(arr[2]),
-            k2=float(arr[3]),
-            p1=float(arr[4]),
-            p2=float(arr[5]),
-            k3=float(arr[6]),
-            aberration_coeff_x=tuple(float(v) for v in arr[7 : 7 + len(terms)]),
-            aberration_coeff_y=tuple(float(v) for v in arr[7 + len(terms) :]),
+            origin_z_mm=float(arr[2]),
+            k1=float(arr[3]),
+            k2=float(arr[4]),
+            p1=float(arr[5]),
+            p2=float(arr[6]),
+            k3=float(arr[7]),
+            aberration_coeff_x=tuple(float(v) for v in arr[8 : 8 + len(terms)]),
+            aberration_coeff_y=tuple(float(v) for v in arr[8 + len(terms) :]),
             aberration_terms=terms,
         )
 
@@ -483,6 +486,7 @@ class CMOPolynomialChannelModel:
         params = {
             "origin_x_mm": float(self.origin_x_mm),
             "origin_y_mm": float(self.origin_y_mm),
+            "origin_z_mm": float(self.origin_z_mm),
             "k1": float(self.k1),
             "k2": float(self.k2),
             "p1": float(self.p1),
@@ -500,7 +504,7 @@ class CMOPolynomialChannelModel:
         channel = CMOChannelSpec(
             name="left",
             intrinsics=intr,
-            origin_world_mm=(float(self.origin_x_mm), float(self.origin_y_mm), 0.0),
+            origin_world_mm=(float(self.origin_x_mm), float(self.origin_y_mm), float(self.origin_z_mm)),
             distortion=BrownConrady(self.k1, self.k2, self.p1, self.p2, self.k3),
             differential_aberration=self._aberration(),
             vignetting=Vignetting(strength=0.0),
@@ -556,6 +560,7 @@ def cmo_polynomial_channel_parameters_from_spec(
     return np.r_[
         origin[0],
         origin[1],
+        origin[2],
         channel.distortion.k1,
         channel.distortion.k2,
         channel.distortion.p1,
@@ -622,7 +627,7 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
 
     terms = tuple(aberration_terms or CMOPolynomialChannelModel.default_terms())
     K_arr = np.asarray(K, dtype=np.float64).reshape(3, 3)
-    n_params = 7 + 2 * len(terms)
+    n_params = 8 + 2 * len(terms)
     if initial_left_parameters is None:
         initial_left_parameters = np.zeros(n_params, dtype=np.float64)
     if initial_right_parameters is None:
@@ -651,8 +656,8 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
     pose0 = np.concatenate([_pose_to_vector(pose) for pose in pose_initials])
     x0 = np.r_[left0, right0, pose0]
     if parameter_bounds is None:
-        lo_model = np.r_[[-12.0, -12.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.05 * np.ones(2 * len(terms))]
-        hi_model = np.r_[[+12.0, +12.0, +1.0, +1.0, +0.1, +0.1, +1.0], +0.05 * np.ones(2 * len(terms))]
+        lo_model = np.r_[[-12.0, -12.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.05 * np.ones(2 * len(terms))]
+        hi_model = np.r_[[+12.0, +12.0, +50.0, +1.0, +1.0, +0.1, +0.1, +1.0], +0.05 * np.ones(2 * len(terms))]
     else:
         lo_model, hi_model = (np.asarray(v, dtype=np.float64).reshape(-1) for v in parameter_bounds)
     if lo_model.size != n_params or hi_model.size != n_params:

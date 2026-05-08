@@ -91,11 +91,12 @@ def show_or_close(fig) -> None:
 # - one tube-lens scale and pixel pitch;
 # - per-channel Brown-Conrady distortion.
 #
-# This matters for model selection: the polynomial channel model is more
-# generic, so it could generate rayfields that the physical CMO cannot represent.
-# Here we do the stricter experiment and generate the fields with the physical
-# CMO, then ask whether the physical CMO beats the generic surrogate as a compact
-# explanation of the measured `O,d` fields.
+# This matters for model selection: the polynomial surrogate (now with a free
+# 3D origin, 18 params per channel) is more generic and CAN represent CMO
+# rayfields, but at the cost of 36 independent parameters vs the physical CMO's
+# 17 shared parameters.  Here we generate the fields with the physical CMO,
+# then ask whether the physical CMO beats the generic surrogate as a compact,
+# physically interpretable explanation of the measured `O,d` fields.
 
 # %%
 IMAGE_SIZE = (320, 240)
@@ -324,18 +325,19 @@ for name, true_field, z_field, fit in [
 # - central pinhole;
 # - central Brown-Conrady;
 # - pinhole plus inclined parallel plate;
-# - effective CMO polynomial channel.
+# - non-central polynomial surrogate channel (18 params, free 3D origin).
 #
-# The CMO candidate has more parameters, so BIC penalizes it. It should still win
-# if it explains the measured rayfield substantially better.
+# The polynomial surrogate has more parameters than the physical CMO (18 per
+# channel, 36 total vs 17 shared).  BIC penalizes it for complexity; it only
+# wins if no simpler physical model can explain the measured rayfield.
 
 # %%
 def cmo_candidate_specs(image_size: tuple[int, int]) -> list[PhysicalModelSpec]:
     terms = CMOPolynomialChannelModel.default_terms()
-    cmo_initial = np.zeros(7 + 2 * len(terms), dtype=np.float64)
+    cmo_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     cmo_bounds = (
-        np.r_[[-12.0, -12.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.05 * np.ones(2 * len(terms))],
-        np.r_[[+12.0, +12.0, +1.0, +1.0, +0.1, +0.1, +1.0], +0.05 * np.ones(2 * len(terms))],
+        np.r_[[-12.0, -12.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.05 * np.ones(2 * len(terms))],
+        np.r_[[+12.0, +12.0, +50.0, +1.0, +1.0, +0.1, +0.1, +1.0], +0.05 * np.ones(2 * len(terms))],
     )
     return [
         PhysicalModelSpec("central_pinhole", CentralPinholeModel, np.zeros(0)),

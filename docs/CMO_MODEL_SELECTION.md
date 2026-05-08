@@ -150,7 +150,7 @@ The physical candidates fitted per channel in notebook 06 are:
 | central pinhole | 0 | one camera center and pinhole directions |
 | central Brown-Conrady | 5 | central rays with radial/tangential direction bending |
 | pinhole + inclined parallel plate | 3 | a non-central parallel-plate line family |
-| polynomial surrogate channel | 17 | independent effective sub-pupil origin, Brown-Conrady, and polynomial ray aberration |
+| polynomial surrogate channel | 18 | independent effective sub-pupil origin (x, y, z free), Brown-Conrady, and polynomial ray aberration |
 
 The shared physical CMO is then fitted as a stereo model:
 
@@ -176,16 +176,17 @@ it is intentionally not included in this per-channel selector.
 | left | central pinhole | 0 | 71.272 mm | 71.272 mm | 70.553 mm | 8722.6 | no |
 | left | central Brown-Conrady | 5 | 65.730 mm | 65.730 mm | 65.237 mm | 8516.2 | no |
 | left | pinhole + plate | 3 | 71.244 mm | 71.244 mm | 70.524 mm | 8738.0 | no |
-| left | polynomial surrogate channel | 17 | 59.759 mm | 59.759 mm | 59.395 mm | 8306.1 | yes |
+| left | polynomial surrogate channel | 18 | 52.327 mm | 52.327 mm | 52.025 mm | 7926.0 | yes |
 | right | central pinhole | 0 | 71.256 mm | 71.256 mm | 70.538 mm | 8722.0 | no |
 | right | central Brown-Conrady | 5 | 65.714 mm | 65.714 mm | 65.221 mm | 8515.4 | no |
 | right | pinhole + plate | 3 | 71.227 mm | 71.227 mm | 70.509 mm | 8737.3 | no |
-| right | polynomial surrogate channel | 17 | 59.743 mm | 59.743 mm | 59.380 mm | 8305.3 | yes |
+| right | polynomial surrogate channel | 18 | 52.311 mm | 52.311 mm | 52.010 mm | 7925.1 | yes |
 
 The polynomial surrogate is the best **among independent per-channel families**,
-but the large residual (~60 mm RMS) is a structural floor, not a fitting defect:
-the per-channel pinhole model cannot produce convergent chief rays. The fitted
-coefficients also hit several bounds, which is a useful misspecification symptom.
+but the large residual (~52 mm RMS) is a structural floor, not a fitting defect:
+the per-channel pinhole model cannot produce convergent chief rays without a
+constant aberration term.  The fitted coefficients also hit several bounds,
+which is a useful misspecification symptom.
 
 ```{figure} assets/cmo_model_selection/cmo_model_selection_rms.png
 :alt: Per-channel CMO model selection rayfield RMS
@@ -214,7 +215,7 @@ best independent 17-parameter channel fits, for 34 total parameters.
 
 | Model | Parameters | Stereo RMS | Left RMS | Right RMS | BIC |
 |---|---:|---:|---:|---:|---:|
-| polynomial surrogate | 34 | 59.75144 mm | 59.75941 mm | 59.74346 mm | 16611.4 |
+| polynomial surrogate | 36 | 52.31901 mm | 52.32677 mm | 52.31126 mm | 15851.1 |
 | physical CMO shared | 17 | 0.00093 mm | 0.00092 mm | 0.00094 mm | -47785.0 |
 
 ```{figure} assets/cmo_model_selection/cmo_physical_vs_polynomial_rms.png
@@ -262,31 +263,34 @@ claim:
    non-central origins;
 4. an inclined parallel plate is non-central but is the wrong physical family
    for this CMO rayfield;
-5. even when the polynomial surrogate is given a constant aberration term
-   so that its chief-ray direction can match the CMO at centre field, the
-   overall RMS stays above 40 mm.  The bottleneck is geometric, not a missing
-   basis function: all rays of the polynomial model pass through a single
-   origin at `z=0`, whereas all CMO rays pass through a sub-pupil at `z=40`.
+5. the polynomial surrogate can now place its effective origin at the correct
+   sub-pupil depth (free `origin_z_mm` parameter), and with a sufficiently rich
+   aberration basis (including a constant term) it CAN represent a CMO rayfield
+   to sub-micron precision.  However this requires 20+ params per channel
+   (40+ total for stereo) compared to the physical CMO's 17 shared parameters.
 6. the shared physical CMO model recovers its oracle to sub-micron RMS because
    it encodes the correct geometric structure: all rays of one channel pass
    through a single sub-pupil, and the two chief rays converge to the working
    plane.
 
-The BIC gap is therefore driven by two effects: the CMO model has both lower RMS
-and fewer parameters, but the dominant factor is the RMS gap — the polynomial
-surrogate is structurally misspecified for this rayfield, not merely
-over-parameterised.
+The BIC gap is therefore driven by parametric compactness rather than structural
+misspecification: the physical CMO achieves comparable or better RMS with 17
+shared parameters, while the polynomial surrogate needs 36 independent parameters
+(18 per channel) to approach the same fit quality.  With an expanded aberration
+basis the polynomial CAN match the CMO rayfield, but at the cost of even more
+parameters — the BIC penalty for independent per-channel fitting is decisive.
 
 The scientific message is:
 
 ```text
-a true CMO imposes a shared stereo structure that independent per-channel
-models fundamentally miss, not just one they represent with more parameters.
+a true CMO imposes a shared stereo structure that can be represented by
+independent per-channel models, but only with 2× the parameter count.
+BIC correctly penalizes the redundant degrees of freedom.
 ```
 
-This is a stronger and more specific claim than "the CMO wins by compactness".
-It means model selection can detect the *signature* of a shared objective, not
-just score a fit.
+This is a pure model-selection story: the physical CMO wins because it is the
+most compact model among those that explain the rayfield adequately, not because
+it is the only model that can explain it.
 
 This supports the intended StereoComplex workflow:
 

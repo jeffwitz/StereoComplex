@@ -261,10 +261,10 @@ def test_cmo_polynomial_channel_model_recovers_cmo_rayfield() -> None:
     )
     target = CMOChannelRayField(channel)
     terms = CMOPolynomialChannelModel.default_terms()
-    initial = np.zeros(7 + 2 * len(terms), dtype=np.float64)
+    initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     bounds = (
-        np.r_[[-8.0, -8.0, -0.5, -0.5, -0.05, -0.05, -0.5], -0.05 * np.ones(2 * len(terms))],
-        np.r_[[+8.0, +8.0, +0.5, +0.5, +0.05, +0.05, +0.5], +0.05 * np.ones(2 * len(terms))],
+        np.r_[[-8.0, -8.0, -8.0, -0.5, -0.5, -0.05, -0.05, -0.5], -0.05 * np.ones(2 * len(terms))],
+        np.r_[[+8.0, +8.0, +8.0, +0.5, +0.5, +0.05, +0.05, +0.5], +0.05 * np.ones(2 * len(terms))],
     )
     report = select_physical_model_from_rayfield(
         target_field=target,
@@ -287,6 +287,8 @@ def test_cmo_polynomial_channel_model_recovers_cmo_rayfield() -> None:
     assert result.rms_mm < 1e-6
     assert abs(result.parameter_dict["origin_x_mm"] + 3.0) < 1e-5
     assert abs(result.parameter_dict["origin_y_mm"] - 0.4) < 1e-5
+    # origin_z was 0.0 in the oracle, should be recovered to near-zero.
+    assert abs(result.parameter_dict["origin_z_mm"] - 0.0) < 1e-5
 
 
 def test_model_selection_prefers_cmo_on_cmo_oracle() -> None:
@@ -303,10 +305,10 @@ def test_model_selection_prefers_cmo_on_cmo_oracle() -> None:
     )
     target = CMOChannelRayField(channel)
     terms = CMOPolynomialChannelModel.default_terms()
-    cmo_initial = np.zeros(7 + 2 * len(terms), dtype=np.float64)
+    cmo_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     cmo_bounds = (
-        np.r_[[-8.0, -8.0, -0.5, -0.5, -0.05, -0.05, -0.5], -0.05 * np.ones(2 * len(terms))],
-        np.r_[[+8.0, +8.0, +0.5, +0.5, +0.05, +0.05, +0.5], +0.05 * np.ones(2 * len(terms))],
+        np.r_[[-8.0, -8.0, -50.0, -0.5, -0.5, -0.05, -0.05, -0.5], -0.05 * np.ones(2 * len(terms))],
+        np.r_[[+8.0, +8.0, +50.0, +0.5, +0.5, +0.05, +0.05, +0.5], +0.05 * np.ones(2 * len(terms))],
     )
     report = select_physical_model_from_rayfield(
         target_field=target,
@@ -400,10 +402,10 @@ def test_cmo_stereo_ba_recovers_effective_channels_and_poses_from_rayfields() ->
     right_truth = cmo_polynomial_channel_parameters_from_spec(cmo.right, common, terms)
     left_initial = left_truth.copy()
     right_initial = right_truth.copy()
-    left_initial[:2] += np.array([0.4, -0.25])
-    right_initial[:2] += np.array([-0.35, 0.2])
-    left_initial[2:7] = 0.0
-    right_initial[2:7] = 0.0
+    left_initial[:3] += np.array([0.4, -0.25, 0.0])
+    right_initial[:3] += np.array([-0.35, 0.2, 0.0])
+    left_initial[3:8] = 0.0
+    right_initial[3:8] = 0.0
     pose_initials = [
         pose_from_euler_xyz(0.01, -0.01, 0.005, (0.15, -0.12, 55.3)),
         pose_from_euler_xyz(0.05, -0.04, 0.025, (1.35, -0.95, 60.2)),
@@ -432,6 +434,8 @@ def test_cmo_stereo_ba_recovers_effective_channels_and_poses_from_rayfields() ->
     assert result.right_rayfield_rms_mm < 1e-4
     assert abs(result.left_model.origin_x_mm - cmo.left.origin[0]) < 1e-4
     assert abs(result.right_model.origin_x_mm - cmo.right.origin[0]) < 1e-4
+    assert abs(result.left_model.origin_z_mm) < 1e-4
+    assert abs(result.right_model.origin_z_mm) < 1e-4
     for fitted, truth in zip(result.poses, poses, strict=True):
         assert np.linalg.norm(fitted.t - truth.t) < 1e-4
         d_rot = Rotation.from_matrix(fitted.R @ truth.R.T).magnitude()
