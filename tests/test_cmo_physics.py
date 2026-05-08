@@ -13,12 +13,12 @@ from stereocomplex.physics.cmo import (
     CMOChannelSpec,
     CMOIntrinsics,
     CMOPlaneTargetSpec,
-    CMOPolynomialChannelModel,
+    NonCentralPolynomialChannelModel,
     CMOStereoSpec,
     PolynomialRayAberration,
     SensorWarp,
     Vignetting,
-    cmo_polynomial_channel_parameters_from_spec,
+    polynomial_channel_parameters_from_spec,
     fit_cmo_stereo_model_and_poses_from_zernike_rayfields,
     generate_cmo_plane_dataset,
     pose_from_euler_xyz,
@@ -260,7 +260,7 @@ def test_cmo_polynomial_channel_model_recovers_cmo_rayfield() -> None:
         ),
     )
     target = CMOChannelRayField(channel)
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
     initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     bounds = (
         np.r_[[-8.0, -8.0, -8.0, -0.5, -0.5, -0.05, -0.05, -0.5], -0.05 * np.ones(2 * len(terms))],
@@ -271,7 +271,7 @@ def test_cmo_polynomial_channel_model_recovers_cmo_rayfield() -> None:
         candidate_specs=[
             PhysicalModelSpec(
                 name="cmo_polynomial_channel",
-                model_class=CMOPolynomialChannelModel,
+                model_class=NonCentralPolynomialChannelModel,
                 initial_parameters=initial,
                 bounds=bounds,
                 model_kwargs={"cmo_image_size": (intr.width, intr.height), "aberration_terms": terms},
@@ -304,7 +304,7 @@ def test_model_selection_prefers_cmo_on_cmo_oracle() -> None:
         ),
     )
     target = CMOChannelRayField(channel)
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
     cmo_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     cmo_bounds = (
         np.r_[[-8.0, -8.0, -50.0, -0.5, -0.5, -0.05, -0.05, -0.5], -0.05 * np.ones(2 * len(terms))],
@@ -332,7 +332,7 @@ def test_model_selection_prefers_cmo_on_cmo_oracle() -> None:
             ),
             PhysicalModelSpec(
                 "cmo_polynomial_channel",
-                CMOPolynomialChannelModel,
+                NonCentralPolynomialChannelModel,
                 cmo_initial,
                 bounds=cmo_bounds,
                 model_kwargs={"cmo_image_size": (intr.width, intr.height), "aberration_terms": terms},
@@ -397,9 +397,9 @@ def test_cmo_stereo_ba_recovers_effective_channels_and_poses_from_rayfields() ->
         left_frames.append(gt["uv_left_px"])
         right_frames.append(gt["uv_right_px"])
 
-    terms = CMOPolynomialChannelModel.default_terms()
-    left_truth = cmo_polynomial_channel_parameters_from_spec(cmo.left, common, terms)
-    right_truth = cmo_polynomial_channel_parameters_from_spec(cmo.right, common, terms)
+    terms = NonCentralPolynomialChannelModel.default_terms()
+    left_truth = polynomial_channel_parameters_from_spec(cmo.left, common, terms)
+    right_truth = polynomial_channel_parameters_from_spec(cmo.right, common, terms)
     left_initial = left_truth.copy()
     right_initial = right_truth.copy()
     left_initial[:3] += np.array([0.4, -0.25, 0.0])

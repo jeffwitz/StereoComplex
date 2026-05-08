@@ -91,7 +91,7 @@ is detected as over-parameterised — it can represent the CMO rayfield
 (with free ``origin_z`` and a sufficiently rich aberration basis), but
 requires ~36 independent parameters versus the physical CMO's 17 shared.
 
-The polynomial candidate, `CMOPolynomialChannelModel`, is still scientifically
+The polynomial candidate, `NonCentralPolynomialChannelModel`, is still scientifically
 useful. It is a generic non-central **effective channel** model. It can represent
 systems that are not constrained by a common main objective, such as:
 

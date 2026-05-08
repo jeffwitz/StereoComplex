@@ -401,13 +401,17 @@ class CMOChannelRayField:
 
 
 @dataclass(frozen=True)
-class CMOPolynomialChannelModel:
-    """Fittable effective CMO channel model for ray-space model selection.
+class NonCentralPolynomialChannelModel:
+    """Fittable effective channel model for ray-space model selection.
 
-    The model intentionally reuses the same Brown-Conrady and polynomial ray
-    aberration primitives as the image generator. It represents one channel at a
-    time: an effective sub-pupil origin, a central Brown-Conrady distortion, and
-    a low-order angular aberration field.
+    This is a generic non-central surrogate: an effective sub-pupil origin
+    (x, y, z free), a central Brown-Conrady distortion, and a low-order
+    polynomial angular aberration field.  It can represent a wide range of
+    smooth rayfields — including CMO-like ones — without encoding any
+    specific shared-objective constraint.
+
+    The legacy name ``CMOPolynomialChannelModel`` is kept as a backward-
+    compatible alias.
     """
 
     K: Array
@@ -457,15 +461,15 @@ class CMOPolynomialChannelModel:
         )
 
     @classmethod
-    def from_parameter_vector(cls, x: Array, **kwargs) -> "CMOPolynomialChannelModel":
+    def from_parameter_vector(cls, x: Array, **kwargs) -> "NonCentralPolynomialChannelModel":
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         terms = tuple(kwargs.get("aberration_terms", cls.default_terms()))
         image_size = kwargs.get("cmo_image_size", kwargs.get("image_size"))
         if image_size is None:
-            raise ValueError("CMOPolynomialChannelModel requires cmo_image_size")
+            raise ValueError("NonCentralPolynomialChannelModel requires cmo_image_size")
         expected = 8 + 2 * len(terms)
         if arr.size != expected:
-            raise ValueError(f"CMOPolynomialChannelModel expects {expected} parameters")
+            raise ValueError(f"NonCentralPolynomialChannelModel expects {expected} parameters")
         return cls(
             K=np.asarray(kwargs["K"], dtype=np.float64).reshape(3, 3),
             image_size=tuple(image_size),
@@ -540,17 +544,17 @@ class CMOPolynomialChannelModel:
         )
 
 
-def cmo_polynomial_channel_parameters_from_spec(
+def polynomial_channel_parameters_from_spec(
     channel: CMOChannelSpec,
     common_aberration: PolynomialRayAberration | None = None,
     aberration_terms: tuple[str, ...] | None = None,
 ) -> Array:
-    """Return the effective `CMOPolynomialChannelModel` vector for a channel.
+    """Return the effective `NonCentralPolynomialChannelModel` vector for a channel.
 
     The fittable CMO model is per-channel. Its polynomial aberration is the sum
     of common CMO aberration and channel differential aberration.
     """
-    terms = tuple(aberration_terms or CMOPolynomialChannelModel.default_terms())
+    terms = tuple(aberration_terms or NonCentralPolynomialChannelModel.default_terms())
     effective = (common_aberration or PolynomialRayAberration()).add(channel.differential_aberration)
     dx, dy = [], []
     for term in terms:
@@ -575,8 +579,8 @@ def cmo_polynomial_channel_parameters_from_spec(
 class CMORayfieldBundleAdjustmentResult:
     """Result of fitting effective CMO channels and board poses from rayfields."""
 
-    left_model: CMOPolynomialChannelModel
-    right_model: CMOPolynomialChannelModel
+    left_model: NonCentralPolynomialChannelModel
+    right_model: NonCentralPolynomialChannelModel
     poses: list[CMOPlanePose]
     success: bool
     message: str
@@ -625,7 +629,7 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
     from scipy.optimize import least_squares  # type: ignore
     from stereocomplex.physics.parallel_plate_fit import rayfield_two_plane_residuals
 
-    terms = tuple(aberration_terms or CMOPolynomialChannelModel.default_terms())
+    terms = tuple(aberration_terms or NonCentralPolynomialChannelModel.default_terms())
     K_arr = np.asarray(K, dtype=np.float64).reshape(3, 3)
     n_params = 8 + 2 * len(terms)
     if initial_left_parameters is None:
@@ -666,18 +670,18 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
     pose_hi = pose0 + np.inf
     bounds = (np.r_[lo_model, lo_model, pose_lo], np.r_[hi_model, hi_model, pose_hi])
 
-    def unpack(x: Array) -> tuple[CMOPolynomialChannelModel, CMOPolynomialChannelModel, list[CMOPlanePose], Array]:
+    def unpack(x: Array) -> tuple[NonCentralPolynomialChannelModel, NonCentralPolynomialChannelModel, list[CMOPlanePose], Array]:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         left_params = arr[:n_params]
         right_params = arr[n_params : 2 * n_params]
         pose_params = arr[2 * n_params :]
-        left_model = CMOPolynomialChannelModel.from_parameter_vector(
+        left_model = NonCentralPolynomialChannelModel.from_parameter_vector(
             left_params,
             K=K_arr,
             cmo_image_size=image_size,
             aberration_terms=terms,
         )
-        right_model = CMOPolynomialChannelModel.from_parameter_vector(
+        right_model = NonCentralPolynomialChannelModel.from_parameter_vector(
             right_params,
             K=K_arr,
             cmo_image_size=image_size,
@@ -1222,7 +1226,7 @@ __all__ = [
     "CMOIntrinsics",
     "CMOPlanePose",
     "CMOPlaneTargetSpec",
-    "CMOPolynomialChannelModel",
+    "NonCentralPolynomialChannelModel",
     "CMORayfieldBundleAdjustmentResult",
     "CMOStereoSpec",
     "PolynomialRayAberration",
@@ -1230,7 +1234,7 @@ __all__ = [
     "Vignetting",
     "apply_blur_noise",
     "apply_sensor_warp",
-    "cmo_polynomial_channel_parameters_from_spec",
+    "polynomial_channel_parameters_from_spec",
     "fit_cmo_stereo_model_and_poses_from_zernike_rayfields",
     "generate_cmo_plane_dataset",
     "intersect_rays_with_plane",
@@ -1248,3 +1252,7 @@ __all__ = [
     "sample_cmo_target_texture",
     "save_gray",
 ]
+
+# Backward-compatible aliases (deprecated, will be removed in v1.0).
+CMOPolynomialChannelModel = NonCentralPolynomialChannelModel
+cmo_polynomial_channel_parameters_from_spec = polynomial_channel_parameters_from_spec

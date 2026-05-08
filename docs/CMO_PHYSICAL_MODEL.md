@@ -171,20 +171,18 @@ field of view is narrow. The robust validation quantities are:
 
 ## Relation To The Polynomial Surrogate
 
-The existing `CMOPolynomialChannelModel` is better described as a generic
+The existing `NonCentralPolynomialChannelModel` is better described as a generic
 non-central polynomial channel surrogate. It is useful because it can fit many
 smooth rayfields, including CMO-like ones, but it does not encode the shared
 main-objective constraints.
 
 The physical CMO model is less flexible but more interpretable. On a true CMO
-oracle, it should achieve comparable ray-space residuals with fewer effective
-degrees of freedom, so BIC should prefer it over the polynomial surrogate.
-Crucially, the polynomial surrogate cannot represent CMO rays at all (see
-[CMO model selection](CMO_MODEL_SELECTION.md#scientific-interpretation)): its
-per-channel pinhole structure forces all rays through a single origin at
-`z=0`, whereas CMO rays pass through a sub-pupil at `z=Z_w-f_obj`.  The BIC
-gap on a CMO oracle is therefore driven by structural mismatch, not just by
-parameter count.
+oracle, it achieves sub-micron RMS with 17 shared parameters.  The polynomial
+surrogate can also represent the CMO rayfield (with free ``origin_z`` and a
+constant aberration term), but requires ~36 independent parameters.
+The BIC gap is therefore driven by parametric compactness: the physical CMO
+wins because it encodes the correct shared-objective structure, not because
+it is the only model that can explain the rayfield.
 
 ## Real microscope mapping
 

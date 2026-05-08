@@ -5,9 +5,9 @@ import numpy as np
 from stereocomplex.physics.cmo import (
     CMOChannelSpec,
     CMOIntrinsics,
-    CMOPolynomialChannelModel,
+    NonCentralPolynomialChannelModel,
     PolynomialRayAberration,
-    cmo_polynomial_channel_parameters_from_spec,
+    polynomial_channel_parameters_from_spec,
 )
 from stereocomplex.physics.central_models import CentralBrownConradyModel, CentralPinholeModel
 from stereocomplex.physics.cmo_physical import (
@@ -217,17 +217,17 @@ def test_bic_prefers_physical_cmo_over_polynomial_surrogate_on_cmo_oracle() -> N
     )
 
     intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=180.0, fy=180.0, cx=63.5, cy=47.5)
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
     poly_left_channel = CMOChannelSpec(
         "left",
         intr,
         (-10.0, 0.0, 40.0),
         differential_aberration=PolynomialRayAberration(),
     )
-    poly_x0 = cmo_polynomial_channel_parameters_from_spec(poly_left_channel, aberration_terms=terms)
+    poly_x0 = polynomial_channel_parameters_from_spec(poly_left_channel, aberration_terms=terms)
     spec = PhysicalModelSpec(
         "polynomial_surrogate",
-        CMOPolynomialChannelModel,
+        NonCentralPolynomialChannelModel,
         poly_x0,
         bounds=(
             np.r_[[-40.0, -20.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.1 * np.ones(2 * len(terms))],
@@ -279,14 +279,14 @@ def test_polynomial_surrogate_structural_mismatch_at_chief_ray() -> None:
     truth = _truth_model(distortion=False)
     image_size = (128, 96)
     K = np.array([[180, 0, 63.5], [0, 180, 47.5], [0, 0, 1]], dtype=np.float64)
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
 
     # CMO chief ray at centre pixel has non-zero x component.
     O_cmo, d_cmo = truth.ray(np.array([63.5]), np.array([47.5]), "left")
     assert abs(float(d_cmo[0, 0])) > 0.05, "CMO chief ray must have significant x-deviation"
 
     # Polynomial model at centre pixel: x_norm=0, y_norm=0 -> d_cam=(0,0,1).
-    poly = CMOPolynomialChannelModel(
+    poly = NonCentralPolynomialChannelModel(
         K=K, image_size=image_size, origin_x_mm=-10.0, origin_y_mm=0.0,
         aberration_terms=terms,
     )
@@ -327,13 +327,13 @@ def test_polynomial_surrogate_with_free_z_and_constant_term_fits_cmo_rayfield() 
         np.r_[[+60.0, +30.0, +120.0, +2.0, +2.0, +1.0, +1.0, +2.0], +0.5 * np.ones(2 * len(terms_const))],
     )
 
-    poly_x0 = cmo_polynomial_channel_parameters_from_spec(
+    poly_x0 = polynomial_channel_parameters_from_spec(
         CMOChannelSpec("left", intr, (-10.0, 0.0, 40.0), differential_aberration=PolynomialRayAberration()),
         aberration_terms=terms_const,
     )
 
     result = fit_physical_model_to_rayfield(
-        CMOPolynomialChannelModel,
+        NonCentralPolynomialChannelModel,
         truth.channel("left"),
         K=intr.as_K(),
         image_size=image_size,
@@ -359,7 +359,7 @@ def test_polynomial_surrogate_with_free_z_and_constant_term_fits_cmo_rayfield() 
     )
 
     # Chief-ray direction at centre matches.
-    fitted = CMOPolynomialChannelModel.from_parameter_vector(
+    fitted = NonCentralPolynomialChannelModel.from_parameter_vector(
         result.parameter_vector, K=intr.as_K(), cmo_image_size=image_size,
         aberration_terms=terms_const,
     )
@@ -392,20 +392,20 @@ def test_polynomial_surrogate_rms_plateaus_with_relaxed_bounds() -> None:
         dtype=np.float64,
     )
     intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=180.0, fy=180.0, cx=63.5, cy=47.5)
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
 
     # Fit with generous bounds (distortion up to ±2, aberration ±0.5, z up to ±120).
     wide_bounds = (
         np.r_[[-60.0, -30.0, -120.0, -2.0, -2.0, -1.0, -1.0, -2.0], -0.5 * np.ones(2 * len(terms))],
         np.r_[[+60.0, +30.0, +120.0, +2.0, +2.0, +1.0, +1.0, +2.0], +0.5 * np.ones(2 * len(terms))],
     )
-    poly_x0 = cmo_polynomial_channel_parameters_from_spec(
+    poly_x0 = polynomial_channel_parameters_from_spec(
         CMOChannelSpec("left", intr, (-10.0, 0.0, 40.0), differential_aberration=PolynomialRayAberration()),
         aberration_terms=terms,
     )
 
     result = fit_physical_model_to_rayfield(
-        CMOPolynomialChannelModel,
+        NonCentralPolynomialChannelModel,
         truth.channel("left"),
         K=intr.as_K(),
         image_size=image_size,
@@ -443,9 +443,9 @@ def test_cmo_oracle_without_distortion_still_structural_mismatch() -> None:
         dtype=np.float64,
     )
     intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=180.0, fy=180.0, cx=63.5, cy=47.5)
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
 
-    poly_x0 = cmo_polynomial_channel_parameters_from_spec(
+    poly_x0 = polynomial_channel_parameters_from_spec(
         CMOChannelSpec("left", intr, (-10.0, 0.0, 40.0), differential_aberration=PolynomialRayAberration()),
         aberration_terms=terms,
     )
@@ -455,7 +455,7 @@ def test_cmo_oracle_without_distortion_still_structural_mismatch() -> None:
     )
 
     result = fit_physical_model_to_rayfield(
-        CMOPolynomialChannelModel,
+        NonCentralPolynomialChannelModel,
         truth.channel("left"),
         K=intr.as_K(),
         image_size=image_size,
@@ -520,7 +520,7 @@ def test_cmo_versus_polynomial_on_aligned_offset_oracle() -> None:
         dtype=np.float64,
     )
     intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=180.0, fy=180.0, cx=63.5, cy=47.5)
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
 
     cmo_result = fit_cmo_physical_stereo_model_to_rayfields(
         left_field=truth.channel("left"),
@@ -535,7 +535,7 @@ def test_cmo_versus_polynomial_on_aligned_offset_oracle() -> None:
     )
     assert cmo_result.rms_mm < 1e-8
 
-    poly_x0 = cmo_polynomial_channel_parameters_from_spec(
+    poly_x0 = polynomial_channel_parameters_from_spec(
         CMOChannelSpec("left", intr, (-10.0, 0.0, 40.0), differential_aberration=PolynomialRayAberration()),
         aberration_terms=terms,
     )
@@ -544,7 +544,7 @@ def test_cmo_versus_polynomial_on_aligned_offset_oracle() -> None:
         np.r_[[+60.0, +30.0, +120.0, +2.0, +2.0, +1.0, +1.0, +2.0], +0.5 * np.ones(2 * len(terms))],
     )
     poly_left = fit_physical_model_to_rayfield(
-        CMOPolynomialChannelModel, truth.channel("left"), K=intr.as_K(),
+        NonCentralPolynomialChannelModel, truth.channel("left"), K=intr.as_K(),
         image_size=image_size, initial_parameters=poly_x0, bounds=wide_bounds,
         support_pixels=pixels, full_grid_weight=0.0, max_nfev=4000,
         name="polynomial", cmo_image_size=image_size, aberration_terms=terms,
@@ -625,7 +625,7 @@ def test_bic_selects_brown_conrady_on_brown_conrady_oracle() -> None:
     # Oracle: a single channel with moderate Brown distortion (typical mid-FOV).
     oracle = CentralBrownConradyModel(K=K, k1=-0.08, k2=0.03, p1=1.0e-3, p2=-1.0e-3, k3=0.0)
 
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
     poly_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     poly_bounds = (
         np.r_[[-40.0, -40.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.1 * np.ones(2 * len(terms))],
@@ -647,7 +647,7 @@ def test_bic_selects_brown_conrady_on_brown_conrady_oracle() -> None:
             ),
             PhysicalModelSpec(
                 "cmo_polynomial_channel",
-                CMOPolynomialChannelModel,
+                NonCentralPolynomialChannelModel,
                 poly_initial,
                 bounds=poly_bounds,
                 model_kwargs={"cmo_image_size": image_size, "aberration_terms": terms},
@@ -704,7 +704,7 @@ def test_bic_classification_on_stereo_greenough_oracle() -> None:
     oracle_right = CentralBrownConradyModel(K=K_R, k1=-0.06, k2=0.02, p1=-5.0e-4, p2=8.0e-4, k3=0.0)
 
     intr_L = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=210.0, fy=210.0, cx=63.5, cy=47.5)
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
     poly_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     poly_bounds = (
         np.r_[[-40.0, -40.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.1 * np.ones(2 * len(terms))],
@@ -727,7 +727,7 @@ def test_bic_classification_on_stereo_greenough_oracle() -> None:
             ),
             PhysicalModelSpec(
                 "cmo_polynomial_channel",
-                CMOPolynomialChannelModel,
+                NonCentralPolynomialChannelModel,
                 poly_initial,
                 bounds=poly_bounds,
                 model_kwargs={"cmo_image_size": image_size, "aberration_terms": terms},
@@ -970,7 +970,7 @@ def test_zernike_candidate_wins_on_uncatalogued_rayfield() -> None:
     n_zernike_params = n_modes_lo * 6
 
     # Polynomial surrogate candidate.
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
     poly_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     poly_bounds = (
         np.r_[[-40.0, -40.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.1 * np.ones(2 * len(terms))],
@@ -993,7 +993,7 @@ def test_zernike_candidate_wins_on_uncatalogued_rayfield() -> None:
             ),
             PhysicalModelSpec(
                 "cmo_polynomial_channel",
-                CMOPolynomialChannelModel,
+                NonCentralPolynomialChannelModel,
                 poly_initial,
                 bounds=poly_bounds,
                 model_kwargs={"cmo_image_size": image_size, "aberration_terms": terms},

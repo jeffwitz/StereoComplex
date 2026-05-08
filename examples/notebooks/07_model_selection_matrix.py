@@ -38,7 +38,7 @@ from stereocomplex.physics import (
     PinholeParallelPlateModel,
     PhysicalModelSpec,
     select_physical_model_from_rayfield,
-    CMOPolynomialChannelModel,
+    NonCentralPolynomialChannelModel,
 )
 from stereocomplex.physics.cmo import (
     CMOChannelSpec,
@@ -188,7 +188,7 @@ def build_candidates(K: np.ndarray, image_size: tuple[int, int],
     intr = CMOIntrinsics(width=image_size[0], height=image_size[1],
                          fx=float(K[0, 0]), fy=float(K[1, 1]),
                          cx=float(K[0, 2]), cy=float(K[1, 2]))
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
     poly_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     poly_bounds = (
         np.r_[[-40.0, -40.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.1 * np.ones(2 * len(terms))],
@@ -222,7 +222,7 @@ def build_candidates(K: np.ndarray, image_size: tuple[int, int],
     ]
 
     specs.append(PhysicalModelSpec(
-        "cmo_polynomial_channel", CMOPolynomialChannelModel,
+        "cmo_polynomial_channel", NonCentralPolynomialChannelModel,
         poly_initial, bounds=poly_bounds,
         model_kwargs={"cmo_image_size": image_size, "aberration_terms": terms},
     ))

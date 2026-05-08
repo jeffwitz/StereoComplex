@@ -37,7 +37,7 @@ from scipy.optimize import least_squares
 from stereocomplex.physics import (
     CMOIntrinsics,
     CMOPhysicalStereoModel,
-    CMOPolynomialChannelModel,
+    NonCentralPolynomialChannelModel,
     CMOPlaneTargetSpec,
     CentralBrownConradyModel,
     CentralPinholeModel,
@@ -333,7 +333,7 @@ for name, true_field, z_field, fit in [
 
 # %%
 def cmo_candidate_specs(image_size: tuple[int, int]) -> list[PhysicalModelSpec]:
-    terms = CMOPolynomialChannelModel.default_terms()
+    terms = NonCentralPolynomialChannelModel.default_terms()
     cmo_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     cmo_bounds = (
         np.r_[[-12.0, -12.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.05 * np.ones(2 * len(terms))],
@@ -362,7 +362,7 @@ def cmo_candidate_specs(image_size: tuple[int, int]) -> list[PhysicalModelSpec]:
         ),
         PhysicalModelSpec(
             "cmo_polynomial_channel",
-            CMOPolynomialChannelModel,
+            NonCentralPolynomialChannelModel,
             cmo_initial,
             bounds=cmo_bounds,
             model_kwargs={"cmo_image_size": image_size, "aberration_terms": terms},
