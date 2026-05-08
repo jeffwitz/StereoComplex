@@ -184,52 +184,89 @@ class ZernikeCandidate:
     polynomial surrogate) in :func:`~stereocomplex.physics.model_selection.select_physical_model_from_rayfield`.
 
     The candidate uses a **lower** max-order than the measured Zernike rayfield
-    (typically ``max_order=2``, 18 parameters per channel, versus ``max_order=4``,
-    45 parameters per channel for the measurement).  If no physical model
+    (typically ``max_order=1``, 18 parameters per channel with directions, versus
+    ``max_order=4``, 60 parameters for the measurement).  If no physical model
     explains the measured rayfield well enough, the compact Zernike candidate
     wins BIC — signalling that the optics fall outside the physical catalogue.
 
-    The direction field is fixed pinhole (from ``K``); only the origin field is
-    fitted.  This keeps the parameter count low while still allowing smooth
-    non-central origin variation.
+    By default both origin and direction Zernike fields are fitted
+    (``fit_directions=True``, using :class:`ZernikeRayField`).  Set
+    ``fit_directions=False`` for origin-only fitting with
+    :class:`ZernikeOriginField` (3 scalar coefficients per mode instead of 6).
     """
 
     K: np.ndarray
     config: ZernikeOriginFieldConfig
-    coefficients: ZernikeOriginFieldCoefficients
-    name: str = "zernike_origin_field"
+    coefficients: ZernikeRayFieldCoefficients
+    name: str = "zernike_compact"
     is_stereo_shared: bool = False
+    fit_directions: bool = True
 
     @property
     def n_parameters(self) -> int:
-        return len(self.config.modes()) * 3  # X, Y, Z per Zernike mode
+        n_modes = len(self.config.modes())
+        return n_modes * 6 if self.fit_directions else n_modes * 3
 
     def parameter_vector(self) -> np.ndarray:
-        return np.asarray(self.coefficients.coeffs, dtype=np.float64).reshape(-1)
+        if self.fit_directions:
+            return np.concatenate([
+                np.asarray(self.coefficients.origin_coeffs, dtype=np.float64).reshape(-1),
+                np.asarray(self.coefficients.direction_coeffs, dtype=np.float64).reshape(-1),
+            ])
+        return np.asarray(self.coefficients.origin_coeffs, dtype=np.float64).reshape(-1)
 
     @classmethod
     def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> "ZernikeCandidate":
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         config = kwargs["config"]
+        fit_directions = bool(kwargs.get("fit_directions", True))
         n_modes = len(config.modes())
-        expected = n_modes * 3
+        n_per_mode = 6 if fit_directions else 3
+        expected = n_modes * n_per_mode
         if arr.size != expected:
-            raise ValueError(f"ZernikeCandidate expects {expected} parameters for max_order={config.max_order}")
+            raise ValueError(
+                f"ZernikeCandidate expects {expected} parameters "
+                f"(max_order={config.max_order}, fit_directions={fit_directions})"
+            )
+        if fit_directions:
+            return cls(
+                K=np.asarray(kwargs["K"], dtype=np.float64).reshape(3, 3),
+                config=config,
+                coefficients=ZernikeRayFieldCoefficients(
+                    origin_coeffs=arr[:n_modes*3].reshape(n_modes, 3),
+                    direction_coeffs=arr[n_modes*3:].reshape(n_modes, 3),
+                ),
+                fit_directions=True,
+            )
         return cls(
             K=np.asarray(kwargs["K"], dtype=np.float64).reshape(3, 3),
             config=config,
-            coefficients=ZernikeOriginFieldCoefficients(coeffs=arr.reshape(n_modes, 3)),
+            coefficients=ZernikeRayFieldCoefficients(
+                origin_coeffs=arr.reshape(n_modes, 3),
+                direction_coeffs=np.zeros((n_modes, 3), dtype=np.float64),
+            ),
+            fit_directions=False,
         )
 
     def parameter_dict(self) -> dict[str, float]:
         d: dict[str, float] = {}
         for j, mode in enumerate(self.config.modes()):
             key = f"z{j:02d}_n{mode.n}_m{mode.m}_{mode.kind}"
-            d[f"{key}_x"] = float(self.coefficients.coeffs[j, 0])
-            d[f"{key}_y"] = float(self.coefficients.coeffs[j, 1])
-            d[f"{key}_z"] = float(self.coefficients.coeffs[j, 2])
+            d[f"{key}_Ox"] = float(self.coefficients.origin_coeffs[j, 0])
+            d[f"{key}_Oy"] = float(self.coefficients.origin_coeffs[j, 1])
+            d[f"{key}_Oz"] = float(self.coefficients.origin_coeffs[j, 2])
+            if self.fit_directions:
+                d[f"{key}_dx"] = float(self.coefficients.direction_coeffs[j, 0])
+                d[f"{key}_dy"] = float(self.coefficients.direction_coeffs[j, 1])
+                d[f"{key}_dz"] = float(self.coefficients.direction_coeffs[j, 2])
         return d
 
     def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        field = ZernikeOriginField(K=self.K, config=self.config, coefficients=self.coefficients)
+        if self.fit_directions:
+            field = ZernikeRayField(K=self.K, config=self.config, coefficients=self.coefficients)
+        else:
+            field = ZernikeOriginField(
+                K=self.K, config=self.config,
+                coefficients=ZernikeOriginFieldCoefficients(coeffs=self.coefficients.origin_coeffs),
+            )
         return field.ray(u, v)

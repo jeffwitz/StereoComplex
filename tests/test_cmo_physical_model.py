@@ -760,13 +760,13 @@ def test_bic_classification_on_stereo_greenough_oracle() -> None:
 
 
 def test_zernike_candidate_loses_to_physical_cmo_on_cmo_oracle() -> None:
-    """Compact Zernike (max_order=2) loses BIC to physical CMO on a CMO oracle.
+    """Compact Zernike (max_order=1, with directions) loses BIC to physical CMO.
 
-    The Zernike candidate is a generic smooth origin field (18 params per
-    channel, fixed pinhole directions).  On a CMO oracle it fits reasonably
-    well but the physical CMO model (17 shared params) achieves far lower RMS
-    with fewer total degrees of freedom.  BIC correctly selects the physical
-    model over the generic Zernike fallback.
+    The Zernike candidate uses a low-order ZernikeRayField (origin + direction
+    variation, 18 params per channel, 36 total for the stereo pair).  On a CMO
+    oracle it achieves sub-millimetre RMS but the physical CMO model (17 shared
+    params) achieves near-zero RMS with far fewer parameters.  BIC correctly
+    selects the physical model over the generic Zernike fallback.
 
     This validates the Zernike candidate's role as a detector: when it wins
     BIC, no physical model in the catalogue is adequate.
@@ -782,8 +782,10 @@ def test_zernike_candidate_loses_to_physical_cmo_on_cmo_oracle() -> None:
     intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=180.0, fy=180.0, cx=63.5, cy=47.5)
     K = intr.as_K()
 
-    # Compact Zernike: max_order=2 → n_modes=6 → 18 params per channel.
-    zernike_config = ZernikeOriginFieldConfig(image_size=image_size, max_order=2)
+    # Compact Zernike with directions: max_order=1 → 3 modes → 3×6 = 18 params/chan.
+    zernike_config = ZernikeOriginFieldConfig(image_size=image_size, max_order=1)
+    n_modes = len(zernike_config.modes())
+    n_params_per_chan = n_modes * 6  # origin + direction per mode
 
     # Physical CMO fit (stereo-shared).
     cmo_result = fit_cmo_physical_stereo_model_to_rayfields(
@@ -804,11 +806,11 @@ def test_zernike_candidate_loses_to_physical_cmo_on_cmo_oracle() -> None:
         target_right=truth.channel("right"),
         candidate_specs=[
             PhysicalModelSpec(
-                "zernike_origin_field",
+                "zernike_compact",
                 ZernikeCandidate,
-                np.zeros(len(zernike_config.modes()) * 3, dtype=np.float64),
-                bounds=None,  # Zernike coefficients are unbounded
-                model_kwargs={"config": zernike_config},
+                np.zeros(n_params_per_chan, dtype=np.float64),
+                bounds=None,
+                model_kwargs={"config": zernike_config, "fit_directions": True},
             ),
         ],
         K=K,
@@ -822,12 +824,85 @@ def test_zernike_candidate_loses_to_physical_cmo_on_cmo_oracle() -> None:
     zernike = report.candidates[0]
     assert zernike.success
     # Stereo aggregation: 18 per channel × 2 = 36 total.
-    assert zernike.n_parameters == 36
+    assert zernike.n_parameters == n_params_per_chan * 2
 
-    # On a CMO oracle, physical CMO dominates both in RMS and BIC.
+    # On a CMO oracle, physical CMO dominates in both RMS and BIC.
     assert cmo_result.rms_mm < 1e-10
-    assert zernike.rms_mm > cmo_result.rms_mm * 100
-    # The Zernike candidate has 36 total params (18 per channel) vs CMO's 17 shared.
     assert cmo_result.bic < zernike.bic, (
         f"CMO BIC {cmo_result.bic:.1f} should beat Zernike BIC {zernike.bic:.1f}"
+    )
+
+
+def test_most_compact_zernike_loses_to_physical_cmo() -> None:
+    """Even the smallest Zernike (max_order=0, with directions) loses to CMO.
+
+    At max_order=0 the Zernike has 1 mode × 6 coords = 6 params per channel
+    (12 total for stereo).  This is a constant origin offset + constant
+    direction offset — the simplest possible generic non-central model.
+    On a CMO oracle it cannot capture the convergent chief-ray geometry,
+    leaving substantial RMS.  The physical CMO (17 shared params) achieves
+    near-zero RMS.
+
+    This is the strongest test of the BIC framework: a model with FEWER
+    params than CMO still loses because its structure is wrong.
+    """
+    from stereocomplex.rayfields.zernike_origin_field import ZernikeCandidate, ZernikeOriginFieldConfig
+
+    truth = _truth_model(distortion=True)
+    image_size = (128, 96)
+    pixels = np.array(
+        [[u, v] for v in np.linspace(8.0, 119.0, 10) for u in np.linspace(8.0, 119.0, 10)],
+        dtype=np.float64,
+    )
+    intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=180.0, fy=180.0, cx=63.5, cy=47.5)
+    K = intr.as_K()
+
+    # Ultra-compact Zernike: max_order=0 → 1 mode → 1×6 = 6 params/chan.
+    zernike_config = ZernikeOriginFieldConfig(image_size=image_size, max_order=0)
+    n_modes = len(zernike_config.modes())
+    n_params_per_chan = n_modes * 6
+
+    cmo_result = fit_cmo_physical_stereo_model_to_rayfields(
+        left_field=truth.channel("left"),
+        right_field=truth.channel("right"),
+        image_size=image_size,
+        initial_parameters=truth.parameter_vector(),
+        pixel_pitch_mm=truth.pixel_pitch_mm,
+        support_pixels_left=pixels,
+        support_pixels_right=pixels,
+        full_grid_weight=0.0,
+        grid_shape=(10, 10),
+    )
+
+    report = select_physical_model_from_rayfield(
+        target_field=truth.channel("left"),
+        target_right=truth.channel("right"),
+        candidate_specs=[
+            PhysicalModelSpec(
+                "zernike_compact_n0",
+                ZernikeCandidate,
+                np.zeros(n_params_per_chan, dtype=np.float64),
+                bounds=None,
+                model_kwargs={"config": zernike_config, "fit_directions": True},
+            ),
+        ],
+        K=K,
+        image_size=image_size,
+        support_pixels=pixels,
+        support_pixels_right=pixels,
+        full_grid_weight=0.0,
+        max_nfev=2000,
+    )
+
+    z = report.candidates[0]
+    assert z.success
+    assert z.n_parameters == n_params_per_chan * 2  # 12 total
+
+    # The Zernike has fewer params (12 vs 17) but much worse RMS because its
+    # structure (constant origin + constant direction) cannot represent the
+    # CMO's convergent chief rays.  BIC reflects this correctly.
+    assert cmo_result.rms_mm < 1e-10
+    assert z.rms_mm > cmo_result.rms_mm * 1000
+    assert cmo_result.bic < z.bic, (
+        f"CMO BIC {cmo_result.bic:.1f} should beat Zernike BIC {z.bic:.1f} despite having more params"
     )
