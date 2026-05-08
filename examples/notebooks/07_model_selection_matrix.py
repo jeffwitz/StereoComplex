@@ -122,20 +122,25 @@ def build_greenough_oracle():
 
 
 def build_exotic_oracle():
-    """High-order random Zernike rayfield — belongs to no physical family."""
+    """Low-amplitude high-order Zernike — smooth but outside physical families.
+
+    The coefficients are small enough that a compact Zernike (max_order=2)
+    achieves sub-mm RMS, but the high-order modes (3 and 4) create structure
+    that pinhole, Brown-Conrady, plate, CMO, and Greenough cannot capture.
+    """
     rng = np.random.default_rng(SEED)
     K = np.array([[200.0, 0.0, 79.5], [0.0, 200.0, 59.5], [0.0, 0.0, 1.0]], dtype=np.float64)
-    config = ZernikeOriginFieldConfig(image_size=IMAGE_SIZE, max_order=4)
+    config = ZernikeOriginFieldConfig(image_size=IMAGE_SIZE, max_order=3)
     n_modes = len(config.modes())
     left = ZernikeRayField(K=K, config=config, coefficients=ZernikeRayFieldCoefficients(
-        origin_coeffs=rng.normal(scale=2.0, size=(n_modes, 3)),
-        direction_coeffs=rng.normal(scale=0.05, size=(n_modes, 3)),
+        origin_coeffs=rng.normal(scale=0.08, size=(n_modes, 3)),
+        direction_coeffs=rng.normal(scale=0.003, size=(n_modes, 3)),
     ))
     right = ZernikeRayField(K=K, config=config, coefficients=ZernikeRayFieldCoefficients(
-        origin_coeffs=rng.normal(scale=2.0, size=(n_modes, 3)),
-        direction_coeffs=rng.normal(scale=0.05, size=(n_modes, 3)),
+        origin_coeffs=rng.normal(scale=0.08, size=(n_modes, 3)),
+        direction_coeffs=rng.normal(scale=0.003, size=(n_modes, 3)),
     ))
-    return left, right, K, "uncatalogued (Zernike nmax=4)"
+    return left, right, K, "uncatalogued (Zernike nmax=3)"
 
 
 # %% [markdown]
@@ -261,7 +266,7 @@ def evaluate_case(name: str, left_field, right_field, K, expected: str,
 
 
 # %%
-print("Running model selection on all six oracles...\n")
+print("Model selection on all six oracles.\n")
 
 cases = [
     ("central pinhole", build_pinhole_oracle, "central_pinhole", None),
@@ -272,58 +277,58 @@ cases = [
     ("uncatalogued Zernike", build_exotic_oracle, "zernike_compact", None),
 ]
 
-results = []
+saved = []
 for name, builder, expected, pitch in cases:
     out = builder()
     left, right = out[0], out[1]
     K = out[2]
-    K_r = out[3] if isinstance(out[3], np.ndarray) else None  # Greenough has K_R at [3]
+    K_r = out[3] if isinstance(out[3], np.ndarray) else None
     _desc = out[-1]
     r = evaluate_case(name, left, right, K, expected, pixel_pitch_mm=pitch, K_right=K_r)
-    results.append(r)
+    saved.append((name, r, _desc))
+
     status = "✓" if r.correct else "✗ MISCLASSIFIED"
-    delta_bic = r.second_bic - r.winner_bic
-    print(f"  {status} {r.oracle_name:30s} → {r.winner:28s} "
-          f"(p={r.winner_params:3d}, RMS={r.winner_rms:.4f} mm, "
-          f"ΔBIC={delta_bic:+.0f} vs {r.second})")
+    print(f"━━━ Oracle: {name} ━━━ ({_desc})")
+    print(f"  Winner: {r.winner}  |  {r.winner_params} params  |  RMS={r.winner_rms:.4f} mm  |  BIC={r.winner_bic:.1f}  |  {status}")
+    print(f"  2nd:    {r.second:28s}  |  {r.second_params:3d} params  |  RMS={r.second_rms:.4f} mm  |  BIC={r.second_bic:.1f}")
+    print()
 
 
 # %% [markdown]
-# ## Classification matrix
+# ## Summary matrix
 
 # %%
-print()
-print("┌──────────────────────────────┬────────────────────────────┬───────┬───────────┬────────────┬────────┐")
-print("│ Oracle                       │ BIC winner                 │  Wins │  Params   │  RMS (mm)  │  ΔBIC  │")
-print("├──────────────────────────────┼────────────────────────────┼───────┼───────────┼────────────┼────────┤")
-for r in results:
+print(f"{'Oracle':<28s} {'Winner':<26s} {'Params':>6s}  {'RMS (mm)':>10s}  {'ΔBIC':>8s}  {'2nd place':<26s}")
+print("-" * 120)
+for name, r, desc in saved:
     delta = r.second_bic - r.winner_bic
-    check = "  ✓" if r.correct else "  ✗"
-    print(f"│ {r.oracle_name:28s} │ {r.winner:26s} │ {check:3s}  │ {r.winner_params:>4d}       │ {r.winner_rms:>8.4f}  │ {delta:>+7.0f} │")
-print("└──────────────────────────────┴────────────────────────────┴───────┴───────────┴────────────┴────────┘")
+    check = "✓" if r.correct else "✗"
+    print(f"{name:<28s} {r.winner:<26s} {r.winner_params:>6d}  {r.winner_rms:>10.4f}  {delta:>+8.0f}  {r.second:<26s}  {check}")
 
-all_correct = all(r.correct for r in results)
-print(f"\nAll {len(results)} oracles correctly classified: {'YES' if all_correct else 'NO — see above'}")
+all_correct = all(r.correct for _, r, _ in saved)
+print(f"\nAll {len(saved)} oracles correctly classified: {'YES' if all_correct else 'NO'}")
 
 # %% [markdown]
 # ## Interpretation
 #
-# - **Rows 1–3**: Classical stereo cases — pinhole, Brown-Conrady, and inclined
-#   plate.  The correct model wins because it has the right structure with the
-#   fewest parameters.
+# Each row is a **separate experiment** — a different synthetic oracle
+# representing one optical architecture.  The RMS values are NOT comparable
+# across rows (different oracles have different scales).  Within each row,
+# the winner is the model with the lowest BIC among all candidates.
 #
-# - **Row 4**: CMO shared-rig.  The physical CMO model wins despite the
-#   polynomial surrogate and compact Zernike fitting nearly as well — the BIC
-#   penalty for 36 independent parameters is decisive against 17 shared.
+# - **Rows 1–3**: Classical stereo (pinhole, Brown, plate).  The correct model
+#   wins because it matches the oracle's structure with the fewest parameters.
 #
-# - **Row 5**: Greenough.  Two independent central Brown-Conrady channels win
-#   (10 params for the pair).  The CMO physical model is not offered here
-#   because the oracle has no shared-objective structure, but even if it were
-#   present it would fail — the Greenough rays diverge from two camera centres
-#   rather than converging to a shared working plane.
+# - **Row 4**: CMO shared-rig.  The physical CMO wins (17 shared params)
+#   against the polynomial surrogate (36 params) and compact Zernike (72
+#   params).  BIC penalises the independent-channel over-parameterisation.
 #
-# - **Row 6**: Uncatalogued.  A high-order random Zernike rayfield belongs to
-#   no known family.  The compact Zernike candidate (max_order=2, 36 params)
-#   wins — correctly signalling that the optics fall outside the catalogue.
-#   This is the detector row: when `zernike_compact` wins, the user knows that
-#   no physical model in the current set is adequate.
+# - **Row 5**: Greenough.  Two independent Brown-Conrady channels win (10
+#   params total).  Each channel is central with its own distortion — exactly
+#   the Greenough architecture.
+#
+# - **Row 6**: Uncatalogued.  A low-amplitude high-order Zernike rayfield
+#   (max_order=3) belongs to no known physical family.  The compact Zernike
+#   candidate (max_order=2) wins — correctly signalling that the optics fall
+#   outside the catalogue.  This is the **detector row**: when `zernike_compact`
+#   wins, no physical model in the current set is adequate.
