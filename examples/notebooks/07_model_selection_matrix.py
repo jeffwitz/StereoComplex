@@ -357,79 +357,84 @@ print_results(saved_clean, "Noiseless oracles")
 print_results(saved_noisy, f"Noisy oracles — {NOISE_ORIGIN_STD_MM*1000:.0f} µm origin noise")
 
 # %% [markdown]
-# ## BIC heatmap
+# ## BIC heatmaps
 #
-# The matrix below shows ΔBIC relative to the winner for each (oracle, candidate)
-# pair.  The diagonal (ΔBIC=0) is the correct classification.  Off-diagonal
-# cells show how much worse each candidate performs on each oracle.
+# Two heatmaps: noiseless (left column in docs) and with 20 µm origin noise
+# (right column).  Each cell shows ΔBIC from the winner.  The diagonal
+# (ΔBIC = 0) is the correct classification.
 
 # %%
 import matplotlib.pyplot as plt
 import matplotlib
 
-oracle_names = [s[0] for s in saved_clean]
-candidate_names = sorted(set().union(*(s[1].all_candidates.keys() for s in saved_clean)))
-# Reorder: physical models first, then generic fallbacks
 _preferred = ["central_pinhole", "central_brown_conrady", "pinhole_parallel_plate",
               "cmo_physical_shared", "cmo_polynomial_channel", "zernike_compact"]
-candidate_names = [n for n in _preferred if n in candidate_names]
-
-n_oracles = len(oracle_names)
-n_candidates = len(candidate_names)
-delta_bic = np.full((n_oracles, n_candidates), np.nan)
-for i, (_, r, _, _) in enumerate(saved_clean):
-    best_bic = r.winner_bic
-    for j, cname in enumerate(candidate_names):
-        if cname in r.all_candidates:
-            delta_bic[i, j] = r.all_candidates[cname] - best_bic
-
-# Compact figure with large fonts — matches body text when rendered at 100%.
-plt.rcParams.update({"font.size": 16})
-
-# Abbreviated labels.
 _oracle_short = ["pinhole", "Brown", "plate", "CMO", "Greenough", "exotic"]
 _candidate_short = ["pinhole", "Brown", "plate", "CMO phys", "poly surr", "Zernike"]
 
-fig, ax = plt.subplots(figsize=(5.5, 2.8))
-# Cap extreme values for readability while preserving ordering.
-capped = np.clip(delta_bic, 0, 5000)
-cmap = plt.cm.YlOrRd
-cmap.set_bad("0.9")
-im = ax.imshow(capped, cmap=cmap, aspect="auto", vmin=0, vmax=capped.max())
-
-ax.set_xticks(range(n_candidates))
-ax.set_yticks(range(n_oracles))
-ax.set_xticklabels(_candidate_short, rotation=20, ha="right", fontsize=12)
-ax.set_yticklabels(_oracle_short, fontsize=12)
-ax.set_title("ΔBIC from winner (capped at 5 000)", fontsize=13, fontweight="bold")
-
-# Annotate cells.
-for i in range(n_oracles):
-    for j in range(n_candidates):
-        val = delta_bic[i, j]
-        if np.isnan(val):
-            continue
-        if val == 0:
-            ax.text(j, i, "0", ha="center", va="center", fontsize=11,
-                    fontweight="bold", color="darkgreen",
-                    bbox=dict(boxstyle="round,pad=0.12", facecolor="white", alpha=0.85))
-        elif val < 10_000:
-            ax.text(j, i, f"{val:.0f}", ha="center", va="center", fontsize=10, color="black")
-        else:
-            ax.text(j, i, f"{val/1000:.0f}k", ha="center", va="center", fontsize=10, color="black")
-
-ax.set_xlabel("Candidate model", fontsize=12)
-ax.set_ylabel("Oracle", fontsize=12)
-fig.tight_layout(pad=0.4)
-# Resolve relative to the repository root (two levels up from this file).
 _repo_root = Path(__file__).resolve().parent.parent.parent
 assets_dir = _repo_root / "docs" / "assets" / "cmo_model_selection"
 assets_dir.mkdir(parents=True, exist_ok=True)
-fig.savefig(assets_dir / "classification_heatmap.png", dpi=200, bbox_inches="tight")
-fig.savefig(assets_dir / "classification_heatmap.pdf", bbox_inches="tight")
-# SVG scales cleanly to any document width — preferred for HTML.
+
+
+def make_heatmap(saved, title: str):
+    """Build a ΔBIC heatmap from saved results."""
+    oracle_names = [s[0] for s in saved]
+    candidate_names = sorted(set().union(*(s[1].all_candidates.keys() for s in saved)))
+    candidate_names = [n for n in _preferred if n in candidate_names]
+    nr, nc = len(oracle_names), len(candidate_names)
+
+    delta = np.full((nr, nc), np.nan)
+    for i, (_, r, _, _) in enumerate(saved):
+        best_bic = r.winner_bic
+        for j, cn in enumerate(candidate_names):
+            if cn in r.all_candidates:
+                delta[i, j] = r.all_candidates[cn] - best_bic
+
+    plt.rcParams.update({"font.size": 16})
+    fig, ax = plt.subplots(figsize=(5.5, 2.8))
+    capped = np.clip(delta, 0, 5000)
+    cmap = plt.cm.YlOrRd
+    cmap.set_bad("0.9")
+    ax.imshow(capped, cmap=cmap, aspect="auto", vmin=0, vmax=capped.max())
+
+    ax.set_xticks(range(nc))
+    ax.set_yticks(range(nr))
+    ax.set_xticklabels(_candidate_short, rotation=20, ha="right", fontsize=12)
+    ax.set_yticklabels(_oracle_short, fontsize=12)
+    ax.set_title(title, fontsize=13, fontweight="bold")
+
+    for i in range(nr):
+        for j in range(nc):
+            val = delta[i, j]
+            if np.isnan(val):
+                continue
+            if val == 0:
+                ax.text(j, i, "0", ha="center", va="center", fontsize=11,
+                        fontweight="bold", color="darkgreen",
+                        bbox=dict(boxstyle="round,pad=0.12", facecolor="white", alpha=0.85))
+            elif val < 10_000:
+                ax.text(j, i, f"{val:.0f}", ha="center", va="center", fontsize=10, color="black")
+            else:
+                ax.text(j, i, f"{val/1000:.0f}k", ha="center", va="center", fontsize=10, color="black")
+
+    ax.set_xlabel("Candidate model", fontsize=12)
+    ax.set_ylabel("Oracle", fontsize=12)
+    fig.tight_layout(pad=0.4)
+    return fig
+
+
+fig_clean = make_heatmap(saved_clean, "ΔBIC from winner — noiseless")
+fig_clean.savefig(assets_dir / "classification_heatmap.png", dpi=200, bbox_inches="tight")
+fig_clean.savefig(assets_dir / "classification_heatmap.pdf", bbox_inches="tight")
 plt.show()
-print(f"Heatmap saved to {assets_dir}/classification_heatmap.{'png,pdf'}")
+
+fig_noisy = make_heatmap(saved_noisy, f"ΔBIC from winner — noisy ({NOISE_ORIGIN_STD_MM*1000:.0f} µm)")
+fig_noisy.savefig(assets_dir / "classification_heatmap_noisy.png", dpi=200, bbox_inches="tight")
+fig_noisy.savefig(assets_dir / "classification_heatmap_noisy.pdf", bbox_inches="tight")
+plt.show()
+
+print("Heatmaps saved.")
 
 # %% [markdown]
 # ## Interpretation
