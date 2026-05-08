@@ -299,6 +299,27 @@ measure a generic rayfield first,
 then compare compact physical explanations.
 ```
 
+## Full classification matrix
+
+The notebook `07_model_selection_matrix.py` runs the complete framework on six
+synthetic oracles — one per optical architecture — and verifies that BIC
+correctly identifies each one:
+
+| Oracle | Winner | Params | ΔBIC |
+|---|---:|---:|---:|
+| central pinhole | `central_pinhole` | 0 | +54 |
+| central Brown-Conrady | `central_brown_conrady` | 10 | +1 169 |
+| inclined parallel plate | `pinhole_parallel_plate` | 6 | +57 732 |
+| CMO shared-rig | `cmo_physical_shared` | 17 | +61 304 |
+| Greenough (Brown ×2) | `central_brown_conrady` | 10 | +903 |
+| **uncatalogued Zernike** | **`zernike_compact`** | 72 | +2 425 |
+
+All six oracles are correctly classified.  The last row is the detector: when
+`zernike_compact` wins, the optics fall outside the catalogued families.
+
+See also [Identify My Optics](IDENTIFY_MY_OPTICS.md) for the full candidate
+catalogue and interpretation guide.
+
 ## Current limitations
 
 This page describes a controlled synthetic benchmark. The current notebook:

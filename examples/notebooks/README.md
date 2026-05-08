@@ -68,6 +68,22 @@ virtual rectification maps.
 - and AIC/BIC selection between pinhole, Brown-Conrady, parallel-plate, and CMO
   polynomial-channel candidates.
 
+## 07 Model selection classification matrix
+
+`07_model_selection_matrix.py` validates the complete model selection framework
+on all six oracle families in a single run:
+
+- central pinhole
+- central Brown-Conrady
+- inclined parallel plate
+- CMO shared-rig
+- Greenough (independent Brown-Conrady ×2)
+- **uncatalogued** (high-order Zernike, outside all physical families)
+
+Each oracle is correctly classified by BIC.  The last row demonstrates the
+Zernike fallback detector: when `zernike_compact` wins, no physical model in
+the catalogue is adequate.
+
 ## Open locally
 
 Open the notebooks from the repository root so relative paths resolve cleanly:
