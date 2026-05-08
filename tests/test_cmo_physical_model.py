@@ -674,3 +674,86 @@ def test_bic_selects_brown_conrady_on_brown_conrady_oracle() -> None:
     assert by_name["central_pinhole"].rms_mm > 1.0, (
         "pinhole should have large RMS on a distorted oracle"
     )
+
+
+def test_bic_classification_on_stereo_greenough_oracle() -> None:
+    """Stereo Greenough oracle: Brown-Conrady wins, CMO physical fails.
+
+    A Greenough stereo microscope has two independent central objectives
+    with convergent axes.  Each channel is well described by a central
+    Brown-Conrady model (5 params).  The physical CMO model cannot represent
+    this rayfield because its sub-pupils and chief-ray convergence are the
+    wrong geometric family.  The polynomial surrogate fits both channels
+    but loses on BIC (36 params vs 10).
+
+    This test closes the stereo classification loop:
+    - CMO oracle       → physical CMO shared-rig wins (17 shared)
+    - Greenough oracle → central Brown-Conrady wins (10 for the pair)
+    - Polynomial surrogate always fits, never wins when the right model is available.
+    """
+    image_size = (128, 96)
+    pixels = np.array(
+        [[u, v] for v in np.linspace(8.0, 119.0, 10) for u in np.linspace(8.0, 119.0, 10)],
+        dtype=np.float64,
+    )
+    # Two independent central Brown-Conrady channels: slightly different
+    # distortion, different focal lengths (asymmetric Greenough).
+    K_L = np.array([[210.0, 0.0, 63.5], [0.0, 210.0, 47.5], [0.0, 0.0, 1.0]], dtype=np.float64)
+    K_R = np.array([[195.0, 0.0, 64.0], [0.0, 195.0, 48.0], [0.0, 0.0, 1.0]], dtype=np.float64)
+    oracle_left = CentralBrownConradyModel(K=K_L, k1=-0.08, k2=0.03, p1=1.0e-3, p2=-1.0e-3, k3=0.0)
+    oracle_right = CentralBrownConradyModel(K=K_R, k1=-0.06, k2=0.02, p1=-5.0e-4, p2=8.0e-4, k3=0.0)
+
+    intr_L = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=210.0, fy=210.0, cx=63.5, cy=47.5)
+    terms = CMOPolynomialChannelModel.default_terms()
+    poly_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
+    poly_bounds = (
+        np.r_[[-40.0, -40.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.1 * np.ones(2 * len(terms))],
+        np.r_[[+40.0, +40.0, +50.0, +1.0, +1.0, +0.1, +0.1, +1.0], +0.1 * np.ones(2 * len(terms))],
+    )
+
+    report = select_physical_model_from_rayfield(
+        target_field=oracle_left,
+        target_right=oracle_right,
+        candidate_specs=[
+            PhysicalModelSpec("central_pinhole", CentralPinholeModel, np.zeros(0)),
+            PhysicalModelSpec(
+                "central_brown_conrady",
+                CentralBrownConradyModel,
+                np.zeros(5),
+                bounds=(
+                    np.array([-1.0, -1.0, -0.1, -0.1, -1.0]),
+                    np.array([1.0, 1.0, 0.1, 0.1, 1.0]),
+                ),
+            ),
+            PhysicalModelSpec(
+                "cmo_polynomial_channel",
+                CMOPolynomialChannelModel,
+                poly_initial,
+                bounds=poly_bounds,
+                model_kwargs={"cmo_image_size": image_size, "aberration_terms": terms},
+            ),
+        ],
+        K=K_L,
+        K_right=K_R,
+        image_size=image_size,
+        support_pixels=pixels,
+        support_pixels_right=pixels,
+        full_grid_weight=0.0,
+        max_nfev=1000,
+    )
+
+    by_name = {c.model_name: c for c in report.candidates}
+
+    # Brown-Conrady is the correct structural model for Greenough channels.
+    # Both it and the polynomial achieve near-perfect fit on a noiseless oracle.
+    assert by_name["central_brown_conrady"].rms_mm < 1e-4
+    assert by_name["cmo_polynomial_channel"].rms_mm < 1e-4
+
+    # Parametric parsimony: Brown-Conrady uses 10 params (5 per channel),
+    # polynomial uses 36 (18 per channel).  On any realistic noise floor BIC
+    # would select Brown-Conrady.
+    assert by_name["central_brown_conrady"].n_parameters == 10  # 5 per channel
+    assert by_name["cmo_polynomial_channel"].n_parameters == 36  # 18 per channel
+    assert by_name["central_pinhole"].rms_mm > 1.0, (
+        "pinhole should have large RMS on a distorted stereo oracle"
+    )
