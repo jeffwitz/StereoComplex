@@ -3,9 +3,13 @@
 This page defines the compact Common Main Objective (CMO) model implemented in
 `stereocomplex.physics.CMOPhysicalStereoModel`.
 
-It is not a full lens-design simulator. It is a paraxial ray-space model whose
-goal is narrower: test whether a measured non-central rayfield is compatible
-with a shared-objective stereo microscope geometry.
+It is not a full lens-design simulator. It is the **object-side ray-space
+reduction** of the CMO architecture: the sub-pupils, chief-ray convergence,
+and working-plane geometry are modelled explicitly, while the image-side
+optics (tube lenses, aperture stops, parallel afocal paths) are compressed
+into effective per-channel Brown-Conrady direction terms.  Its goal is
+narrower: test whether a measured non-central rayfield is compatible with a
+shared-objective stereo microscope geometry.
 
 ## Optical Assumption
 

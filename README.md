@@ -54,10 +54,11 @@ Visual proof (green = GT, red = OpenCV raw, blue = ray-field):
    generator as a physical oracle without fitting the plate parameters.
 6. **Practical non-central image workflow**: fit a Zernike origin-field model
    directly from two image folders.
-7. **Ray-space optical model identification**: fit and compare physical models
-   (central pinhole, Brown-Conrady, inclined parallel plate, CMO channel) to a
-   measured Zernike rayfield, with formal BIC-based selection to identify the
-   most compact physical explanation.
+7. **Ray-space optical model identification**: fit and compare compact physical
+   hypotheses (central pinhole, Brown-Conrady, inclined plate, physical CMO
+   shared-rig, polynomial surrogate, compact Zernike fallback) to a measured
+   Zernike rayfield, with BIC-based selection and a 6-oracle classification
+   matrix validating every catalogued optical architecture.
 
 ## Key result: optical model identification
 

@@ -87,8 +87,9 @@ Use this notebook if you want the ray-space model-selection story on a CMO-like
 optical system. It generates a ChArUco CMO scene from the shared
 `stereocomplex.physics` model, fits generic Zernike `O(u,v), d(u,v)` rayfields
 to the generated rays, and then compares physical candidates in ray space. The
-CMO generator and the CMO fitting candidate share the same Brown-Conrady and
-polynomial ray-aberration implementation.
+The notebook compares a shared physical CMO candidate against generic per-channel
+candidates, including a polynomial surrogate that uses the same low-level
+Brown-Conrady and polynomial angular primitives.
 
 Scientific companion page: [CMO model selection](CMO_MODEL_SELECTION.md).
 
