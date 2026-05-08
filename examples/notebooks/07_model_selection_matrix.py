@@ -29,6 +29,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 import numpy as np
 
 from stereocomplex.physics import (
@@ -151,9 +152,14 @@ def build_exotic_oracle():
 
 # %%
 def build_candidates(K: np.ndarray, image_size: tuple[int, int],
-                     pixel_pitch_mm: float | None = None,
-                     extra_cmo: bool = False):
-    """Return the standard candidate list."""
+                     pixel_pitch_mm: float | None = None):
+    """Return the standard candidate list, including the physical CMO.
+
+    When ``pixel_pitch_mm`` is None (non-CMO oracles), a default pitch of
+    0.005 mm is used so the CMO candidate can still be evaluated.  The CMO
+    model will fail on non-CMO oracles, demonstrating discrimination.
+    """
+    _pitch = pixel_pitch_mm if pixel_pitch_mm is not None else 0.005
     intr = CMOIntrinsics(width=image_size[0], height=image_size[1],
                          fx=float(K[0, 0]), fy=float(K[1, 1]),
                          cx=float(K[0, 2]), cy=float(K[1, 2]))
@@ -181,16 +187,14 @@ def build_candidates(K: np.ndarray, image_size: tuple[int, int],
             bounds=(np.array([-30.0, -30.0, 0.0]), np.array([30.0, 30.0, 50.0])),
             model_kwargs={"eta": 1.5, "d1_mm": 80.0},
         ),
-    ]
-
-    if extra_cmo and pixel_pitch_mm is not None:
-        specs.append(PhysicalModelSpec(
+        PhysicalModelSpec(
             "cmo_physical_shared", CMOPhysicalStereoModel,
             np.array([80.0, 120.0, 10.0, 50.0, 79.5, 59.5, 0.0,
                       0.0, 0.0, 0.0, 0.0, 0.0,
                       0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64),
-            model_kwargs={"pixel_pitch_mm": pixel_pitch_mm},
-        ))
+            model_kwargs={"pixel_pitch_mm": _pitch},
+        ),
+    ]
 
     specs.append(PhysicalModelSpec(
         "cmo_polynomial_channel", CMOPolynomialChannelModel,
@@ -221,6 +225,7 @@ class CaseResult:
     second_rms: float
     second_bic: float
     correct: bool
+    all_candidates: dict[str, float]  # model_name → BIC, for the heatmap
 
 
 def pixels_grid():
@@ -236,8 +241,7 @@ def evaluate_case(name: str, left_field, right_field, K, expected: str,
                   K_right: np.ndarray | None = None) -> CaseResult:
     px = pixels_grid()
     K_r = K_right if K_right is not None else K
-    candidates = build_candidates(K, IMAGE_SIZE, pixel_pitch_mm=pixel_pitch_mm,
-                                  extra_cmo=(expected == "cmo_physical_shared"))
+    candidates = build_candidates(K, IMAGE_SIZE, pixel_pitch_mm=pixel_pitch_mm)
     report = select_physical_model_from_rayfield(
         target_field=left_field,
         target_right=right_field,
@@ -251,6 +255,7 @@ def evaluate_case(name: str, left_field, right_field, K, expected: str,
     sorted_candidates = sorted(report.candidates, key=lambda c: c.bic)
     best = sorted_candidates[0]
     second = sorted_candidates[1] if len(sorted_candidates) > 1 else best
+    all_bic = {c.model_name: c.bic for c in report.candidates}
     return CaseResult(
         oracle_name=name,
         winner=best.model_name,
@@ -262,6 +267,7 @@ def evaluate_case(name: str, left_field, right_field, K, expected: str,
         second_rms=second.rms_mm,
         second_bic=second.bic,
         correct=(best.model_name == expected),
+        all_candidates=all_bic,
     )
 
 
@@ -277,6 +283,8 @@ cases = [
     ("uncatalogued Zernike", build_exotic_oracle, "zernike_compact", None),
 ]
 
+import time as _time
+
 saved = []
 for name, builder, expected, pitch in cases:
     out = builder()
@@ -284,11 +292,13 @@ for name, builder, expected, pitch in cases:
     K = out[2]
     K_r = out[3] if isinstance(out[3], np.ndarray) else None
     _desc = out[-1]
+    t0 = _time.time()
     r = evaluate_case(name, left, right, K, expected, pixel_pitch_mm=pitch, K_right=K_r)
+    elapsed = _time.time() - t0
     saved.append((name, r, _desc))
 
     status = "✓" if r.correct else "✗ MISCLASSIFIED"
-    print(f"━━━ Oracle: {name} ━━━ ({_desc})")
+    print(f"━━━ Oracle: {name} ━━━ ({_desc})  [{elapsed:.0f}s]")
     print(f"  Winner: {r.winner}  |  {r.winner_params} params  |  RMS={r.winner_rms:.4f} mm  |  BIC={r.winner_bic:.1f}  |  {status}")
     print(f"  2nd:    {r.second:28s}  |  {r.second_params:3d} params  |  RMS={r.second_rms:.4f} mm  |  BIC={r.second_bic:.1f}")
     print()
@@ -309,6 +319,73 @@ all_correct = all(r.correct for _, r, _ in saved)
 print(f"\nAll {len(saved)} oracles correctly classified: {'YES' if all_correct else 'NO'}")
 
 # %% [markdown]
+# ## BIC heatmap
+#
+# The matrix below shows ΔBIC relative to the winner for each (oracle, candidate)
+# pair.  The diagonal (ΔBIC=0) is the correct classification.  Off-diagonal
+# cells show how much worse each candidate performs on each oracle.
+
+# %%
+import matplotlib.pyplot as plt
+import matplotlib
+
+oracle_names = [s[0] for s in saved]
+candidate_names = sorted(set().union(*(s[1].all_candidates.keys() for s in saved)))
+# Reorder: physical models first, then generic fallbacks
+_preferred = ["central_pinhole", "central_brown_conrady", "pinhole_parallel_plate",
+              "cmo_physical_shared", "cmo_polynomial_channel", "zernike_compact"]
+candidate_names = [n for n in _preferred if n in candidate_names]
+
+n_oracles = len(oracle_names)
+n_candidates = len(candidate_names)
+delta_bic = np.full((n_oracles, n_candidates), np.nan)
+for i, (_, r, _) in enumerate(saved):
+    best_bic = r.winner_bic
+    for j, cname in enumerate(candidate_names):
+        if cname in r.all_candidates:
+            delta_bic[i, j] = r.all_candidates[cname] - best_bic
+
+fig, ax = plt.subplots(figsize=(12, 5.5))
+# Cap extreme values for readability while preserving ordering
+capped = np.clip(delta_bic, 0, 5000)
+cmap = plt.cm.YlOrRd
+cmap.set_bad("0.9")
+im = ax.imshow(capped, cmap=cmap, aspect="auto", vmin=0, vmax=capped.max())
+
+ax.set_xticks(range(n_candidates))
+ax.set_yticks(range(n_oracles))
+ax.set_xticklabels(candidate_names, rotation=35, ha="right", fontsize=8)
+ax.set_yticklabels(oracle_names, fontsize=8)
+ax.set_title("ΔBIC from winner (capped at 5 000)", fontsize=11)
+
+# Annotate cells
+for i in range(n_oracles):
+    for j in range(n_candidates):
+        val = delta_bic[i, j]
+        if np.isnan(val):
+            continue
+        if val == 0:
+            ax.text(j, i, "0", ha="center", va="center", fontsize=7,
+                    fontweight="bold", color="darkgreen",
+                    bbox=dict(boxstyle="round,pad=0.15", facecolor="white", alpha=0.85))
+        elif val < 10_000:
+            ax.text(j, i, f"{val:.0f}", ha="center", va="center", fontsize=6.5, color="black")
+        else:
+            ax.text(j, i, f"{val/1000:.0f}k", ha="center", va="center", fontsize=6.5, color="black")
+
+ax.set_xlabel("Candidate model")
+ax.set_ylabel("Oracle")
+fig.tight_layout()
+# Resolve relative to the repository root (two levels up from this file).
+_repo_root = Path(__file__).resolve().parent.parent.parent
+assets_dir = _repo_root / "docs" / "assets" / "cmo_model_selection"
+assets_dir.mkdir(parents=True, exist_ok=True)
+fig.savefig(assets_dir / "classification_heatmap.png", dpi=150, bbox_inches="tight")
+fig.savefig(assets_dir / "classification_heatmap.pdf", bbox_inches="tight")
+plt.show()
+print(f"Heatmap saved to {assets_dir}/classification_heatmap.{'png,pdf'}")
+
+# %% [markdown]
 # ## Interpretation
 #
 # Each row is a **separate experiment** — a different synthetic oracle
@@ -324,8 +401,10 @@ print(f"\nAll {len(saved)} oracles correctly classified: {'YES' if all_correct e
 #   params).  BIC penalises the independent-channel over-parameterisation.
 #
 # - **Row 5**: Greenough.  Two independent Brown-Conrady channels win (10
-#   params total).  Each channel is central with its own distortion — exactly
-#   the Greenough architecture.
+#   params total).  The ΔBIC is the smallest among structural matches (~900)
+#   because the polynomial surrogate's family **includes** Brown-Conrady as a
+#   special case.  The selection here is purely a parsimony argument: BIC
+#   penalises the 26 unnecessary polynomial parameters.
 #
 # - **Row 6**: Uncatalogued.  A low-amplitude high-order Zernike rayfield
 #   (max_order=3) belongs to no known physical family.  The compact Zernike

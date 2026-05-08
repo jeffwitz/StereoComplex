@@ -317,6 +317,16 @@ correctly identifies each one:
 All six oracles are correctly classified.  The last row is the detector: when
 `zernike_compact` wins, the optics fall outside the catalogued families.
 
+```{figure} assets/cmo_model_selection/classification_heatmap.png
+:alt: BIC heatmap across all six oracles and candidates
+:width: 100%
+
+ΔBIC heatmap.  The diagonal (ΔBIC = 0) is the correct classification.
+Off-diagonal cells show how much worse each candidate performs on each oracle.
+Values are capped at 5 000 for readability; the full range extends to
+~60 000 for structural mismatches (e.g., inclined plate vs compact Zernike).
+```
+
 See also [Identify My Optics](IDENTIFY_MY_OPTICS.md) for the full candidate
 catalogue and interpretation guide.
 
