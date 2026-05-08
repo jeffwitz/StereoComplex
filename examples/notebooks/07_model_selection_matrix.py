@@ -439,6 +439,8 @@ print("Heatmaps saved.")
 # %% [markdown]
 # ## Interpretation
 #
+# ### Noiseless regime
+#
 # Each row is a **separate experiment** — a different synthetic oracle
 # representing one optical architecture.  The RMS values are NOT comparable
 # across rows (different oracles have different scales).  Within each row,
@@ -462,3 +464,40 @@ print("Heatmaps saved.")
 #   candidate (max_order=2) wins — correctly signalling that the optics fall
 #   outside the catalogue.  This is the **detector row**: when `zernike_compact`
 #   wins, no physical model in the current set is adequate.
+#
+# ### Noisy regime (20 µm origin noise)
+#
+# Under 20 µm Gaussian noise on ray origins — realistic for a well-calibrated
+# ChArUco stereo rig — all six classifications remain correct.  The diagonal
+# of the heatmap is preserved.  However, the ΔBIC margins tell a richer story:
+#
+# **Three regimes emerge under noise:**
+#
+# 1. **Noise-floor parsimony** (pinhole, Brown, Greenough).  The oracle's
+#    structural signature is shallow enough that several candidates all reach
+#    the ~0.039 mm noise floor.  BIC then discriminates *purely on parameter
+#    count*.  The pinhole case is the most fragile: ΔBIC = +27 means the
+#    zero-parameter model beats the 10-parameter Brown model by a narrow margin.
+#    At ~50 µm noise this case would flip — Brown's extra parameters would buy
+#    enough fit improvement to overcome the penalty.
+#
+# 2. **Structural mismatch** (plate, CMO).  The noise floor is ~0.039 mm but
+#    structurally wrong models leave residuals well above it.  The correct
+#    model wins by a margin of 100–200 BIC units — an order of magnitude larger
+#    than the parsimony cases.  The CMO physical model achieves the lowest
+#    absolute RMS (0.0378 mm) *and* uses fewer parameters (17 shared) than the
+#    generic fallbacks (36–72).  This is the ideal: the right structure fits
+#    better AND is more compact.
+#
+# 3. **Exotic detection** (uncatalogued).  The ΔBIC margin is essentially
+#    unchanged (+2077 → +2078) because the structural RMS gap (~2.7 mm for the
+#    best physical model) dwarfs the 20 µm noise.  The Zernike compact
+#    candidate wins robustly — the noise does not accidentally make a physical
+#    model look good on optics it cannot represent.
+#
+# **Key insight:** the framework degrades *gracefully*.  As noise increases,
+#    the parsimony cases flip first (pinhole vs Brown at ~50 µm), then the
+#    structural cases (plate, CMO at much higher noise), and the exotic
+#    detection is the last to fail.  This ordering is exactly what one wants:
+#    the most scientifically important distinctions (CMO vs non-CMO, catalogued
+#    vs uncatalogued) are the most robust to measurement noise.
