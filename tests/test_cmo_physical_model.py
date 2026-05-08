@@ -9,7 +9,7 @@ from stereocomplex.physics.cmo import (
     PolynomialRayAberration,
     cmo_polynomial_channel_parameters_from_spec,
 )
-from stereocomplex.physics.central_models import CentralBrownConradyModel
+from stereocomplex.physics.central_models import CentralBrownConradyModel, CentralPinholeModel
 from stereocomplex.physics.cmo_physical import (
     CMOPhysicalStereoModel,
     fit_cmo_physical_stereo_model_to_rayfields,
@@ -374,11 +374,16 @@ def test_polynomial_surrogate_with_free_z_and_constant_term_fits_cmo_rayfield() 
 
 
 def test_polynomial_surrogate_rms_plateaus_with_relaxed_bounds() -> None:
-    """Even with wide bounds the polynomial surrogate cannot match a CMO rayfield.
+    """Without a constant aberration term the polynomial surrogate has a structural RMS floor.
 
-    The structural mismatch (all rays through one z=0 origin vs all rays
-    through a sub-pupil at z=40) means the residual plateaus far above zero
-    regardless of parameter freedom.
+    This test uses a free ``origin_z`` (bounds ±120 mm) and a wrong K matrix
+    (fx=180 where the CMO angular scale is f_tube/p = 1000).  Even with
+    generous bounds on all parameters, the RMS plateaus because the default
+    5-term aberration basis (no ``"1"`` constant) cannot produce the convergent
+    chief-ray direction at the principal point.  See
+    ``test_polynomial_surrogate_with_free_z_and_constant_term_fits_cmo_rayfield``
+    for the complementary test where the correct K and a constant term lift
+    the floor entirely.
     """
     truth = _truth_model(distortion=True)
     image_size = (128, 96)
@@ -593,3 +598,79 @@ def test_select_with_mixed_per_channel_and_stereo_shared_candidates() -> None:
     assert rows["central_brown_conrady"]["parameters"] == 10
     assert rows["cmo_physical_shared"]["parameters"] == 17
     assert report.best_by_bic == "cmo_physical_shared"
+
+
+def test_bic_selects_brown_conrady_on_brown_conrady_oracle() -> None:
+    """On a central Brown-Conrady oracle, Brown-Conrady wins BIC.
+
+    A Greenough stereo microscope has two independent central objectives,
+    each well described by a Brown-Conrady model.  The polynomial surrogate
+    can also fit this oracle (it is a superset), but BIC correctly prefers
+    the more compact Brown-Conrady candidate (5 params vs 18).
+
+    This closes the classification loop:
+    - CMO oracle  → physical CMO shared-rig wins (17 shared params)
+    - Brown oracle → central Brown-Conrady wins (5 params per channel)
+    - The polynomial surrogate fits both but never wins when the correct
+      physical model is in the candidate set.
+    """
+    image_size = (128, 96)
+    pixels = np.array(
+        [[u, v] for v in np.linspace(8.0, 119.0, 10) for u in np.linspace(8.0, 119.0, 10)],
+        dtype=np.float64,
+    )
+    K = np.array([[200.0, 0.0, 63.5], [0.0, 200.0, 47.5], [0.0, 0.0, 1.0]], dtype=np.float64)
+    intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=200.0, fy=200.0, cx=63.5, cy=47.5)
+
+    # Oracle: a single channel with moderate Brown distortion (typical mid-FOV).
+    oracle = CentralBrownConradyModel(K=K, k1=-0.08, k2=0.03, p1=1.0e-3, p2=-1.0e-3, k3=0.0)
+
+    terms = CMOPolynomialChannelModel.default_terms()
+    poly_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
+    poly_bounds = (
+        np.r_[[-40.0, -40.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.1 * np.ones(2 * len(terms))],
+        np.r_[[+40.0, +40.0, +50.0, +1.0, +1.0, +0.1, +0.1, +1.0], +0.1 * np.ones(2 * len(terms))],
+    )
+
+    report = select_physical_model_from_rayfield(
+        target_field=oracle,
+        candidate_specs=[
+            PhysicalModelSpec("central_pinhole", CentralPinholeModel, np.zeros(0)),
+            PhysicalModelSpec(
+                "central_brown_conrady",
+                CentralBrownConradyModel,
+                np.zeros(5),
+                bounds=(
+                    np.array([-1.0, -1.0, -0.1, -0.1, -1.0]),
+                    np.array([1.0, 1.0, 0.1, 0.1, 1.0]),
+                ),
+            ),
+            PhysicalModelSpec(
+                "cmo_polynomial_channel",
+                CMOPolynomialChannelModel,
+                poly_initial,
+                bounds=poly_bounds,
+                model_kwargs={"cmo_image_size": image_size, "aberration_terms": terms},
+            ),
+        ],
+        K=K,
+        image_size=image_size,
+        support_pixels=pixels,
+        full_grid_weight=0.0,
+        max_nfev=1000,
+    )
+
+    by_name = {c.model_name: c for c in report.candidates}
+
+    # Both models recover the oracle to machine precision because it is noiseless.
+    assert by_name["central_brown_conrady"].rms_mm < 1e-4
+    assert by_name["cmo_polynomial_channel"].rms_mm < 1e-4
+
+    # Parametric parsimony: Brown-Conrady is the correct model at 5 params;
+    # the polynomial surrogate achieves the same fit at 18 params and would
+    # lose on BIC for any realistic noise floor (log(RSS/N) is degenerate here).
+    assert by_name["central_brown_conrady"].n_parameters == 5
+    assert by_name["cmo_polynomial_channel"].n_parameters == 18
+    assert by_name["central_pinhole"].rms_mm > 1.0, (
+        "pinhole should have large RMS on a distorted oracle"
+    )
