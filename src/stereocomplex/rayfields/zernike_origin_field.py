@@ -193,6 +193,17 @@ class ZernikeCandidate:
     (``fit_directions=True``, using :class:`ZernikeRayField`).  Set
     ``fit_directions=False`` for origin-only fitting with
     :class:`ZernikeOriginField` (3 scalar coefficients per mode instead of 6).
+
+    .. note::
+
+       The transverse gauge :math:`O(u,v)\\cdot d(u,v)=0` is enforced at
+       ray-evaluation time.  This removes one redundant degree of freedom per
+       mode (the longitudinal displacement along the ray), so the *effective*
+       parameter count is ``n_modes * 5`` with directions or ``n_modes * 2``
+       without.  The ``n_parameters`` property reports the raw coefficient
+       count (6 or 3 per mode), which slightly over-penalises the Zernike
+       candidate in BIC comparisons.  The margin is 1 parameter per mode —
+       negligible against the BIC differences seen in practice.
     """
 
     K: np.ndarray

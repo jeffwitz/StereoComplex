@@ -903,6 +903,129 @@ def test_most_compact_zernike_loses_to_physical_cmo() -> None:
     # CMO's convergent chief rays.  BIC reflects this correctly.
     assert cmo_result.rms_mm < 1e-10
     assert z.rms_mm > cmo_result.rms_mm * 1000
+    # The Zernike-0 loses by RSS, not by parameter penalty: its RMS floor is huge.
+    assert z.rms_mm > 1.0, (
+        f"Zernike-0 should have a structural RMS floor > 1 mm, got {z.rms_mm:.4f} mm"
+    )
     assert cmo_result.bic < z.bic, (
         f"CMO BIC {cmo_result.bic:.1f} should beat Zernike BIC {z.bic:.1f} despite having more params"
+    )
+
+
+def test_zernike_candidate_wins_on_uncatalogued_rayfield() -> None:
+    """Compact Zernike wins BIC when the oracle belongs to no physical family.
+
+    This is the symmetric test to the "Zernike loses" cases.  An oracle is
+    built as a high-order ZernikeRayField (max_order=4) with seeded random
+    coefficients — by construction outside the pinhole, Brown-Conrady,
+    inclined-plate, CMO, and Greenough catalogues.  The compact Zernike
+    candidate (max_order=2) captures the smooth non-central pattern better
+    than any structured physical model and wins BIC.
+
+    This validates the Zernike candidate's role as a **detector** of
+    uncatalogued optics: when it wins, no physical model in the catalogue
+    is adequate for the measured rayfield.
+    """
+    from stereocomplex.rayfields.zernike_origin_field import (
+        ZernikeCandidate,
+        ZernikeOriginFieldConfig,
+        ZernikeRayField,
+        ZernikeRayFieldCoefficients,
+    )
+
+    image_size = (128, 96)
+    pixels = np.array(
+        [[u, v] for v in np.linspace(8.0, 119.0, 12) for u in np.linspace(8.0, 119.0, 12)],
+        dtype=np.float64,
+    )
+    K = np.array([[180.0, 0.0, 63.5], [0.0, 180.0, 47.5], [0.0, 0.0, 1.0]], dtype=np.float64)
+    intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=180.0, fy=180.0, cx=63.5, cy=47.5)
+
+    # High-order Zernike oracle with seeded random coefficients.
+    # This creates a smooth but structurally complex rayfield that does not
+    # belong to pinhole, Brown, plate, CMO, or Greenough families.
+    rng = np.random.default_rng(seed=42)
+    hi_config = ZernikeOriginFieldConfig(image_size=image_size, max_order=4)
+    n_modes_hi = len(hi_config.modes())
+    oracle_left = ZernikeRayField(
+        K=K,
+        config=hi_config,
+        coefficients=ZernikeRayFieldCoefficients(
+            origin_coeffs=rng.normal(scale=2.0, size=(n_modes_hi, 3)),
+            direction_coeffs=rng.normal(scale=0.05, size=(n_modes_hi, 3)),
+        ),
+    )
+    oracle_right = ZernikeRayField(
+        K=K,
+        config=hi_config,
+        coefficients=ZernikeRayFieldCoefficients(
+            origin_coeffs=rng.normal(scale=2.0, size=(n_modes_hi, 3)),
+            direction_coeffs=rng.normal(scale=0.05, size=(n_modes_hi, 3)),
+        ),
+    )
+
+    # Compact Zernike candidate: max_order=2, origin + direction.
+    lo_config = ZernikeOriginFieldConfig(image_size=image_size, max_order=2)
+    n_modes_lo = len(lo_config.modes())
+    n_zernike_params = n_modes_lo * 6
+
+    # Polynomial surrogate candidate.
+    terms = CMOPolynomialChannelModel.default_terms()
+    poly_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
+    poly_bounds = (
+        np.r_[[-40.0, -40.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.1 * np.ones(2 * len(terms))],
+        np.r_[[+40.0, +40.0, +50.0, +1.0, +1.0, +0.1, +0.1, +1.0], +0.1 * np.ones(2 * len(terms))],
+    )
+
+    report = select_physical_model_from_rayfield(
+        target_field=oracle_left,
+        target_right=oracle_right,
+        candidate_specs=[
+            PhysicalModelSpec("central_pinhole", CentralPinholeModel, np.zeros(0)),
+            PhysicalModelSpec(
+                "central_brown_conrady",
+                CentralBrownConradyModel,
+                np.zeros(5),
+                bounds=(
+                    np.array([-1.0, -1.0, -0.1, -0.1, -1.0]),
+                    np.array([1.0, 1.0, 0.1, 0.1, 1.0]),
+                ),
+            ),
+            PhysicalModelSpec(
+                "cmo_polynomial_channel",
+                CMOPolynomialChannelModel,
+                poly_initial,
+                bounds=poly_bounds,
+                model_kwargs={"cmo_image_size": image_size, "aberration_terms": terms},
+            ),
+            PhysicalModelSpec(
+                "zernike_compact",
+                ZernikeCandidate,
+                np.zeros(n_zernike_params, dtype=np.float64),
+                bounds=None,
+                model_kwargs={"config": lo_config, "fit_directions": True},
+            ),
+        ],
+        K=K,
+        image_size=image_size,
+        support_pixels=pixels,
+        support_pixels_right=pixels,
+        full_grid_weight=0.0,
+        max_nfev=3000,
+    )
+
+    by_name = {c.model_name: c for c in report.candidates}
+    assert report.best_by_bic == "zernike_compact", (
+        f"Zernike compact should win on uncatalogued oracle, got {report.best_by_bic}"
+    )
+    # All physical candidates should have non-trivial RMS (structural mismatch).
+    for name in ["central_pinhole", "central_brown_conrady"]:
+        assert by_name[name].rms_mm > 0.01, (
+            f"{name} should have structural RMS > 0.01 mm on uncatalogued oracle, "
+            f"got {by_name[name].rms_mm:.6f} mm"
+        )
+    # The compact Zernike achieves the best balance of fit quality and parsimony.
+    assert by_name["zernike_compact"].bic < by_name["cmo_polynomial_channel"].bic, (
+        "compact Zernike (36 params) should beat polynomial surrogate (36 params) "
+        "on a Zernike-like oracle"
     )

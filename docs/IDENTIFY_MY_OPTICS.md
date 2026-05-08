@@ -83,12 +83,14 @@ worth the extra parameters.
 | `pinhole_parallel_plate` has low RMS and wins BIC | The measured rayfield looks like a stereo system viewed through inclined plates. |
 | `cmo_polynomial_channel` has low RMS and wins BIC | The measured rayfield is best explained by an independent-channel non-central surrogate; no shared CMO geometry is detected. |
 | `cmo_physical_stereo` has low RMS and wins BIC | The measured stereo rayfields are compatible with a shared-objective CMO geometry. |
+| `zernike_compact` has low RMS and wins BIC | No physical model in the catalogue explains the rayfield. The optics fall outside the known families (pinhole, Brown-Conrady, inclined plate, CMO, Greenough). A compact generic Zernike model is the best available description. |
 | Support RMS is low but full-grid RMS is high | The model explains observed board pixels but extrapolates poorly outside the calibration support. |
 
 Do not read the winner as an absolute truth. Read it as the most compact
-candidate among the models you tested. If all candidates have high residuals,
-the correct interpretation is: none of the proposed physical families explains
-the measured rayfield well enough.
+candidate among the models you tested. If all physical candidates have high
+residuals and the compact Zernike wins, the correct interpretation is: **the
+optics are not in the catalogue**.  Consider enriching the physical family set
+or treating the instrument as a generic non-central system.
 
 For CMO-like microscopes, distinguish the two CMO candidates carefully. Use the
 physical CMO model when the instrument plausibly has one common main objective,
