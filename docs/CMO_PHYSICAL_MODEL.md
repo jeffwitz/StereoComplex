@@ -175,6 +175,78 @@ main-objective constraints.
 The physical CMO model is less flexible but more interpretable. On a true CMO
 oracle, it should achieve comparable ray-space residuals with fewer effective
 degrees of freedom, so BIC should prefer it over the polynomial surrogate.
+Crucially, the polynomial surrogate cannot represent CMO rays at all (see
+[CMO model selection](CMO_MODEL_SELECTION.md#scientific-interpretation)): its
+per-channel pinhole structure forces all rays through a single origin at
+`z=0`, whereas CMO rays pass through a sub-pupil at `z=Z_w-f_obj`.  The BIC
+gap on a CMO oracle is therefore driven by structural mismatch, not just by
+parameter count.
+
+## Real microscope mapping
+
+The two model families — physical CMO shared-rig and non-central polynomial
+surrogate — correspond to real commercial stereo microscope architectures.
+Use this table to decide which candidate is appropriate for your instrument.
+
+### Physical CMO shared-rig model
+
+Use when the instrument has **one common main objective** with two parallel
+afocal zoom paths and a shared sub-pupil baseline.
+
+| Manufacturer | Model | Zoom ratio | Max NA | Notes |
+|---|---|---|---|---|
+| Leica | M205 C / M205 A | 20.5:1 | 0.35 | 100 % apochromatic CMO; FusionOptics asymmetric per-channel resolution/depth |
+| Evident / Olympus | SZX16 | 16.4:1 | 0.30 | Galilean CMO; 65.7:1 effective with objective nosepiece; WD up to 141 mm |
+| Zeiss | SteREO Discovery.V20 | 20:1 | ~0.35 | Motorized eZoom CMO; up to 1000 lp/mm |
+| Zeiss | SteREO Discovery.V12 | 12:1 | — | Same modular CMO platform as V20 |
+| Nikon | SMZ25 | 25:1 | 0.312 | "Perfect Zoom System" CMO; 0.63×–315× total magnification |
+
+Even within the CMO family, real instruments can introduce per-channel
+asymmetries:
+- **Leica FusionOptics** deliberately gives the left and right channels
+  different resolution and depth-of-field characteristics.  This may produce
+  measurably different per-channel distortion that the
+  `share_principal_point=False` (19-parameter) mode is designed to absorb.
+- **Tube-lens and relay variations** between the two channels can add
+  per-channel effective distortion beyond the shared objective.
+
+### Non-central polynomial surrogate
+
+Use when the instrument has **independent optical paths per channel** — no
+shared main objective, or unknown/heterogeneous optics.
+
+| Manufacturer | Model | Zoom ratio | Notes |
+|---|---|---|---|
+| Zeiss | Stemi 508 | 8:1 | Greenough; 35° convergence angle; WD up to 287 mm |
+| Leica | Ivesta 3 | 9:1 | Greenough with FusionOptics; integrated 12 MP camera; WD up to 122 mm |
+| Evident / Olympus | SZ61 | 6.7:1 | Greenough; entry-level inspection stereo microscope |
+
+Greenough microscopes are the canonical case: two completely separate
+objective lenses, one per channel, typically angled inward (convergent axes).
+Each channel has its own entrance pupil, and there is no shared objective
+geometry.
+
+Other architectures that fall in the *polynomial surrogate* category:
+
+| Architecture | Why non-central, non-CMO |
+|---|---|
+| **Industrial stereo with per-channel windows or prisms** | Each camera's protective window, beamsplitter, or right-angle relay adds per-channel refractive distortion (astigmatism, lateral shift) not shared between channels. |
+| **Scheimpflug / tilted-sensor stereo** | Each sensor has a different orientation relative to its lens, producing asymmetric projections that cannot be modelled by CMO or Greenough alone. Common in line-scan stereo for web inspection. |
+| **Stereo endoscopes / borescopes** | Single objective housing with two relay channels and separated sub-pupils (3–5 mm baseline); GRIN lenses or fiber relays. Wide-angle optics produce strong non-central effects. |
+| **Dual-camera rigs with unknown or asymmetric optics** | Any setup where the two cameras have different lenses, filters, or mounts. The polynomial surrogate is the safe fallback. |
+
+### Decision flow
+
+```text
+Does the instrument have a single shared main objective?
+  ├── Yes → physical CMO shared-rig model (17 or 19 params)
+  │         Also test the polynomial surrogate as a fallback:
+  │         if it wins BIC, the shared-objective hypothesis is
+  │         not supported by the rayfield data.
+  └── No  → non-central polynomial surrogate (34 params total)
+            Also test central Brown-Conrady and inclined-plate
+            candidates to rule out simpler explanations.
+```
 
 ## References
 

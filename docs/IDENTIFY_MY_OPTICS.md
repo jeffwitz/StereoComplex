@@ -97,6 +97,9 @@ surrogate when the hardware is less constrained or unknown, for example
 Greenough-like microscopes with independent objectives, decentered relay optics,
 tilted sensor stacks, protective windows, or generic non-central stereo rigs.
 
+See [Physical CMO Model — Real microscope mapping](CMO_PHYSICAL_MODEL.md#real-microscope-mapping)
+for a table of commercial microscope models and which candidate they correspond to.
+
 ## Mathematical model catalogue
 
 This is the advanced reference definition of the physical candidates used by

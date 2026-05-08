@@ -106,7 +106,9 @@ systems that are not constrained by a common main objective, such as:
 
 Use the physical CMO when a common-objective microscope is the credible
 structural hypothesis. Use the polynomial surrogate when the hardware is less
-constrained or unknown.
+constrained or unknown.  See [Physical CMO Model — Real microscope
+mapping](CMO_PHYSICAL_MODEL.md#real-microscope-mapping) for a table of
+commercial instruments and their corresponding model families.
 
 ## Generic Zernike rayfield measurement
 
