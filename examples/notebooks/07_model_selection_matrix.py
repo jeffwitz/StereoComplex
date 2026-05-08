@@ -60,6 +60,31 @@ from stereocomplex.rayfields.zernike_origin_field import (
 IMAGE_SIZE = (160, 120)
 GRID_SHAPE = (12, 9)
 SEED = 42
+NOISE_ORIGIN_STD_MM = 0.02   # 20 µm — realistic ChArUco calibration noise floor
+NOISE_SEED = 123
+
+
+class NoisyRayField:
+    """Wraps a rayfield with fixed per-pixel Gaussian noise on origins."""
+
+    def __init__(self, field, noise_std_mm: float, rng: np.random.Generator):
+        self._field = field
+        self._std = float(noise_std_mm)
+        self._noise_cache: dict[tuple[int, int], np.ndarray] = {}
+
+    def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        O, d = self._field.ray(u, v)
+        uf = np.asarray(u, dtype=np.float64).reshape(-1)
+        vf = np.asarray(v, dtype=np.float64).reshape(-1)
+        O_noisy = np.asarray(O, dtype=np.float64).copy()
+        # Generate consistent per-pixel noise.
+        rng = np.random.default_rng(NOISE_SEED)
+        for k in range(len(uf)):
+            key = (int(round(uf[k])), int(round(vf[k])))
+            if key not in self._noise_cache:
+                self._noise_cache[key] = rng.normal(scale=self._std, size=3)
+            O_noisy[k] += self._noise_cache[key]
+        return O_noisy.reshape(O.shape), d
 
 
 # %% [markdown]
@@ -285,38 +310,51 @@ cases = [
 
 import time as _time
 
-saved = []
-for name, builder, expected, pitch in cases:
-    out = builder()
-    left, right = out[0], out[1]
-    K = out[2]
-    K_r = out[3] if isinstance(out[3], np.ndarray) else None
-    _desc = out[-1]
-    t0 = _time.time()
-    r = evaluate_case(name, left, right, K, expected, pixel_pitch_mm=pitch, K_right=K_r)
-    elapsed = _time.time() - t0
-    saved.append((name, r, _desc))
+def run_matrix(noise_std: float = 0.0):
+    """Run all six cases, optionally adding origin noise.  Returns (saved, all_correct)."""
+    rng = np.random.default_rng(NOISE_SEED)
+    saved = []
+    for name, builder, expected, pitch in cases:
+        out = builder()
+        left, right = out[0], out[1]
+        K = out[2]
+        K_r = out[3] if isinstance(out[3], np.ndarray) else None
+        _desc = out[-1]
+        if noise_std > 0:
+            left = NoisyRayField(left, noise_std, rng)
+            right = NoisyRayField(right, noise_std, rng)
+        t0 = _time.time()
+        r = evaluate_case(name, left, right, K, expected, pixel_pitch_mm=pitch, K_right=K_r)
+        elapsed = _time.time() - t0
+        saved.append((name, r, _desc, elapsed))
+    return saved
 
-    status = "✓" if r.correct else "✗ MISCLASSIFIED"
-    print(f"━━━ Oracle: {name} ━━━ ({_desc})  [{elapsed:.0f}s]")
-    print(f"  Winner: {r.winner}  |  {r.winner_params} params  |  RMS={r.winner_rms:.4f} mm  |  BIC={r.winner_bic:.1f}  |  {status}")
-    print(f"  2nd:    {r.second:28s}  |  {r.second_params:3d} params  |  RMS={r.second_rms:.4f} mm  |  BIC={r.second_bic:.1f}")
-    print()
+
+def print_results(saved, title: str):
+    """Print detailed blocks and summary table for one set of results."""
+    print(f"── {title} ──")
+    for name, r, desc, elapsed in saved:
+        status = "✓" if r.correct else "✗ MISCLASSIFIED"
+        print(f"━━━ {name} ━━━ ({desc})  [{elapsed:.0f}s]")
+        print(f"  Winner: {r.winner}  |  {r.winner_params} params  |  RMS={r.winner_rms:.4f} mm  |  BIC={r.winner_bic:.1f}  |  {status}")
+        print(f"  2nd:    {r.second:28s}  |  {r.second_params:3d} params  |  RMS={r.second_rms:.4f} mm  |  BIC={r.second_bic:.1f}")
+        print()
+    print(f"{'Oracle':<28s} {'Winner':<26s} {'Params':>6s}  {'RMS (mm)':>10s}  {'ΔBIC':>8s}  {'2nd place':<26s}")
+    print("-" * 120)
+    for name, r, desc, _ in saved:
+        delta = r.second_bic - r.winner_bic
+        print(f"{name:<28s} {r.winner:<26s} {r.winner_params:>6d}  {r.winner_rms:>10.4f}  {delta:>+8.0f}  {r.second:<26s}  {'✓' if r.correct else '✗'}")
+    all_ok = all(r.correct for _, r, _, _ in saved)
+    print(f"\nAll {len(saved)} correctly classified: {'YES' if all_ok else 'NO'}\n")
+    return saved
 
 
-# %% [markdown]
-# ## Summary matrix
+# ── Run ────────────────────────────────────────────────────────────
+saved_clean = run_matrix(noise_std=0.0)
+saved_noisy = run_matrix(noise_std=NOISE_ORIGIN_STD_MM)
 
-# %%
-print(f"{'Oracle':<28s} {'Winner':<26s} {'Params':>6s}  {'RMS (mm)':>10s}  {'ΔBIC':>8s}  {'2nd place':<26s}")
-print("-" * 120)
-for name, r, desc in saved:
-    delta = r.second_bic - r.winner_bic
-    check = "✓" if r.correct else "✗"
-    print(f"{name:<28s} {r.winner:<26s} {r.winner_params:>6d}  {r.winner_rms:>10.4f}  {delta:>+8.0f}  {r.second:<26s}  {check}")
-
-all_correct = all(r.correct for _, r, _ in saved)
-print(f"\nAll {len(saved)} oracles correctly classified: {'YES' if all_correct else 'NO'}")
+print_results(saved_clean, "Noiseless oracles")
+print_results(saved_noisy, f"Noisy oracles — {NOISE_ORIGIN_STD_MM*1000:.0f} µm origin noise")
 
 # %% [markdown]
 # ## BIC heatmap
@@ -329,8 +367,8 @@ print(f"\nAll {len(saved)} oracles correctly classified: {'YES' if all_correct e
 import matplotlib.pyplot as plt
 import matplotlib
 
-oracle_names = [s[0] for s in saved]
-candidate_names = sorted(set().union(*(s[1].all_candidates.keys() for s in saved)))
+oracle_names = [s[0] for s in saved_clean]
+candidate_names = sorted(set().union(*(s[1].all_candidates.keys() for s in saved_clean)))
 # Reorder: physical models first, then generic fallbacks
 _preferred = ["central_pinhole", "central_brown_conrady", "pinhole_parallel_plate",
               "cmo_physical_shared", "cmo_polynomial_channel", "zernike_compact"]
@@ -339,14 +377,21 @@ candidate_names = [n for n in _preferred if n in candidate_names]
 n_oracles = len(oracle_names)
 n_candidates = len(candidate_names)
 delta_bic = np.full((n_oracles, n_candidates), np.nan)
-for i, (_, r, _) in enumerate(saved):
+for i, (_, r, _, _) in enumerate(saved_clean):
     best_bic = r.winner_bic
     for j, cname in enumerate(candidate_names):
         if cname in r.all_candidates:
             delta_bic[i, j] = r.all_candidates[cname] - best_bic
 
-fig, ax = plt.subplots(figsize=(12, 5.5))
-# Cap extreme values for readability while preserving ordering
+# Compact figure with large fonts — matches body text when rendered at 100%.
+plt.rcParams.update({"font.size": 16})
+
+# Abbreviated labels.
+_oracle_short = ["pinhole", "Brown", "plate", "CMO", "Greenough", "exotic"]
+_candidate_short = ["pinhole", "Brown", "plate", "CMO phys", "poly surr", "Zernike"]
+
+fig, ax = plt.subplots(figsize=(5.5, 2.8))
+# Cap extreme values for readability while preserving ordering.
 capped = np.clip(delta_bic, 0, 5000)
 cmap = plt.cm.YlOrRd
 cmap.set_bad("0.9")
@@ -354,34 +399,35 @@ im = ax.imshow(capped, cmap=cmap, aspect="auto", vmin=0, vmax=capped.max())
 
 ax.set_xticks(range(n_candidates))
 ax.set_yticks(range(n_oracles))
-ax.set_xticklabels(candidate_names, rotation=35, ha="right", fontsize=8)
-ax.set_yticklabels(oracle_names, fontsize=8)
-ax.set_title("ΔBIC from winner (capped at 5 000)", fontsize=11)
+ax.set_xticklabels(_candidate_short, rotation=20, ha="right", fontsize=12)
+ax.set_yticklabels(_oracle_short, fontsize=12)
+ax.set_title("ΔBIC from winner (capped at 5 000)", fontsize=13, fontweight="bold")
 
-# Annotate cells
+# Annotate cells.
 for i in range(n_oracles):
     for j in range(n_candidates):
         val = delta_bic[i, j]
         if np.isnan(val):
             continue
         if val == 0:
-            ax.text(j, i, "0", ha="center", va="center", fontsize=7,
+            ax.text(j, i, "0", ha="center", va="center", fontsize=11,
                     fontweight="bold", color="darkgreen",
-                    bbox=dict(boxstyle="round,pad=0.15", facecolor="white", alpha=0.85))
+                    bbox=dict(boxstyle="round,pad=0.12", facecolor="white", alpha=0.85))
         elif val < 10_000:
-            ax.text(j, i, f"{val:.0f}", ha="center", va="center", fontsize=6.5, color="black")
+            ax.text(j, i, f"{val:.0f}", ha="center", va="center", fontsize=10, color="black")
         else:
-            ax.text(j, i, f"{val/1000:.0f}k", ha="center", va="center", fontsize=6.5, color="black")
+            ax.text(j, i, f"{val/1000:.0f}k", ha="center", va="center", fontsize=10, color="black")
 
-ax.set_xlabel("Candidate model")
-ax.set_ylabel("Oracle")
-fig.tight_layout()
+ax.set_xlabel("Candidate model", fontsize=12)
+ax.set_ylabel("Oracle", fontsize=12)
+fig.tight_layout(pad=0.4)
 # Resolve relative to the repository root (two levels up from this file).
 _repo_root = Path(__file__).resolve().parent.parent.parent
 assets_dir = _repo_root / "docs" / "assets" / "cmo_model_selection"
 assets_dir.mkdir(parents=True, exist_ok=True)
-fig.savefig(assets_dir / "classification_heatmap.png", dpi=150, bbox_inches="tight")
+fig.savefig(assets_dir / "classification_heatmap.png", dpi=200, bbox_inches="tight")
 fig.savefig(assets_dir / "classification_heatmap.pdf", bbox_inches="tight")
+# SVG scales cleanly to any document width — preferred for HTML.
 plt.show()
 print(f"Heatmap saved to {assets_dir}/classification_heatmap.{'png,pdf'}")
 
