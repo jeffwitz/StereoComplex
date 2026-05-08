@@ -757,3 +757,77 @@ def test_bic_classification_on_stereo_greenough_oracle() -> None:
     assert by_name["central_pinhole"].rms_mm > 1.0, (
         "pinhole should have large RMS on a distorted stereo oracle"
     )
+
+
+def test_zernike_candidate_loses_to_physical_cmo_on_cmo_oracle() -> None:
+    """Compact Zernike (max_order=2) loses BIC to physical CMO on a CMO oracle.
+
+    The Zernike candidate is a generic smooth origin field (18 params per
+    channel, fixed pinhole directions).  On a CMO oracle it fits reasonably
+    well but the physical CMO model (17 shared params) achieves far lower RMS
+    with fewer total degrees of freedom.  BIC correctly selects the physical
+    model over the generic Zernike fallback.
+
+    This validates the Zernike candidate's role as a detector: when it wins
+    BIC, no physical model in the catalogue is adequate.
+    """
+    from stereocomplex.rayfields.zernike_origin_field import ZernikeCandidate, ZernikeOriginFieldConfig
+
+    truth = _truth_model(distortion=True)
+    image_size = (128, 96)
+    pixels = np.array(
+        [[u, v] for v in np.linspace(8.0, 119.0, 10) for u in np.linspace(8.0, 119.0, 10)],
+        dtype=np.float64,
+    )
+    intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=180.0, fy=180.0, cx=63.5, cy=47.5)
+    K = intr.as_K()
+
+    # Compact Zernike: max_order=2 → n_modes=6 → 18 params per channel.
+    zernike_config = ZernikeOriginFieldConfig(image_size=image_size, max_order=2)
+
+    # Physical CMO fit (stereo-shared).
+    cmo_result = fit_cmo_physical_stereo_model_to_rayfields(
+        left_field=truth.channel("left"),
+        right_field=truth.channel("right"),
+        image_size=image_size,
+        initial_parameters=truth.parameter_vector(),
+        pixel_pitch_mm=truth.pixel_pitch_mm,
+        support_pixels_left=pixels,
+        support_pixels_right=pixels,
+        full_grid_weight=0.0,
+        grid_shape=(10, 10),
+    )
+
+    # Zernike candidate fit (per-channel).
+    report = select_physical_model_from_rayfield(
+        target_field=truth.channel("left"),
+        target_right=truth.channel("right"),
+        candidate_specs=[
+            PhysicalModelSpec(
+                "zernike_origin_field",
+                ZernikeCandidate,
+                np.zeros(len(zernike_config.modes()) * 3, dtype=np.float64),
+                bounds=None,  # Zernike coefficients are unbounded
+                model_kwargs={"config": zernike_config},
+            ),
+        ],
+        K=K,
+        image_size=image_size,
+        support_pixels=pixels,
+        support_pixels_right=pixels,
+        full_grid_weight=0.0,
+        max_nfev=2000,
+    )
+
+    zernike = report.candidates[0]
+    assert zernike.success
+    # Stereo aggregation: 18 per channel × 2 = 36 total.
+    assert zernike.n_parameters == 36
+
+    # On a CMO oracle, physical CMO dominates both in RMS and BIC.
+    assert cmo_result.rms_mm < 1e-10
+    assert zernike.rms_mm > cmo_result.rms_mm * 100
+    # The Zernike candidate has 36 total params (18 per channel) vs CMO's 17 shared.
+    assert cmo_result.bic < zernike.bic, (
+        f"CMO BIC {cmo_result.bic:.1f} should beat Zernike BIC {zernike.bic:.1f}"
+    )
