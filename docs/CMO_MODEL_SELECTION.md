@@ -334,6 +334,46 @@ calibration residuals).  All six classifications remain correct, but the
 margins shrink for noise-floor cases (pinhole ΔBIC = +27, Brown = +15).
 ```
 
+### Three noise regimes
+
+Under 20 µm noise, the six oracles reveal three distinct regimes of model
+selection behaviour:
+
+**1. Noise-floor parsimony (pinhole, Brown, Greenough).**
+The oracle's structural signature is shallow: several candidates all reach the
+~0.039 mm noise floor.  BIC then discriminates **purely on parameter count**.
+The pinhole oracle is the most fragile case — the zero-parameter pinhole model
+beats the 10-parameter Brown-Conrady model by only ΔBIC = +27.  At ~50 µm
+noise this case would flip: Brown's extra parameters would buy enough fit
+improvement to overcome the BIC penalty.  The Greenough case (ΔBIC = +80)
+is somewhat more robust because the 26-parameter gap to the polynomial
+surrogate provides a larger buffer.
+
+**2. Structural mismatch (inclined plate, CMO).**
+Structurally wrong models leave residuals well above the noise floor.  The
+correct model wins by margins of 100–200 BIC units — an order of magnitude
+larger than the parsimony cases.  On the CMO oracle, the physical CMO model
+achieves the lowest absolute RMS (0.0378 mm) **and** uses fewer parameters
+(17 shared) than the polynomial surrogate (36) or compact Zernike (72).  This
+is the ideal outcome: the correct structure fits better and is more compact.
+
+**3. Exotic detection (uncatalogued).**
+The ΔBIC margin is essentially unchanged (+2077 noiseless → +2078 noisy)
+because the structural RMS gap (~2.7 mm for the best physical model) dwarfs
+the 20 µm noise.  The compact Zernike candidate wins robustly — measurement
+noise does not accidentally make a physical model look adequate on optics it
+cannot structurally represent.
+
+### Key insight: graceful degradation
+
+The framework degrades **gracefully** as noise increases.  The parsimony
+cases (pinhole vs Brown) flip first, at modest noise levels.  The structural
+cases (CMO, plate) require much higher noise to break.  The exotic detection
+is the last to fail.  This ordering is exactly what one wants from a
+scientific instrument: the most important distinctions — *is this a CMO?*
+and *is this optics in the catalogue?* — are the most robust to measurement
+noise.
+
 See also [Identify My Optics](IDENTIFY_MY_OPTICS.md) for the full candidate
 catalogue and interpretation guide.
 
