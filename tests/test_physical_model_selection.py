@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import numpy as np
 
-import stereocomplex as sc
 from stereocomplex.advanced import fit_physical_model_to_rayfield
-from stereocomplex.physics import select_physical_model_from_rayfield
-from stereocomplex.physics import CentralBrownConradyModel
+from stereocomplex.physics import (
+    CentralBrownConradyModel,
+    CentralPinholeModel,
+    PinholeParallelPlateFitParams,
+    PinholeParallelPlateModel,
+    PhysicalModelSpec,
+    select_physical_model_from_rayfield,
+)
 from stereocomplex.physics.central_models import brown_conrady_distort_normalized, undistort_brown_normalized
+from stereocomplex.physics.parallel_plate_fit import rayfield_two_plane_residuals
 from stereocomplex.synthetic.parallel_plate import ParallelPlateSyntheticParams, parallel_plate_ray_from_pixel
 
 
@@ -26,11 +32,11 @@ def _camera_matrix() -> np.ndarray:
 def test_physical_candidates_share_ray_interface():
     K = _camera_matrix()
     models = [
-        sc.CentralPinholeModel(K),
-        sc.CentralBrownConradyModel(K, k1=0.01, k2=-0.005, p1=0.001, p2=-0.001, k3=0.0),
-        sc.PinholeParallelPlateModel(
+        CentralPinholeModel(K),
+        CentralBrownConradyModel(K, k1=0.01, k2=-0.005, p1=0.001, p2=-0.001, k3=0.0),
+        PinholeParallelPlateModel(
             K,
-            sc.PinholeParallelPlateFitParams(alpha_deg=12.0, beta_deg=5.0, thickness_mm=8.0),
+            PinholeParallelPlateFitParams(alpha_deg=12.0, beta_deg=5.0, thickness_mm=8.0),
         ),
     ]
     u = np.array([10.0, 319.5, 620.0], dtype=np.float64)
@@ -44,11 +50,11 @@ def test_physical_candidates_share_ray_interface():
 
 def test_brown_zero_coefficients_matches_pinhole_by_ray_planes():
     K = _camera_matrix()
-    pinhole = sc.CentralPinholeModel(K)
-    brown = sc.CentralBrownConradyModel(K)
+    pinhole = CentralPinholeModel(K)
+    brown = CentralBrownConradyModel(K)
     pixels = np.array([[0.0, 0.0], [319.5, 239.5], [639.0, 479.0]], dtype=np.float64)
 
-    residuals = sc.rayfield_two_plane_residuals(pinhole, brown, pixels, z_planes=(100.0, 1000.0))
+    residuals = rayfield_two_plane_residuals(pinhole, brown, pixels, z_planes=(100.0, 1000.0))
     assert np.sqrt(np.mean(residuals**2)) < 1e-12
 
 
@@ -57,7 +63,7 @@ def test_ray_space_selection_prefers_plate_over_central_brown_on_plate_oracle():
     truth = ParallelPlateSyntheticParams(eta=1.5, thickness=8.0, alpha_deg=12.0, beta_deg=5.0, d1=80.0)
     oracle = _OracleField(K, truth)
 
-    report = sc.select_physical_model_from_rayfield(
+    report = select_physical_model_from_rayfield(
         target_field=oracle,
         candidate_specs=None,
         K=K,
