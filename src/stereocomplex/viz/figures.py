@@ -27,6 +27,7 @@ def diagram_pinhole_stereo(
     O_left=(-6, 80),
     O_right=(6, 80),
     specimen=(0, 0),
+    pixel_pitch=0.05,
     baseline_label="B",
 ):
     """Classical pinhole stereo pair — (x, z) optical cut.
@@ -38,26 +39,36 @@ def diagram_pinhole_stereo(
     OR = np.array([float(O_right[0]), float(O_right[1])])
     sp = np.array([float(specimen[0]), float(specimen[1])])
     x_span = abs(OL[0]) + 25
+    z_sensor = OL[1] + 25
+    p_mm = float(pixel_pitch)
 
     # ---- planes ----
     plane_style = {"color": "#cccccc", "linewidth": 0.6, "zorder": 0}
-    ax.plot([-x_span, x_span], [sp[1], sp[1]], **plane_style)
-    ax.plot([-x_span, x_span], [OL[1], OL[1]], **plane_style)
-    ax.text(x_span + 2, sp[1], "object plane ($X$)", va="center", ha="left",
-            fontsize=8, color=COLORS["annotation"])
-    ax.text(x_span + 2, OL[1], "camera centres ($O_L, O_R$)", va="center",
-            ha="left", fontsize=8, color=COLORS["annotation"])
+    for z, label in [
+        (sp[1],    "object plane ($X$)"),
+        (OL[1],    "camera centres ($O_L, O_R$)"),
+        (z_sensor, "sensor ($p\\;=\\;\\mathrm{pixel\\,pitch}$)"),
+    ]:
+        ax.plot([-x_span, x_span], [z, z], **plane_style)
+        ax.text(x_span + 2, z, label, va="center", ha="left",
+                fontsize=8, color=COLORS["annotation"])
 
     # ---- optical axis ----
-    ax.plot([0, 0], [sp[1] - 10, OL[1] + 30], color=COLORS["axis"],
+    ax.plot([0, 0], [sp[1] - 10, z_sensor + 10], color=COLORS["axis"],
             linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
 
-    # ---- camera centres ----
+    # ---- camera centres + sensor dots ----
     for O, ch, name in [(OL, "left", "O_L"), (OR, "right", "O_R")]:
         ax.scatter(*O, s=80, color=COLORS[ch], edgecolors="white",
                    linewidth=1.0, zorder=15)
         ox = -14 if ch == "left" else 6
         annotate_math(ax, O, name, offset=(ox, -8), color=COLORS[ch])
+        # Sensor pixel dot above camera centre
+        ax.scatter(O[0], z_sensor, s=25, color=COLORS[ch], zorder=15,
+                   edgecolors="white", linewidth=0.5)
+        # Vertical guide line (dashed)
+        ax.plot([O[0], O[0]], [O[1], z_sensor], color=COLORS[ch],
+                linewidth=0.8, linestyle="--", dashes=(4, 4), zorder=3)
 
     # ---- specimen ----
     ax.scatter(*sp, s=60, color=COLORS["specimen"], edgecolors="black",
@@ -68,6 +79,16 @@ def diagram_pinhole_stereo(
     for O, ch in [(OL, "left"), (OR, "right")]:
         ax.plot([O[0], sp[0]], [O[1], sp[1]], color=COLORS[ch],
                 linewidth=2.2, solid_capstyle="round", zorder=5)
+
+    # ---- pixel pitch detail (left sensor) ----
+    u0, u1 = OL[0], OL[0] + p_mm
+    for uu in [u0, u1]:
+        ax.plot([uu, uu], [z_sensor, z_sensor + 4], color=COLORS["left"],
+                linewidth=0.7, zorder=10)
+    ax.annotate("", xy=(u1, z_sensor + 8), xytext=(u0, z_sensor + 8),
+                arrowprops={"arrowstyle": "<->", "color": "#666666", "lw": 0.8})
+    ax.text((u0 + u1) / 2, z_sensor + 12, "$p$", fontsize=9, ha="center",
+            color="#666666")
 
     # ---- dimensions ----
     draw_dimension(ax, OL, OR, baseline_label, offset=(0, -10))
@@ -227,6 +248,7 @@ def diagram_greenough(
     O_right=(5, 60),
     specimen=(0, 0),
     convergence_angle_deg=20.0,
+    pixel_pitch=0.05,
 ):
     """Greenough stereo microscope — (x, z) optical cut.
 
@@ -239,34 +261,34 @@ def diagram_greenough(
     sp = np.array([float(specimen[0]), float(specimen[1])])
     theta = math.radians(convergence_angle_deg / 2)
     x_span = abs(OL[0]) + 20
+    z_sensor = OL[1] + 25
+    p_mm = float(pixel_pitch)
 
     # ---- planes ----
     plane_style = {"color": "#cccccc", "linewidth": 0.6, "zorder": 0}
-    ax.plot([-x_span, x_span], [sp[1], sp[1]], **plane_style)
-    ax.plot([-x_span, x_span], [OL[1], OL[1]], **plane_style)
-    ax.text(x_span + 2, sp[1], "object plane ($X$)", va="center", ha="left",
-            fontsize=8, color=COLORS["annotation"])
-    ax.text(x_span + 2, OL[1], "objectives ($O_L, O_R$)", va="center",
-            ha="left", fontsize=8, color=COLORS["annotation"])
+    for z, label in [
+        (sp[1],    "object plane ($X$)"),
+        (OL[1],    "objectives ($O_L, O_R$)"),
+        (z_sensor, "sensor ($p\\;=\\;\\mathrm{pixel\\,pitch}$)"),
+    ]:
+        ax.plot([-x_span, x_span], [z, z], **plane_style)
+        ax.text(x_span + 2, z, label, va="center", ha="left",
+                fontsize=8, color=COLORS["annotation"])
 
     # ---- optical axis (vertical, centred) ----
-    ax.plot([0, 0], [sp[1] - 10, OL[1] + 30], color=COLORS["axis"],
+    ax.plot([0, 0], [sp[1] - 10, z_sensor + 10], color=COLORS["axis"],
             linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
 
-    # ---- convergent channel axes (dashed) ----
-    axis_L = np.array([math.sin(theta), math.cos(theta)])
-    axis_R = np.array([-math.sin(theta), math.cos(theta)])
-    for O, axis, ch in [(OL, axis_L, "left"), (OR, axis_R, "right")]:
-        end = O + axis * 85
-        ax.plot([O[0], end[0]], [O[1], end[1]], color=COLORS[ch],
-                linewidth=0.8, linestyle="--", dashes=(5, 5), zorder=1)
-
-    # ---- objective centres ----
+    # ---- objective centres + sensor dots ----
     for O, ch, name in [(OL, "left", "O_L"), (OR, "right", "O_R")]:
         ax.scatter(*O, s=80, color=COLORS[ch], edgecolors="white",
                    linewidth=1.0, zorder=15)
         ox = -14 if ch == "left" else 6
         annotate_math(ax, O, name, offset=(ox, -8), color=COLORS[ch])
+        ax.scatter(O[0], z_sensor, s=25, color=COLORS[ch], zorder=15,
+                   edgecolors="white", linewidth=0.5)
+        ax.plot([O[0], O[0]], [O[1], z_sensor], color=COLORS[ch],
+                linewidth=0.8, linestyle="--", dashes=(4, 4), zorder=3)
 
     # ---- specimen ----
     ax.scatter(*sp, s=60, color=COLORS["specimen"], edgecolors="black",
@@ -278,7 +300,17 @@ def diagram_greenough(
         ax.plot([O[0], sp[0]], [O[1], sp[1]], color=COLORS[ch],
                 linewidth=2.2, solid_capstyle="round", zorder=5)
 
-    # ---- convergence angle annotation ----
+    # ---- pixel pitch detail (left sensor) ----
+    u0, u1 = OL[0], OL[0] + p_mm
+    for uu in [u0, u1]:
+        ax.plot([uu, uu], [z_sensor, z_sensor + 4], color=COLORS["left"],
+                linewidth=0.7, zorder=10)
+    ax.annotate("", xy=(u1, z_sensor + 8), xytext=(u0, z_sensor + 8),
+                arrowprops={"arrowstyle": "<->", "color": "#666666", "lw": 0.8})
+    ax.text((u0 + u1) / 2, z_sensor + 12, "$p$", fontsize=9, ha="center",
+            color="#666666")
+
+    # ---- convergence angle ----
     gamma = 2 * theta
     ax.text(0, OL[1] + 40, f"$\\theta={math.degrees(gamma):.0f}^\\circ$",
             fontsize=9, color=COLORS["annotation"], ha="center")
