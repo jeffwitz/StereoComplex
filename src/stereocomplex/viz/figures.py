@@ -172,33 +172,51 @@ def diagram_cmo_physical(
         ax.plot([S[0], C_pt[0]], [S[1], C_pt[1]], color=COLORS[ch],
                 linewidth=2.2, solid_capstyle="round", zorder=5)
 
-    # ---- one off-axis ray per channel ----
+    # ---- one chief ray + one off-axis ray per channel ----
     delta_u = 100.0
     alpha_x = delta_u * float(pixel_pitch) / float(f_tube)
     for ch, S, _ in channels:
         sign = -1 if ch == "left" else 1
-        # (a) Object side: S → working-plane point (through objective)
+        # --- chief ray (solid, already drawn above: S → C) ---
+        # --- afocal portion of chief ray: VERTICAL from S up to tube lens ---
+        #     The chief ray is at constant x = S[0] throughout the afocal space
+        #     because in an infinity-corrected system, a chief ray (through the
+        #     aperture-stop centre) emerges from the tube lens parallel to the axis.
+        ax.plot([S[0], S[0]], [z_pupil, z_tube], color=COLORS[ch],
+                linewidth=2.2, solid_capstyle="round", zorder=5)
+        # Chief ray at tube lens: dot, then connect to sensor pixel
+        ax.scatter(S[0], z_tube, s=25, color=COLORS[ch], zorder=16,
+                   edgecolors="white", linewidth=1.0)
+        # Tube lens → sensor pixel (chief ray converges to principal point)
+        cx_mm = float(cx_px) * float(pixel_pitch)
+        sensor_cx = sign * cx_mm
+        ax.plot([S[0], sensor_cx], [z_tube, z_sensor], color=COLORS[ch],
+                linewidth=2.2, zorder=5)
+        ax.scatter(sensor_cx, z_sensor, s=30, color=COLORS[ch], zorder=16,
+                   edgecolors="white", linewidth=1.0)
+
+        # --- off-axis ray (dashed on object side, solid on image side) ---
+        # Object side: S → working-plane point
         Px = sign * float(working_distance) * alpha_x
         P_off = np.array([Px, z_object])
         ax.plot([S[0], P_off[0]], [S[1], P_off[1]], color=COLORS[ch],
-                linewidth=1.3, linestyle="--", dashes=(6, 4), zorder=4)
-        # (b) Afocal space: S → tube lens — ray is PARALLEL to optical axis
-        #     (this is the defining property of infinity-corrected optics)
-        x_at_tube = S[0]  # same x: ray stays parallel to axis
-        ax.plot([S[0], x_at_tube], [z_pupil, z_tube], color=COLORS[ch],
-                linewidth=1.3, zorder=4)
-        # Dot at tube lens (deviation point)
-        ax.scatter(x_at_tube, z_tube, s=25, color=COLORS[ch], zorder=16,
-                   edgecolors="white", linewidth=1.0)
-        # (c) Tube lens → sensor (converges to pixel position)
-        sensor_x = sign * (float(cx_px) + delta_u) * float(pixel_pitch)
-        ax.plot([x_at_tube, sensor_x], [z_tube, z_sensor], color=COLORS[ch],
-                linewidth=1.3, zorder=4)
-        ax.scatter(sensor_x, z_sensor, s=25, color=COLORS[ch], zorder=16,
-                   edgecolors="white", linewidth=1.0)
+                linewidth=1.2, linestyle="--", dashes=(6, 4), zorder=4)
+        # Afocal space: off-axis ray is at a DIFFERENT x than the sub-pupil
+        # (it encodes a different pixel).  It is still parallel to the axis.
+        x_off_afocal = S[0] + sign * delta_u * float(pixel_pitch)
+        ax.plot([x_off_afocal, x_off_afocal], [z_pupil, z_tube], color=COLORS[ch],
+                linewidth=1.2, zorder=4)
+        ax.scatter(x_off_afocal, z_tube, s=18, color=COLORS[ch], zorder=16,
+                   edgecolors="white", linewidth=0.5)
+        # Tube lens → sensor (off-axis pixel)
+        sensor_off = sign * (cx_mm + delta_u * float(pixel_pitch))
+        ax.plot([x_off_afocal, sensor_off], [z_tube, z_sensor], color=COLORS[ch],
+                linewidth=1.2, zorder=4)
+        ax.scatter(sensor_off, z_sensor, s=18, color=COLORS[ch], zorder=16,
+                   edgecolors="white", linewidth=0.5)
 
     # ---- afocal region annotation ----
-    ax.text(0, (z_pupil + z_tube) / 2, "afocal (rays $\\parallel$ axis)",
+    ax.text(0, (z_pupil + z_tube) / 2, "afocal (rays ∥ axis)",
             ha="center", va="center", fontsize=8, color=COLORS["annotation"],
             bbox={"boxstyle": "round,pad=0.3", "facecolor": "white",
                   "edgecolor": "#cccccc", "alpha": 0.85})
