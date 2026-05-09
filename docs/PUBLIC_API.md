@@ -4,11 +4,13 @@ StereoComplex is a research prototype, but it exposes a small **public API** mea
 
 ## Stability promise
 
-- Everything under `stereocomplex.api` is considered **public** and should remain backward compatible within the `0.x` series as much as possible.
-- The inclined-plate / `O(u,v)` origin-field functions are **public experimental**:
-  they are exposed for reproducible research examples, but may still evolve
-  before a 1.0 API.
-- Everything else (`stereocomplex.core`, `stereocomplex.eval`, `paper/`, `docs/examples/`) is **internal** and may change without notice.
+- Everything under `stereocomplex.api` (and the canonical sub-namespaces
+  `stereocomplex.advanced`, `stereocomplex.physics`, `stereocomplex.synthetic`,
+  `stereocomplex.rayfields`) is the current public API.
+- **v0.x is explicitly unstable**: renames ship without aliases.  Stability
+  commitments start at the 1.0 release.
+- Everything else (`stereocomplex.core`, `stereocomplex.eval`, `paper/`,
+  `docs/examples/`) is **internal** and may change without notice.
 
 ## Namespace structure (v0.3+)
 
