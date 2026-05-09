@@ -43,5 +43,5 @@ save("pinhole_stereo", diagram_pinhole_stereo,
 save("cmo_physical", diagram_cmo_physical,
      f_obj=80, working_distance=120, b=8, exaggerated=True)
 save("greenough", diagram_greenough,
-     O_left=(-5, 60), O_right=(5, 60), specimen=(0, 0))
+     O_left=(-22, 60), O_right=(22, 60), specimen=(0, 0))
 print(f"Done — assets in {ASSETS}")

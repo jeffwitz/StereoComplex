@@ -244,8 +244,8 @@ def diagram_cmo_physical(
 def diagram_greenough(
     ax,
     *,
-    O_left=(-5, 60),
-    O_right=(5, 60),
+    O_left=(-22, 60),
+    O_right=(22, 60),
     specimen=(0, 0),
     sensor_offset=30,
     pixel_pitch=0.05,
@@ -255,21 +255,30 @@ def diagram_greenough(
     Two independent objectives with convergent optical axes.  Each
     channel has its own tilted sensor and tilted optical axis; there
     is no shared main objective.  This is the defining difference
-    from a standard pinhole stereo pair.
+    from a standard pinhole stereo pair (where axes are parallel).
+
+    Geometric convention (consistent with other diagrams):
+    objectives at z > 0, specimen at z = 0 below them.  Each optical
+    axis points DOWN from objective toward specimen.  Each sensor
+    sits ABOVE its objective along the tilted axis.
     """
     import math
+    from matplotlib.patches import Arc as _Arc
+
     OL = np.array([float(O_left[0]), float(O_left[1])])
     OR = np.array([float(O_right[0]), float(O_right[1])])
     sp = np.array([float(specimen[0]), float(specimen[1])])
-    Z = OL[1] - sp[1]  # working distance
+    Z = OL[1] - sp[1]
+    p_mm = float(pixel_pitch)
 
-    # Tilt angle: each optical axis points from its objective centre toward X
-    theta_L = math.atan2(sp[0] - OL[0], sp[1] - OL[1])  # negative (leftward tilt)
-    theta_R = math.atan2(sp[0] - OR[0], sp[1] - OR[1])  # positive (rightward tilt)
+    # Tilt of each optical axis w.r.t. the downward vertical.
+    #   O_L (negative x): axis tilts toward +x  → theta_L > 0
+    #   O_R (positive x): axis tilts toward -x  → theta_R < 0
+    theta_L = math.atan2(sp[0] - OL[0], OL[1] - sp[1])
+    theta_R = math.atan2(sp[0] - OR[0], OR[1] - sp[1])
 
     x_span = abs(OL[0]) + 30
-    z_sensor = OL[1] + sensor_offset
-    p_mm = float(pixel_pitch)
+    z_top = OL[1] + sensor_offset + 10
 
     # ---- planes ----
     plane_style = {"color": "#cccccc", "linewidth": 0.6, "zorder": 0}
@@ -280,101 +289,91 @@ def diagram_greenough(
     ax.text(x_span + 2, OL[1], "objectives ($O_L, O_R$)", va="center",
             ha="left", fontsize=8, color=COLORS["annotation"])
 
-    # ---- optical axis (vertical reference) ----
-    ax.plot([0, 0], [sp[1] - 10, z_sensor + 15], color=COLORS["axis"],
+    # ---- vertical reference ----
+    ax.plot([0, 0], [sp[1] - 10, z_top + 5], color=COLORS["axis"],
             linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
 
     for ch, O, theta in [("left", OL, theta_L), ("right", OR, theta_R)]:
-        # Unit vectors along the tilted optical axis
-        u_axis = np.array([math.sin(theta), math.cos(theta)])   # toward X
-        u_perp = np.array([-math.cos(theta), math.sin(theta)])  # perpendicular
+        # u_down points toward the specimen, u_up toward the sensor
+        u_down = np.array([math.sin(theta), -math.cos(theta)])
+        u_up = -u_down
+        u_perp = np.array([math.cos(theta), math.sin(theta)])
 
-        # Sensor centre (above objective along tilted axis)
-        sensor_c = O + u_axis * sensor_offset
+        # Sensor centre above the objective
+        sensor_c = O + u_up * sensor_offset
 
-        # Draw tilted sensor as a short segment perpendicular to the axis
-        sensor_hw = 13  # half-width
-        s0 = sensor_c + u_perp * sensor_hw
-        s1 = sensor_c - u_perp * sensor_hw
+        # Tilted sensor segment
+        hw = 14
+        s0 = sensor_c + u_perp * hw
+        s1 = sensor_c - u_perp * hw
         ax.plot([s0[0], s1[0]], [s0[1], s1[1]], color=COLORS[ch],
-                linewidth=2.5, solid_capstyle="round", zorder=10)
+                linewidth=3.0, solid_capstyle="round", zorder=10)
 
-        # Tilted optical axis (dashed) from sensor through objective toward X
-        axis_end = O + u_axis * (Z + sensor_offset + 10)
-        ax.plot([sensor_c[0], axis_end[0]], [sensor_c[1], axis_end[1]],
-                color=COLORS[ch], linewidth=0.8, linestyle="--",
-                dashes=(5, 5), zorder=1)
+        # Dashed optical axis: from above sensor down past specimen
+        top = O + u_up * (sensor_offset + 8)
+        bot = O + u_down * (Z + 4)
+        ax.plot([top[0], bot[0]], [top[1], bot[1]], color=COLORS[ch],
+                linewidth=0.8, linestyle="--", dashes=(5, 5), zorder=1)
 
-        # Objective centre dot
+        # Objective dot + label
         name = "O_L" if ch == "left" else "O_R"
         ax.scatter(*O, s=80, color=COLORS[ch], edgecolors="white",
                    linewidth=1.0, zorder=15)
         ox = -16 if ch == "left" else 6
-        annotate_math(ax, O, name, offset=(ox, -8), color=COLORS[ch])
+        annotate_math(ax, O, name, offset=(ox, -3), color=COLORS[ch])
 
-        # Sensor centre dot
+        # Sensor dot
         ax.scatter(*sensor_c, s=20, color=COLORS[ch], zorder=15,
                    edgecolors="white", linewidth=0.5)
 
-        # Chief ray (solid): sensor → objective → X
-        ray_end = O + u_axis * (Z + sensor_offset + 5)
-        ax.plot([sensor_c[0], ray_end[0]], [sensor_c[1], ray_end[1]],
+        # Chief ray: sensor → objective → specimen (two straight segments)
+        ax.plot([sensor_c[0], O[0]], [sensor_c[1], O[1]],
+                color=COLORS[ch], linewidth=2.2, solid_capstyle="round", zorder=5)
+        ax.plot([O[0], sp[0]], [O[1], sp[1]],
                 color=COLORS[ch], linewidth=2.2, solid_capstyle="round", zorder=5)
 
-        # Theta arc: between the tilted axis and the vertical, at the objective
-        arc_r = 16
-        from matplotlib.patches import Arc as _Arc
-        # Vertical is angle 0 (pointing up), tilted axis is at angle theta
-        ax.add_patch(_Arc(O, arc_r * 2, arc_r * 2, angle=90,
-                          theta1=-math.degrees(theta),
-                          theta2=0 if ch == "left" else 0,
-                          color=COLORS[ch], linewidth=1.0, zorder=12))
-        # Actually easier: draw the arc manually with correct angles
-        # For left channel: theta is negative, arc from vertical to tilted
-        # For right channel: theta is positive, arc from vertical to tilted
-
-    # Theta arcs (drawn separately for clarity)
-    for ch, O, theta in [("left", OL, theta_L), ("right", OR, theta_R)]:
-        arc_r = 14
-        # vertical direction = (0, 1), tilted direction = (sin(theta), cos(theta))
-        # Draw as two small line segments forming an arc symbol
-        t_vals = np.linspace(0, theta, 10)
-        arc_x = O[0] + arc_r * np.sin(t_vals)
-        arc_y = O[1] + arc_r * np.cos(t_vals)
-        ax.plot(arc_x, arc_y, color=COLORS[ch], linewidth=1.0, zorder=12)
-        # Label at midpoint of arc
-        mid = theta / 2
-        lbl_x = O[0] + (arc_r + 8) * math.sin(mid)
-        lbl_y = O[1] + (arc_r + 8) * math.cos(mid)
-        deg = abs(math.degrees(theta))
-        ax.text(lbl_x, lbl_y, f"$\\theta={deg:.0f}^\\circ$", fontsize=9,
-                color=COLORS[ch], ha="center", va="center")
+        # Theta arc between the downward vertical and the tilted axis
+        t_deg = math.degrees(theta)
+        arc_d = 16
+        if ch == "left":
+            t1, t2 = -90.0, -90.0 + t_deg
+        else:
+            t1, t2 = -90.0 + t_deg, -90.0
+        ax.add_patch(_Arc((O[0], O[1]), arc_d, arc_d, theta1=t1, theta2=t2,
+                          edgecolor=COLORS[ch], linewidth=1.0, zorder=12))
+        # Label outside the arc
+        mid = theta / 2.0
+        r = arc_d / 2 + 10
+        lbl = O + np.array([math.sin(mid), -math.cos(mid)]) * r
+        ha = "right" if ch == "left" else "left"
+        ax.text(lbl[0] + (-3 if ch == "left" else 3), lbl[1],
+                f"$\\theta={abs(t_deg):.0f}^\\circ$",
+                fontsize=9, color=COLORS[ch], ha=ha, va="center")
 
     # ---- specimen ----
     ax.scatter(*sp, s=60, color=COLORS["specimen"], edgecolors="black",
                linewidth=0.5, zorder=15)
     annotate_math(ax, sp, "X", offset=(4, -8))
 
-    # ---- pixel pitch detail (left sensor) ----
-    # Along the tilted sensor
-    u_axis_L = np.array([math.sin(theta_L), math.cos(theta_L)])
-    u_perp_L = np.array([-math.cos(theta_L), math.sin(theta_L)])
-    sensor_c_L = OL + u_axis_L * sensor_offset
-    u0 = sensor_c_L
-    u1 = sensor_c_L + u_perp_L * p_mm  # one pixel along the sensor
+    # ---- pixel pitch on left sensor ----
+    u_down_L = np.array([math.sin(theta_L), -math.cos(theta_L)])
+    u_up_L = -u_down_L
+    u_perp_L = np.array([math.cos(theta_L), math.sin(theta_L)])
+    sc_L = OL + u_up_L * sensor_offset
+    u0 = sc_L
+    u1 = sc_L + u_perp_L * p_mm
     for uu in [u0, u1]:
-        ax.plot([uu[0], uu[0] + u_axis_L[0] * 4],
-                [uu[1], uu[1] + u_axis_L[1] * 4],
+        ax.plot([uu[0], uu[0] + u_up_L[0] * 4],
+                [uu[1], uu[1] + u_up_L[1] * 4],
                 color=COLORS["left"], linewidth=0.7, zorder=10)
-    mid_pp = (u0 + u1) / 2 + u_axis_L * 8
-    ax.annotate("", xy=u1 + u_axis_L * 6, xytext=u0 + u_axis_L * 6,
+    ax.annotate("", xy=u1 + u_up_L * 6, xytext=u0 + u_up_L * 6,
                 arrowprops={"arrowstyle": "<->", "color": "#666666", "lw": 0.8})
-    ax.text(mid_pp[0] + u_perp_L[0] * 2, mid_pp[1] + u_perp_L[1] * 2,
-            "$p$", fontsize=9, ha="center", color="#666666")
+    mid_pp = (u0 + u1) / 2 + u_up_L * 10
+    ax.text(mid_pp[0], mid_pp[1], "$p$", fontsize=9, ha="center", color="#666666")
 
     # ---- dimensions ----
-    draw_dimension(ax, OL, OR, "B", offset=(0, -10))
-    draw_dimension(ax, sp, (0, OL[1]), "Z", offset=(30, 0))
+    draw_dimension(ax, OL, OR, "B", offset=(0, -8))
+    draw_dimension(ax, sp, (0, OL[1]), "Z", offset=(35, 0))
 
     ax.set_aspect("equal")
     ax.axis("off")
