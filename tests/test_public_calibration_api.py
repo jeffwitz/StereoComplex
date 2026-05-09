@@ -7,10 +7,11 @@ import numpy as np
 
 
 def test_fit_stereo_central_rayfield_from_dataset_smoke(tmp_path: Path) -> None:
+    from stereocomplex.advanced import fit_stereo_central_rayfield_from_dataset
     import stereocomplex as sc
 
     scene_root = Path("dataset/v0_png")
-    result = sc.fit_stereo_central_rayfield_from_dataset(
+    result = fit_stereo_central_rayfield_from_dataset(
         dataset_root=scene_root,
         split="train",
         scene="scene_0000",
