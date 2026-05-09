@@ -101,7 +101,16 @@ def diagram_cmo_physical(
     cx_px=320.0,
     exaggerated=True,
 ):
-    """Physical CMO shared-rig — (x, z) optical cut, both channels."""
+    """Physical CMO shared-rig — (x, z) optical cut, both channels.
+
+    Correct optical order (top → bottom):
+      sensor → tube lens → afocal space → sub-pupils (aperture stop)
+      → main objective → working distance → object plane (C).
+
+    In the afocal region rays are parallel to the optical axis; this is
+    the defining property of an infinity-corrected CMO and justifies
+    modelling each channel as a virtual pinhole at its sub-pupil.
+    """
     import math
 
     if model is not None:
@@ -115,36 +124,34 @@ def diagram_cmo_physical(
     if exaggerated:
         b = max(float(b), float(f_obj) * 0.35)
 
-    # ---- geometry (z=0 at specimen, +z upward) ----
-    z_specimen = 0.0
-    z_obj = float(working_distance)
-    z_pupil = z_obj - float(f_obj)
-    z_tube = z_pupil + 50
-    z_sensor = z_tube + max(float(f_tube) * 0.5, 40)
+    # ---- geometry (z = 0 at object plane, +z upward) ----
+    z_object = 0.0
+    z_objective = float(working_distance)               # main objective
+    z_pupil = z_objective - float(f_obj)                # sub-pupils = back focal plane
+    z_tube = z_objective + 55                           # tube lens (afocal gap above objective)
+    z_sensor = z_tube + max(float(f_tube) * 0.5, 40)   # sensor
     b2 = float(b) / 2
-    # Horizontal span for plane lines
-    x_left = -55
-    x_right = 55
+    x_span = 65
 
-    # ---- optical planes (drawn as simple horizontal lines) ----
+    # ---- optical planes ----
     plane_style = {"color": "#cccccc", "linewidth": 0.6, "zorder": 0}
     planes = [
-        (z_specimen, "working plane ($Z_w$)"),
-        (z_obj, "objective ($f_\\mathrm{obj}$)"),
-        (z_pupil, "sub-pupils ($S_L, S_R$)"),
-        (z_tube, "tube lens ($f_\\mathrm{tube}$)"),
-        (z_sensor, "sensor ($c_x, p$)"),
+        (z_object,   "object plane ($C$)"),
+        (z_objective, "main objective ($f_\\mathrm{obj}$)"),
+        (z_pupil,    "sub-pupils / aperture stop ($S_L, S_R$)"),
+        (z_tube,     "tube lens ($f_\\mathrm{tube}$)"),
+        (z_sensor,   "sensor ($p\\;=\\;\\mathrm{pixel\\,pitch}$)"),
     ]
     for z, label in planes:
-        ax.plot([x_left, x_right], [z, z], **plane_style)
-        ax.text(x_right + 2, z, label, va="center", ha="left", fontsize=8,
+        ax.plot([-x_span, x_span], [z, z], **plane_style)
+        ax.text(x_span + 2, z, label, va="center", ha="left", fontsize=8,
                 color=COLORS["annotation"])
 
     # ---- optical axis ----
-    ax.plot([0, 0], [z_specimen - 5, z_sensor + 15], color=COLORS["axis"],
+    ax.plot([0, 0], [z_object - 10, z_sensor + 15], color=COLORS["axis"],
             linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
 
-    # ---- sub-pupils ----
+    # ---- sub-pupils (at back focal plane of objective) ----
     SL = np.array([-b2, z_pupil])
     SR = np.array([+b2, z_pupil])
     channels = [("left", SL, "S_L"), ("right", SR, "S_R")]
@@ -154,13 +161,13 @@ def diagram_cmo_physical(
         ox = -16 if ch == "left" else 6
         annotate_math(ax, S, name, offset=(ox, -10), color=COLORS[ch])
 
-    # ---- convergence point C ----
-    C_pt = np.array([0, z_specimen])
+    # ---- convergence point C (object plane) ----
+    C_pt = np.array([0, z_object])
     ax.scatter(*C_pt, s=60, color=COLORS["specimen"], edgecolors="black",
                linewidth=0.5, zorder=15)
     annotate_math(ax, C_pt, "C", offset=(4, -8))
 
-    # ---- chief rays: S → C ----
+    # ---- chief rays: S → C (converging through objective) ----
     for ch, S, _ in channels:
         ax.plot([S[0], C_pt[0]], [S[1], C_pt[1]], color=COLORS[ch],
                 linewidth=2.2, solid_capstyle="round", zorder=5)
@@ -170,31 +177,35 @@ def diagram_cmo_physical(
     alpha_x = delta_u * float(pixel_pitch) / float(f_tube)
     for ch, S, _ in channels:
         sign = -1 if ch == "left" else 1
-        # Object side: S → working plane
+        # (a) Object side: S → working-plane point (through objective)
         Px = sign * float(working_distance) * alpha_x
-        P_off = np.array([Px, z_specimen])
+        P_off = np.array([Px, z_object])
         ax.plot([S[0], P_off[0]], [S[1], P_off[1]], color=COLORS[ch],
                 linewidth=1.3, linestyle="--", dashes=(6, 4), zorder=4)
-        # Image side: S → tube lens (collimated space)
-        ray_angle = math.atan2(P_off[0] - S[0], P_off[1] - S[1])
-        x_at_tube = S[0] + math.tan(ray_angle) * (z_tube - z_pupil)
+        # (b) Afocal space: S → tube lens — ray is PARALLEL to optical axis
+        #     (this is the defining property of infinity-corrected optics)
+        x_at_tube = S[0]  # same x: ray stays parallel to axis
         ax.plot([S[0], x_at_tube], [z_pupil, z_tube], color=COLORS[ch],
                 linewidth=1.3, zorder=4)
-        # Deviation point at tube lens
+        # Dot at tube lens (deviation point)
         ax.scatter(x_at_tube, z_tube, s=25, color=COLORS[ch], zorder=16,
                    edgecolors="white", linewidth=1.0)
-        # Tube lens → sensor
+        # (c) Tube lens → sensor (converges to pixel position)
         sensor_x = sign * (float(cx_px) + delta_u) * float(pixel_pitch)
         ax.plot([x_at_tube, sensor_x], [z_tube, z_sensor], color=COLORS[ch],
                 linewidth=1.3, zorder=4)
         ax.scatter(sensor_x, z_sensor, s=25, color=COLORS[ch], zorder=16,
                    edgecolors="white", linewidth=1.0)
 
-    # ---- sensor detail: c_x + pixel pitch (left sensor) ----
+    # ---- afocal region annotation ----
+    ax.text(0, (z_pupil + z_tube) / 2, "afocal (rays $\\parallel$ axis)",
+            ha="center", va="center", fontsize=8, color=COLORS["annotation"],
+            bbox={"boxstyle": "round,pad=0.3", "facecolor": "white",
+                  "edgecolor": "#cccccc", "alpha": 0.85})
+
+    # ---- sensor detail: pixel pitch p (left sensor) ----
     cx_mm = float(cx_px) * float(pixel_pitch)
     p_mm = float(pixel_pitch)
-    ax.scatter(-cx_mm, z_sensor, s=35, color="black", zorder=20)
-    annotate_math(ax, (-cx_mm, z_sensor), "c_x", offset=(-10, 6))
     u0, u1 = -cx_mm, -cx_mm + p_mm
     for uu in [u0, u1]:
         ax.plot([uu, uu], [z_sensor, z_sensor + 5], color=COLORS["left"],
@@ -204,32 +215,23 @@ def diagram_cmo_physical(
     ax.text((u0 + u1) / 2, z_sensor + 13, "$p$", fontsize=9, ha="center",
             color="#666666")
 
-    # ---- alpha_x arc (left sub-pupil) ----
-    arc_r = 14
-    theta_chief = math.atan2(C_pt[0] - SL[0], C_pt[1] - SL[1])
-    theta_off = math.atan2(-alpha_x * float(working_distance) - SL[0],
-                            z_specimen - SL[1])
+    # ---- stereo angle gamma (right side) ----
+    gamma = math.atan2(b2, float(working_distance))
+    gamma_deg = math.degrees(gamma)
+    # Small arc at C showing gamma
+    arc_r = 18
     from matplotlib.patches import Arc as _Arc
-    ax.add_patch(_Arc(SL, arc_r * 2, arc_r * 2, angle=0,
-                      theta1=math.degrees(theta_chief),
-                      theta2=math.degrees(theta_off),
-                      color=COLORS["left"], linewidth=1.3, zorder=12))
-    mid_t = (theta_chief + theta_off) / 2
-    ax.text(SL[0] + math.sin(mid_t) * (arc_r + 14),
-            SL[1] + math.cos(mid_t) * (arc_r + 8),
-            "$\\alpha_x$", fontsize=9, color=COLORS["left"], ha="center")
-
-    # ---- gamma angle (right side) ----
-    gamma = math.atan2(b2, float(f_obj))
-    ax.text(SR[0] + 20, SR[1] - 12,
-            f"$\\gamma={math.degrees(gamma):.1f}^\\circ$",
-            fontsize=9, color=COLORS["right"])
+    ax.add_patch(_Arc(C_pt, arc_r * 2, arc_r * 2, angle=0,
+                      theta1=-gamma_deg, theta2=gamma_deg,
+                      color="#666666", linewidth=1.0, zorder=12))
+    ax.text(C_pt[0] + arc_r + 10, C_pt[1] - 2,
+            f"$\\gamma={gamma_deg:.1f}^\\circ$", fontsize=9, color="#666666")
 
     # ---- dimensions ----
-    draw_dimension(ax, C_pt, (0, z_obj), "Z_w", offset=(60, 0))
-    draw_dimension(ax, (0, z_obj), (0, z_pupil), "f_\\mathrm{obj}", offset=(-60, 0))
+    draw_dimension(ax, C_pt, (0, z_objective), "Z_w", offset=(75, 0))
+    draw_dimension(ax, (0, z_objective), (0, z_pupil), "f_\\mathrm{obj}", offset=(-75, 0))
     draw_dimension(ax, SL, SR, "b", offset=(0, 16))
-    draw_dimension(ax, (0, z_tube), (0, z_sensor), "f_\\mathrm{tube}", offset=(-60, 0))
+    draw_dimension(ax, (0, z_tube), (0, z_sensor), "f_\\mathrm{tube}", offset=(-75, 0))
 
     ax.set_aspect("equal")
     ax.axis("off")
