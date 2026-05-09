@@ -32,6 +32,10 @@ from dataclasses import dataclass
 from pathlib import Path
 import numpy as np
 
+from stereocomplex.benchmarks.model_selection_oracles import (
+    StereoOracle,
+    build_all_oracles,
+)
 from stereocomplex.physics import (
     CentralPinholeModel,
     CentralBrownConradyModel,
@@ -40,21 +44,11 @@ from stereocomplex.physics import (
     select_physical_model_from_rayfield,
     NonCentralPolynomialChannelModel,
 )
-from stereocomplex.physics.cmo import (
-    CMOChannelSpec,
-    CMOIntrinsics,
-    PolynomialRayAberration,
-    BrownConrady,
-)
-from stereocomplex.physics.cmo_physical import (
-    CMOPhysicalStereoModel,
-    fit_cmo_physical_stereo_model_to_rayfields,
-)
+from stereocomplex.physics.cmo import CMOIntrinsics
+from stereocomplex.physics.cmo_physical import CMOPhysicalStereoModel
 from stereocomplex.rayfields.zernike_origin_field import (
     ZernikeCandidate,
     ZernikeOriginFieldConfig,
-    ZernikeRayField,
-    ZernikeRayFieldCoefficients,
 )
 
 IMAGE_SIZE = (160, 120)
@@ -90,83 +84,12 @@ class NoisyRayField:
 # %% [markdown]
 # ## Oracle builders
 #
-# Each builder returns a `(left_field, right_field, K, description)` tuple.
-# The fields are rayfield-like objects with `.ray(u, v)` methods.
-
-# %%
-def build_pinhole_oracle():
-    """Symmetric central pinhole stereo pair."""
-    K = np.array([[200.0, 0.0, 79.5], [0.0, 200.0, 59.5], [0.0, 0.0, 1.0]], dtype=np.float64)
-    left = CentralPinholeModel(K=K)
-    right = CentralPinholeModel(K=K)
-    return left, right, K, "central pinhole"
-
-
-def build_brown_oracle():
-    """Central Brown-Conrady stereo pair with moderate distortion."""
-    K = np.array([[200.0, 0.0, 79.5], [0.0, 200.0, 59.5], [0.0, 0.0, 1.0]], dtype=np.float64)
-    left = CentralBrownConradyModel(K=K, k1=-0.08, k2=0.03, p1=1.0e-3, p2=-1.0e-3, k3=0.0)
-    right = CentralBrownConradyModel(K=K, k1=-0.06, k2=0.02, p1=-5.0e-4, p2=8.0e-4, k3=0.0)
-    return left, right, K, "central Brown-Conrady"
-
-
-def build_plate_oracle():
-    """Pinhole + inclined parallel plate with 2 mm thickness."""
-    from stereocomplex.physics.parallel_plate_fit import PinholeParallelPlateFitParams
-    K = np.array([[200.0, 0.0, 79.5], [0.0, 200.0, 59.5], [0.0, 0.0, 1.0]], dtype=np.float64)
-    left_params = PinholeParallelPlateFitParams(
-        alpha_deg=5.0, beta_deg=-3.0, thickness_mm=2.0, eta=1.5, d1_mm=80.0,
-    )
-    right_params = PinholeParallelPlateFitParams(
-        alpha_deg=-5.0, beta_deg=2.0, thickness_mm=2.0, eta=1.5, d1_mm=80.0,
-    )
-    return (PinholeParallelPlateModel(K=K, params=left_params),
-            PinholeParallelPlateModel(K=K, params=right_params),
-            K, "inclined parallel plate")
-
-
-def build_cmo_oracle():
-    """Physical CMO shared-rig stereo microscope."""
-    truth = CMOPhysicalStereoModel(
-        f_obj_mm=80.0, working_distance_mm=120.0, b_mm=8.0,
-        f_tube_mm=50.0, cx_principal_px=79.5, cy_principal_px=59.5,
-        pixel_pitch_mm=0.05, image_size=IMAGE_SIZE,
-        distortion_left=(-0.04, 0.01, 2.0e-4, -1.0e-4, 0.0),
-        distortion_right=(-0.035, 0.008, -2.0e-4, 1.0e-4, 0.0),
-    )
-    K = np.array([[1000.0, 0.0, 79.5], [0.0, 1000.0, 59.5], [0.0, 0.0, 1.0]], dtype=np.float64)
-    return truth.channel("left"), truth.channel("right"), K, "CMO shared-rig"
-
-
-def build_greenough_oracle():
-    """Greenough stereo: two independent central Brown-Conrady channels."""
-    K_L = np.array([[210.0, 0.0, 79.5], [0.0, 210.0, 59.5], [0.0, 0.0, 1.0]], dtype=np.float64)
-    K_R = np.array([[195.0, 0.0, 79.0], [0.0, 195.0, 60.0], [0.0, 0.0, 1.0]], dtype=np.float64)
-    left = CentralBrownConradyModel(K=K_L, k1=-0.08, k2=0.03, p1=1.0e-3, p2=-1.0e-3, k3=0.0)
-    right = CentralBrownConradyModel(K=K_R, k1=-0.06, k2=0.02, p1=-5.0e-4, p2=8.0e-4, k3=0.0)
-    return left, right, K_L, K_R, "Greenough (Brown-Conrady ×2)"
-
-
-def build_exotic_oracle():
-    """Low-amplitude high-order Zernike — smooth but outside physical families.
-
-    The coefficients are small enough that a compact Zernike (max_order=2)
-    achieves sub-mm RMS, but the high-order modes (3 and 4) create structure
-    that pinhole, Brown-Conrady, plate, CMO, and Greenough cannot capture.
-    """
-    rng = np.random.default_rng(SEED)
-    K = np.array([[200.0, 0.0, 79.5], [0.0, 200.0, 59.5], [0.0, 0.0, 1.0]], dtype=np.float64)
-    config = ZernikeOriginFieldConfig(image_size=IMAGE_SIZE, max_order=3)
-    n_modes = len(config.modes())
-    left = ZernikeRayField(K=K, config=config, coefficients=ZernikeRayFieldCoefficients(
-        origin_coeffs=rng.normal(scale=0.08, size=(n_modes, 3)),
-        direction_coeffs=rng.normal(scale=0.003, size=(n_modes, 3)),
-    ))
-    right = ZernikeRayField(K=K, config=config, coefficients=ZernikeRayFieldCoefficients(
-        origin_coeffs=rng.normal(scale=0.08, size=(n_modes, 3)),
-        direction_coeffs=rng.normal(scale=0.003, size=(n_modes, 3)),
-    ))
-    return left, right, K, "uncatalogued (Zernike nmax=3)"
+# Oracles are imported from :mod:`stereocomplex.benchmarks.model_selection_oracles`.
+# Each builder returns a :class:`StereoOracle` dataclass with ``.left_field``,
+# ``.right_field``, ``.K_left``, ``.K_right``, and metadata.
+#
+# The six standard oracles cover the full optical catalogue plus one
+# uncatalogued exotic case.
 
 
 # %% [markdown]
@@ -299,34 +222,24 @@ def evaluate_case(name: str, left_field, right_field, K, expected: str,
 # %%
 print("Model selection on all six oracles.\n")
 
-cases = [
-    ("central pinhole", build_pinhole_oracle, "central_pinhole", None),
-    ("central Brown-Conrady", build_brown_oracle, "central_brown_conrady", None),
-    ("inclined parallel plate", build_plate_oracle, "pinhole_parallel_plate", None),
-    ("CMO shared-rig", build_cmo_oracle, "cmo_physical_shared", 0.05),
-    ("Greenough (Brown ×2)", build_greenough_oracle, "central_brown_conrady", None),
-    ("uncatalogued Zernike", build_exotic_oracle, "zernike_compact", None),
-]
+oracles = build_all_oracles(IMAGE_SIZE, SEED)
 
 import time as _time
 
 def run_matrix(noise_std: float = 0.0):
-    """Run all six cases, optionally adding origin noise.  Returns (saved, all_correct)."""
+    """Run all six cases, optionally adding origin noise."""
     rng = np.random.default_rng(NOISE_SEED)
     saved = []
-    for name, builder, expected, pitch in cases:
-        out = builder()
-        left, right = out[0], out[1]
-        K = out[2]
-        K_r = out[3] if isinstance(out[3], np.ndarray) else None
-        _desc = out[-1]
+    for o in oracles:
+        left, right, K, K_r = o.left_field, o.right_field, o.K_left, o.K_right
         if noise_std > 0:
             left = NoisyRayField(left, noise_std, rng)
             right = NoisyRayField(right, noise_std, rng)
         t0 = _time.time()
-        r = evaluate_case(name, left, right, K, expected, pixel_pitch_mm=pitch, K_right=K_r)
+        r = evaluate_case(o.name, left, right, K, o.expected_winner,
+                          pixel_pitch_mm=o.pixel_pitch_mm, K_right=K_r)
         elapsed = _time.time() - t0
-        saved.append((name, r, _desc, elapsed))
+        saved.append((o.name, r, o.name, elapsed))
     return saved
 
 
