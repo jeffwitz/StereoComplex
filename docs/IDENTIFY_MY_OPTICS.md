@@ -81,7 +81,7 @@ worth the extra parameters.
 | `central_pinhole` has high RMS | The system is probably not well described by a pure central stereo model. |
 | `central_brown_conrady` improves RMS but remains high | Central distortion helps, but the model still cannot explain non-central origins. |
 | `pinhole_parallel_plate` has low RMS and wins BIC | The measured rayfield looks like a stereo system viewed through inclined plates. |
-| `cmo_polynomial_channel` has low RMS and wins BIC | The measured rayfield is best explained by an independent-channel non-central surrogate; no shared CMO geometry is detected. |
+| `polynomial_surrogate_channel` has low RMS and wins BIC | The measured rayfield is best explained by an independent-channel non-central surrogate; no shared CMO geometry is detected. |
 | `cmo_physical_stereo` has low RMS and wins BIC | The measured stereo rayfields are compatible with a shared-objective CMO geometry. |
 | `zernike_compact` has low RMS and wins BIC | No physical model in the catalogue explains the rayfield. The optics fall outside the known families (pinhole, Brown-Conrady, inclined plate, CMO, Greenough). A compact generic Zernike model is the best available description. |
 | Support RMS is low but full-grid RMS is high | The model explains observed board pixels but extrapolates poorly outside the calibration support. |
@@ -431,8 +431,8 @@ still comes from `T_{R\leftarrow L}` and is not replaced by the plate thickness.
 
 ### Candidate 3: non-central polynomial surrogate channels
 
-The CMO stereo model uses effective sub-pupil origins rather than a conventional
-large camera-center baseline. The fixed and fitted quantities are:
+The non-central polynomial surrogate uses effective per-channel origins rather
+than a shared physical CMO rig. The fixed and fitted quantities are:
 
 ```{math}
 \mathcal M_{\mathrm{CMO}}=
@@ -730,7 +730,7 @@ for row in report.rows():
 
 | Key | Description |
 | --- | --- |
-| `model` | Model name, for example `central_pinhole`, `central_brown_conrady`, `pinhole_parallel_plate`, or `cmo_polynomial_channel`. |
+| `model` | Model name, for example `central_pinhole`, `central_brown_conrady`, `pinhole_parallel_plate`, or `polynomial_surrogate_channel`. |
 | `parameters` | Number of free parameters fitted. |
 | `rms_mm` | Primary unweighted RMS distance on the observed support, in mm. If no separate support is supplied, this is the full-grid RMS. |
 | `support_rms_mm` | RMS on the observed pixel support only. |
