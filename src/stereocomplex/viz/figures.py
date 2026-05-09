@@ -172,48 +172,25 @@ def diagram_cmo_physical(
         ax.plot([S[0], C_pt[0]], [S[1], C_pt[1]], color=COLORS[ch],
                 linewidth=2.2, solid_capstyle="round", zorder=5)
 
-    # ---- one chief ray + one off-axis ray per channel ----
-    delta_u = 100.0
-    alpha_x = delta_u * float(pixel_pitch) / float(f_tube)
+    # ---- one chief ray per channel (object → afocal → sensor) ----
+    # Only the chief ray is shown: it goes through the centre of the
+    # sub-pupil, is parallel to the optical axis in the afocal space,
+    # and converges at the principal pixel of its sensor.
+    cx_mm = float(cx_px) * float(pixel_pitch)
     for ch, S, _ in channels:
         sign = -1 if ch == "left" else 1
-        # --- chief ray (solid, already drawn above: S → C) ---
-        # --- afocal portion of chief ray: VERTICAL from S up to tube lens ---
-        #     The chief ray is at constant x = S[0] throughout the afocal space
-        #     because in an infinity-corrected system, a chief ray (through the
-        #     aperture-stop centre) emerges from the tube lens parallel to the axis.
+        sensor_cx = sign * cx_mm
+        # 1) Object side (S → C) already drawn above.
+        # 2) Afocal portion: VERTICAL from sub-pupil up to tube lens.
         ax.plot([S[0], S[0]], [z_pupil, z_tube], color=COLORS[ch],
                 linewidth=2.2, solid_capstyle="round", zorder=5)
-        # Chief ray at tube lens: dot, then connect to sensor pixel
         ax.scatter(S[0], z_tube, s=25, color=COLORS[ch], zorder=16,
                    edgecolors="white", linewidth=1.0)
-        # Tube lens → sensor pixel (chief ray converges to principal point)
-        cx_mm = float(cx_px) * float(pixel_pitch)
-        sensor_cx = sign * cx_mm
+        # 3) Tube lens → sensor principal pixel.
         ax.plot([S[0], sensor_cx], [z_tube, z_sensor], color=COLORS[ch],
                 linewidth=2.2, zorder=5)
         ax.scatter(sensor_cx, z_sensor, s=30, color=COLORS[ch], zorder=16,
                    edgecolors="white", linewidth=1.0)
-
-        # --- off-axis ray (dashed on object side, solid on image side) ---
-        # Object side: S → working-plane point
-        Px = sign * float(working_distance) * alpha_x
-        P_off = np.array([Px, z_object])
-        ax.plot([S[0], P_off[0]], [S[1], P_off[1]], color=COLORS[ch],
-                linewidth=1.2, linestyle="--", dashes=(6, 4), zorder=4)
-        # Afocal space: off-axis ray is at a DIFFERENT x than the sub-pupil
-        # (it encodes a different pixel).  It is still parallel to the axis.
-        x_off_afocal = S[0] + sign * delta_u * float(pixel_pitch)
-        ax.plot([x_off_afocal, x_off_afocal], [z_pupil, z_tube], color=COLORS[ch],
-                linewidth=1.2, zorder=4)
-        ax.scatter(x_off_afocal, z_tube, s=18, color=COLORS[ch], zorder=16,
-                   edgecolors="white", linewidth=0.5)
-        # Tube lens → sensor (off-axis pixel)
-        sensor_off = sign * (cx_mm + delta_u * float(pixel_pitch))
-        ax.plot([x_off_afocal, sensor_off], [z_tube, z_sensor], color=COLORS[ch],
-                linewidth=1.2, zorder=4)
-        ax.scatter(sensor_off, z_sensor, s=18, color=COLORS[ch], zorder=16,
-                   edgecolors="white", linewidth=0.5)
 
     # ---- afocal region annotation ----
     ax.text(0, (z_pupil + z_tube) / 2, "afocal (rays ∥ axis)",
