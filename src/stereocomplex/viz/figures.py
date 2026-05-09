@@ -101,12 +101,7 @@ def diagram_cmo_physical(
     cx_px=320.0,
     exaggerated=True,
 ):
-    """Physical CMO shared-rig — (x, z) optical cut, both channels.
-
-    Uses horizontal lines for each optical plane (not lens symbols).
-    Every labelled element corresponds to a parameter of
-    ``CMOPhysicalStereoModel``.
-    """
+    """Physical CMO shared-rig — (x, z) optical cut, both channels."""
     import math
 
     if model is not None:
@@ -120,124 +115,121 @@ def diagram_cmo_physical(
     if exaggerated:
         b = max(float(b), float(f_obj) * 0.35)
 
-    # ---- vertical layout (z = 0 at specimen, +z upward) ----
+    # ---- geometry (z=0 at specimen, +z upward) ----
     z_specimen = 0.0
     z_obj = float(working_distance)
     z_pupil = z_obj - float(f_obj)
     z_tube = z_pupil + 50
     z_sensor = z_tube + max(float(f_tube) * 0.5, 40)
     b2 = float(b) / 2
+    # Horizontal span for plane lines
+    x_left = -55
+    x_right = 55
 
-    # ---- optical planes (horizontal lines, labelled on the right) ----
-    plane_style = {"color": "#aaaaaa", "linewidth": 0.6, "linestyle": "-"}
-    for z, name, x_label in [
-        (z_specimen, "working\\;plane\\;(Z_w)", 0),
-        (z_obj, "objective\\;(f_\\mathrm{obj})", 0),
-        (z_pupil, "sub\\!-\\!pupils\\;(S_L,S_R)", 0),
-        (z_tube, "tube\\;lens\\;(f_\\mathrm{tube})", 0),
-        (z_sensor, "sensor\\;(c_x,p)", 0),
-    ]:
-        ax.axhline(y=z, xmin=0.05, xmax=0.95, **plane_style)
-        ax.text(0.96, z, f"${name}$", transform=ax.get_xaxis_transform(),
-                va="center", ha="left", fontsize=8, color=COLORS["annotation"])
+    # ---- optical planes (drawn as simple horizontal lines) ----
+    plane_style = {"color": "#cccccc", "linewidth": 0.6, "zorder": 0}
+    planes = [
+        (z_specimen, "working plane ($Z_w$)"),
+        (z_obj, "objective ($f_\\mathrm{obj}$)"),
+        (z_pupil, "sub-pupils ($S_L, S_R$)"),
+        (z_tube, "tube lens ($f_\\mathrm{tube}$)"),
+        (z_sensor, "sensor ($c_x, p$)"),
+    ]
+    for z, label in planes:
+        ax.plot([x_left, x_right], [z, z], **plane_style)
+        ax.text(x_right + 2, z, label, va="center", ha="left", fontsize=8,
+                color=COLORS["annotation"])
 
-    # ---- optical axis (vertical dashed) ----
-    ax.axvline(x=0, ymin=0.02, ymax=0.98, color=COLORS["axis"],
-               linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
+    # ---- optical axis ----
+    ax.plot([0, 0], [z_specimen - 5, z_sensor + 15], color=COLORS["axis"],
+            linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
 
     # ---- sub-pupils ----
     SL = np.array([-b2, z_pupil])
     SR = np.array([+b2, z_pupil])
     channels = [("left", SL, "S_L"), ("right", SR, "S_R")]
     for ch, S, name in channels:
-        ax.scatter(*S, s=70, color=COLORS[ch], edgecolors="white",
-                   linewidth=1.0, zorder=15)
+        ax.scatter(*S, s=80, color=COLORS[ch], edgecolors="white",
+                   linewidth=1.5, zorder=15)
         ox = -16 if ch == "left" else 6
-        annotate_math(ax, S, name, offset=(ox, -8), color=COLORS[ch])
+        annotate_math(ax, S, name, offset=(ox, -10), color=COLORS[ch])
 
     # ---- convergence point C ----
     C_pt = np.array([0, z_specimen])
-    ax.scatter(*C_pt, s=55, color=COLORS["specimen"], edgecolors="black",
+    ax.scatter(*C_pt, s=60, color=COLORS["specimen"], edgecolors="black",
                linewidth=0.5, zorder=15)
-    annotate_math(ax, C_pt, "C", offset=(3, -6))
+    annotate_math(ax, C_pt, "C", offset=(4, -8))
 
     # ---- chief rays: S → C ----
     for ch, S, _ in channels:
         ax.plot([S[0], C_pt[0]], [S[1], C_pt[1]], color=COLORS[ch],
-                linewidth=2.2, solid_capstyle="round")
+                linewidth=2.2, solid_capstyle="round", zorder=5)
 
     # ---- one off-axis ray per channel ----
-    delta_u = 100.0  # pixels
+    delta_u = 100.0
     alpha_x = delta_u * float(pixel_pitch) / float(f_tube)
     for ch, S, _ in channels:
         sign = -1 if ch == "left" else 1
-        # Object side: S → working-plane point
+        # Object side: S → working plane
         Px = sign * float(working_distance) * alpha_x
         P_off = np.array([Px, z_specimen])
         ax.plot([S[0], P_off[0]], [S[1], P_off[1]], color=COLORS[ch],
-                linewidth=1.2, linestyle="--", dashes=(5, 3))
-        # Image side: S → tube lens → sensor
+                linewidth=1.3, linestyle="--", dashes=(6, 4), zorder=4)
+        # Image side: S → tube lens (collimated space)
         ray_angle = math.atan2(P_off[0] - S[0], P_off[1] - S[1])
         x_at_tube = S[0] + math.tan(ray_angle) * (z_tube - z_pupil)
-        # Mark the deviation point at the tube lens
-        ax.scatter(x_at_tube, z_tube, s=20, color=COLORS[ch], zorder=15,
-                   edgecolors="white", linewidth=0.5)
         ax.plot([S[0], x_at_tube], [z_pupil, z_tube], color=COLORS[ch],
-                linewidth=1.2, solid_capstyle="round")
-        # Tube lens → sensor pixel
+                linewidth=1.3, zorder=4)
+        # Deviation point at tube lens
+        ax.scatter(x_at_tube, z_tube, s=25, color=COLORS[ch], zorder=16,
+                   edgecolors="white", linewidth=1.0)
+        # Tube lens → sensor
         sensor_x = sign * (float(cx_px) + delta_u) * float(pixel_pitch)
         ax.plot([x_at_tube, sensor_x], [z_tube, z_sensor], color=COLORS[ch],
-                linewidth=1.2, solid_capstyle="round")
-        # Dot at sensor
-        ax.scatter(sensor_x, z_sensor, s=20, color=COLORS[ch], zorder=15,
-                   edgecolors="white", linewidth=0.5)
+                linewidth=1.3, zorder=4)
+        ax.scatter(sensor_x, z_sensor, s=25, color=COLORS[ch], zorder=16,
+                   edgecolors="white", linewidth=1.0)
 
-    # ---- sensor detail: principal point + pixel pitch (left) ----
+    # ---- sensor detail: c_x + pixel pitch (left sensor) ----
     cx_mm = float(cx_px) * float(pixel_pitch)
     p_mm = float(pixel_pitch)
-    # Principal point dot
-    ax.scatter(-cx_mm, z_sensor, s=30, color="black", zorder=20)
-    ax.annotate("$c_x$", xy=(-cx_mm, z_sensor), xytext=(-cx_mm - 12, z_sensor + 6),
-                fontsize=9, color="black", ha="center")
-    # Two adjacent pixels
-    u0 = -cx_mm
-    u1 = -cx_mm + p_mm
+    ax.scatter(-cx_mm, z_sensor, s=35, color="black", zorder=20)
+    annotate_math(ax, (-cx_mm, z_sensor), "c_x", offset=(-10, 6))
+    u0, u1 = -cx_mm, -cx_mm + p_mm
     for uu in [u0, u1]:
-        ax.plot([uu, uu], [z_sensor, z_sensor + 5], color=COLORS["left"], linewidth=0.8)
-    # p dimension
+        ax.plot([uu, uu], [z_sensor, z_sensor + 5], color=COLORS["left"],
+                linewidth=0.8, zorder=10)
     ax.annotate("", xy=(u1, z_sensor + 9), xytext=(u0, z_sensor + 9),
-                arrowprops={"arrowstyle": "<->", "color": "#666666", "linewidth": 0.8})
+                arrowprops={"arrowstyle": "<->", "color": "#666666", "lw": 0.8})
     ax.text((u0 + u1) / 2, z_sensor + 13, "$p$", fontsize=9, ha="center",
             color="#666666")
 
-    # ---- alpha_x arc at left sub-pupil ----
-    arc_r = 12
+    # ---- alpha_x arc (left sub-pupil) ----
+    arc_r = 14
     theta_chief = math.atan2(C_pt[0] - SL[0], C_pt[1] - SL[1])
     theta_off = math.atan2(-alpha_x * float(working_distance) - SL[0],
                             z_specimen - SL[1])
     from matplotlib.patches import Arc as _Arc
-    arc = _Arc(SL, arc_r * 2, arc_r * 2, angle=0,
-               theta1=math.degrees(theta_chief),
-               theta2=math.degrees(theta_off),
-               color=COLORS["left"], linewidth=1.2)
-    ax.add_patch(arc)
+    ax.add_patch(_Arc(SL, arc_r * 2, arc_r * 2, angle=0,
+                      theta1=math.degrees(theta_chief),
+                      theta2=math.degrees(theta_off),
+                      color=COLORS["left"], linewidth=1.3, zorder=12))
     mid_t = (theta_chief + theta_off) / 2
-    ax.text(SL[0] + math.sin(mid_t) * (arc_r + 12),
-            SL[1] + math.cos(mid_t) * (arc_r + 6),
+    ax.text(SL[0] + math.sin(mid_t) * (arc_r + 14),
+            SL[1] + math.cos(mid_t) * (arc_r + 8),
             "$\\alpha_x$", fontsize=9, color=COLORS["left"], ha="center")
 
-    # ---- gamma angle at right sub-pupil ----
+    # ---- gamma angle (right side) ----
     gamma = math.atan2(b2, float(f_obj))
-    gamma_deg = math.degrees(gamma)
-    ax.text(SR[0] + 18, SR[1] - 12,
-            f"$\\gamma={gamma_deg:.1f}^\\circ$", fontsize=9, color=COLORS["right"])
+    ax.text(SR[0] + 20, SR[1] - 12,
+            f"$\\gamma={math.degrees(gamma):.1f}^\\circ$",
+            fontsize=9, color=COLORS["right"])
 
     # ---- dimensions ----
-    draw_dimension(ax, C_pt, (0, z_obj), "Z_w", offset=(50, 0))
-    draw_dimension(ax, (0, z_obj), (0, z_pupil), "f_\\mathrm{obj}", offset=(-50, 0))
-    draw_dimension(ax, SL, SR, "b", offset=(0, 14))
-    draw_dimension(ax, (0, z_tube), (0, z_sensor), "f_\\mathrm{tube}",
-                   offset=(-50, 0))
+    draw_dimension(ax, C_pt, (0, z_obj), "Z_w", offset=(60, 0))
+    draw_dimension(ax, (0, z_obj), (0, z_pupil), "f_\\mathrm{obj}", offset=(-60, 0))
+    draw_dimension(ax, SL, SR, "b", offset=(0, 16))
+    draw_dimension(ax, (0, z_tube), (0, z_sensor), "f_\\mathrm{tube}", offset=(-60, 0))
 
     ax.set_aspect("equal")
     ax.axis("off")
