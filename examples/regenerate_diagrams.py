@@ -39,10 +39,9 @@ def save(name, builder, **kwargs):
 
 print("Regenerating optical diagrams …")
 save("pinhole_stereo", diagram_pinhole_stereo,
-     O_left=(-6, 0), O_right=(6, 0), specimen=(0, 80),
-     sensor_offset=35)
+     O_left=(-6, 80), O_right=(6, 80), specimen=(0, 0))
 save("cmo_physical", diagram_cmo_physical,
      f_obj=80, working_distance=120, b=8, exaggerated=True)
 save("greenough", diagram_greenough,
-     O_left=(-5, 0), O_right=(5, 0), specimen=(0, 60))
+     O_left=(-5, 60), O_right=(5, 60), specimen=(0, 0))
 print(f"Done — assets in {ASSETS}")

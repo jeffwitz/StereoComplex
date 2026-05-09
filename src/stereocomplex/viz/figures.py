@@ -24,66 +24,54 @@ from stereocomplex.viz.style import COLORS, LINEWIDTHS
 def diagram_pinhole_stereo(
     ax,
     *,
-    O_left=(0, 150),
-    O_right=(0, 150),
+    O_left=(-6, 80),
+    O_right=(6, 80),
     specimen=(0, 0),
-    sensor_offset=50,
-    sensor_width=40,
-    sensor_height=8,
     baseline_label="B",
 ):
-    """Classical pinhole stereo pair in the (x, z) optical cut.
+    """Classical pinhole stereo pair — (x, z) optical cut.
 
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes
-    O_left, O_right : (2,) array_like
-        Camera centres in (x, z) mm.  Will be plotted as filled circles.
-    specimen : (2,) array_like  — object point (x, z) mm.
-    sensor_offset : float  — z-offset from camera centre to sensor.
-    sensor_width, sensor_height : float  — sensor dimensions in mm.
-    baseline_label : str  — LaTeX label for the baseline dimension.
+    Two camera centres O_L, O_R separated by baseline B, viewing a
+    specimen point X.  One chief ray per camera.
     """
-    OL = np.asarray(O_left, dtype=float).reshape(2)
-    OR = np.asarray(O_right, dtype=float).reshape(2)
-    sp = np.asarray(specimen, dtype=float).reshape(2)
+    OL = np.array([float(O_left[0]), float(O_left[1])])
+    OR = np.array([float(O_right[0]), float(O_right[1])])
+    sp = np.array([float(specimen[0]), float(specimen[1])])
+    x_span = abs(OL[0]) + 25
 
-    # Optical centres
-    ax.scatter(*OL, s=80, color=COLORS["left"], edgecolors="white",
-               linewidth=0.8, zorder=15)
-    ax.scatter(*OR, s=80, color=COLORS["right"], edgecolors="white",
-               linewidth=0.8, zorder=15)
-    annotate_math(ax, OL, "O_L", offset=(-14, 0))
-    annotate_math(ax, OR, "O_R", offset=(6, 0))
+    # ---- planes ----
+    plane_style = {"color": "#cccccc", "linewidth": 0.6, "zorder": 0}
+    ax.plot([-x_span, x_span], [sp[1], sp[1]], **plane_style)
+    ax.plot([-x_span, x_span], [OL[1], OL[1]], **plane_style)
+    ax.text(x_span + 2, sp[1], "object plane ($X$)", va="center", ha="left",
+            fontsize=8, color=COLORS["annotation"])
+    ax.text(x_span + 2, OL[1], "camera centres ($O_L, O_R$)", va="center",
+            ha="left", fontsize=8, color=COLORS["annotation"])
 
-    # Sensors (placed at camera centre + sensor_offset in z)
-    draw_sensor(ax, OL + (0, sensor_offset), sensor_width, sensor_height,
-                channel="left", label="L")
-    draw_sensor(ax, OR + (0, sensor_offset), sensor_width, sensor_height,
-                channel="right", label="R")
+    # ---- optical axis ----
+    ax.plot([0, 0], [sp[1] - 10, OL[1] + 30], color=COLORS["axis"],
+            linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
 
-    # Specimen
-    draw_specimen(ax, sp, label="X")
+    # ---- camera centres ----
+    for O, ch, name in [(OL, "left", "O_L"), (OR, "right", "O_R")]:
+        ax.scatter(*O, s=80, color=COLORS[ch], edgecolors="white",
+                   linewidth=1.0, zorder=15)
+        ox = -14 if ch == "left" else 6
+        annotate_math(ax, O, name, offset=(ox, -8), color=COLORS[ch])
 
-    # Central rays from camera centres to specimen
-    dL = sp - OL
-    dR = sp - OR
-    draw_ray(ax, OL, dL, length=np.linalg.norm(dL), channel="left",
-             width=1.6)
-    draw_ray(ax, OR, dR, length=np.linalg.norm(dR), channel="right",
-             width=1.6)
+    # ---- specimen ----
+    ax.scatter(*sp, s=60, color=COLORS["specimen"], edgecolors="black",
+               linewidth=0.5, zorder=15)
+    annotate_math(ax, sp, "X", offset=(4, -8))
 
-    # Optical axis
-    mid_z = (OL[1] + sp[1]) / 2
-    draw_optical_axis(ax, (0, sp[1] - 10), (0, OL[1] + sensor_offset + 15))
-
-    # Baseline
-    draw_dimension(ax, OL, OR, baseline_label, offset=(0, -8))
-
-    # Sensor → camera centre guide lines (dashed)
+    # ---- chief rays ----
     for O, ch in [(OL, "left"), (OR, "right")]:
-        draw_ray(ax, O, (0, 1), length=sensor_offset, channel=ch, style="dashed",
-                 width=0.8)
+        ax.plot([O[0], sp[0]], [O[1], sp[1]], color=COLORS[ch],
+                linewidth=2.2, solid_capstyle="round", zorder=5)
+
+    # ---- dimensions ----
+    draw_dimension(ax, OL, OR, baseline_label, offset=(0, -10))
+    draw_dimension(ax, sp, (0, OL[1]), "Z", offset=(25, 0))
 
     ax.set_aspect("equal")
     ax.axis("off")
@@ -235,54 +223,69 @@ def diagram_cmo_physical(
 def diagram_greenough(
     ax,
     *,
-    O_left=(-15, 0),
-    O_right=(15, 0),
-    specimen=(0, 40),
+    O_left=(-5, 60),
+    O_right=(5, 60),
+    specimen=(0, 0),
     convergence_angle_deg=20.0,
-    sensor_offset=30,
 ):
-    """Greenough stereo microscope: two independent convergent objectives.
+    """Greenough stereo microscope — (x, z) optical cut.
 
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes
-    O_left, O_right : (2,) array_like  — objective centres (x, z) mm.
-    specimen : (2,) array_like  — object point (x, z) mm.
-    convergence_angle_deg : float  — inward angle of each optical axis.
-    sensor_offset : float  — z-offset from objective centre to sensor.
+    Two independent objectives with convergent optical axes.  Each channel
+    has its own lens and sensor; there is no shared main objective.
     """
     import math
-    OL = np.asarray(O_left, dtype=float).reshape(2)
-    OR = np.asarray(O_right, dtype=float).reshape(2)
-    sp = np.asarray(specimen, dtype=float).reshape(2)
-
-    # Camera centres (objectives)
-    ax.scatter(*OL, s=70, color=COLORS["left"], edgecolors="white",
-               zorder=15)
-    ax.scatter(*OR, s=70, color=COLORS["right"], edgecolors="white",
-               zorder=15)
-    annotate_math(ax, OL, "O_L", offset=(-14, -2))
-    annotate_math(ax, OR, "O_R", offset=(6, -2))
-
-    # Optical axes (convergent)
+    OL = np.array([float(O_left[0]), float(O_left[1])])
+    OR = np.array([float(O_right[0]), float(O_right[1])])
+    sp = np.array([float(specimen[0]), float(specimen[1])])
     theta = math.radians(convergence_angle_deg / 2)
+    x_span = abs(OL[0]) + 20
+
+    # ---- planes ----
+    plane_style = {"color": "#cccccc", "linewidth": 0.6, "zorder": 0}
+    ax.plot([-x_span, x_span], [sp[1], sp[1]], **plane_style)
+    ax.plot([-x_span, x_span], [OL[1], OL[1]], **plane_style)
+    ax.text(x_span + 2, sp[1], "object plane ($X$)", va="center", ha="left",
+            fontsize=8, color=COLORS["annotation"])
+    ax.text(x_span + 2, OL[1], "objectives ($O_L, O_R$)", va="center",
+            ha="left", fontsize=8, color=COLORS["annotation"])
+
+    # ---- optical axis (vertical, centred) ----
+    ax.plot([0, 0], [sp[1] - 10, OL[1] + 30], color=COLORS["axis"],
+            linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
+
+    # ---- convergent channel axes (dashed) ----
     axis_L = np.array([math.sin(theta), math.cos(theta)])
     axis_R = np.array([-math.sin(theta), math.cos(theta)])
     for O, axis, ch in [(OL, axis_L, "left"), (OR, axis_R, "right")]:
-        draw_ray(ax, O, axis, length=80, channel=ch, style="dashed", width=0.8)
+        end = O + axis * 85
+        ax.plot([O[0], end[0]], [O[1], end[1]], color=COLORS[ch],
+                linewidth=0.8, linestyle="--", dashes=(5, 5), zorder=1)
 
-    # Sensors
-    draw_sensor(ax, OL + axis_L * sensor_offset, 30, 6, channel="left")
-    draw_sensor(ax, OR + axis_R * sensor_offset, 30, 6, channel="right")
+    # ---- objective centres ----
+    for O, ch, name in [(OL, "left", "O_L"), (OR, "right", "O_R")]:
+        ax.scatter(*O, s=80, color=COLORS[ch], edgecolors="white",
+                   linewidth=1.0, zorder=15)
+        ox = -14 if ch == "left" else 6
+        annotate_math(ax, O, name, offset=(ox, -8), color=COLORS[ch])
 
-    # Specimen
-    draw_specimen(ax, sp, label="X")
+    # ---- specimen ----
+    ax.scatter(*sp, s=60, color=COLORS["specimen"], edgecolors="black",
+               linewidth=0.5, zorder=15)
+    annotate_math(ax, sp, "X", offset=(4, -8))
 
-    # Chief rays from objectives to specimen
-    dL = sp - OL
-    dR = sp - OR
-    draw_ray(ax, OL, dL, length=np.linalg.norm(dL), channel="left", width=1.6)
-    draw_ray(ax, OR, dR, length=np.linalg.norm(dR), channel="right", width=1.6)
+    # ---- chief rays: objective → specimen ----
+    for O, ch in [(OL, "left"), (OR, "right")]:
+        ax.plot([O[0], sp[0]], [O[1], sp[1]], color=COLORS[ch],
+                linewidth=2.2, solid_capstyle="round", zorder=5)
+
+    # ---- convergence angle annotation ----
+    gamma = 2 * theta
+    ax.text(0, OL[1] + 40, f"$\\theta={math.degrees(gamma):.0f}^\\circ$",
+            fontsize=9, color=COLORS["annotation"], ha="center")
+
+    # ---- dimensions ----
+    draw_dimension(ax, OL, OR, "B", offset=(0, -10))
+    draw_dimension(ax, sp, (0, OL[1]), "Z", offset=(25, 0))
 
     ax.set_aspect("equal")
     ax.axis("off")
