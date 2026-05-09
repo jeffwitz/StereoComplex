@@ -222,7 +222,7 @@ def build_candidates(K: np.ndarray, image_size: tuple[int, int],
     ]
 
     specs.append(PhysicalModelSpec(
-        "cmo_polynomial_channel", NonCentralPolynomialChannelModel,
+        "polynomial_surrogate_channel", NonCentralPolynomialChannelModel,
         poly_initial, bounds=poly_bounds,
         model_kwargs={"cmo_image_size": image_size, "aberration_terms": terms},
     ))
@@ -368,7 +368,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 
 _preferred = ["central_pinhole", "central_brown_conrady", "pinhole_parallel_plate",
-              "cmo_physical_shared", "cmo_polynomial_channel", "zernike_compact"]
+              "cmo_physical_shared", "polynomial_surrogate_channel", "zernike_compact"]
 _oracle_short = ["pinhole", "Brown", "plate", "CMO", "Greenough", "exotic"]
 _candidate_short = ["pinhole", "Brown", "plate", "CMO phys", "poly surr", "Zernike"]
 

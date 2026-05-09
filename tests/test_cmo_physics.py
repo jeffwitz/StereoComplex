@@ -270,7 +270,7 @@ def test_cmo_polynomial_channel_model_recovers_cmo_rayfield() -> None:
         target_field=target,
         candidate_specs=[
             PhysicalModelSpec(
-                name="cmo_polynomial_channel",
+                name="polynomial_surrogate_channel",
                 model_class=NonCentralPolynomialChannelModel,
                 initial_parameters=initial,
                 bounds=bounds,
@@ -331,7 +331,7 @@ def test_model_selection_prefers_cmo_on_cmo_oracle() -> None:
                 model_kwargs={"eta": 1.5, "d1_mm": 80.0},
             ),
             PhysicalModelSpec(
-                "cmo_polynomial_channel",
+                "polynomial_surrogate_channel",
                 NonCentralPolynomialChannelModel,
                 cmo_initial,
                 bounds=cmo_bounds,
@@ -345,9 +345,9 @@ def test_model_selection_prefers_cmo_on_cmo_oracle() -> None:
     )
 
     by_name = {candidate.model_name: candidate for candidate in report.candidates}
-    assert report.best_by_bic == "cmo_polynomial_channel"
-    assert by_name["cmo_polynomial_channel"].rms_mm < by_name["central_brown_conrady"].rms_mm
-    assert by_name["cmo_polynomial_channel"].rms_mm < by_name["pinhole_parallel_plate"].rms_mm
+    assert report.best_by_bic == "polynomial_surrogate_channel"
+    assert by_name["polynomial_surrogate_channel"].rms_mm < by_name["central_brown_conrady"].rms_mm
+    assert by_name["polynomial_surrogate_channel"].rms_mm < by_name["pinhole_parallel_plate"].rms_mm
 
 
 def test_cmo_stereo_ba_recovers_effective_channels_and_poses_from_rayfields() -> None:

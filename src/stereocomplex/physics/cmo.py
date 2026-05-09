@@ -410,8 +410,6 @@ class NonCentralPolynomialChannelModel:
     smooth rayfields — including CMO-like ones — without encoding any
     specific shared-objective constraint.
 
-    The legacy name ``CMOPolynomialChannelModel`` is kept as a backward-
-    compatible alias.
     """
 
     K: Array
@@ -427,7 +425,7 @@ class NonCentralPolynomialChannelModel:
     aberration_coeff_x: tuple[float, ...] = ()
     aberration_coeff_y: tuple[float, ...] = ()
     aberration_terms: tuple[str, ...] = ("x", "y", "x2", "xy", "y2")
-    name: str = "cmo_polynomial_channel"
+    name: str = "polynomial_surrogate_channel"
 
     @property
     def n_parameters(self) -> int:
@@ -1252,7 +1250,3 @@ __all__ = [
     "sample_cmo_target_texture",
     "save_gray",
 ]
-
-# Backward-compatible aliases (deprecated, will be removed in v1.0).
-CMOPolynomialChannelModel = NonCentralPolynomialChannelModel
-cmo_polynomial_channel_parameters_from_spec = polynomial_channel_parameters_from_spec

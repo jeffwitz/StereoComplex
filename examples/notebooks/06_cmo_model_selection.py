@@ -361,7 +361,7 @@ def cmo_candidate_specs(image_size: tuple[int, int]) -> list[PhysicalModelSpec]:
             model_kwargs={"eta": 1.5, "d1_mm": 80.0},
         ),
         PhysicalModelSpec(
-            "cmo_polynomial_channel",
+            "polynomial_surrogate_channel",
             NonCentralPolynomialChannelModel,
             cmo_initial,
             bounds=cmo_bounds,
@@ -434,8 +434,8 @@ def selected_candidate(report, name: str):
     return by_name[name]
 
 
-poly_left = selected_candidate(left_report, "cmo_polynomial_channel")
-poly_right = selected_candidate(right_report, "cmo_polynomial_channel")
+poly_left = selected_candidate(left_report, "polynomial_surrogate_channel")
+poly_right = selected_candidate(right_report, "polynomial_surrogate_channel")
 poly_combined_rms = float(np.sqrt(0.5 * (poly_left.rms_mm**2 + poly_right.rms_mm**2)))
 poly_combined_bic = float(poly_left.bic + poly_right.bic)
 poly_combined_aic = float(poly_left.aic + poly_right.aic)

@@ -60,3 +60,8 @@ target-version = "py310"
 markers = [
   "integration: end-to-end process tests (may require opencv-contrib-python)",
 ]
+filterwarnings = [
+  "error::DeprecationWarning",
+  "ignore::DeprecationWarning:numpy.*",
+  "ignore::DeprecationWarning:scipy.*",
+]

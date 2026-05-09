@@ -646,7 +646,7 @@ def test_bic_selects_brown_conrady_on_brown_conrady_oracle() -> None:
                 ),
             ),
             PhysicalModelSpec(
-                "cmo_polynomial_channel",
+                "polynomial_surrogate_channel",
                 NonCentralPolynomialChannelModel,
                 poly_initial,
                 bounds=poly_bounds,
@@ -664,13 +664,13 @@ def test_bic_selects_brown_conrady_on_brown_conrady_oracle() -> None:
 
     # Both models recover the oracle to machine precision because it is noiseless.
     assert by_name["central_brown_conrady"].rms_mm < 1e-4
-    assert by_name["cmo_polynomial_channel"].rms_mm < 1e-4
+    assert by_name["polynomial_surrogate_channel"].rms_mm < 1e-4
 
     # Parametric parsimony: Brown-Conrady is the correct model at 5 params;
     # the polynomial surrogate achieves the same fit at 18 params and would
     # lose on BIC for any realistic noise floor (log(RSS/N) is degenerate here).
     assert by_name["central_brown_conrady"].n_parameters == 5
-    assert by_name["cmo_polynomial_channel"].n_parameters == 18
+    assert by_name["polynomial_surrogate_channel"].n_parameters == 18
     assert by_name["central_pinhole"].rms_mm > 1.0, (
         "pinhole should have large RMS on a distorted oracle"
     )
@@ -726,7 +726,7 @@ def test_bic_classification_on_stereo_greenough_oracle() -> None:
                 ),
             ),
             PhysicalModelSpec(
-                "cmo_polynomial_channel",
+                "polynomial_surrogate_channel",
                 NonCentralPolynomialChannelModel,
                 poly_initial,
                 bounds=poly_bounds,
@@ -747,13 +747,13 @@ def test_bic_classification_on_stereo_greenough_oracle() -> None:
     # Brown-Conrady is the correct structural model for Greenough channels.
     # Both it and the polynomial achieve near-perfect fit on a noiseless oracle.
     assert by_name["central_brown_conrady"].rms_mm < 1e-4
-    assert by_name["cmo_polynomial_channel"].rms_mm < 1e-4
+    assert by_name["polynomial_surrogate_channel"].rms_mm < 1e-4
 
     # Parametric parsimony: Brown-Conrady uses 10 params (5 per channel),
     # polynomial uses 36 (18 per channel).  On any realistic noise floor BIC
     # would select Brown-Conrady.
     assert by_name["central_brown_conrady"].n_parameters == 10  # 5 per channel
-    assert by_name["cmo_polynomial_channel"].n_parameters == 36  # 18 per channel
+    assert by_name["polynomial_surrogate_channel"].n_parameters == 36  # 18 per channel
     assert by_name["central_pinhole"].rms_mm > 1.0, (
         "pinhole should have large RMS on a distorted stereo oracle"
     )
@@ -992,7 +992,7 @@ def test_zernike_candidate_wins_on_uncatalogued_rayfield() -> None:
                 ),
             ),
             PhysicalModelSpec(
-                "cmo_polynomial_channel",
+                "polynomial_surrogate_channel",
                 NonCentralPolynomialChannelModel,
                 poly_initial,
                 bounds=poly_bounds,
@@ -1025,7 +1025,7 @@ def test_zernike_candidate_wins_on_uncatalogued_rayfield() -> None:
             f"got {by_name[name].rms_mm:.6f} mm"
         )
     # The compact Zernike achieves the best balance of fit quality and parsimony.
-    assert by_name["zernike_compact"].bic < by_name["cmo_polynomial_channel"].bic, (
+    assert by_name["zernike_compact"].bic < by_name["polynomial_surrogate_channel"].bic, (
         "compact Zernike (36 params) should beat polynomial surrogate (36 params) "
         "on a Zernike-like oracle"
     )

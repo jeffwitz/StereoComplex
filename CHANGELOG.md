@@ -1,5 +1,84 @@
 # Changelog
 
+## [0.5.0] - 2026-05-09
+
+### Added
+
+- **`ZernikeCandidate`**: compact Zernike rayfield candidate (origin + direction,
+  default `max_order=2`, ~36 params per stereo pair) as a model-selection fallback.
+  Wins BIC when no physical model in the catalogue explains the rayfield, signalling
+  that the optics fall outside the known families.
+- **Classification matrix** (`examples/notebooks/07_model_selection_matrix.py`):
+  validates BIC-based architecture identification on six oracles (pinhole, Brown,
+  inclined plate, CMO, Greenough, uncatalogued Zernike), both noiseless and under
+  20 µm Gaussian origin noise.
+- **ΔBIC heatmaps** in `docs/assets/cmo_model_selection/` (noiseless and noisy
+  variants), referenced as figures in `docs/CMO_MODEL_SELECTION.md`.
+- **Three-regime noise analysis**: parsimony, structural mismatch, and exotic
+  detection regimes identified under measurement noise.
+- **Real microscope mapping table** in `docs/CMO_PHYSICAL_MODEL.md` covering Leica,
+  Evident/Olympus, Zeiss, and Nikon CMO models, plus Greenough and other architectures.
+
+### Changed
+
+- **BREAKING**: `CMOPolynomialChannelModel` renamed to
+  `NonCentralPolynomialChannelModel`. The old name no longer exists.
+- **BREAKING**: `cmo_polynomial_channel_parameters_from_spec` renamed to
+  `polynomial_channel_parameters_from_spec`. The old name no longer exists.
+- `origin_z_mm` added as a free parameter in the polynomial surrogate
+  (was hardcoded to 0), increasing parameter count from 17 to 18 per channel.
+- `ZernikeOriginFieldConfig` now has a `modes()` convenience method.
+- Candidate model name string changed from `"cmo_polynomial_channel"` to
+  `"polynomial_surrogate_channel"` in reports and specs.
+
+### Removed
+
+- Top-level `__getattr__` deprecation shim: symbols outside Tier 1+2 must now be
+  imported from their canonical sub-namespace (`stereocomplex.advanced`,
+  `stereocomplex.physics`, `stereocomplex.synthetic`, `stereocomplex.rayfields`).
+- All backward-compatibility aliases from v0.4 → v0.5 transitions.
+- `test_public_api.py` now only checks Tier 1+2 symbols.
+
+### Policy
+
+- v0.x is explicitly unstable. Renames ship as real renames, no aliases.
+  Stability commitments start at the 1.0 release.
+- `filterwarnings = ["error::DeprecationWarning"]` is active in `pyproject.toml`
+  (with numpy/scipy exceptions). Any new deprecation fails CI.
+
+## [0.4.0] - 2026-05-06
+
+### Added
+
+- **`CMOPhysicalStereoModel`**: geometrically constrained CMO microscope model
+  (17 shared parameters in default mode, 19 in aligned-sensor mode). Implements
+  `PhysicalRayFieldModel` with `is_stereo_shared = True`.
+- **`fit_cmo_physical_stereo_model_to_rayfields`**: joint stereo fit dispatching
+  to a shared-rig optimization.
+- **`is_stereo_shared`** attribute on `PhysicalRayFieldModel`; `select_physical_model_from_rayfield`
+  dispatches on this flag and accepts `target_right` for stereo-shared candidates.
+- **`share_principal_point`** mode on the physical CMO with transverse-gauge
+  enforcement on principal-point offsets.
+- **CMO rayfield bundle adjustment** (`fit_cmo_stereo_model_and_poses_from_zernike_rayfields`)
+  jointly fitting per-channel polynomial models and board poses.
+- **Greenough oracle classification test**: Brown-Conrady × 2 wins on independent channels.
+- **Brown-Conrady oracle test**: parameter recovery and BIC selection on a dedicated Brown oracle.
+- **Physical CMO vs polynomial surrogate comparison test** with BIC-based selection.
+
+### Changed
+
+- `pixel_pitch_mm` is a fixed kwarg on the physical CMO, excluded from the
+  parameter vector. Only `f_tube_mm` is fitted; `p` and `f_tube` are not
+  separately identifiable from ray geometry.
+- `select_physical_model_from_rayfield` signature extended with `target_right=None`
+  (per-channel mode preserved when None).
+- `PhysicalRayFieldModel` protocol now includes `is_stereo_shared: bool`.
+
+### Fixed
+
+- `_aic_bic` documentation now states that `n` counts residual scalars
+  (6 × n_pixels for two-plane residuals), not independent pixel observations.
+
 ## [0.3.0] - 2026-05-02
 
 ### Added
