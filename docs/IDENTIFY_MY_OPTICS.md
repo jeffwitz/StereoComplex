@@ -264,7 +264,7 @@ average. Raw ray origins are never compared directly.
 
 ### Candidate 0: central pinhole stereo
 
-```{figure} ../assets/diagrams/pinhole_stereo.png
+```{figure} assets/diagrams/pinhole_stereo.png
 :alt: Pinhole stereo diagram
 :align: center
 

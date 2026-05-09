@@ -3,7 +3,7 @@
 This page defines the compact Common Main Objective (CMO) model implemented in
 `stereocomplex.physics.CMOPhysicalStereoModel`.
 
-```{figure} ../assets/diagrams/cmo_physical.png
+```{figure} assets/diagrams/cmo_physical.png
 :alt: Physical CMO optical diagram
 :align: center
 
@@ -239,7 +239,7 @@ objective lenses, one per channel, typically angled inward (convergent axes).
 Each channel has its own entrance pupil, and there is no shared objective
 geometry.
 
-```{figure} ../assets/diagrams/greenough.png
+```{figure} assets/diagrams/greenough.png
 :alt: Greenough stereo microscope diagram
 :align: center
 
