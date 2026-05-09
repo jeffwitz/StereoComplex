@@ -1,6 +1,6 @@
 {
   "left": {
-    "best_by_bic": "cmo_polynomial_channel",
+    "best_by_bic": "polynomial_surrogate_channel",
     "rows": [
       {
         "model": "central_pinhole",
@@ -33,7 +33,7 @@
         "selected_bic": false
       },
       {
-        "model": "cmo_polynomial_channel",
+        "model": "polynomial_surrogate_channel",
         "parameters": 18,
         "rms_mm": 52.32676677024111,
         "support_rms_mm": 52.32676677024111,
@@ -65,7 +65,7 @@
     }
   },
   "right": {
-    "best_by_bic": "cmo_polynomial_channel",
+    "best_by_bic": "polynomial_surrogate_channel",
     "rows": [
       {
         "model": "central_pinhole",
@@ -98,7 +98,7 @@
         "selected_bic": false
       },
       {
-        "model": "cmo_polynomial_channel",
+        "model": "polynomial_surrogate_channel",
         "parameters": 18,
         "rms_mm": 52.31126156987072,
         "support_rms_mm": 52.31126156987072,
