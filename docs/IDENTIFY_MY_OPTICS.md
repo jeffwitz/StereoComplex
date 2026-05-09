@@ -264,6 +264,15 @@ average. Raw ray origins are never compared directly.
 
 ### Candidate 0: central pinhole stereo
 
+```{figure} ../assets/diagrams/pinhole_stereo.png
+:alt: Pinhole stereo diagram
+:align: center
+
+Two camera centres $O_L, O_R$ separated by baseline $B$, viewing a specimen
+point $X$ at working distance $Z$.  The pixel pitch $p$ is shown on the
+left sensor.
+```
+
 The central pinhole stereo model is defined by the two intrinsic matrices and
 the stereo baseline or transform:
 

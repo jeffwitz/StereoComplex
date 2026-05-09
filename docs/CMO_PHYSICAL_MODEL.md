@@ -3,6 +3,17 @@
 This page defines the compact Common Main Objective (CMO) model implemented in
 `stereocomplex.physics.CMOPhysicalStereoModel`.
 
+```{figure} ../assets/diagrams/cmo_physical.png
+:alt: Physical CMO optical diagram
+:align: center
+
+Infinity-corrected CMO architecture.  From top to bottom: sensor ($p$),
+tube lens ($f_\mathrm{tube}$), afocal space (rays parallel to axis),
+sub-pupils / aperture stop ($S_L, S_R$, baseline $b$), main objective
+($f_\mathrm{obj}$), working distance ($Z_w$), object plane ($C$).
+Chief rays (solid) converge at $C$ through the shared objective.
+```
+
 It is not a full lens-design simulator. It is the **object-side ray-space
 reduction** of the CMO architecture: the sub-pupils, chief-ray convergence,
 and working-plane geometry are modelled explicitly, while the image-side
@@ -227,6 +238,17 @@ Greenough microscopes are the canonical case: two completely separate
 objective lenses, one per channel, typically angled inward (convergent axes).
 Each channel has its own entrance pupil, and there is no shared objective
 geometry.
+
+```{figure} ../assets/diagrams/greenough.png
+:alt: Greenough stereo microscope diagram
+:align: center
+
+Greenough stereo microscope.  Two independent objectives $O_L, O_R$ with
+convergent optical axes tilted by $\pm\theta$ from the vertical.  Each
+channel has its own tilted sensor (pixel pitch $p$) and its own optical
+axis.  There is no shared main objective — contrast with the CMO diagram
+above.  Baseline $B$ and working distance $Z$ are annotated.
+```
 
 Other architectures that fall in the *polynomial surrogate* category:
 
