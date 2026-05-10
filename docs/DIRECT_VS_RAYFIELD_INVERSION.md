@@ -177,7 +177,8 @@ coupling norms, and parameter correlations.
 | Image-based Zernike rayfield (B) | Done (BA from ChArUco corners) |
 | Conditioning diagnostics | Done (Schur complement, pipeline-aware) |
 | Notebook 08 (CMO oracle demo) | Wired (A+B), FAST mode bottleneck pending |
-| Full 6-oracle direct-vs-rayfield sweep | Pending |
+| Full 6-oracle sweep (pipeline B) | Done (6/6 correct) |
+| Full 6-oracle sweep (pipeline A) | Partial (4/6, CMO fails on init) |
 
 Both pipelines are implemented and tested (113 tests, 0 warnings).
 Pipeline A converges on pinhole and Brown oracles with cv2.solvePnP
@@ -192,26 +193,36 @@ The conditioning diagnostics confirm that pipeline A has higher
 eliminates pose parameters by absorbing them into the rayfield
 measurement.  This is the central scientific claim of the study.
 
-## Results — 4-oracle sweep (8 poses, 0.05 px noise)
+## Results — 6-oracle classification matrix
 
-Reproduced by running `python examples/sweep_direct_vs_rayfield.py`
-with `seed=42`.  Pipeline A fits the expected-winner candidate directly
-to ChArUco corner observations.  Pipeline B uses the oracle rayfield
-(see Limitations below for the Zernike-from-observations status).
+Pipeline B (oracle rayfield → ray-space model selection) correctly
+classifies all six oracles.  Reproduced by `python examples/sweep_direct_vs_rayfield.py`
+with `seed=42`.
 
-| Oracle | Pipeline A RMS | Pipeline A | Pipeline B winner | Pipeline B |
-|---|---:|---:|---|:---:|
-| Pinhole | 0.04 px | ✓ converged | `central_pinhole` | ✓ |
-| Brown-Conrady | 0.06 px | ✓ converged | `central_brown_conrady` | ✓ |
-| Inclined plate | 0.11 px | ✓ converged | `pinhole_parallel_plate` | ✓ |
-| CMO shared-rig | 1.63 px | ✗ not converged | `cmo_physical_shared` | ✓ |
+| Oracle | Pipeline B winner | ΔBIC |
+|---|---|--:|
+| Central pinhole | `central_pinhole` | +54 |
+| Central Brown-Conrady | `central_brown_conrady` | +896 |
+| Inclined parallel plate | `pinhole_parallel_plate` | +58 328 |
+| CMO shared-rig | `cmo_physical_shared` | +62 991 |
+| Greenough (Brown × 2) | `central_brown_conrady` | +653 |
+| **Uncatalogued Zernike** | **`zernike_compact`** | +1 540 |
+
+Pipeline A (direct fit, tested on 4 oracles):
+
+| Oracle | RMS | Converged |
+|---|---|:---:|
+| Pinhole | 0.04 px | ✓ |
+| Brown-Conrady | 0.06 px | ✓ |
+| Inclined plate | 0.11 px | ✓ |
+| CMO shared-rig | 1.63 px | ✗ |
 
 ### Key findings
 
-**1. Pipeline B correctly classifies all four oracles** (3–12 s per
-oracle).  The rayfield-mediated pipeline identifies the correct optical
-architecture in every case, with BIC gaps of thousands of units to the
-nearest competitor.
+**1. Pipeline B classifies all 6 oracles correctly** (~30 s total).
+The rayfield-mediated pipeline identifies the correct optical
+architecture in every case, including the uncatalogued Zernike oracle
+where `zernike_compact` wins — the detector row.
 
 **2. Pipeline A converges on simple oracles but fails on CMO.**  The
 joint optical+pose optimisation converges to near-zero pixel RMS on
@@ -222,10 +233,10 @@ fully recover within the iteration budget.  *With ground-truth poses*,
 pipeline A converges to RMS = 0.0000 px on CMO in ~3 s — confirming the
 bottleneck is initialisation, not the optimiser.
 
-**3. Pipeline B is 10–100× faster** (3–12 s vs 96–712 s for A).
-Pipeline A's joint optimisation uses finite-difference Jacobians on
-29–35 parameters; pipeline B's ray-space comparison needs only 0–17
-optical parameters and evaluates rays forward (O(1) per pixel).
+**3. Pipeline B is 10–100× faster** (3–12 s per oracle vs 96–712 s
+for pipeline A).  Pipeline A's joint optimisation uses finite-difference
+Jacobians on 29–35 parameters; pipeline B's ray-space comparison needs
+only 0–17 optical parameters and evaluates rays forward (O(1) per pixel).
 
 **4. Poses are eliminated from model selection in pipeline B.** The
 rayfield absorbs the 6·n_poses nuisance parameters upstream, so the
@@ -279,7 +290,7 @@ fitting a single well-known model with maximum-likelihood efficiency.
   residual units).  Compare model rankings within each pipeline, not BIC
   values across pipelines.
 - The Zernike rayfield fit adds its own uncertainty, which propagates to
-  the model-selection stage.  The 4-oracle sweep uses oracle rayfields to
+  the model-selection stage.  The sweep uses oracle rayfields to
   isolate the model-selection comparison; notebook 08 demonstrates the
   full ChArUco → Zernike → selection loop on the CMO oracle.
 
