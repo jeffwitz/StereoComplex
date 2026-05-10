@@ -42,6 +42,17 @@ class CentralPinholeModel:
         origins = np.zeros_like(d)
         return origins, d
 
+    def project_point(self, X: np.ndarray) -> tuple[np.ndarray, bool]:
+        """Analytic projection: 3-D point → pixel via perspective division."""
+        K = np.asarray(self.K, dtype=np.float64).reshape(3, 3)
+        x = np.asarray(X, dtype=np.float64).reshape(3)
+        uv_h = K @ x
+        if abs(uv_h[2]) < 1e-12:
+            return np.full(2, np.nan), False
+        u, v = uv_h[0] / uv_h[2], uv_h[1] / uv_h[2]
+        W = 2 * K[0, 2]; H = 2 * K[1, 2]
+        return np.array([u, v]), bool(0 <= u <= W - 1 and 0 <= v <= H - 1)
+
 
 def brown_conrady_distort_normalized(
     x: np.ndarray,
@@ -150,6 +161,22 @@ class CentralBrownConradyModel:
         d = d / np.linalg.norm(d, axis=1, keepdims=True)
         origins = np.zeros_like(d)
         return origins, d
+
+    def project_point(self, X: np.ndarray) -> tuple[np.ndarray, bool]:
+        """Analytic projection: 3-D point → pixel with Brown distortion."""
+        K = np.asarray(self.K, dtype=np.float64).reshape(3, 3)
+        x = np.asarray(X, dtype=np.float64).reshape(3)
+        if abs(x[2]) < 1e-12:
+            return np.full(2, np.nan), False
+        xn, yn = x[0] / x[2], x[1] / x[2]
+        xd, yd = brown_conrady_distort_normalized(
+            np.array([xn]), np.array([yn]),
+            self.k1, self.k2, self.p1, self.p2, self.k3,
+        )
+        u = float(xd[0] * K[0, 0] + K[0, 2])
+        v = float(yd[0] * K[1, 1] + K[1, 2])
+        W = 2 * K[0, 2]; H = 2 * K[1, 2]
+        return np.array([u, v]), bool(0 <= u <= W - 1 and 0 <= v <= H - 1)
 
 
 __all__ = [

@@ -208,10 +208,8 @@ with `seed=42`.
 | Greenough (Brown × 2) | `central_brown_conrady` | +653 |
 | **Uncatalogued Zernike** | **`zernike_compact`** | +1 540 |
 
-Pipeline A (direct fit, tested on 4 oracles; Greenough and exotic
-timed out — their Brown-Conrady and Zernike models lack analytic
-`project_point`, making the generic inverse projection impractically
-slow):
+Pipeline A (direct fit, all 6 oracles tested with analytic projection
+on the expected-winner candidate):
 
 | Oracle | RMS | Converged |
 |---|---|:---:|
@@ -219,8 +217,8 @@ slow):
 | Brown-Conrady | 0.06 px | ✓ |
 | Inclined plate | 0.11 px | ✓ |
 | CMO shared-rig | 1.63 px | ✗ |
-| Greenough | — | timed out |
-| Exotic Zernike | — | timed out |
+| Greenough | 1.51 px | ✓ |
+| Exotic Zernike | 0.52 px | ✓ |
 
 ### Key findings
 
@@ -229,9 +227,9 @@ The rayfield-mediated pipeline identifies the correct optical
 architecture in every case, including the uncatalogued Zernike oracle
 where `zernike_compact` wins — the detector row.
 
-**2. Pipeline A converges on simple oracles but fails on CMO.**  The
-joint optical+pose optimisation converges to near-zero pixel RMS on
-pinhole, Brown-Conrady, and inclined plate oracles (0.04–0.11 px).
+**2. Pipeline A converges on 5/6 oracles; CMO fails on pose init.**  The
+joint optical+pose optimisation converges on pinhole, Brown-Conrady,
+inclined plate, Greenough, and exotic Zernike oracles (0.04–1.51 px).
 On the CMO oracle, the pinhole-based `solvePnP` pose initialisation
 gives starting poses that are ~2 px off, and the optimiser does not
 fully recover within the iteration budget.  *With ground-truth poses*,
