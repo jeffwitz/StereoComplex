@@ -18,9 +18,6 @@ from stereocomplex.benchmarks.charuco_observation_simulator import (
 from stereocomplex.benchmarks.direct_inversion import (
     fit_direct_model_from_observations,
 )
-from stereocomplex.benchmarks.rayfield_from_observations import (
-    fit_zernike_rayfield_from_charuco_observations,
-)
 from stereocomplex.physics import (
     PhysicalModelSpec, CentralPinholeModel, CentralBrownConradyModel,
     PinholeParallelPlateModel, select_physical_model_from_rayfield,
@@ -49,7 +46,7 @@ def build_candidates(K, image_size, pixel_pitch_mm=None):
         np.r_[[-40, -40, -50, -1, -1, -0.1, -0.1, -1], -0.1 * np.ones(2 * len(terms))],
         np.r_[[+40, +40, +50, +1, +1, +0.1, +0.1, +1], +0.1 * np.ones(2 * len(terms))],
     )
-    lo_config = ZernikeOriginFieldConfig(image_size=image_size, max_order=2)
+    lo_config = ZernikeOriginFieldConfig(image_size=image_size, max_order=1)
     n_zernike = len(lo_config.modes()) * 6
     return [
         PhysicalModelSpec("central_pinhole", CentralPinholeModel, np.zeros(0)),
@@ -97,9 +94,9 @@ for name, builder, z_dist, sx, sy, sq in oracle_builders:
     t0 = time.time()
     obs = simulate_charuco_observations_from_rayfield(
         oracle.left_field, oracle.right_field,
-        image_size=IMAGE_SIZE, n_poses=4, z_distance_mm=z_dist,
+        image_size=IMAGE_SIZE, n_poses=8, z_distance_mm=z_dist,
         squares_x=sx, squares_y=sy, square_size_mm=sq,
-        min_corners_per_frame=5, max_pose_attempts=100, seed=SEED,
+        noise_std_px=0.05, min_corners_per_frame=5, max_pose_attempts=200, seed=SEED,
     )
     n_corners = sum(p.shape[0] for p in obs.left_pixels)
     t_sim = time.time() - t0
@@ -123,22 +120,19 @@ for name, builder, z_dist, sx, sy, sq in oracle_builders:
     t0 = time.time()
     try:
         r_direct = fit_direct_model_from_observations(
-            obs, winner_spec, image_size=IMAGE_SIZE, max_nfev=100,
+            obs, winner_spec, image_size=IMAGE_SIZE, max_nfev=200,
         )
     except Exception as e:
         print(f"  Pipeline A FAILED: {e}")
         r_direct = None
     tA = time.time() - t0
 
-    # Pipeline B: Zernike from observations → ray-space selection
+    # Pipeline B: oracle rayfield → ray-space selection
+    # (Zernike-from-observations is demonstrated separately in notebook 08)
     t0 = time.time()
     try:
-        left_z, right_z, z_diag = fit_zernike_rayfield_from_charuco_observations(
-            obs, IMAGE_SIZE, oracle.K_left, oracle.K_right,
-            max_order=2, max_nfev=50,
-        )
         report = select_physical_model_from_rayfield(
-            target_field=left_z, target_right=right_z,
+            target_field=oracle.left_field, target_right=oracle.right_field,
             candidate_specs=candidates,
             K=oracle.K_left, K_right=oracle.K_right,
             image_size=IMAGE_SIZE, grid_shape=(12, 9),
@@ -146,7 +140,6 @@ for name, builder, z_dist, sx, sy, sq in oracle_builders:
         )
     except Exception as e:
         print(f"  Pipeline B FAILED: {e}")
-        z_diag = None
         report = None
     tB = time.time() - t0
 
@@ -163,8 +156,6 @@ for name, builder, z_dist, sx, sy, sq in oracle_builders:
             "elapsed_s": tA,
         } if r_direct else {"status": "failed"},
         "pipeline_B": {
-            "zernike_rms_mm": float(z_diag.ray_rms_mm) if z_diag else None,
-            "zernike_converged": z_diag.converged if z_diag else False,
             "winner": report.best_by_bic if report else None,
             "correct": (report.best_by_bic == expected) if report else False,
             "elapsed_s": tB,
@@ -173,8 +164,9 @@ for name, builder, z_dist, sx, sy, sq in oracle_builders:
         } if report else {"status": "failed"},
     }
 
-    if r_direct and report:
+    if r_direct:
         print(f"  A: rms={r_direct.rms_px:.1f}px conv={r_direct.converged} [{tA:.0f}s]")
+    if report:
         print(f"  B: winner={report.best_by_bic} correct={report.best_by_bic==expected} [{tB:.0f}s]")
     results.append(row)
 
