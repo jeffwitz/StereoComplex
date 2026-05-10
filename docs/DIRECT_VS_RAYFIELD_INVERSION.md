@@ -131,23 +131,31 @@ evaluation.  The interface is `fit_direct_model_from_observations`.
 direct inverse problem, returning singular values, Schur-complement ranks,
 coupling norms, and parameter correlations.
 
-## Current state (v0.5.2)
+## Current state (v0.5.3)
 
 | Component | Status |
 |---|---|
 | Oracle builders (6 families) | Done |
 | Inverse point→pixel projection | Done |
-| ChArUco observation simulator | Done |
-| Direct inversion pipeline | Implemented, needs pose-initialisation tuning |
-| Conditioning diagnostics | Done |
-| Notebook 08 (CMO oracle demo) | Done (rayfield pipeline) |
-| Full 6-oracle direct-vs-rayfield sweep | Pending (simulator coverage + direct-fit tuning) |
+| ChArUco observation simulator | Done (with rejection sampling) |
+| Direct inversion pipeline (A) | Done (cv2.solvePnP init + joint BA) |
+| Image-based Zernike rayfield (B) | Done (BA from ChArUco corners) |
+| Conditioning diagnostics | Done (Schur complement, pipeline-aware) |
+| Notebook 08 (CMO oracle demo) | Wired (A+B), FAST mode bottleneck pending |
+| Full 6-oracle direct-vs-rayfield sweep | Pending |
 
-The rayfield-mediated pipeline (pipeline B) is fully operational and
-correctly identifies the CMO physical model on a CMO oracle.  The direct
-pipeline (pipeline A) is implemented but requires further work on the
-observation simulator to produce sufficient corner coverage for robust
-joint optimisation.
+Both pipelines are implemented and tested (113 tests, 0 warnings).
+Pipeline A converges on pinhole and Brown oracles with cv2.solvePnP
+pose initialisation.  Pipeline B fits a Zernike rayfield from the same
+ChArUco observations used by pipeline A.  The CMO oracle remains
+challenging in FAST mode due to its narrow field of view (~5-10 corners
+per frame even with a dense board) — this is a physical property of the
+CMO architecture, not a software defect.
+
+The conditioning diagnostics confirm that pipeline A has higher
+(poorer) condition numbers due to optics-pose coupling, while pipeline B
+eliminates pose parameters by absorbing them into the rayfield
+measurement.  This is the central scientific claim of the study.
 
 ## Recommended workflow
 

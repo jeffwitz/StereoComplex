@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.5.3] - 2026-05-10
+
+### Added
+
+- **Direct-vs-rayfield inversion study** (Phase 8):
+  - `stereocomplex.benchmarks.charuco_observation_simulator` with rejection
+    sampling and `SamplingDiagnostics`.
+  - `stereocomplex.benchmarks.direct_inversion`: pipeline A with cv2.solvePnP
+    pose initialisation and joint optical+pose BA.
+  - `stereocomplex.benchmarks.rayfield_from_observations`: image-based Zernike
+    rayfield fit (pipeline B) from the same ChArUco observations.
+  - `compute_pipeline_condition_number` for Schur-complement conditioning
+    comparison between pipelines A and B.
+  - Notebook 08 (`examples/notebooks/08_direct_vs_rayfield_inversion.py`)
+    comparing both pipelines on a CMO oracle.
+  - Documentation page `docs/DIRECT_VS_RAYFIELD_INVERSION.md`.
+
+### Changed
+
+- Test suite split: 76 fast tests (default, ~28 s) + 37 slow tests
+  (`-m ""` for all, ~9 min). 113 total.
+- `simulate_charuco_observations_from_rayfield`: min_corners_per_frame
+  rejection sampling (default 30), pose centring for better coverage.
+- `DirectFitResult`: `success` → `converged`, added `n_iterations`.
+
+## [0.5.2] - 2026-05-09
+
+### Added
+
+- Optical diagrams (pinhole, CMO, Greenough) in `stereocomplex.viz`.
+- Clean alias-free API, zero warnings, 77 tests.
+
 ## [0.5.0] - 2026-05-09
 
 ### Added
