@@ -1,4 +1,4 @@
-# Direct model inversion vs rayfield-mediated inversion
+# Rayfield mediation: separating measurement from optical interpretation
 
 ## Why this page exists
 
@@ -8,14 +8,29 @@ StereoComplex follows a two-stage philosophy:
 measure a generic rayfield first  →  then explain the optics
 ```
 
-This page compares that strategy against the more traditional approach
-of fitting optical models directly to 2-D corner observations, and
-explains **why** the intermediate rayfield step improves model-selection
-interpretability.
+This page is **not** a claim that rayfield-mediated inversion universally
+replaces direct ChArUco fitting.  The two strategies answer different
+questions:
+
+- **Direct fitting** is the natural route when the optical family is
+  already known: choose a model, jointly optimise optical parameters and
+  board poses, and obtain a maximum-likelihood estimate in pixel space.
+- **Rayfield mediation** addresses a different problem: before fitting
+  one known model, we often need to decide *which* optical family is
+  plausible.  For that purpose, it is useful to first estimate a generic
+  rayfield $\widehat{\mathcal{R}}(u,v) = (\widehat{O}, \widehat{d})$,
+  then compare physical hypotheses in a common ray-space.
+
+The rayfield is therefore an **intermediate observable**: it separates
+measurement from interpretation.
+
+This page explains the two inverse problems, documents the current
+experimental evidence, and provides practical guidance on when to use
+each strategy.
 
 ## The two inverse problems
 
-### Pipeline A — Direct ChArUco inversion
+### Direct fitting — an estimator for a known model
 
 Given ChArUco corner detections $(u_{ik}^\text{obs})$ for poses $i$ and
 points $k$, jointly optimise optical parameters $\theta$ and board poses
@@ -32,16 +47,16 @@ u_{ik,c}^{\text{obs}}
 ```
 
 The optical parameters and the board poses are **coupled**: a bias in the
-pose can compensate for an error in the optical model, and vice versa.
-This coupling makes model selection harder — a wrong optical model can
-achieve low pixel RMS by absorbing its error into the fitted poses.
+pose can compensate for an error in the optical model.  Direct fitting is
+the right tool when the model family is known and a statistically
+efficient estimate is desired.
 
-### Pipeline B — Rayfield-mediated inversion
+### Rayfield mediation — a diagnostic layer for model selection
 
-First, estimate the instrument response as a generic pixel-to-line map
+First, the instrument response is measured as a generic pixel-to-line map
 $\widehat{\mathcal{R}}(u,v) = (\widehat{O}(u,v), \widehat{d}(u,v))$ from
-the same ChArUco observations.  Then, compare physical hypotheses in a
-common ray space:
+the same ChArUco observations (via Zernike bundle adjustment).  Then,
+physical hypotheses are compared in a common ray space:
 
 ```{math}
 \min_\theta
@@ -53,49 +68,14 @@ common ray space:
 \right\|^2_{\text{line}}
 ```
 
-The two-plane ray residual (see [Identify My Optics](IDENTIFY_MY_OPTICS.md#ray-space-comparison))
-compares line geometry, not raw origins, making the comparison
-gauge-invariant.  **Board poses do not appear in this second stage** —
-they have already been absorbed into the rayfield measurement.
-
-## Why pinhole initialisation works for non-pinhole optics
-
-A natural question: pipeline A is initialised with `cv2.solvePnP`, which
-assumes a central pinhole model.  How can this work for a CMO, where rays
-pass through off-axis sub-pupils rather than a single camera centre?
-
-The answer is that the pinhole model is **structurally wrong but
-geometrically close**.  For the pedagogical CMO oracle:
-
-- Sub-pupil $S_L = (-4, 0, 40)$ mm (offset from the axis by 4 mm, at
-  depth $Z_w - f_\text{obj} = 40$ mm behind the main objective).
-- Working distance $Z_w = 120$ mm.
-- Chief-ray angle from $S_L$ to the axis at the working plane:
-  $\arctan(4/80) \approx 2.9°$.
-- A pinhole at the origin would see the same working-plane point at
-  $\arctan(4/120) \approx 1.9°$.
-
-The angular difference is only ~1°.  `solvePnP` compensates by shifting
-the estimated pose by ~1–2 mm in translation and ~2–3° in rotation,
-producing an initial pixel reprojection error of ~1–2 px.
-
-The joint nonlinear optimiser then refines **both** the optical parameters
-and the poses.  As $f_\text{obj}$, $Z_w$, and $b$ converge toward their
-true values, the sub-pupil moves to its correct off-axis position, the
-poses self-correct, and the pixel RMS drops from ~2 px to machine zero.
-
-This initialisation robustness is **not guaranteed** for all optical
-architectures.  A Scheimpflug system or a strongly decentered relay
-would produce larger pinhole-pose errors, potentially causing the joint
-optimiser to diverge or converge to a local minimum.  Pipeline B
-(rayfield-mediated) mitigates this risk: the Zernike BA still needs a
-pose initialisation, but it does not assume any specific optical model.
-Pose errors are partially absorbed by the flexible Zernike
-parameterisation rather than fighting the optical parameters.
+**Board poses do not appear in this second stage** — they have already
+been absorbed into the rayfield measurement.  This is the central
+architectural insight: model comparison happens after nuisance pose
+parameters have been removed.
 
 ## Nuisance parameters and conditioning
 
-In pipeline A, the joint parameter vector includes both optical
+In direct fitting, the joint parameter vector includes both optical
 parameters $\theta$ and pose parameters $\eta$.  The information matrix
 for $\theta$ after eliminating the nuisance poses is the Schur complement:
 
@@ -109,91 +89,31 @@ J_\theta^T J_\eta
 J_\eta^T J_\theta
 ```
 
-where $J_\theta$ and $J_\eta$ are the Jacobian blocks of the pixel
-residual with respect to optical and pose parameters.  When
-$\|J_\theta^T J_\eta\|$ is large, poses and optics are strongly coupled,
-and the effective information $I_{\theta|\eta}$ can be much smaller than
-the naïve optics-only information $J_\theta^T J_\theta$.
-
+When $\|J_\theta^T J_\eta\|$ is large, poses and optics are strongly coupled.
 Pipeline B has **no pose parameters** in the second stage, so its
-information matrix is simply $J_\theta^T J_\theta$.  The rayfield has
+information matrix is simply $J_\theta^T J_\theta$ — the rayfield has
 already absorbed the pose degrees of freedom.
 
-The module `stereocomplex.benchmarks.inverse_problem_diagnostics` provides
-tools to compute these quantities: Jacobians via finite differences, Schur
-complements, condition numbers, and pose-optics correlation matrices.
+Measured on the CMO oracle: pipeline A has coupling norm ≈ 0.32–0.69
+between optics and poses; pipeline B has coupling norm = 0 (0 pose
+parameters in the model-selection stage).
 
-## Infrastructure
-
-### Shared oracle builders
-
-`stereocomplex.benchmarks.model_selection_oracles` provides six synthetic
-stereo rayfield pairs (pinhole, Brown-Conrady, inclined plate, CMO
-shared-rig, Greenough, exotic Zernike) as `StereoOracle` dataclasses.
-These are shared between the classification matrix (notebook 07) and the
-direct-vs-rayfield study (notebook 08).
-
-### ChArUco observation simulator
-
-`stereocomplex.benchmarks.charuco_observation_simulator` generates
-synthetic ChArUco corner observations from any stereo rayfield oracle.
-For each board pose, 3-D board points are inverse-projected through the
-left and right rayfields to produce 2-D pixel coordinates, with optional
-Gaussian noise and dropout.
-
-### Inverse point→pixel projection
-
-`stereocomplex.benchmarks.rayfield_projection` solves
-
-```{math}
-\min_{u,v} \left\|(I - d\,d^T)(X - O)\right\|^2
-```
-
-to find the pixel whose ray passes closest to a 3-D point.  This is used
-both by the observation simulator and by the direct inversion pipeline.
-
-### Direct inversion baseline
-
-`stereocomplex.benchmarks.direct_inversion` implements pipeline A: joint
-optimisation of optical parameters and board poses by minimising 2-D
-reprojection error, using the inverse projection for every model
-evaluation.  The interface is `fit_direct_model_from_observations`.
-
-### Conditioning diagnostics
-
-`stereocomplex.benchmarks.inverse_problem_diagnostics` provides
-`compute_inverse_problem_diagnostics` to analyse the conditioning of the
-direct inverse problem, returning singular values, Schur-complement ranks,
-coupling norms, and parameter correlations.
-
-## Current state
+## What the current experiments show
 
 Three experiments at different levels of completeness:
 
-| Experiment | What it demonstrates | Status |
+| Experiment | What it demonstrates | Result |
 |---|---|---|
-| **Notebook 08 FAST** | Full ChArUco→Zernike→selection loop on CMO (~56 s) | Done |
-| **6-oracle sweep (pipeline B)** | Ray-space model selection classifies all 6 families | 6/6 correct |
-| **6-oracle sweep (pipeline A)** | Direct fit converges on all oracles when well-initialised | 6/6 (5/6 with solvePnP, CMO needs truth poses) |
+| **Notebook 08 FAST** | Full ChArUco → Zernike → selection loop on CMO | CMO correctly identified (~56 s) |
+| **6-oracle ray-space sweep** | Model selection from oracle rayfields | 6/6 correct (pinhole through exotic) |
+| **Direct expected-model fit** | Direct fitting of the correct model on each oracle | 6/6 converge when well-initialised |
 
-The sweep uses oracle rayfields for pipeline B to isolate the model-
-selection comparison.  The full ChArUco→Zernike→selection loop
-(pipeline B) is demonstrated on the CMO oracle in notebook 08; scaling
-it to all 6 oracles requires ~10 min of batch computation (the Zernike
-BA from observations is the bottleneck, at ~1–2 min per oracle).
+### Ray-space model selection (6-oracle sweep)
 
-113 tests, 0 warnings.  Analytic `project_point` methods exist for
-Pinhole, Brown-Conrady, and CMO models, making pipeline A fast (~2–10 s
-per oracle).  Pipeline B eliminates pose parameters from model selection
-(coupling norm = 0 in the second stage vs 0.32–0.69 for pipeline A).
+Pipeline B correctly classifies all six oracle families from their
+rayfields (~30 s total):
 
-## Results — 6-oracle classification matrix
-
-Pipeline B (oracle rayfield → ray-space model selection) correctly
-classifies all six oracles.  Reproduced by `python examples/sweep_direct_vs_rayfield.py`
-with `seed=42`.
-
-| Oracle | Pipeline B winner | ΔBIC |
+| Oracle | Winner | ΔBIC |
 |---|---|--:|
 | Central pinhole | `central_pinhole` | +54 |
 | Central Brown-Conrady | `central_brown_conrady` | +896 |
@@ -202,92 +122,81 @@ with `seed=42`.
 | Greenough (Brown × 2) | `central_brown_conrady` | +653 |
 | **Uncatalogued Zernike** | **`zernike_compact`** | +1 540 |
 
-Pipeline A (direct fit, all 6 oracles tested with analytic projection
-on the expected-winner candidate):
+This sweep uses oracle rayfields to isolate the model-selection stage.
+The full ChArUco → Zernike → selection loop is demonstrated on the CMO
+oracle in notebook 08.
 
-| Oracle | RMS | Converged |
-|---|---|:---:|
-| Pinhole | 0.04 px | ✓ |
-| Brown-Conrady | 0.06 px | ✓ |
-| Inclined plate | 0.11 px | ✓ |
-| CMO shared-rig | 0.05 px | ✓ (truth poses) |
-| Greenough | 1.51 px | ✓ |
-| Exotic Zernike | 0.52 px | ✓ |
+### Direct fitting baseline (6-oracle sweep)
 
-### Key findings
+Pipeline A fits the expected-winner candidate directly to noisy ChArUco
+observations (0.05 px noise).  All six oracles converge when the model is
+well-initialised:
 
-**1. Pipeline B classifies all 6 oracles correctly** (~30 s total).
-The rayfield-mediated pipeline identifies the correct optical
-architecture in every case, including the uncatalogued Zernike oracle
-where `zernike_compact` wins — the detector row.
+| Oracle | RMS | Notes |
+|---|---|:---|
+| Pinhole | 0.04 px | ✓ solvePnP init |
+| Brown-Conrady | 0.06 px | ✓ solvePnP init |
+| Inclined plate | 0.11 px | ✓ solvePnP init |
+| CMO shared-rig | 0.05 px | ✓ with truth poses (solvePnP pinhole init fails) |
+| Greenough | 1.51 px | ✓ solvePnP init |
+| Exotic Zernike | 0.52 px | ✓ solvePnP init |
 
-**2. Pipeline A converges on all 6 oracles when well-initialised.**
-With `solvePnP` (pinhole model), 5/6 converge (0.04–1.51 px).  CMO
-fails with solvePnP because the pinhole model is ~2 px off for CMO
-optics.  *With ground-truth poses*, CMO converges to RMS = 0.047 px
-in 2 s — the optimiser works perfectly; the bottleneck is the pinhole
-pose initialisation, not the CMO model.
+CMO is the only oracle where solvePnP initialisation fails — the pinhole
+model is ~2 px off for CMO optics.  With ground-truth poses, CMO
+converges to RMS = 0.047 px in 2 s.
 
-**3. Pipeline B is 10–100× faster** (3–12 s per oracle vs 96–712 s
-for pipeline A).  Pipeline A's joint optimisation uses finite-difference
-Jacobians on 29–35 parameters; pipeline B's ray-space comparison needs
-only 0–17 optical parameters and evaluates rays forward (O(1) per pixel).
+### End-to-end ChArUco → Zernike → selection (notebook 08)
 
-**4. Poses are eliminated from model selection in pipeline B.** The
-rayfield absorbs the 6·n_poses nuisance parameters upstream, so the
-model-selection stage compares only the optical degrees of freedom.
-Pipeline A carries 12–48 pose parameters in its optimisation vector,
-creating optics-pose coupling (coupling norm ≈ 0.32–0.69 on CMO).
+Notebook 08 demonstrates the full pipeline B on a CMO oracle: ChArUco
+corner simulation → Zernike bundle adjustment from observations →
+ray-space model selection.  CMO is correctly identified.  The Zernike BA
+is the computational bottleneck (~50 s for one oracle), which is why the
+6-oracle sweep above uses oracle rayfields.
 
-### The rayfield is a geometric intermediate variable
+## When to use which strategy
 
-Pipeline B separates *measurement* (Zernike fit from corners) from
-*interpretation* (physical model comparison).  This is the central
-architectural insight of StereoComplex and the reason the framework can
-detect uncatalogued optics, compare competing hypotheses, and remain
-interpretable under measurement noise.
-
-### When to use which pipeline
-
-| Criterion | Pipeline A (direct) | Pipeline B (rayfield) |
+| Criterion | Direct fitting | Rayfield mediation |
 |---|---|---|
-| Speed (model comparison) | Fast with analytic projection (~s) | Fast (~s per candidate) |
-| Speed (single known model) | OK with good initialisation | Requires Zernike fit first |
-| Model selection interpretability | Poses + optics coupled | Poses absent from comparison |
-| Detection of uncatalogued optics | Possible but fragile | Built-in via Zernike fallback |
-| Parameter recovery for known model | Maximum-likelihood (efficient) | Two-stage (Zernike → physical) |
+| Model family is known | Best choice (efficient estimate) | Possible but two-stage |
+| Model family is unknown | Requires multiple fits, fragile | Best choice (diagnostic layer) |
+| Comparing CMO vs plate vs Brown | Coupled with poses | Natural ray-space comparison |
+| Detecting non-catalogued optics | Not natural | Built-in via Zernike fallback |
+| Maximum-likelihood efficiency | Best if model is correct | Two-stage (Zernike → physical) |
 
-**Recommendation:** use pipeline B when comparing competing optical
-hypotheses or diagnosing unknown instruments.  Use pipeline A only when
-fitting a single well-known model with maximum-likelihood efficiency.
+**Recommendation:** use direct fitting when the optical family is known
+and a statistically efficient estimate is desired.  Use rayfield
+mediation to diagnose which family is plausible, compare competing
+hypotheses, or detect uncatalogued optics.
 
-## Recommended workflow
+## Infrastructure
 
-- Use **pipeline A** (direct fit) when the optical model is known and
-  simple, and when an efficient maximum-likelihood estimate is desired.
-- Use **pipeline B** (rayfield-mediated) when you want to **compare**
-  competing physical hypotheses, **detect** structural mismatch, or
-  **diagnose** whether the optics fall outside the known catalogue.
-- The two pipelines are complementary, not competing.  The rayfield is a
-  diagnostic instrument, not a replacement for direct fitting.
+The modules in `stereocomplex.benchmarks` support both strategies:
+
+- `model_selection_oracles` — six synthetic stereo rayfield pairs
+- `charuco_observation_simulator` — synthetic ChArUco corners from rayfields
+- `rayfield_projection` — inverse point-to-pixel projection (generic + analytic)
+- `direct_inversion` — joint optical+pose optimisation (pipeline A)
+- `rayfield_from_observations` — Zernike BA from ChArUco corners (pipeline B, stage 1)
+- `inverse_problem_diagnostics` — Schur complement, conditioning, coupling norms
+
+Analytic `project_point` methods exist on `CentralPinholeModel`,
+`CentralBrownConradyModel`, and `CMOPhysicalChannelModel`, making direct
+fitting fast (~2–10 s per oracle).
 
 ## Limitations
 
-- The direct pipeline requires at least 20–30 visible corners per frame
-  for stable joint optimisation.  The CMO oracle has a narrow field of
-  view (~9°) requiring a dense board (1 mm squares) for sufficient coverage.
-- The direct pipeline's generic inverse projection is impractically slow
-  (~180 `least_squares` calls per evaluation).  Analytic `project_point`
-  methods on physical models (currently implemented for CMO) make it
-  competitive.  Other candidates (Brown, plate) still need analytic
-  projection methods.
+- The Zernike BA from observations is the computational bottleneck in
+  pipeline B (~1–2 min per oracle).  The 6-oracle sweep uses oracle
+  rayfields to isolate the model-selection comparison.
 - Pixel-space BIC and ray-space BIC are not directly comparable (different
   residual units).  Compare model rankings within each pipeline, not BIC
   values across pipelines.
-- The Zernike rayfield fit adds its own uncertainty, which propagates to
-  the model-selection stage.  The sweep uses oracle rayfields to
-  isolate the model-selection comparison; notebook 08 demonstrates the
-  full ChArUco → Zernike → selection loop on the CMO oracle.
+- The direct fitting baseline fits only the expected-winner candidate
+  (not a full multi-candidate model selection).  A symmetric comparison
+  where both pipelines perform full model selection on the same data is
+  future work.
+- The CMO oracle has a narrow field of view (~9°), requiring a dense
+  board (1 mm squares) for sufficient corner coverage.
 
 ## See also
 
@@ -295,4 +204,4 @@ fitting a single well-known model with maximum-likelihood efficiency.
 - [CMO Model Selection](CMO_MODEL_SELECTION.md) — the full 6-oracle classification matrix
 - [Physical CMO Model](CMO_PHYSICAL_MODEL.md) — the CMO shared-rig model definition
 - Notebook 07 (`examples/notebooks/07_model_selection_matrix.py`) — classification matrix
-- Notebook 08 (`examples/notebooks/08_direct_vs_rayfield_inversion.py`) — direct vs rayfield comparison
+- Notebook 08 (`examples/notebooks/08_direct_vs_rayfield_inversion.py`) — end-to-end CMO demo
