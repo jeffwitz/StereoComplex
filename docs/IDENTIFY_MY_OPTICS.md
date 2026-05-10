@@ -1,5 +1,10 @@
 # Identify My Optics
 
+> **This page answers:** how to interpret the candidate model catalogue and
+> the output of `select_physical_model_from_rayfield`.  For *why* model
+> selection is performed after rayfield measurement rather than directly from
+> ChArUco coordinates, see [Rayfield mediation](DIRECT_VS_RAYFIELD_INVERSION.md).
+
 Which optical model explains my measured rayfield?
 
 This tutorial shows how to use `select_physical_model_from_rayfield` to

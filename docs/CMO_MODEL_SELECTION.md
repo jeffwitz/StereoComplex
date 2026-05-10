@@ -1,5 +1,12 @@
 # Optical model selection — CMO workflow and classification matrix
 
+> **This page answers:** once a generic rayfield is available, which compact
+> optical model best explains it?  It documents the 6-oracle classification
+> matrix, BIC-based selection, and noise-robustness analysis.
+>
+> For the inverse-problem rationale behind measuring a rayfield *before*
+> physical interpretation, see [Rayfield mediation](DIRECT_VS_RAYFIELD_INVERSION.md).
+
 This page documents the model-selection framework through two notebooks:
 
 - **Notebook 06** (`examples/notebooks/06_cmo_model_selection.py`): the CMO

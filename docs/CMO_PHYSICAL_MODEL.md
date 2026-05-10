@@ -1,5 +1,9 @@
 # Physical CMO Model
 
+> **This page answers:** what physical assumptions define the shared-rig CMO
+> model used by StereoComplex, and how it differs from a generic non-central
+> polynomial surrogate.
+
 This page defines the compact Common Main Objective (CMO) model implemented in
 `stereocomplex.physics.CMOPhysicalStereoModel`.
 

@@ -1,5 +1,9 @@
 # Rayfield mediation: separating measurement from optical interpretation
 
+> **This page answers:** why StereoComplex separates rayfield measurement
+> from physical optical interpretation, rather than fitting optical models
+> directly to ChArUco corner coordinates.
+
 ## Why this page exists
 
 StereoComplex follows a two-stage philosophy:
