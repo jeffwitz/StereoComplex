@@ -209,17 +209,28 @@ def fit_direct_model_from_observations(
     n_obs = n_meas  # independent pixel observations per channel
 
     # --- model factory ---
-    def make_optical_model(x_optics: Array) -> object:
-        """Instantiate the optical model from a parameter vector."""
-        if hasattr(model_class, "from_parameter_vector"):
-            return model_class.from_parameter_vector(x_optics, K=K_L, **model_kwargs)
-        return model_class(K=K_L, **model_kwargs)
+    _is_shared = bool(getattr(model_class, "is_stereo_shared", False))
 
-    # --- model for RIGHT channel ---
+    def _channel_field(model, channel: str):
+        """Extract a per-channel rayfield from a (possibly shared) model."""
+        if hasattr(model, "channel"):
+            return model.channel(channel)
+        return model
+
+    def make_optical_model(x_optics: Array) -> object:
+        """Instantiate the optical model and return a per-channel rayfield."""
+        if hasattr(model_class, "from_parameter_vector"):
+            m = model_class.from_parameter_vector(x_optics, K=K_L, **model_kwargs)
+        else:
+            m = model_class(K=K_L, **model_kwargs)
+        return _channel_field(m, "left")
+
     def make_optical_model_right(x_optics: Array) -> object:
         if hasattr(model_class, "from_parameter_vector"):
-            return model_class.from_parameter_vector(x_optics, K=K_R, **model_kwargs)
-        return model_class(K=K_R, **model_kwargs)
+            m = model_class.from_parameter_vector(x_optics, K=K_R, **model_kwargs)
+        else:
+            m = model_class(K=K_R, **model_kwargs)
+        return _channel_field(m, "right")
 
     # --- residual function ---
     def residuals(x_all: Array) -> Array:

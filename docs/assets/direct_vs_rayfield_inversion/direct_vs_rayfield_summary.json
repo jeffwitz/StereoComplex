@@ -1,0 +1,7 @@
+{
+  "oracle": "CMO shared-rig",
+  "n_poses": 4,
+  "noise_std_px": 0.0,
+  "rayfield_winner": "cmo_physical_shared",
+  "rayfield_correct": true
+}
