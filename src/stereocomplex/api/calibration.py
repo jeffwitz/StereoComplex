@@ -162,6 +162,29 @@ class StereoOpenCVCalibrationResult:
     fundamental_matrix: np.ndarray
     report: StereoOpenCVCalibrationReport
 
+    def to_dict(self) -> dict:
+        """Return a JSON-serialisable summary."""
+        return {
+            "K_left": self.K_left.tolist(),
+            "dist_left": self.dist_left.tolist(),
+            "K_right": self.K_right.tolist(),
+            "dist_right": self.dist_right.tolist(),
+            "R": self.R_right_from_left.tolist(),
+            "T_mm": self.t_right_from_left_mm.tolist(),
+            "stereo_rms_px": float(self.report.stereo_rms_px),
+            "mono_rms_left_px": float(self.report.mono_rms_left_px),
+            "mono_rms_right_px": float(self.report.mono_rms_right_px),
+            "n_stereo_frames": int(self.report.n_stereo_frames),
+        }
+
+    def to_opencv(self) -> tuple:
+        """Return ``(K1, d1, K2, d2, R, T)`` as used by OpenCV."""
+        return (
+            self.K_left, self.dist_left,
+            self.K_right, self.dist_right,
+            self.R_right_from_left, self.t_right_from_left_mm,
+        )
+
 
 @dataclass(frozen=True)
 class _CharucoRuntime:
@@ -848,6 +871,41 @@ def fit_opencv_stereo_from_image_pairs(
         fundamental_matrix=np.asarray(F, dtype=np.float64),
         report=report,
     )
+
+
+def compare_opencv_stereo_calibration(
+    left_dir: str | Path,
+    right_dir: str | Path,
+    board: CharucoBoardSpec,
+    *,
+    max_pairs: int | None = None,
+    method2d: str = "rayfield_tps_robust",
+    **kwargs,
+) -> dict:
+    """Run OpenCV stereo calibration with raw AND refined corners.
+
+    This is the recommended first step for an OpenCV user: it runs
+    ``fit_opencv_stereo_from_image_dirs`` twice (once with
+    ``method2d="raw"``, once with *method2d*) and returns a comparison
+    dictionary.
+
+    Parameters are forwarded to ``fit_opencv_stereo_from_image_dirs``.
+    """
+    raw = fit_opencv_stereo_from_image_dirs(
+        left_dir=Path(left_dir), right_dir=Path(right_dir),
+        board=board, method2d="raw", max_pairs=max_pairs, **kwargs,
+    )
+    refined = fit_opencv_stereo_from_image_dirs(
+        left_dir=Path(left_dir), right_dir=Path(right_dir),
+        board=board, method2d=method2d, max_pairs=max_pairs, **kwargs,
+    )
+    return {
+        "raw": raw.to_dict(),
+        "refined": refined.to_dict(),
+        "raw_result": raw,
+        "refined_result": refined,
+        "improvement_px": float(raw.report.stereo_rms_px - refined.report.stereo_rms_px),
+    }
 
 
 def fit_opencv_stereo_from_image_dirs(

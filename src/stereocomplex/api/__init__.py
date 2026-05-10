@@ -6,6 +6,7 @@ from stereocomplex.api.calibration import (
     StereoCentralRayFieldFitResult,
     StereoImagePair,
     build_charuco_board,
+    compare_opencv_stereo_calibration,
     detect_charuco_corners,
     fit_opencv_stereo_from_dataset,
     fit_opencv_stereo_from_image_dirs,

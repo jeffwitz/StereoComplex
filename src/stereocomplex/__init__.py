@@ -3,6 +3,7 @@ from stereocomplex.api import (
     CharucoBoardSpec,
     PhysicalModelSpec,
     StereoCentralRayFieldModel,
+    compare_opencv_stereo_calibration,
     StereoImagePair,
     build_charuco_board,
     detect_charuco_corners,
@@ -32,6 +33,10 @@ __all__ = [
     "CharucoBoardSpec",
     "PhysicalModelSpec",
     "StereoCentralRayFieldModel",
+    "calibrate_central",
+    "calibrate_noncentral",
+    "calibrate_opencv",
+    "compare_opencv_stereo_calibration",
     "StereoImagePair",
     "build_charuco_board",
     "detect_charuco_corners",
@@ -55,3 +60,9 @@ __all__ = [
     "StereoOpenCVCalibrationResult",
     "StereoZernikeOriginFieldFitResult",
 ]
+
+# Short aliases for the most common entry points.
+calibrate_opencv = fit_opencv_stereo_from_image_dirs
+calibrate_central = fit_stereo_central_rayfield_from_image_dirs
+calibrate_noncentral = fit_stereo_zernike_origin_field_from_image_dirs
+identify_optics = select_physical_model_from_rayfield
