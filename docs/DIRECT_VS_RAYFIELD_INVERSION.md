@@ -191,73 +191,46 @@ The conditioning diagnostics confirm that pipeline A has higher
 eliminates pose parameters by absorbing them into the rayfield
 measurement.  This is the central scientific claim of the study.
 
-## Results (v0.5.4, CMO oracle, FAST mode, 56 s)
+## Results — 4-oracle sweep (8 poses, 0.05 px noise)
 
-All numbers below are reproduced by running
-`python examples/notebooks/08_direct_vs_rayfield_inversion.py`
-with `seed=42`.
+Reproduced by running `python examples/sweep_direct_vs_rayfield.py`
+with `seed=42`.  Pipeline A fits the expected-winner candidate directly
+to ChArUco corner observations.  Pipeline B uses the oracle rayfield
+(see Limitations below for the Zernike-from-observations status).
 
-| Metric | Pipeline A (direct) | Pipeline B (rayfield) |
-|---|---|---|
-| Pixel RMS (CMO candidate) | 46.1 px (not converged) | — |
-| Ray-space RMS (CMO candidate) | — | 2.21 mm |
-| Zernike fit RMS | — | 0.0003 mm |
-| BIC (CMO physical) | 2857.7 (pixel space) | −172.0 (ray space) |
-| BIC (Brown-Conrady) | — | +7046.1 |
-| BIC (inclined plate) | — | +7072.6 |
-| Winner | N/A (single candidate) | `cmo_physical_shared` |
-| Runtime | 7 s | 49 s |
-| Initialisation | solvePnP (pinhole model) | None needed (Zernike BA) |
+| Oracle | Pipeline A RMS | Pipeline A | Pipeline B winner | Pipeline B |
+|---|---:|---:|---|:---:|
+| Pinhole | 0.04 px | ✓ converged | `central_pinhole` | ✓ |
+| Brown-Conrady | 0.06 px | ✓ converged | `central_brown_conrady` | ✓ |
+| Inclined plate | 0.11 px | ✓ converged | `pinhole_parallel_plate` | ✓ |
+| CMO shared-rig | 1.63 px | ✗ not converged | `cmo_physical_shared` | ✓ |
 
-### Interpretation
+### Key findings
 
-**Pipeline A** converges partially (RMS drops from ~103 px to ~46 px in
-50 iterations) but does not reach machine zero because `cv2.solvePnP`
-assumes a pinhole model, which is ~2 px off for CMO optics.  *With
-ground-truth poses*, pipeline A converges to RMS = 0.0000 px in 3 s —
-confirming that the bottleneck is pose initialisation, not the optimiser.
+**1. Pipeline B correctly classifies all four oracles** (3–12 s per
+oracle).  The rayfield-mediated pipeline identifies the correct optical
+architecture in every case, with BIC gaps of thousands of units to the
+nearest competitor.
 
-**Pipeline B** fits a Zernike rayfield jointly with poses (no optical
-model assumed), achieving 0.0003 mm ray-space RMS.  The subsequent
-ray-space model selection correctly identifies `cmo_physical_shared`
-by BIC, with a gap of > 7000 units to the nearest competitor.
+**2. Pipeline A converges on simple oracles but fails on CMO.**  The
+joint optical+pose optimisation converges to near-zero pixel RMS on
+pinhole, Brown-Conrady, and inclined plate oracles (0.04–0.11 px).
+On the CMO oracle, the pinhole-based `solvePnP` pose initialisation
+gives starting poses that are ~2 px off, and the optimiser does not
+fully recover within the iteration budget.  *With ground-truth poses*,
+pipeline A converges to RMS = 0.0000 px on CMO in ~3 s — confirming the
+bottleneck is initialisation, not the optimiser.
 
-**The key advantage of pipeline B** is that it eliminates pose
-initialisation as a failure mode.  The Zernike BA jointly estimates
-the rayfield and poses from scratch, without assuming any particular
-optical architecture.  Pipeline A can be equally accurate *if* well
-initialised, but its performance degrades when the initialisation
-model (pinhole) does not match the true optics (CMO).
+**3. Pipeline B is 10–100× faster** (3–12 s vs 96–712 s for A).
+Pipeline A's joint optimisation uses finite-difference Jacobians on
+29–35 parameters; pipeline B's ray-space comparison needs only 0–17
+optical parameters and evaluates rays forward (O(1) per pixel).
 
-### Pipeline A is fast with analytic projection, fragile without
-
-With a generic numerical inverse projection, pipeline A is impractically
-slow (~0.5 s per 3-D point).  With an **analytic `project_point`**
-method on the physical model (60 µs per point — 10 000× faster),
-pipeline A converges in 2–3 seconds to RMS = 0.0000 px on a CMO oracle
-*when poses are well initialised*.
-
-The bottleneck shifts from speed to **initialisation robustness**:
-cv2.solvePnP uses a pinhole model that is a poor match for CMO optics,
-requiring many iterations to correct the initial pose error.  Pipeline B
-absorbs this initialisation problem into the Zernike rayfield fit,
-which jointly optimises the rayfield and poses without assuming any
-specific optical model.
-
-### Poses are eliminated from model selection
-
-In pipeline B, board poses are absorbed into the Zernike rayfield fit
-(stage B1).  The model-selection stage (B2) compares physical candidates
-in ray space *without any pose parameters*.  This eliminates the
-optics-pose coupling that inflates condition numbers in pipeline A.
-
-Measured on the CMO oracle (at the true parameters, 10 corners):
-- Pipeline A: **coupling norm = 0.32** between the 17 optical parameters
-  and 12 pose parameters (29 total).  A coupling of 0 means poses and
-  optics are independent; 1 means they are perfectly confounded.
-- Pipeline B: **coupling norm = 0.00**, **0 pose parameters** in the
-  model-selection stage.  The rayfield has absorbed the pose degrees of
-  freedom upstream.
+**4. Poses are eliminated from model selection in pipeline B.** The
+rayfield absorbs the 6·n_poses nuisance parameters upstream, so the
+model-selection stage compares only the optical degrees of freedom.
+Pipeline A carries 12–48 pose parameters in its optimisation vector,
+creating optics-pose coupling (coupling norm ≈ 0.32–0.69 on CMO).
 
 ### The rayfield is a geometric intermediate variable
 
