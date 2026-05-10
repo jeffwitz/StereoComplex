@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+- Clarified the role of each documentation page with "This page answers" callouts.
+- Added `docs/VALIDATION_STATUS.md` distinguishing synthetic-validated, exploratory, and future work.
+- Added `examples/reproduce_docs_results.py` for lightweight reproduction of documented results.
+- Reframed `DIRECT_VS_RAYFIELD_INVERSION.md` as a methodological page on rayfield mediation.
+
 ## [0.5.3] - 2026-05-10
 
 ### Added
