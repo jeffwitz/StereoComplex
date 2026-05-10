@@ -166,32 +166,26 @@ evaluation.  The interface is `fit_direct_model_from_observations`.
 direct inverse problem, returning singular values, Schur-complement ranks,
 coupling norms, and parameter correlations.
 
-## Current state (v0.5.3)
+## Current state
 
-| Component | Status |
-|---|---|
-| Oracle builders (6 families) | Done |
-| Inverse point→pixel projection | Done |
-| ChArUco observation simulator | Done (with rejection sampling) |
-| Direct inversion pipeline (A) | Done (cv2.solvePnP init + joint BA) |
-| Image-based Zernike rayfield (B) | Done (BA from ChArUco corners) |
-| Conditioning diagnostics | Done (Schur complement, pipeline-aware) |
-| Notebook 08 (CMO oracle demo) | Wired (A+B), FAST mode bottleneck pending |
-| Full 6-oracle sweep (pipeline B) | Done (6/6 correct) |
-| Full 6-oracle sweep (pipeline A) | Partial (4/6, CMO fails on init) |
+Three experiments at different levels of completeness:
 
-Both pipelines are implemented and tested (113 tests, 0 warnings).
-Pipeline A converges on pinhole and Brown oracles with cv2.solvePnP
-pose initialisation.  Pipeline B fits a Zernike rayfield from the same
-ChArUco observations used by pipeline A.  The CMO oracle remains
-challenging in FAST mode due to its narrow field of view (~5-10 corners
-per frame even with a dense board) — this is a physical property of the
-CMO architecture, not a software defect.
+| Experiment | What it demonstrates | Status |
+|---|---|---|
+| **Notebook 08 FAST** | Full ChArUco→Zernike→selection loop on CMO (~56 s) | Done |
+| **6-oracle sweep (pipeline B)** | Ray-space model selection classifies all 6 families | 6/6 correct |
+| **6-oracle sweep (pipeline A)** | Direct fit converges on all oracles when well-initialised | 6/6 (5/6 with solvePnP, CMO needs truth poses) |
 
-The conditioning diagnostics confirm that pipeline A has higher
-(poorer) condition numbers due to optics-pose coupling, while pipeline B
-eliminates pose parameters by absorbing them into the rayfield
-measurement.  This is the central scientific claim of the study.
+The sweep uses oracle rayfields for pipeline B to isolate the model-
+selection comparison.  The full ChArUco→Zernike→selection loop
+(pipeline B) is demonstrated on the CMO oracle in notebook 08; scaling
+it to all 6 oracles requires ~10 min of batch computation (the Zernike
+BA from observations is the bottleneck, at ~1–2 min per oracle).
+
+113 tests, 0 warnings.  Analytic `project_point` methods exist for
+Pinhole, Brown-Conrady, and CMO models, making pipeline A fast (~2–10 s
+per oracle).  Pipeline B eliminates pose parameters from model selection
+(coupling norm = 0 in the second stage vs 0.32–0.69 for pipeline A).
 
 ## Results — 6-oracle classification matrix
 
