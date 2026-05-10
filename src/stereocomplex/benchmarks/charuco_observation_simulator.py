@@ -21,6 +21,18 @@ Array = np.ndarray
 
 
 @dataclass(frozen=True)
+class SamplingDiagnostics:
+    """Rejection-sampling statistics for the observation simulator."""
+
+    n_poses_requested: int
+    n_poses_accepted: int
+    n_attempts_used: int
+    mean_corners_per_frame: float
+    min_corners: int
+    max_corners: int
+
+
+@dataclass(frozen=True)
 class CharucoObservationSet:
     """Synthetic ChArUco observations for one stereo pair.
 
@@ -53,6 +65,7 @@ class CharucoObservationSet:
     point_indices: list[np.ndarray]
     noise_std_px: float
     image_size: tuple[int, int]
+    diagnostics: SamplingDiagnostics | None = None
 
 
 def _make_board_points(squares_x: int, squares_y: int,
@@ -96,9 +109,9 @@ def _make_pose_sweep(
         rvec = Rotation.from_matrix(R).as_rotvec()
         # Translation: board placed at ~z_distance_mm along the camera z axis,
         # with small lateral shifts.
-        tx = rng.uniform(-15.0, 15.0)
-        ty = rng.uniform(-10.0, 10.0)
-        tz = z_distance_mm + rng.uniform(-10.0, 10.0)
+        tx = rng.uniform(-5.0, 5.0)
+        ty = rng.uniform(-5.0, 5.0)
+        tz = z_distance_mm + rng.uniform(-5.0, 5.0)
         rvecs.append(np.asarray(rvec, dtype=np.float64))
         tvecs.append(np.array([tx, ty, tz], dtype=np.float64))
     return rvecs, tvecs
@@ -116,6 +129,8 @@ def simulate_charuco_observations_from_rayfield(
     noise_std_px: float = 0.0,
     dropout_rate: float = 0.0,
     seed: int = 42,
+    min_corners_per_frame: int = 30,
+    max_pose_attempts: int = 200,
 ) -> CharucoObservationSet:
     """Simulate ChArUco corner observations from a stereo rayfield oracle.
 
@@ -145,30 +160,35 @@ def simulate_charuco_observations_from_rayfield(
     CharucoObservationSet
     """
     rng = np.random.default_rng(seed)
+    from scipy.spatial.transform import Rotation
 
     # Board points in local frame
     obj_pts = _make_board_points(squares_x, squares_y, square_size_mm)
-    M = obj_pts.shape[0]
 
-    # Generate poses
-    rvecs, tvecs = _make_pose_sweep(n_poses, z_distance_mm, seed=seed)
-
+    # Rejection sampling of poses
+    accepted_rvecs: list[np.ndarray] = []
+    accepted_tvecs: list[np.ndarray] = []
     left_pixels: list[np.ndarray] = []
     right_pixels: list[np.ndarray] = []
     point_indices: list[np.ndarray] = []
+    n_attempts = 0
+    corner_counts: list[int] = []
 
-    from scipy.spatial.transform import Rotation
+    pose_seed = seed
+    while len(accepted_rvecs) < n_poses and n_attempts < max_pose_attempts:
+        n_attempts += 1
+        pose_seed += 1
+        # Sample one pose centered in the FOV
+        rvecs_one, tvecs_one = _make_pose_sweep(1, z_distance_mm, seed=pose_seed)
+        rv_single, tv_single = rvecs_one[0], tvecs_one[0]
 
-    for rv, tv in zip(rvecs, tvecs, strict=True):
-        R = Rotation.from_rotvec(rv).as_matrix()
-        t = np.asarray(tv, dtype=np.float64).reshape(3)
-        # Transform board points to world frame
+        R = Rotation.from_rotvec(rv_single).as_matrix()
+        t = np.asarray(tv_single, dtype=np.float64).reshape(3)
         world_pts = (R @ obj_pts.T).T + t[None, :]
 
         uv_left_list, uv_right_list, idx_list = [], [], []
-        for k in range(M):
+        for k in range(obj_pts.shape[0]):
             X = world_pts[k]
-            # Project through left channel
             uvL, okL, distL = project_point_by_rayfield_inverse(
                 left_field, X, image_size, max_nfev=80,
             )
@@ -180,28 +200,43 @@ def simulate_charuco_observations_from_rayfield(
                 uv_right_list.append(uvR)
                 idx_list.append(k)
 
-        if not uv_left_list:
-            # No visible corners in this pose — add empty arrays
-            left_pixels.append(np.empty((0, 2), dtype=np.float64))
-            right_pixels.append(np.empty((0, 2), dtype=np.float64))
-            point_indices.append(np.empty(0, dtype=int))
-            continue
+        n_vis = len(uv_left_list)
+        corner_counts.append(n_vis)
+        if n_vis >= min_corners_per_frame:
+            accepted_rvecs.append(np.asarray(rv_single, dtype=np.float64))
+            accepted_tvecs.append(np.asarray(tv_single, dtype=np.float64))
+            left_pixels.append(np.array(uv_left_list, dtype=np.float64))
+            right_pixels.append(np.array(uv_right_list, dtype=np.float64))
+            point_indices.append(np.array(idx_list, dtype=int))
 
-        uvL_arr = np.array(uv_left_list, dtype=np.float64)
-        uvR_arr = np.array(uv_right_list, dtype=np.float64)
-        idx_arr = np.array(idx_list, dtype=int)
+    # Build diagnostics
+    if corner_counts:
+        diag = SamplingDiagnostics(
+            n_poses_requested=n_poses,
+            n_poses_accepted=len(accepted_rvecs),
+            n_attempts_used=n_attempts,
+            mean_corners_per_frame=float(np.mean(corner_counts)),
+            min_corners=int(np.min(corner_counts)),
+            max_corners=int(np.max(corner_counts)),
+        )
+    else:
+        diag = SamplingDiagnostics(
+            n_poses_requested=n_poses, n_poses_accepted=0,
+            n_attempts_used=n_attempts, mean_corners_per_frame=0.0,
+            min_corners=0, max_corners=0,
+        )
 
-        # Apply dropout
-        if dropout_rate > 0:
-            n_vis = uvL_arr.shape[0]
+    rvecs = accepted_rvecs  # already np arrays
+    tvecs = accepted_tvecs  # already np arrays
+
+    # Apply dropout (on accepted poses)
+    if dropout_rate > 0:
+        for i in range(len(left_pixels)):
+            n_vis = left_pixels[i].shape[0]
             keep = rng.random(n_vis) > dropout_rate
-            uvL_arr = uvL_arr[keep]
-            uvR_arr = uvR_arr[keep]
-            idx_arr = idx_arr[keep]
-
-        left_pixels.append(uvL_arr)
-        right_pixels.append(uvR_arr)
-        point_indices.append(idx_arr)
+            left_pixels[i] = left_pixels[i][keep]
+            right_pixels[i] = right_pixels[i][keep]
+            point_indices[i] = point_indices[i][keep]
 
     # Apply pixel noise (only to non-empty arrays)
     if noise_std_px > 0:
@@ -216,11 +251,12 @@ def simulate_charuco_observations_from_rayfield(
 
     return CharucoObservationSet(
         object_points_mm=obj_pts,
-        pose_rvecs=np.array(rvecs, dtype=np.float64),
-        pose_tvecs=np.array(tvecs, dtype=np.float64),
+        pose_rvecs=np.array(rvecs, dtype=np.float64) if rvecs else np.empty((0, 3), dtype=np.float64),
+        pose_tvecs=np.array(tvecs, dtype=np.float64) if tvecs else np.empty((0, 3), dtype=np.float64),
         left_pixels=left_pixels,
         right_pixels=right_pixels,
         point_indices=point_indices,
         noise_std_px=float(noise_std_px),
         image_size=image_size,
+        diagnostics=diag,
     )

@@ -26,6 +26,7 @@ def test_direct_fit_pinhole_oracle_produces_low_rms():
     obs = simulate_charuco_observations_from_rayfield(
         oracle.left_field, oracle.right_field,
         image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
+        min_corners_per_frame=0,
     )
     spec = PhysicalModelSpec("central_pinhole", CentralPinholeModel,
                               np.zeros(0, dtype=np.float64))
@@ -45,6 +46,7 @@ def test_direct_fit_result_has_expected_fields():
     obs = simulate_charuco_observations_from_rayfield(
         oracle.left_field, oracle.right_field,
         image_size=(160, 120), n_poses=2, noise_std_px=0.0, seed=42,
+        min_corners_per_frame=0,
     )
     spec = PhysicalModelSpec("central_pinhole", CentralPinholeModel,
                               np.zeros(0, dtype=np.float64))

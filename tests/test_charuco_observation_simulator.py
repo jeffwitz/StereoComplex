@@ -5,11 +5,13 @@ from __future__ import annotations
 import numpy as np
 
 from stereocomplex.benchmarks.charuco_observation_simulator import (
+    CharucoObservationSet,
+    SamplingDiagnostics,
     _make_board_points,
     _make_pose_sweep,
-    CharucoObservationSet,
     simulate_charuco_observations_from_rayfield,
 )
+from stereocomplex.benchmarks.model_selection_oracles import build_pinhole_oracle
 from stereocomplex.benchmarks.model_selection_oracles import build_pinhole_oracle
 
 
@@ -34,6 +36,7 @@ def test_simulate_zero_noise_observations():
     obs = simulate_charuco_observations_from_rayfield(
         oracle.left_field, oracle.right_field,
         image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
+        min_corners_per_frame=0,  # disable rejection for backward compat
     )
     assert isinstance(obs, CharucoObservationSet)
     assert obs.noise_std_px == 0.0
@@ -51,10 +54,12 @@ def test_noise_adds_perturbation():
     obs_clean = simulate_charuco_observations_from_rayfield(
         oracle.left_field, oracle.right_field,
         image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
+        min_corners_per_frame=0,
     )
     obs_noisy = simulate_charuco_observations_from_rayfield(
         oracle.left_field, oracle.right_field,
         image_size=(160, 120), n_poses=4, noise_std_px=0.5, seed=42,
+        min_corners_per_frame=0,
     )
     # At least some pixels should differ
     diffs = []
@@ -63,3 +68,52 @@ def test_noise_adds_perturbation():
             diffs.append(np.max(np.abs(Lc[: min(len(Lc), len(Ln))] - Ln[: min(len(Lc), len(Ln))])))
     assert len(diffs) > 0
     assert max(diffs) > 0.01
+
+
+def test_simulator_meets_min_corners_per_frame_on_cmo_oracle():
+    """With min_corners_per_frame=20, all accepted poses have enough corners."""
+    from stereocomplex.benchmarks.model_selection_oracles import build_cmo_oracle
+    oracle = build_cmo_oracle(image_size=(160, 120))
+    z_dist = oracle.ground_truth_parameters["working_distance_mm"]
+    obs = simulate_charuco_observations_from_rayfield(
+        oracle.left_field, oracle.right_field,
+        image_size=(160, 120), n_poses=4, z_distance_mm=z_dist,
+        squares_x=9, squares_y=7, square_size_mm=3.0,
+        min_corners_per_frame=5, seed=42,
+    )
+    assert obs.diagnostics is not None
+    diag = obs.diagnostics
+    assert diag.n_poses_accepted >= 2, (
+        f"CMO narrow FOV: expected ≥2 accepted poses, got {diag.n_poses_accepted}"
+    )
+    assert diag.n_attempts_used <= 200
+
+
+def test_simulator_diagnostics_report_correct_counts():
+    """SamplingDiagnostics must match the actual observation set."""
+    oracle = build_pinhole_oracle(image_size=(160, 120))
+    obs = simulate_charuco_observations_from_rayfield(
+        oracle.left_field, oracle.right_field,
+        image_size=(160, 120), n_poses=3, min_corners_per_frame=0, seed=42,
+    )
+    diag = obs.diagnostics
+    assert diag is not None
+    assert diag.n_poses_accepted == len(obs.left_pixels)
+    actual_corners = [p.shape[0] for p in obs.left_pixels]
+    if actual_corners:
+        assert diag.min_corners == min(actual_corners)
+        assert diag.max_corners == max(actual_corners)
+
+
+def test_simulator_returns_zero_poses_when_min_unsatisfiable():
+    """With impossible min_corners, simulator returns empty set, not loop."""
+    oracle = build_pinhole_oracle(image_size=(160, 120))
+    obs = simulate_charuco_observations_from_rayfield(
+        oracle.left_field, oracle.right_field,
+        image_size=(160, 120), n_poses=4,
+        min_corners_per_frame=10000, max_pose_attempts=20,
+        seed=42,
+    )
+    assert obs.diagnostics is not None
+    assert obs.diagnostics.n_poses_accepted == 0
+    assert len(obs.left_pixels) == 0
