@@ -205,6 +205,8 @@ def fit_direct_model_from_observations(
     p_optics = int(x0_optics.size)
 
     # --- pose initialisation ---
+    n_poses = len(observations.left_pixels)
+
     if initial_poses_R is not None and initial_poses_t is not None:
         # Use provided pose estimates
         pose_pairs = []
@@ -229,7 +231,6 @@ def fit_direct_model_from_observations(
         # Fallback: zeros (not great, but functional for well-posed problems)
         x0_poses = np.zeros(6 * n_poses, dtype=np.float64)
 
-    n_poses = len(observations.left_pixels)
     if x0_poses.size != 6 * n_poses:
         raise ValueError(
             f"pose vector length {x0_poses.size} does not match {n_poses} poses"

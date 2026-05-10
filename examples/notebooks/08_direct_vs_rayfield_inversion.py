@@ -84,7 +84,7 @@ ASSETS.mkdir(parents=True, exist_ok=True)
 # %%
 oracle = build_cmo_oracle(image_size=IMAGE_SIZE)
 
-n_poses = 4 if FAST else 8
+n_poses = 2 if FAST else 8
 noise_px = 0.0 if FAST else 0.1
 
 # Match the board distance to the CMO working distance
@@ -92,7 +92,8 @@ z_dist = oracle.ground_truth_parameters.get("working_distance_mm", 100.0)
 obs = simulate_charuco_observations_from_rayfield(
     oracle.left_field, oracle.right_field,
     image_size=IMAGE_SIZE, n_poses=n_poses, noise_std_px=noise_px, seed=SEED,
-    z_distance_mm=z_dist, squares_x=7, squares_y=5, square_size_mm=10.0,
+    z_distance_mm=z_dist, squares_x=9, squares_y=7, square_size_mm=3.0,
+    min_corners_per_frame=3,  # CMO has narrow FOV
 )
 print(f"Oracle: {oracle.name}")
 print(f"Poses: {len(obs.left_pixels)}, "
@@ -129,18 +130,34 @@ candidates = [
 # ## 3 — Pipeline A: direct inversion
 
 # %%
-# NOTE: The direct inversion pipeline (fit_direct_model_from_observations)
-# is implemented in stereocomplex.benchmarks.direct_inversion but requires
-# careful pose initialisation and enough visible corners per frame.
-# For this initial notebook we demonstrate the rayfield-mediated pipeline
-# (pipeline B), which is the core contribution of StereoComplex.
-#
-# Pipeline A (direct inversion) will be added in a follow-up once the
-# observation simulator produces sufficient coverage for robust joint
-# optimisation of optical parameters + board poses.
+from stereocomplex.benchmarks.direct_inversion import (
+    fit_direct_model_from_observations,
+    DirectFitResult,
+)
 
-direct_results = None  # placeholder
-best_direct = None
+direct_results: list[DirectFitResult] = []
+for spec in candidates:
+    t0 = _time.time()
+    try:
+        r = fit_direct_model_from_observations(
+            obs, spec, image_size=IMAGE_SIZE, max_nfev=50 if FAST else 500,
+        )
+    except Exception as exc:
+        print(f"  {spec.name}: FAILED — {exc}")
+        continue
+    elapsed = _time.time() - t0
+    direct_results.append(r)
+    status = "✓" if r.converged else "✗"
+    print(f"  {status} {spec.name:28s}  p_opt={r.n_parameters_optics:2d}  "
+          f"p_poses={r.n_parameters_poses:2d}  rms={r.rms_px:.4f} px  "
+          f"bic={r.bic:.1f}  [{elapsed:.0f}s]")
+
+if direct_results:
+    best_direct = min(direct_results, key=lambda r: r.bic)
+    print(f"\n  → Direct winner: {best_direct.model_name} (BIC={best_direct.bic:.1f})")
+else:
+    best_direct = None
+    print("\n  → Direct pipeline did not converge on any candidate.")
 
 # %% [markdown]
 # ## 4 — Pipeline B: rayfield-mediated inversion
@@ -149,18 +166,26 @@ best_direct = None
 # Step B2: compare physical candidates in ray space.
 
 # %%
-# B1 — Fit a compact Zernike rayfield to the observations.
-# For simplicity, we use the oracle rayfield directly (the Zernike fit
-# from images is the notebook-06 workflow).  In a real experiment, the
-# Zernike field would be fitted from the 2-D ChArUco corners via BA.
-# Here we measure from the oracle rays and add observation noise if
-# needed (the rayfield is already measured in this synthetic benchmark).
+# B1 — Fit a Zernike rayfield from the ChArUco observations.
+# This is the image-based pipeline: 2-D corners → Zernike BA → rayfield.
+from stereocomplex.benchmarks.rayfield_from_observations import (
+    fit_zernike_rayfield_from_charuco_observations,
+    ZernikeFitDiagnostics,
+)
 
-# Use the oracle fields directly as the "measured" rayfield.
-# In a full image-based pipeline, this would come from
-# fit_stereo_zernike_origin_field_from_image_dirs.
-left_measured = oracle.left_field
-right_measured = oracle.right_field
+t0 = _time.time()
+left_measured, right_measured, zernike_diag = (
+    fit_zernike_rayfield_from_charuco_observations(
+        obs, image_size=IMAGE_SIZE,
+        K_left=oracle.K_left, K_right=oracle.K_right,
+        max_order=4 if not FAST else 2,
+        max_nfev=100 if FAST else 500,
+    )
+)
+elapsed_zernike = _time.time() - t0
+print(f"Zernike rayfield fitted from {zernike_diag.n_observations} corners [{elapsed_zernike:.0f}s]")
+print(f"  pixel RMS: {zernike_diag.ray_rms_mm:.4f} mm")
+print(f"  converged: {zernike_diag.converged}")
 
 # B2 — Run ray-space model selection
 K_cmo = oracle.K_left
@@ -185,16 +210,21 @@ print(f"\n  → Rayfield winner: {report.best_by_bic}")
 # ## 5 — Comparison
 
 # %%
-print("┌──────────────────────────┬────────────────────┐")
-print("│ Model                    │ Rayfield BIC (mm)  │")
-print("├──────────────────────────┼────────────────────┤")
+print("┌──────────────────────────┬────────────────────┬────────────────────┐")
+print("│ Model                    │ Direct BIC (px)    │ Rayfield BIC (mm)  │")
+print("├──────────────────────────┼────────────────────┼────────────────────┤")
 rayfield_by_name = {c.model_name: c for c in report.candidates}
+direct_by_name = {r.model_name: r for r in direct_results} if direct_results else {}
 for spec in candidates:
     name = spec.name
+    d_bic = f"{direct_by_name[name].bic:.1f}" if name in direct_by_name else "N/A"
     r_bic = f"{rayfield_by_name[name].bic:.1f}" if name in rayfield_by_name else "N/A"
+    d_win = "***" if direct_results and name in direct_by_name and direct_by_name[name] is best_direct else ""
     r_win = "***" if report.best_by_bic == name else ""
-    print(f"│ {name:24s} │ {r_bic:>10s} {r_win:3s} │")
-print("└──────────────────────────┴────────────────────┘")
+    print(f"│ {name:24s} │ {d_bic:>10s} {d_win:3s} │ {r_bic:>10s} {r_win:3s} │")
+print("└──────────────────────────┴────────────────────┴────────────────────┘")
+print("\nNote: Direct BIC uses pixel residuals; rayfield BIC uses mm line residuals.")
+print("They are NOT numerically comparable — compare winners within each column.")
 
 # %% [markdown]
 # ## 6 — Summary
