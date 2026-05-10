@@ -37,8 +37,7 @@ class ZernikeFitDiagnostics:
     n_zernike_coeffs: int
     n_poses: int
     n_observations: int
-    pixel_rms_px: float
-    ray_rms_mm: float | None
+    ray_rms_mm: float
     converged: bool
     nfev: int
 
@@ -212,7 +211,6 @@ def fit_zernike_rayfield_from_charuco_observations(
         n_zernike_coeffs=n_zernike,
         n_poses=n_poses,
         n_observations=n_obs,
-        pixel_rms_px=rms,  # this is in mm (perpendicular distance)
         ray_rms_mm=rms,
         converged=bool(sol.success),
         nfev=int(sol.nfev),

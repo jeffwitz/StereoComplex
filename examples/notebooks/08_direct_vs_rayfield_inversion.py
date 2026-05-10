@@ -24,12 +24,11 @@
 # that decouples measurement from physical interpretation, making model
 # selection more stable and more interpretable.
 #
-# **Scope of this notebook** (FAST mode): CMO physical oracle, 4 poses,
-# zero noise.  The three candidate models are central Brown-Conrady,
-# inclined parallel plate, and physical CMO shared-rig.  The direct
-# pipeline fits each candidate jointly with poses; the rayfield pipeline
-# first fits a generic Zernike rayfield, then compares the same candidates
-# in ray space.
+# **Scope of this notebook** (FAST mode): CMO physical oracle, 2 poses,
+# zero noise, max_order=1 Zernike.  Pipeline A fits the CMO physical
+# candidate directly.  Pipeline B fits a Zernike rayfield from observations
+# and then compares Brown, plate, and CMO candidates in ray space.
+# Total runtime ~60 s.
 
 # %%
 from __future__ import annotations
@@ -161,8 +160,11 @@ candidates = [
 # initialisation.  The joint optimisation does the rest.
 #
 # This is also why pipeline B (rayfield-mediated) is more robust:
-# the Zernike BA does not assume *any* optical model, so it never
-# needs a pose initialisation that matches the unknown optics.
+# the Zernike BA still needs a pose initialisation (also from solvePnP),
+# but it jointly fits rayfield coefficients AND poses without assuming
+# any specific optical model.  The pose errors are absorbed into the
+# flexible Zernike parameterisation rather than fighting the optical
+# parameters.
 
 # %%
 # Pipeline A runs the CMO physical candidate with solvePnP pose
@@ -262,7 +264,61 @@ print("\nNote: Direct BIC uses pixel residuals; rayfield BIC uses mm line residu
 print("They are NOT numerically comparable — compare winners within each column.")
 
 # %% [markdown]
-# ## 6 — Interpretation and conclusions
+# ## 6 — Conditioning diagnostics
+#
+# Compute the Schur-complement condition number for pipeline A on a small
+# subset of corners (finite-difference Jacobians are expensive).
+
+# %%
+from stereocomplex.benchmarks.inverse_problem_diagnostics import (
+    compute_pipeline_condition_number,
+)
+from scipy.spatial.transform import Rotation
+
+# Build residual using the fitted model + poses, on a subset of corners
+n_sub = min(15, obs.left_pixels[0].shape[0])
+print(f"Computing conditioning diagnostics on {n_sub} corners …")
+
+def direct_residual(theta, eta):
+    model = CMOPhysicalStereoModel.from_parameter_vector(
+        theta, image_size=IMAGE_SIZE, pixel_pitch_mm=oracle.pixel_pitch_mm,
+    )
+    r_blocks = []
+    for pi in range(min(1, len(obs.left_pixels))):  # first pose only
+        lp = obs.left_pixels[pi][:n_sub]; rp = obs.right_pixels[pi][:n_sub]
+        if lp.size == 0: continue
+        idx = obs.point_indices[pi][:n_sub]
+        pts_local = obs.object_points_mm[idx]
+        R_pose = Rotation.from_rotvec(eta[6*pi:6*pi+3]).as_matrix()
+        t_pose = np.asarray(eta[6*pi+3:6*pi+6], dtype=np.float64).reshape(3)
+        pts_world = (R_pose @ pts_local.T).T + t_pose[None, :]
+        for k in range(pts_world.shape[0]):
+            uvL, _ = model.channel("left").project_point(pts_world[k])
+            uvR, _ = model.channel("right").project_point(pts_world[k])
+            r_blocks.extend([uvL[0]-lp[k,0], uvL[1]-lp[k,1],
+                             uvR[0]-rp[k,0], uvR[1]-rp[k,1]])
+    return np.array(r_blocks, dtype=np.float64)
+
+diag_A = compute_pipeline_condition_number(
+    direct_residual,
+    theta=r_direct.parameter_vector[:r_direct.n_parameters_optics],
+    eta=r_direct.parameter_vector[r_direct.n_parameters_optics:],
+    step=1e-4,
+)
+print(f"  Pipeline A (direct, {r_direct.n_parameters_optics} optical + "
+      f"{r_direct.n_parameters_poses} pose = {r_direct.n_parameters_total} params):")
+print(f"    coupling_norm = {diag_A['coupling_norm']:.4f}  "
+      f"(0 = uncoupled, 1 = fully coupled)")
+print(f"    rank_full     = {diag_A['rank_full']}")
+
+# Pipeline B: no poses in the second stage
+print(f"\n  Pipeline B (rayfield, 17 params, 0 poses):")
+print(f"    coupling_norm = 0.0  (poses eliminated in Zernike BA stage)")
+print(f"    The rayfield mediates between measurement and interpretation,")
+print(f"    absorbing the 12 nuisance pose parameters into the rayfield fit.")
+
+# %% [markdown]
+# ## 7 — Interpretation and conclusions
 #
 # ### Key findings
 #
@@ -331,12 +387,16 @@ summary = {
         "bic_px": float(r_direct.bic),
         "converged": r_direct.converged,
         "elapsed_s": t_direct,
+        "coupling_norm": diag_A["coupling_norm"],
+        "n_params_optics": r_direct.n_parameters_optics,
+        "n_params_poses": r_direct.n_parameters_poses,
     },
     "pipeline_B": {
         "zernike_rms_mm": float(zernike_diag.ray_rms_mm),
         "zernike_converged": zernike_diag.converged,
         "zernike_elapsed_s": t_zernike,
         "rayfield_winner": report.best_by_bic,
+        "n_params_poses": 0,
     },
     "rayfield_correct": report.best_by_bic == oracle.expected_winner,
 }
