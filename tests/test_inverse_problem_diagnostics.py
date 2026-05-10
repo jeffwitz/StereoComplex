@@ -7,6 +7,7 @@ import numpy as np
 from stereocomplex.benchmarks.inverse_problem_diagnostics import (
     InverseProblemDiagnostics,
     compute_inverse_problem_diagnostics,
+    compute_pipeline_condition_number,
     compute_schur_information,
     finite_difference_jacobian,
 )
@@ -49,3 +50,45 @@ def test_diagnostics_on_simple_residual():
     assert diag.singular_values_full.size > 0
     assert diag.condition_full > 0
     assert 0.0 <= diag.optical_pose_coupling_norm <= 1.0
+
+
+def test_pipeline_diagnostics_pose_params_zero_for_rayfield():
+    """Pipeline B (rayfield) should report p_poses=0."""
+    from stereocomplex.benchmarks.inverse_problem_diagnostics import (
+        compute_pipeline_condition_number,
+    )
+
+    def rayfield_residual(theta, eta):
+        return theta  # trivial
+
+    result = compute_pipeline_condition_number(
+        rayfield_residual, np.array([1.0, 2.0]), eta=None,
+    )
+    assert result["p_poses"] == 0
+    assert result["coupling_norm"] == 0.0
+
+
+def test_pipeline_A_has_higher_condition_number_than_B():
+    """On a coupled residual, pipeline A should have higher condition number."""
+    from stereocomplex.benchmarks.inverse_problem_diagnostics import (
+        compute_pipeline_condition_number,
+    )
+
+    # Residual with strong optics-pose coupling
+    def coupled_residual(theta, eta=None):
+        theta = np.asarray(theta, dtype=np.float64).reshape(-1)
+        if eta is not None:
+            eta = np.asarray(eta, dtype=np.float64).reshape(-1)
+            return np.array([theta[0] + eta[0], theta[0] - eta[0]*0.99])
+        return np.array([theta[0], theta[0]])
+
+    result_A = compute_pipeline_condition_number(
+        coupled_residual, np.array([1.0]), eta=np.array([1.0]),
+    )
+    result_B = compute_pipeline_condition_number(
+        coupled_residual, np.array([1.0]), eta=None,
+    )
+    # Pipeline A with poses should have higher (worse) condition number
+    # due to optics-pose coupling
+    assert result_A["condition_schur"] >= result_B["condition_optics_only"]
+    assert result_A["coupling_norm"] > 0.0

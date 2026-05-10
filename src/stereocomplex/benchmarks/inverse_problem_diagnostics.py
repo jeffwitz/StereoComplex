@@ -216,3 +216,78 @@ def compute_inverse_problem_diagnostics(
         max_parameter_correlation=max_corr,
         correlation_matrix=corr,
     )
+
+
+def compute_pipeline_condition_number(
+    residual_function,
+    theta: Array,
+    eta: Array | None = None,
+    *,
+    step: float = 1e-6,
+) -> dict[str, float]:
+    """Compute condition numbers for both pipeline types from a residual.
+
+    Parameters
+    ----------
+    residual_function : callable
+        ``r = f(theta, eta=None)``.  If *eta* is None, the residual
+        has no pose parameters (pipeline B / rayfield).
+    theta : (p_optics,) ndarray
+        Optical parameters at the optimum.
+    eta : (p_poses,) ndarray | None
+        Pose parameters.  If None, only the optics-only condition is computed.
+
+    Returns
+    -------
+    dict with keys ``condition_optics_only`` and, if *eta* is provided,
+    ``condition_schur`` and ``coupling_norm``.
+    """
+    th = np.asarray(theta, dtype=np.float64).reshape(-1)
+    p_opt = th.size
+
+    if eta is not None:
+        et = np.asarray(eta, dtype=np.float64).reshape(-1)
+        p_pose = et.size
+
+        def full_res(x):
+            return residual_function(x[:p_opt], x[p_opt:])
+
+        J_full = finite_difference_jacobian(full_res, np.concatenate([th, et]), step=step)
+        J_opt = J_full[:, :p_opt]
+        J_pose = J_full[:, p_opt:]
+        s_full = np.linalg.svd(J_full, compute_uv=False)
+        I_schur = compute_schur_information(J_opt, J_pose)
+        eigvals, _ = np.linalg.eigh(I_schur)
+        s_schur = np.sqrt(np.maximum(eigvals, 0.0))
+        s_schur = np.sort(s_schur)[::-1]
+
+        coupling = float(np.linalg.norm(J_opt.T @ J_pose, "fro"))
+        norm_opt = float(np.linalg.norm(J_opt, "fro"))
+        norm_pose = float(np.linalg.norm(J_pose, "fro"))
+        coupling_norm = coupling / max(norm_opt * norm_pose, 1e-30)
+
+        return {
+            "condition_optics_only": _condition_number(s_full[:p_opt]) if p_opt > 0 else 0.0,
+            "condition_full": _condition_number(s_full) if s_full.size > 0 else 0.0,
+            "condition_schur": _condition_number(s_schur) if s_schur.size > 0 else 0.0,
+            "coupling_norm": coupling_norm,
+            "rank_full": _numerical_rank(s_full) if s_full.size > 0 else 0,
+            "p_optics": p_opt,
+            "p_poses": p_pose,
+        }
+    else:
+        # Pipeline B: no pose parameters
+        def opt_res(x):
+            return residual_function(x, None)
+
+        J_opt = finite_difference_jacobian(opt_res, th, step=step)
+        s_opt = np.linalg.svd(J_opt, compute_uv=False) if p_opt > 0 else np.zeros(0)
+        return {
+            "condition_optics_only": _condition_number(s_opt) if s_opt.size > 0 else 0.0,
+            "condition_full": _condition_number(s_opt) if s_opt.size > 0 else 0.0,
+            "condition_schur": _condition_number(s_opt) if s_opt.size > 0 else 0.0,
+            "coupling_norm": 0.0,
+            "rank_full": _numerical_rank(s_opt) if s_opt.size > 0 else 0,
+            "p_optics": p_opt,
+            "p_poses": 0,
+        }
