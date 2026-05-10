@@ -1,7 +1,19 @@
 {
   "oracle": "CMO shared-rig",
-  "n_poses": 4,
+  "n_poses": 2,
+  "n_corners": 89,
   "noise_std_px": 0.0,
-  "rayfield_winner": "cmo_physical_shared",
+  "pipeline_A": {
+    "rms_px": 46.10135152847676,
+    "bic_px": 2857.73014875033,
+    "converged": false,
+    "elapsed_s": 6.556871175765991
+  },
+  "pipeline_B": {
+    "zernike_rms_mm": 0.00034938421595575556,
+    "zernike_converged": false,
+    "zernike_elapsed_s": 49.62812876701355,
+    "rayfield_winner": "cmo_physical_shared"
+  },
   "rayfield_correct": true
 }

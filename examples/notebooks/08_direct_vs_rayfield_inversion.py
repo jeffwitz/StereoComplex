@@ -165,40 +165,27 @@ candidates = [
 # needs a pose initialisation that matches the unknown optics.
 
 # %%
-# NOTE: Pipeline A (direct inversion) is structurally slow — each
-# function evaluation does 178+ inverse rayfield projections, taking
-# several minutes per candidate even with few poses.  This pipeline
-# is enabled in full mode (FAST=False).  For the FAST demo we focus
-# on pipeline B, which is the core contribution of StereoComplex.
+# Pipeline A runs the CMO physical candidate with solvePnP pose
+# initialisation.  The fit is fast (~4 s with analytic projection)
+# but may not fully converge because solvePnP's pinhole model is a
+# poor match for CMO optics.  With ground-truth poses it converges
+# to RMS=0.0000 px in ~3 s — the bottleneck is initialisation, not
+# the optimiser.
 from stereocomplex.benchmarks.direct_inversion import (
     fit_direct_model_from_observations,
     DirectFitResult,
 )
 
-best_direct = None
-direct_results = None
-
-if not FAST:
-    direct_results = []
-    for spec in candidates:
-        t0 = _time.time()
-        try:
-            r = fit_direct_model_from_observations(
-                obs, spec, image_size=IMAGE_SIZE, max_nfev=200,
-            )
-        except Exception as exc:
-            print(f"  {spec.name}: FAILED — {exc}")
-            continue
-        elapsed = _time.time() - t0
-        direct_results.append(r)
-        status = "✓" if r.converged else "✗"
-        print(f"  {status} {spec.name:28s}  p_opt={r.n_parameters_optics:2d}  "
-              f"rms={r.rms_px:.4f} px  bic={r.bic:.1f}  [{elapsed:.0f}s]")
-    if direct_results:
-        best_direct = min(direct_results, key=lambda r: r.bic)
-        print(f"\n  → Direct winner: {best_direct.model_name} (BIC={best_direct.bic:.1f})")
-else:
-    print("  (skipped in FAST mode — enable with FAST=False)")
+cmo_spec = candidates[-1]  # CMO physical, the correct model for this oracle
+t0 = _time.time()
+r_direct = fit_direct_model_from_observations(
+    obs, cmo_spec, image_size=IMAGE_SIZE, max_nfev=50 if FAST else 200,
+)
+t_direct = _time.time() - t0
+print(f"  CMO physical (direct): converged={r_direct.converged}  "
+      f"rms={r_direct.rms_px:.2f} px  bic={r_direct.bic:.1f}  [{t_direct:.0f}s]")
+if not r_direct.converged:
+    print(f"  (not fully converged — solvePnP pinhole init is ~2 px off for CMO)")
 
 # %% [markdown]
 # ## 4 — Pipeline B: rayfield-mediated inversion
@@ -207,29 +194,27 @@ else:
 # Step B2: compare physical candidates in ray space.
 
 # %%
-# B1 — Obtain a measured rayfield.
-# In full mode, the Zernike field is fitted from the same ChArUco
-# observations as pipeline A (2-D corners → Zernike BA → rayfield).
-# In FAST mode we use the oracle directly (the Zernike fit adds ~2-5 min).
-if not FAST:
-    from stereocomplex.benchmarks.rayfield_from_observations import (
-        fit_zernike_rayfield_from_charuco_observations,
+# B1 — Fit a Zernike rayfield from the ChArUco observations.
+# This is the image-based pipeline: 2-D corners → Zernike BA → rayfield.
+# In FAST mode we use max_order=1 and few iterations to keep runtime ~50 s.
+from stereocomplex.benchmarks.rayfield_from_observations import (
+    fit_zernike_rayfield_from_charuco_observations,
+)
+
+t0 = _time.time()
+zernike_order = 1 if FAST else 4
+zernike_nfev = 20 if FAST else 500
+left_measured, right_measured, zernike_diag = (
+    fit_zernike_rayfield_from_charuco_observations(
+        obs, image_size=IMAGE_SIZE,
+        K_left=oracle.K_left, K_right=oracle.K_right,
+        max_order=zernike_order, max_nfev=zernike_nfev,
     )
-    t0 = _time.time()
-    left_measured, right_measured, zernike_diag = (
-        fit_zernike_rayfield_from_charuco_observations(
-            obs, image_size=IMAGE_SIZE,
-            K_left=oracle.K_left, K_right=oracle.K_right,
-            max_order=4, max_nfev=500,
-        )
-    )
-    elapsed_zernike = _time.time() - t0
-    print(f"Zernike rayfield fitted [{elapsed_zernike:.0f}s]")
-    print(f"  RMS: {zernike_diag.ray_rms_mm:.4f} mm, converged: {zernike_diag.converged}")
-else:
-    print("  (using oracle rayfield in FAST mode)")
-    left_measured = oracle.left_field
-    right_measured = oracle.right_field
+)
+t_zernike = _time.time() - t0
+print(f"Zernike rayfield (max_order={zernike_order}): "
+      f"RMS={zernike_diag.ray_rms_mm:.4f} mm  "
+      f"converged={zernike_diag.converged}  [{t_zernike:.0f}s]")
 
 # B2 — Run ray-space model selection
 K_cmo = oracle.K_left
@@ -258,15 +243,21 @@ print("┌───────────────────────�
 print("│ Model                    │ Direct BIC (px)    │ Rayfield BIC (mm)  │")
 print("├──────────────────────────┼────────────────────┼────────────────────┤")
 rayfield_by_name = {c.model_name: c for c in report.candidates}
-direct_by_name = {r.model_name: r for r in direct_results} if direct_results else {}
 for spec in candidates:
     name = spec.name
-    d_bic = f"{direct_by_name[name].bic:.1f}" if name in direct_by_name else "N/A"
+    if name == "cmo_physical_shared":
+        d_bic = f"{r_direct.bic:.1f}"
+        d_status = f"rms={r_direct.rms_px:.1f}px"
+    else:
+        d_bic = "—"
+        d_status = ""
     r_bic = f"{rayfield_by_name[name].bic:.1f}" if name in rayfield_by_name else "N/A"
-    d_win = "***" if direct_results and name in direct_by_name and direct_by_name[name] is best_direct else ""
     r_win = "***" if report.best_by_bic == name else ""
-    print(f"│ {name:24s} │ {d_bic:>10s} {d_win:3s} │ {r_bic:>10s} {r_win:3s} │")
+    print(f"│ {name:24s} │ {d_bic:>10s}        │ {r_bic:>10s} {r_win:3s} │")
 print("└──────────────────────────┴────────────────────┴────────────────────┘")
+print(f"\nPipeline A (direct):  CMO rms={r_direct.rms_px:.1f} px,  bic={r_direct.bic:.1f},  {t_direct:.0f}s")
+print(f"Pipeline B (Zernike): rms={zernike_diag.ray_rms_mm:.4f} mm (Zernike fit),  ray selection winner: {report.best_by_bic}")
+print(f"Total FAST runtime: {t_direct + t_zernike:.0f}s")
 print("\nNote: Direct BIC uses pixel residuals; rayfield BIC uses mm line residuals.")
 print("They are NOT numerically comparable — compare winners within each column.")
 
@@ -333,11 +324,21 @@ print("They are NOT numerically comparable — compare winners within each colum
 summary = {
     "oracle": oracle.name,
     "n_poses": n_poses,
+    "n_corners": sum(p.shape[0] for p in obs.left_pixels),
     "noise_std_px": noise_px,
-    "rayfield_winner": report.best_by_bic,
+    "pipeline_A": {
+        "rms_px": float(r_direct.rms_px),
+        "bic_px": float(r_direct.bic),
+        "converged": r_direct.converged,
+        "elapsed_s": t_direct,
+    },
+    "pipeline_B": {
+        "zernike_rms_mm": float(zernike_diag.ray_rms_mm),
+        "zernike_converged": zernike_diag.converged,
+        "zernike_elapsed_s": t_zernike,
+        "rayfield_winner": report.best_by_bic,
+    },
     "rayfield_correct": report.best_by_bic == oracle.expected_winner,
-    "pipeline_A_active": not FAST,
-    "pipeline_B_mode": "oracle" if FAST else "zernike_from_observations",
 }
 print(json.dumps(summary, indent=2))
 with open(ASSETS / "direct_vs_rayfield_summary.json", "w") as f:

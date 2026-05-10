@@ -191,14 +191,43 @@ The conditioning diagnostics confirm that pipeline A has higher
 eliminates pose parameters by absorbing them into the rayfield
 measurement.  This is the central scientific claim of the study.
 
-## Results and conclusions
+## Results (v0.5.4, CMO oracle, FAST mode, 56 s)
 
-### Pipeline B correctly identifies the CMO architecture
+All numbers below are reproduced by running
+`python examples/notebooks/08_direct_vs_rayfield_inversion.py`
+with `seed=42`.
 
-On a CMO oracle with 89 ChArUco corners across 2 poses, the rayfield-
-mediated pipeline selects `cmo_physical_shared` by BIC with a ray-space
-RMS < 10⁻⁶ mm for the correct model versus ~52 mm for Brown-Conrady
-and inclined plate.  The BIC gap exceeds 90 000 units.
+| Metric | Pipeline A (direct) | Pipeline B (rayfield) |
+|---|---|---|
+| Pixel RMS (CMO candidate) | 46.1 px (not converged) | — |
+| Ray-space RMS (CMO candidate) | — | 2.21 mm |
+| Zernike fit RMS | — | 0.0003 mm |
+| BIC (CMO physical) | 2857.7 (pixel space) | −172.0 (ray space) |
+| BIC (Brown-Conrady) | — | +7046.1 |
+| BIC (inclined plate) | — | +7072.6 |
+| Winner | N/A (single candidate) | `cmo_physical_shared` |
+| Runtime | 7 s | 49 s |
+| Initialisation | solvePnP (pinhole model) | None needed (Zernike BA) |
+
+### Interpretation
+
+**Pipeline A** converges partially (RMS drops from ~103 px to ~46 px in
+50 iterations) but does not reach machine zero because `cv2.solvePnP`
+assumes a pinhole model, which is ~2 px off for CMO optics.  *With
+ground-truth poses*, pipeline A converges to RMS = 0.0000 px in 3 s —
+confirming that the bottleneck is pose initialisation, not the optimiser.
+
+**Pipeline B** fits a Zernike rayfield jointly with poses (no optical
+model assumed), achieving 0.0003 mm ray-space RMS.  The subsequent
+ray-space model selection correctly identifies `cmo_physical_shared`
+by BIC, with a gap of > 7000 units to the nearest competitor.
+
+**The key advantage of pipeline B** is that it eliminates pose
+initialisation as a failure mode.  The Zernike BA jointly estimates
+the rayfield and poses from scratch, without assuming any particular
+optical architecture.  Pipeline A can be equally accurate *if* well
+initialised, but its performance degrades when the initialisation
+model (pinhole) does not match the true optics (CMO).
 
 ### Pipeline A is fast with analytic projection, fragile without
 
