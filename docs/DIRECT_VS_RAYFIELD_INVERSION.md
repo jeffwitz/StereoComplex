@@ -88,9 +88,10 @@ This initialisation robustness is **not guaranteed** for all optical
 architectures.  A Scheimpflug system or a strongly decentered relay
 would produce larger pinhole-pose errors, potentially causing the joint
 optimiser to diverge or converge to a local minimum.  Pipeline B
-(rayfield-mediated) avoids this risk entirely: the Zernike BA assumes
-no optical model at all, jointly fitting the rayfield and poses from
-scratch.
+(rayfield-mediated) mitigates this risk: the Zernike BA still needs a
+pose initialisation, but it does not assume any specific optical model.
+Pose errors are partially absorbed by the flexible Zernike
+parameterisation rather than fighting the optical parameters.
 
 ## Nuisance parameters and conditioning
 
@@ -278,8 +279,9 @@ fitting a single well-known model with maximum-likelihood efficiency.
   residual units).  Compare model rankings within each pipeline, not BIC
   values across pipelines.
 - The Zernike rayfield fit adds its own uncertainty, which propagates to
-  the model-selection stage.  Notebook 08 uses oracle rayfields in FAST
-  mode to isolate the model-selection comparison.
+  the model-selection stage.  The 4-oracle sweep uses oracle rayfields to
+  isolate the model-selection comparison; notebook 08 demonstrates the
+  full ChArUco → Zernike → selection loop on the CMO oracle.
 
 ## See also
 
