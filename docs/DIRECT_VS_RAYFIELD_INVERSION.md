@@ -14,7 +14,7 @@ questions:
 
 - **Direct fitting** is the natural route when the optical family is
   already known: choose a model, jointly optimise optical parameters and
-  board poses, and obtain a maximum-likelihood estimate in pixel space.
+  board poses, and obtain a statistically efficient pixel-space estimate when the model is correct.
 - **Rayfield mediation** addresses a different problem: before fitting
   one known model, we often need to decide *which* optical family is
   plausible.  For that purpose, it is useful to first estimate a generic
@@ -69,9 +69,11 @@ physical hypotheses are compared in a common ray space:
 ```
 
 **Board poses do not appear in this second stage** — they have already
-been absorbed into the rayfield measurement.  This is the central
-architectural insight: model comparison happens after nuisance pose
-parameters have been removed.
+been absorbed into the upstream Zernike rayfield measurement.  This does
+not mean pose estimation disappears: poses are still estimated during the
+Zernike bundle adjustment (stage 1).  The key architectural insight is
+that they are no longer nuisance variables in the physical-model
+comparison stage (stage 2).
 
 ## Nuisance parameters and conditioning
 
@@ -94,37 +96,33 @@ Pipeline B has **no pose parameters** in the second stage, so its
 information matrix is simply $J_\theta^T J_\theta$ — the rayfield has
 already absorbed the pose degrees of freedom.
 
-Measured on the CMO oracle: pipeline A has coupling norm ≈ 0.32–0.69
-between optics and poses; pipeline B has coupling norm = 0 (0 pose
-parameters in the model-selection stage).
+Measured on the CMO oracle, the direct optical+pose fit shows coupling
+norms ≈ 0.32–0.69.  In the second-stage ray-space model selection, the
+coupling norm is structurally zero because board poses are no longer
+parameters of that optimisation.
 
 ## What the current experiments show
 
-Three experiments at different levels of completeness:
+Three experiments at different levels of completeness support the
+architectural argument:
 
-| Experiment | What it demonstrates | Result |
+| Experiment | Documented in | What it supports |
 |---|---|---|
-| **Notebook 08 FAST** | Full ChArUco → Zernike → selection loop on CMO | CMO correctly identified (~56 s) |
-| **6-oracle ray-space sweep** | Model selection from oracle rayfields | 6/6 correct (pinhole through exotic) |
-| **Direct expected-model fit** | Direct fitting of the correct model on each oracle | 6/6 converge when well-initialised |
+| ChArUco → Zernike → selection | Notebook 08 | The full rayfield-mediated loop is feasible |
+| 6-oracle classification matrix | [CMO Model Selection](CMO_MODEL_SELECTION.md) | Ray-space model selection works |
+| Direct expected-model fit | This page | Direct fitting works when model is known |
 
-### Ray-space model selection (6-oracle sweep)
+### Link to the model-selection benchmark
 
-Pipeline B correctly classifies all six oracle families from their
-rayfields (~30 s total):
+The full 6-oracle classification matrix (with ΔBIC values, heatmaps, and
+noise-robustness analysis) is documented in
+[CMO Model Selection](CMO_MODEL_SELECTION.md#full-classification-matrix).
 
-| Oracle | Winner | ΔBIC |
-|---|---|--:|
-| Central pinhole | `central_pinhole` | +54 |
-| Central Brown-Conrady | `central_brown_conrady` | +896 |
-| Inclined parallel plate | `pinhole_parallel_plate` | +58 328 |
-| CMO shared-rig | `cmo_physical_shared` | +62 991 |
-| Greenough (Brown × 2) | `central_brown_conrady` | +653 |
-| **Uncatalogued Zernike** | **`zernike_compact`** | +1 540 |
-
-This sweep uses oracle rayfields to isolate the model-selection stage.
-The full ChArUco → Zernike → selection loop is demonstrated on the CMO
-oracle in notebook 08.
+Here we only reference that benchmark to support one methodological point:
+once the rayfield is measured, physical hypotheses can be compared in a
+common ray-space, independently of board-pose nuisance parameters.  The
+rayfield-mediated pipeline correctly identifies all six oracle families
+from their oracle rayfields.
 
 ### Direct fitting baseline (6-oracle sweep)
 
@@ -181,7 +179,7 @@ The modules in `stereocomplex.benchmarks` support both strategies:
 
 Analytic `project_point` methods exist on `CentralPinholeModel`,
 `CentralBrownConradyModel`, and `CMOPhysicalChannelModel`, making direct
-fitting fast (~2–10 s per oracle).
+fitting practical for these models.
 
 ## Limitations
 
