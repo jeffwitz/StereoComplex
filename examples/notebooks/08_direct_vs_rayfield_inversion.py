@@ -128,6 +128,41 @@ candidates = [
 
 # %% [markdown]
 # ## 3 — Pipeline A: direct inversion
+#
+# ### How can a pinhole model initialise a CMO fit?
+#
+# Pipeline A jointly optimises optical parameters *θ* and board poses
+# *η₁…ηₙ*.  The initial poses come from OpenCV's `solvePnP`, which
+# **assumes a central pinhole model** — every ray passes through a single
+# camera centre at the origin.
+#
+# A CMO microscope does *not* have a single camera centre: its rays pass
+# through sub-pupils offset from the axis.  For our oracle:
+#
+# * Sub-pupil S_L is at x = −4 mm, z = 40 mm (not at the origin!)
+# * Working distance Z_w = 120 mm
+# * Chief-ray angle from S_L to the axis at the working plane ≈ 2.9°
+# * A pinhole at the origin would see the same point at ≈ 1.9°
+#
+# The angular difference is only ~1°.  `solvePnP` absorbs this small
+# discrepancy into a **pose shift** — it places the board ~1–2 mm from
+# its true position and rotates it by ~2–3°.  The resulting pixel
+# reprojection error is ~1–2 px, which is **close enough** for the
+# joint nonlinear optimiser to refine.
+#
+# The optimiser then adjusts *both* the pose and the optical parameters
+# simultaneously.  As the CMO parameters `(f_obj, Z_w, b)` move toward
+# their true values, the sub-pupil position converges to (−4, 0, 40),
+# the poses correct themselves, and the pixel RMS drops from ~2 px to
+# machine zero.
+#
+# **Key insight:** the pinhole model is *structurally wrong* for a CMO,
+# but it is *geometrically close* — close enough to serve as an
+# initialisation.  The joint optimisation does the rest.
+#
+# This is also why pipeline B (rayfield-mediated) is more robust:
+# the Zernike BA does not assume *any* optical model, so it never
+# needs a pose initialisation that matches the unknown optics.
 
 # %%
 # NOTE: Pipeline A (direct inversion) is structurally slow — each

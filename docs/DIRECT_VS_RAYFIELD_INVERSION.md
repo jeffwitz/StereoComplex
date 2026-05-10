@@ -58,6 +58,40 @@ compares line geometry, not raw origins, making the comparison
 gauge-invariant.  **Board poses do not appear in this second stage** —
 they have already been absorbed into the rayfield measurement.
 
+## Why pinhole initialisation works for non-pinhole optics
+
+A natural question: pipeline A is initialised with `cv2.solvePnP`, which
+assumes a central pinhole model.  How can this work for a CMO, where rays
+pass through off-axis sub-pupils rather than a single camera centre?
+
+The answer is that the pinhole model is **structurally wrong but
+geometrically close**.  For the pedagogical CMO oracle:
+
+- Sub-pupil $S_L = (-4, 0, 40)$ mm (offset from the axis by 4 mm, at
+  depth $Z_w - f_\text{obj} = 40$ mm behind the main objective).
+- Working distance $Z_w = 120$ mm.
+- Chief-ray angle from $S_L$ to the axis at the working plane:
+  $\arctan(4/80) \approx 2.9°$.
+- A pinhole at the origin would see the same working-plane point at
+  $\arctan(4/120) \approx 1.9°$.
+
+The angular difference is only ~1°.  `solvePnP` compensates by shifting
+the estimated pose by ~1–2 mm in translation and ~2–3° in rotation,
+producing an initial pixel reprojection error of ~1–2 px.
+
+The joint nonlinear optimiser then refines **both** the optical parameters
+and the poses.  As $f_\text{obj}$, $Z_w$, and $b$ converge toward their
+true values, the sub-pupil moves to its correct off-axis position, the
+poses self-correct, and the pixel RMS drops from ~2 px to machine zero.
+
+This initialisation robustness is **not guaranteed** for all optical
+architectures.  A Scheimpflug system or a strongly decentered relay
+would produce larger pinhole-pose errors, potentially causing the joint
+optimiser to diverge or converge to a local minimum.  Pipeline B
+(rayfield-mediated) avoids this risk entirely: the Zernike BA assumes
+no optical model at all, jointly fitting the rayfield and poses from
+scratch.
+
 ## Nuisance parameters and conditioning
 
 In pipeline A, the joint parameter vector includes both optical
