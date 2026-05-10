@@ -1,4 +1,5 @@
 from __future__ import annotations
+import pytest
 
 import json
 from pathlib import Path
@@ -37,6 +38,7 @@ def test_public_api_exports() -> None:
     assert hasattr(sc, "StereoZernikeOriginFieldFitResult")
 
 
+@pytest.mark.slow
 def test_refine_charuco_corners_accepts_detection_dataclass() -> None:
     import stereocomplex as sc
 

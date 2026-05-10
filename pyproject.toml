@@ -59,7 +59,9 @@ target-version = "py310"
 [tool.pytest.ini_options]
 markers = [
   "integration: end-to-end process tests (may require opencv-contrib-python)",
+  "slow: optimisation / BA / image-processing tests (>2 s each)",
 ]
+addopts = ["-m", "not slow", "--strict-markers"]
 filterwarnings = [
   "error::DeprecationWarning",
   "ignore::DeprecationWarning:numpy.*",

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import pytest
 
 import numpy as np
 
@@ -110,6 +111,7 @@ def test_cmo_physical_paraxial_pixel_mapping() -> None:
     assert np.allclose(d, expected_d)
 
 
+@pytest.mark.slow
 def test_cmo_physical_oracle_recovery_no_distortion() -> None:
     truth = _truth_model(distortion=False)
     x0 = truth.parameter_vector().copy()
@@ -135,6 +137,7 @@ def test_cmo_physical_oracle_recovery_no_distortion() -> None:
     assert result.parameter_dict["fixed"]["pixel_pitch_mm"] == truth.pixel_pitch_mm
 
 
+@pytest.mark.slow
 def test_cmo_physical_oracle_recovery_with_distortion() -> None:
     truth = _truth_model(distortion=True)
     x0 = truth.parameter_vector().copy()
@@ -160,6 +163,7 @@ def test_cmo_physical_oracle_recovery_with_distortion() -> None:
     assert np.allclose(result.parameter_vector[7:17], truth.parameter_vector()[7:17], atol=1e-3)
 
 
+@pytest.mark.slow
 def test_cmo_aligned_mode_represents_offset_oracle() -> None:
     truth = CMOPhysicalStereoModel(
         f_obj_mm=80.0,
@@ -196,6 +200,7 @@ def test_cmo_aligned_mode_represents_offset_oracle() -> None:
     assert np.isclose(result.parameter_vector[7], truth.parameter_vector()[7], atol=1e-5)
 
 
+@pytest.mark.slow
 def test_bic_prefers_physical_cmo_over_polynomial_surrogate_on_cmo_oracle() -> None:
     truth = _truth_model(distortion=True)
     image_size = (128, 96)
@@ -298,6 +303,7 @@ def test_polynomial_surrogate_structural_mismatch_at_chief_ray() -> None:
     assert angular_error_rad > 0.05, f"expected >50 mrad structural mismatch, got {angular_error_rad:.4f} rad"
 
 
+@pytest.mark.slow
 def test_polynomial_surrogate_with_free_z_and_constant_term_fits_cmo_rayfield() -> None:
     """With free origin_z and a constant aberration term, the polynomial CAN fit CMO.
 
@@ -373,6 +379,7 @@ def test_polynomial_surrogate_with_free_z_and_constant_term_fits_cmo_rayfield() 
     )
 
 
+@pytest.mark.slow
 def test_polynomial_surrogate_rms_plateaus_with_relaxed_bounds() -> None:
     """Without a constant aberration term the polynomial surrogate has a structural RMS floor.
 
@@ -428,6 +435,7 @@ def test_polynomial_surrogate_rms_plateaus_with_relaxed_bounds() -> None:
     assert result.rms_mm < 200.0, f"Polynomial RMS {result.rms_mm:.2f} is unexpectedly huge"
 
 
+@pytest.mark.slow
 def test_cmo_oracle_without_distortion_still_structural_mismatch() -> None:
     """Removing distortion from the CMO oracle does not fix the polynomial gap.
 
@@ -475,6 +483,7 @@ def test_cmo_oracle_without_distortion_still_structural_mismatch() -> None:
     )
 
 
+@pytest.mark.slow
 def test_cmo_aligned_mode_recovers_offset_principal_points() -> None:
     """Aligned-sensor CMO (19 params) recovers offset oracle to rayfield precision."""
     truth = CMOPhysicalStereoModel(
@@ -504,6 +513,7 @@ def test_cmo_aligned_mode_recovers_offset_principal_points() -> None:
     assert abs(float(fitted["delta_cy_diff_px"]) - (-2.0)) < 1e-4
 
 
+@pytest.mark.slow
 def test_cmo_versus_polynomial_on_aligned_offset_oracle() -> None:
     """Even with offset principal points, CMO recovers perfectly and polynomial
     surrogate leaves a large structural residual."""
@@ -556,6 +566,7 @@ def test_cmo_versus_polynomial_on_aligned_offset_oracle() -> None:
     )
 
 
+@pytest.mark.slow
 def test_select_with_mixed_per_channel_and_stereo_shared_candidates() -> None:
     truth = _truth_model(distortion=True)
     image_size = (128, 96)
@@ -600,6 +611,7 @@ def test_select_with_mixed_per_channel_and_stereo_shared_candidates() -> None:
     assert report.best_by_bic == "cmo_physical_shared"
 
 
+@pytest.mark.slow
 def test_bic_selects_brown_conrady_on_brown_conrady_oracle() -> None:
     """On a central Brown-Conrady oracle, Brown-Conrady wins BIC.
 
@@ -676,6 +688,7 @@ def test_bic_selects_brown_conrady_on_brown_conrady_oracle() -> None:
     )
 
 
+@pytest.mark.slow
 def test_bic_classification_on_stereo_greenough_oracle() -> None:
     """Stereo Greenough oracle: Brown-Conrady wins, CMO physical fails.
 
@@ -759,6 +772,7 @@ def test_bic_classification_on_stereo_greenough_oracle() -> None:
     )
 
 
+@pytest.mark.slow
 def test_zernike_candidate_loses_to_physical_cmo_on_cmo_oracle() -> None:
     """Compact Zernike (max_order=1, with directions) loses BIC to physical CMO.
 
@@ -833,6 +847,7 @@ def test_zernike_candidate_loses_to_physical_cmo_on_cmo_oracle() -> None:
     )
 
 
+@pytest.mark.slow
 def test_most_compact_zernike_loses_to_physical_cmo() -> None:
     """Even the smallest Zernike (max_order=0, with directions) loses to CMO.
 
@@ -912,6 +927,7 @@ def test_most_compact_zernike_loses_to_physical_cmo() -> None:
     )
 
 
+@pytest.mark.slow
 def test_zernike_candidate_wins_on_uncatalogued_rayfield() -> None:
     """Compact Zernike wins BIC when the oracle belongs to no physical family.
 

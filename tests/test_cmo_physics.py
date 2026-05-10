@@ -247,6 +247,7 @@ def test_brown_physics_is_shared_by_cmo_projection() -> None:
     assert np.allclose(gt_clear["uv_right_px"], gt_distorted["uv_right_px"])
 
 
+@pytest.mark.slow
 def test_cmo_polynomial_channel_model_recovers_cmo_rayfield() -> None:
     intr = CMOIntrinsics(width=160, height=120, fx=180.0, fy=180.0, cx=79.5, cy=59.5)
     channel = CMOChannelSpec(
@@ -291,6 +292,7 @@ def test_cmo_polynomial_channel_model_recovers_cmo_rayfield() -> None:
     assert abs(result.parameter_dict["origin_z_mm"] - 0.0) < 1e-5
 
 
+@pytest.mark.slow
 def test_model_selection_prefers_cmo_on_cmo_oracle() -> None:
     intr = CMOIntrinsics(width=160, height=120, fx=180.0, fy=180.0, cx=79.5, cy=59.5)
     channel = CMOChannelSpec(
@@ -350,6 +352,7 @@ def test_model_selection_prefers_cmo_on_cmo_oracle() -> None:
     assert by_name["polynomial_surrogate_channel"].rms_mm < by_name["pinhole_parallel_plate"].rms_mm
 
 
+@pytest.mark.slow
 def test_cmo_stereo_ba_recovers_effective_channels_and_poses_from_rayfields() -> None:
     intr = CMOIntrinsics(width=160, height=120, fx=180.0, fy=180.0, cx=79.5, cy=59.5)
     common = PolynomialRayAberration(coeff_x={"x2": 7.0e-4}, coeff_y={"xy": 4.0e-4})

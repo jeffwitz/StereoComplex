@@ -1,4 +1,5 @@
 from __future__ import annotations
+import pytest
 
 import numpy as np
 
@@ -60,6 +61,7 @@ def test_oracle_parallel_plate_rays_reconstruct_dataset_points():
     assert float(np.sqrt(np.mean(np.asarray(gaps) ** 2))) < 1e-6
 
 
+@pytest.mark.slow
 def test_oracle_noisy_pixel_floor_is_reported():
     dataset = make_default_parallel_plate_dataset(noise_std_px=0.05)
     clean_dataset = make_default_parallel_plate_dataset(noise_std_px=0.0)
@@ -71,6 +73,7 @@ def test_oracle_noisy_pixel_floor_is_reported():
     assert floor.oracle_observed_pixels.n_points == floor.oracle_clean_pixels.n_points
 
 
+@pytest.mark.slow
 def test_identified_origin_field_improves_reconstruction_against_central_model():
     dataset = make_default_parallel_plate_dataset(noise_std_px=0.0)
     config = ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=4)
@@ -90,6 +93,7 @@ def test_identified_origin_field_improves_reconstruction_against_central_model()
     assert ratio < 0.5
 
 
+@pytest.mark.slow
 def test_full_rayfield_pose_and_rig_ba_reaches_clean_reconstruction_scale():
     dataset = make_default_parallel_plate_dataset(noise_std_px=0.0)
     config = ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=3)
@@ -117,6 +121,7 @@ def test_full_rayfield_pose_and_rig_ba_reaches_clean_reconstruction_scale():
     assert report.with_origin_field.rms_3d < 0.1
 
 
+@pytest.mark.slow
 def test_holdout_poses_confirm_origin_field_generalises():
     """Fit on 8 frames, evaluate on 2 unseen frames — checks that the model generalises."""
     full = make_parallel_plate_extended_dataset(noise_std_px=0.0)
@@ -159,6 +164,7 @@ def test_holdout_poses_confirm_origin_field_generalises():
     assert rep_ho.rms_3d < 0.2  # well below the 0.05 px noise floor (~0.7 mm)
 
 
+@pytest.mark.slow
 def test_rendered_image_detection_pipeline_improves_over_central_model(tmp_path):
     report = run_parallel_plate_rendered_image_benchmark(tmp_path / "rendered", max_order=3)
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import pytest
 
 import json
 from pathlib import Path
@@ -50,6 +51,7 @@ def test_opencv_raw_and_refined_regression_metrics() -> None:
     assert np.isfinite(refined.report.baseline_mm)
 
 
+@pytest.mark.slow
 def test_rayfield3d_fit_health_and_reload_regression_metrics(tmp_path: Path) -> None:
     import stereocomplex as sc
 

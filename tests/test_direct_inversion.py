@@ -1,6 +1,7 @@
 """Smoke tests for direct ChArUco model inversion."""
 
 from __future__ import annotations
+import pytest
 
 import numpy as np
 
@@ -18,6 +19,7 @@ from stereocomplex.physics import (
 )
 
 
+@pytest.mark.slow
 def test_direct_fit_pinhole_oracle_produces_low_rms():
     """Fitting a pinhole model to a pinhole oracle should give near-zero RMS."""
     oracle = build_pinhole_oracle(image_size=(160, 120))

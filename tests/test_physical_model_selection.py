@@ -1,4 +1,5 @@
 from __future__ import annotations
+import pytest
 
 import numpy as np
 
@@ -58,6 +59,7 @@ def test_brown_zero_coefficients_matches_pinhole_by_ray_planes():
     assert np.sqrt(np.mean(residuals**2)) < 1e-12
 
 
+@pytest.mark.slow
 def test_ray_space_selection_prefers_plate_over_central_brown_on_plate_oracle():
     K = _camera_matrix()
     truth = ParallelPlateSyntheticParams(eta=1.5, thickness=8.0, alpha_deg=12.0, beta_deg=5.0, d1=80.0)
@@ -102,6 +104,7 @@ def test_brown_distort_undistort_roundtrip():
     assert np.max(np.abs(y_rec - y)) < 1e-9
 
 
+@pytest.mark.slow
 def test_brown_with_real_coefficients_recovers_oracle():
     """fit_physical_model_to_rayfield must recover Brown coefficients from a Brown oracle."""
     K = _camera_matrix()
@@ -126,6 +129,7 @@ def test_brown_with_real_coefficients_recovers_oracle():
         )
 
 
+@pytest.mark.slow
 def test_selection_prefers_brown_on_brown_oracle():
     """Model selection must choose Brown by BIC when the oracle is a Brown rayfield.
 
