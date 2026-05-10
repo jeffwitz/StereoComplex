@@ -166,14 +166,20 @@ mediated pipeline selects `cmo_physical_shared` by BIC with a ray-space
 RMS < 10⁻⁶ mm for the correct model versus ~52 mm for Brown-Conrady
 and inclined plate.  The BIC gap exceeds 90 000 units.
 
-### Pipeline A is structurally orders of magnitude slower
+### Pipeline A is fast with analytic projection, fragile without
 
-Each evaluation of the direct residual requires inverse-projecting every
-3-D board point through the current optical model — a separate
-`least_squares` optimisation per point.  With ~180 corners this means
-~9 000 inner optimisations per outer iteration.  Pipeline B evaluates
-rays *forward* (pixel → line), which is O(1) per pixel.  **The rayfield
-approach is 100–1000× faster** for model comparison.
+With a generic numerical inverse projection, pipeline A is impractically
+slow (~0.5 s per 3-D point).  With an **analytic `project_point`**
+method on the physical model (60 µs per point — 10 000× faster),
+pipeline A converges in 2–3 seconds to RMS = 0.0000 px on a CMO oracle
+*when poses are well initialised*.
+
+The bottleneck shifts from speed to **initialisation robustness**:
+cv2.solvePnP uses a pinhole model that is a poor match for CMO optics,
+requiring many iterations to correct the initial pose error.  Pipeline B
+absorbs this initialisation problem into the Zernike rayfield fit,
+which jointly optimises the rayfield and poses without assuming any
+specific optical model.
 
 ### Poses are eliminated from model selection
 
@@ -200,7 +206,7 @@ interpretable under measurement noise.
 
 | Criterion | Pipeline A (direct) | Pipeline B (rayfield) |
 |---|---|---|
-| Speed (model comparison) | Very slow (~min per candidate) | Fast (~s per candidate) |
+| Speed (model comparison) | Fast with analytic projection (~s) | Fast (~s per candidate) |
 | Speed (single known model) | OK with good initialisation | Requires Zernike fit first |
 | Model selection interpretability | Poses + optics coupled | Poses absent from comparison |
 | Detection of uncatalogued optics | Possible but fragile | Built-in via Zernike fallback |
@@ -225,9 +231,11 @@ fitting a single well-known model with maximum-likelihood efficiency.
 - The direct pipeline requires at least 20–30 visible corners per frame
   for stable joint optimisation.  The CMO oracle has a narrow field of
   view (~9°) requiring a dense board (1 mm squares) for sufficient coverage.
-- The direct pipeline's inverse-projection implementation is correct but
-  impractically slow — ~180 `least_squares` calls per model evaluation.
-  An analytic projection formula per model would be 100–1000× faster.
+- The direct pipeline's generic inverse projection is impractically slow
+  (~180 `least_squares` calls per evaluation).  Analytic `project_point`
+  methods on physical models (currently implemented for CMO) make it
+  competitive.  Other candidates (Brown, plate) still need analytic
+  projection methods.
 - Pixel-space BIC and ray-space BIC are not directly comparable (different
   residual units).  Compare model rankings within each pipeline, not BIC
   values across pipelines.
