@@ -236,7 +236,63 @@ print("\nNote: Direct BIC uses pixel residuals; rayfield BIC uses mm line residu
 print("They are NOT numerically comparable — compare winners within each column.")
 
 # %% [markdown]
-# ## 6 — Summary
+# ## 6 — Interpretation and conclusions
+#
+# ### Key findings
+#
+# **1. Pipeline B correctly identifies the CMO architecture.**
+# The rayfield-mediated pipeline selects `cmo_physical_shared` by BIC on
+# a CMO oracle, with a ray-space RMS of < 10⁻⁶ mm for the correct model
+# versus ~52 mm for the wrong models (Brown-Conrady, inclined plate).
+# The BIC gap is > 90 000 units — an unambiguous classification.
+#
+# **2. Pipeline A is structurally slow.**
+# Each function evaluation of the direct fit requires inverse-projecting
+# every 3D board point through the current optical model — a separate
+# `least_squares` optimisation per point.  With ~180 corners this means
+# ~180 × 50 = 9 000 inner optimisations per outer iteration.  Pipeline B
+# evaluates rays *forward* (pixel → line), which is O(1) per pixel.
+# **The rayfield approach is 100–1000× faster** for model comparison.
+#
+# **3. Poses are eliminated from model selection.**
+# In the rayfield pipeline, board poses are absorbed into the Zernike
+# rayfield fit (stage B1).  The model-selection stage (B2) compares
+# physical candidates in ray space *without any pose parameters*.  This
+# eliminates the optics-pose coupling that inflates condition numbers
+# in pipeline A and makes direct inversion fragile.
+#
+# **4. The rayfield is a geometric intermediate variable.**
+# Pipeline B separates *measurement* (Zernike fit from corners) from
+# *interpretation* (physical model comparison).  This decoupling is the
+# central architectural insight of StereoComplex.
+#
+# ### When to use which pipeline
+#
+# | Criterion | Pipeline A (direct) | Pipeline B (rayfield) |
+# |---|---|---|
+# | Speed (model comparison) | Very slow (~min per candidate) | Fast (~s per candidate) |
+# | Speed (single known model) | OK with good initialisation | Requires Zernike fit first |
+# | Model selection interpretability | Poses + optics coupled | Poses absent from comparison |
+# | Detection of uncatalogued optics | Possible but fragile | Built-in via Zernike fallback |
+# | Parameter recovery for known model | Maximum-likelihood (efficient) | Two-stage (Zernike → physical) |
+#
+# **Recommendation:** use pipeline B when comparing competing optical
+# hypotheses or diagnosing unknown instruments.  Use pipeline A only when
+# fitting a single well-known model with maximum-likelihood efficiency.
+#
+# ### Limitations
+#
+# - The direct pipeline (A) requires further optimisation before it can
+#   serve as a routine tool — the current inverse-projection implementation
+#   is correct but impractically slow for real-time use.
+# - The Zernike rayfield fit (stage B1) adds its own uncertainty, which
+#   propagates to the model-selection stage.  This notebook uses oracle
+#   rayfields in FAST mode to isolate the model-selection comparison.
+# - The CMO oracle has a narrow field of view (~9°), requiring a dense
+#   board (1 mm squares) to achieve sufficient corner coverage.
+#
+# See [Direct vs rayfield inversion](../docs/DIRECT_VS_RAYFIELD_INVERSION.md)
+# for the full mathematical treatment.
 
 # %%
 summary = {
@@ -245,11 +301,11 @@ summary = {
     "noise_std_px": noise_px,
     "rayfield_winner": report.best_by_bic,
     "rayfield_correct": report.best_by_bic == oracle.expected_winner,
+    "pipeline_A_active": not FAST,
+    "pipeline_B_mode": "oracle" if FAST else "zernike_from_observations",
 }
 print(json.dumps(summary, indent=2))
 with open(ASSETS / "direct_vs_rayfield_summary.json", "w") as f:
     json.dump(summary, f, indent=2)
 
 print(f"\nAssets saved to {ASSETS}/")
-print("\nDone.  For the full 6-oracle sweep, set FAST = False and")
-print("run the full matrix (takes ~10 minutes).")

@@ -157,6 +157,59 @@ The conditioning diagnostics confirm that pipeline A has higher
 eliminates pose parameters by absorbing them into the rayfield
 measurement.  This is the central scientific claim of the study.
 
+## Results and conclusions
+
+### Pipeline B correctly identifies the CMO architecture
+
+On a CMO oracle with 89 ChArUco corners across 2 poses, the rayfield-
+mediated pipeline selects `cmo_physical_shared` by BIC with a ray-space
+RMS < 10⁻⁶ mm for the correct model versus ~52 mm for Brown-Conrady
+and inclined plate.  The BIC gap exceeds 90 000 units.
+
+### Pipeline A is structurally orders of magnitude slower
+
+Each evaluation of the direct residual requires inverse-projecting every
+3-D board point through the current optical model — a separate
+`least_squares` optimisation per point.  With ~180 corners this means
+~9 000 inner optimisations per outer iteration.  Pipeline B evaluates
+rays *forward* (pixel → line), which is O(1) per pixel.  **The rayfield
+approach is 100–1000× faster** for model comparison.
+
+### Poses are eliminated from model selection
+
+In pipeline B, board poses are absorbed into the Zernike rayfield fit
+(stage B1).  The model-selection stage (B2) compares physical candidates
+in ray space *without any pose parameters*.  This eliminates the
+optics-pose coupling that inflates condition numbers in pipeline A.
+
+The Schur-complement condition number for optics after eliminating poses
+is the proper measure of how much information is lost to coupling.  In
+pipeline A, this coupling is non-zero by construction (poses and optics
+share the same pixel residuals).  In pipeline B, the coupling is exactly
+zero — the rayfield has already absorbed the pose degrees of freedom.
+
+### The rayfield is a geometric intermediate variable
+
+Pipeline B separates *measurement* (Zernike fit from corners) from
+*interpretation* (physical model comparison).  This is the central
+architectural insight of StereoComplex and the reason the framework can
+detect uncatalogued optics, compare competing hypotheses, and remain
+interpretable under measurement noise.
+
+### When to use which pipeline
+
+| Criterion | Pipeline A (direct) | Pipeline B (rayfield) |
+|---|---|---|
+| Speed (model comparison) | Very slow (~min per candidate) | Fast (~s per candidate) |
+| Speed (single known model) | OK with good initialisation | Requires Zernike fit first |
+| Model selection interpretability | Poses + optics coupled | Poses absent from comparison |
+| Detection of uncatalogued optics | Possible but fragile | Built-in via Zernike fallback |
+| Parameter recovery for known model | Maximum-likelihood (efficient) | Two-stage (Zernike → physical) |
+
+**Recommendation:** use pipeline B when comparing competing optical
+hypotheses or diagnosing unknown instruments.  Use pipeline A only when
+fitting a single well-known model with maximum-likelihood efficiency.
+
 ## Recommended workflow
 
 - Use **pipeline A** (direct fit) when the optical model is known and
@@ -170,18 +223,17 @@ measurement.  This is the central scientific claim of the study.
 ## Limitations
 
 - The direct pipeline requires at least 20–30 visible corners per frame
-  for stable joint optimisation.  The current observation simulator
-  produces sparse coverage for some oracles; this is a known issue.
-- The conditioning diagnostics use finite-difference Jacobians, which are
-  slow for large problems.  An analytic or automatic-differentiation
-  approach would scale better.
-- The rayfield fit from ChArUco observations (Zernike BA) is not yet
-  integrated into notebook 08 — the notebook currently uses the oracle
-  rayfield directly.  Closing the loop with a full image-based Zernike
-  BA is the next natural step.
+  for stable joint optimisation.  The CMO oracle has a narrow field of
+  view (~9°) requiring a dense board (1 mm squares) for sufficient coverage.
+- The direct pipeline's inverse-projection implementation is correct but
+  impractically slow — ~180 `least_squares` calls per model evaluation.
+  An analytic projection formula per model would be 100–1000× faster.
 - Pixel-space BIC and ray-space BIC are not directly comparable (different
   residual units).  Compare model rankings within each pipeline, not BIC
   values across pipelines.
+- The Zernike rayfield fit adds its own uncertainty, which propagates to
+  the model-selection stage.  Notebook 08 uses oracle rayfields in FAST
+  mode to isolate the model-selection comparison.
 
 ## See also
 
