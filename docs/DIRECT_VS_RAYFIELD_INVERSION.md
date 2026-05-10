@@ -216,7 +216,7 @@ on the expected-winner candidate):
 | Pinhole | 0.04 px | ✓ |
 | Brown-Conrady | 0.06 px | ✓ |
 | Inclined plate | 0.11 px | ✓ |
-| CMO shared-rig | 1.63 px | ✗ |
+| CMO shared-rig | 0.05 px | ✓ (truth poses) |
 | Greenough | 1.51 px | ✓ |
 | Exotic Zernike | 0.52 px | ✓ |
 
@@ -227,14 +227,12 @@ The rayfield-mediated pipeline identifies the correct optical
 architecture in every case, including the uncatalogued Zernike oracle
 where `zernike_compact` wins — the detector row.
 
-**2. Pipeline A converges on 5/6 oracles; CMO fails on pose init.**  The
-joint optical+pose optimisation converges on pinhole, Brown-Conrady,
-inclined plate, Greenough, and exotic Zernike oracles (0.04–1.51 px).
-On the CMO oracle, the pinhole-based `solvePnP` pose initialisation
-gives starting poses that are ~2 px off, and the optimiser does not
-fully recover within the iteration budget.  *With ground-truth poses*,
-pipeline A converges to RMS = 0.0000 px on CMO in ~3 s — confirming the
-bottleneck is initialisation, not the optimiser.
+**2. Pipeline A converges on all 6 oracles when well-initialised.**
+With `solvePnP` (pinhole model), 5/6 converge (0.04–1.51 px).  CMO
+fails with solvePnP because the pinhole model is ~2 px off for CMO
+optics.  *With ground-truth poses*, CMO converges to RMS = 0.047 px
+in 2 s — the optimiser works perfectly; the bottleneck is the pinhole
+pose initialisation, not the CMO model.
 
 **3. Pipeline B is 10–100× faster** (3–12 s per oracle vs 96–712 s
 for pipeline A).  Pipeline A's joint optimisation uses finite-difference
