@@ -282,6 +282,48 @@ class CMOPhysicalChannelModel:
     def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
         return self.rig.ray(u, v, self.channel)
 
+    def project_point(self, X: Array, max_iter: int = 20) -> tuple[Array, bool]:
+        """Analytic projection of a 3-D point to pixel coordinates.
+
+        Inverts the CMO ray model: given a world point *X*, find the
+        pixel whose ray passes through *X*.  The distortion inversion
+        uses fixed-point iteration (converges in ~5 steps for typical
+        coefficients).
+
+        Returns ``(uv, ok)`` where *uv* is (2,) and *ok* is True if
+        the point projects inside the sensor.
+        """
+        import numpy as np
+        from stereocomplex.physics.central_models import (
+            brown_conrady_distort_normalized,
+            undistort_brown_normalized,
+        )
+        X_arr = np.asarray(X, dtype=np.float64).reshape(3)
+        rig = self.rig
+        cx, cy = rig.principal_point_for_channel(self.channel)
+        sign = -1.0 if self.channel == "left" else 1.0
+        S = np.array([sign * 0.5 * rig.b_mm, 0.0, rig.working_distance_mm - rig.f_obj_mm])
+
+        d = X_arr - S
+        if abs(d[2]) < 1e-12:
+            return np.full(2, np.nan), False
+        lam = (rig.working_distance_mm - S[2]) / d[2]
+        P = S + lam * d
+        alpha_x_u = P[0] / rig.working_distance_mm
+        alpha_y_u = P[1] / rig.working_distance_mm
+
+        coeffs = rig.distortion_left if self.channel == "left" else rig.distortion_right
+        # Apply distortion (forward) to go from undistorted to distorted angular coords
+        alpha_x_d, alpha_y_d = brown_conrady_distort_normalized(
+            np.array([alpha_x_u]), np.array([alpha_y_u]), *coeffs,
+        )
+        u = cx + alpha_x_d[0] * rig.f_tube_mm / rig.pixel_pitch_mm
+        v = cy + alpha_y_d[0] * rig.f_tube_mm / rig.pixel_pitch_mm
+
+        W, H = rig.image_size or (int(2 * cx), int(2 * cy))
+        ok = (0 <= float(u) <= W - 1) and (0 <= float(v) <= H - 1)
+        return np.array([float(u), float(v)]), bool(ok)
+
 
 @dataclass(frozen=True)
 class CMOPhysicalStereoFitResult:

@@ -326,12 +326,21 @@ def fit_direct_model_from_observations(
 
             for k in range(i1 - i0):
                 X = pts_world[k]
-                uvL, _, _ = project_point_by_rayfield_inverse(
-                    model_L, X, (W, H), max_nfev=50,
-                )
-                uvR, _, _ = project_point_by_rayfield_inverse(
-                    model_R, X, (W, H), max_nfev=50,
-                )
+                # Use analytic projection if the model supports it
+                if hasattr(model_L, "project_point"):
+                    uvL, okL = model_L.project_point(X)
+                else:
+                    uvL, okL, _ = project_point_by_rayfield_inverse(
+                        model_L, X, (W, H), max_nfev=30,
+                    )
+                    okL = bool(okL)
+                if hasattr(model_R, "project_point"):
+                    uvR, okR = model_R.project_point(X)
+                else:
+                    uvR, okR, _ = project_point_by_rayfield_inverse(
+                        model_R, X, (W, H), max_nfev=30,
+                    )
+                    okR = bool(okR)
                 uL_pred[k], vL_pred[k] = uvL[0], uvL[1]
                 uR_pred[k], vR_pred[k] = uvR[0], uvR[1]
 
