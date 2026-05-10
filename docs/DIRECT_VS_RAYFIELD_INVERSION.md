@@ -208,7 +208,10 @@ with `seed=42`.
 | Greenough (Brown × 2) | `central_brown_conrady` | +653 |
 | **Uncatalogued Zernike** | **`zernike_compact`** | +1 540 |
 
-Pipeline A (direct fit, tested on 4 oracles):
+Pipeline A (direct fit, tested on 4 oracles; Greenough and exotic
+timed out — their Brown-Conrady and Zernike models lack analytic
+`project_point`, making the generic inverse projection impractically
+slow):
 
 | Oracle | RMS | Converged |
 |---|---|:---:|
@@ -216,6 +219,8 @@ Pipeline A (direct fit, tested on 4 oracles):
 | Brown-Conrady | 0.06 px | ✓ |
 | Inclined plate | 0.11 px | ✓ |
 | CMO shared-rig | 1.63 px | ✗ |
+| Greenough | — | timed out |
+| Exotic Zernike | — | timed out |
 
 ### Key findings
 
