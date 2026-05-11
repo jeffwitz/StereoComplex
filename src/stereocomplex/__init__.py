@@ -1,5 +1,7 @@
 from stereocomplex.api import (
     # Tier 1 — user entry points
+    assess_calibration,
+    CalibrationAssessment,
     CharucoBoardSpec,
     PhysicalModelSpec,
     StereoCentralRayFieldModel,
@@ -30,6 +32,8 @@ from stereocomplex.api import (
 
 __all__ = [
     # Tier 1
+    "assess_calibration",
+    "CalibrationAssessment",
     "CharucoBoardSpec",
     "PhysicalModelSpec",
     "StereoCentralRayFieldModel",

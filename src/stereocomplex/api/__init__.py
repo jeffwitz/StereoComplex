@@ -16,6 +16,7 @@ from stereocomplex.api.calibration import (
     fit_stereo_central_rayfield_from_image_pairs,
     fit_stereo_zernike_origin_field_from_image_dirs,
 )
+from stereocomplex.api.calibration_quality import assess_calibration, CalibrationAssessment
 from stereocomplex.api.corner_refinement import refine_charuco_corners
 from stereocomplex.api.model_io import load_stereo_central_rayfield, save_stereo_central_rayfield
 from stereocomplex.api.stereo_reconstruction import StereoCentralRayFieldModel
@@ -96,7 +97,10 @@ from stereocomplex.synthetic.parallel_plate_images import (
 
 __all__ = [
     "BenchmarkReport",
+    "CalibrationAssessment",
     "CharucoBoardSpec",
+    "assess_calibration",
+    "compare_opencv_stereo_calibration",
     "ParallelPlateImageRenderParams",
     "ParallelPlateFromRayfieldFitResult",
     "ParallelPlateSyntheticParams",
