@@ -330,6 +330,7 @@ def fit_constrained_zernike_rayfield(
     image_size: tuple[int, int],
     K_left: np.ndarray,
     K_right: np.ndarray,
+    max_order_o: int = 0,
     max_order_d: int = 2,
     *,
     max_nfev: int = 300,
@@ -337,8 +338,8 @@ def fit_constrained_zernike_rayfield(
 ) -> tuple[ZernikeRayField, ZernikeRayField, ZernikeFitDiagnostics, list[np.ndarray], list[np.ndarray]]:
     """Fit Zernike rayfield with constrained poses: shared rotation + XY, per-pose Z.
 
-    O: order 0 (constant origin per channel — rigid sub-pupil).
-    d: order *max_order_d* (spatially varying direction correction).
+    O: order *max_order_o* (origin field; 0 = rigid sub-pupil).
+    d: order *max_order_d* (direction correction).
 
     Poses are constrained: the board is assumed perfectly vertical, mounted
     on a Z-only translation stage.  All poses share the same rotation
@@ -359,8 +360,8 @@ def fit_constrained_zernike_rayfield(
     K_R = np.asarray(K_right, dtype=np.float64).reshape(3, 3)
 
     # Zernike configs
-    modes_O = tuple(zernike_modes(0))   # 1 mode (piston)
-    modes_d = tuple(zernike_modes(int(max_order_d)))  # 6 modes for order 2
+    modes_O = tuple(zernike_modes(int(max_order_o)))   # 1 mode for order 0, 3 for order 1, 6 for order 2
+    modes_d = tuple(zernike_modes(int(max_order_d)))
     n_modes_O = len(modes_O)
     n_modes_d = len(modes_d)
 
@@ -473,9 +474,10 @@ def fit_constrained_zernike_rayfield(
         z_per_pose,
     ])
 
-    # Bounds: origin Z ±20mm, direction coeffs ±0.5, poses loose
+    # Bounds: origin Z ±20mm, direction coeffs ±5.0, poses loose
     O_lo = np.full(n_O, -np.inf); O_hi = np.full(n_O, np.inf)
-    O_lo[2] = -20.0; O_hi[2] = 20.0  # pin only Z of piston mode
+    for j in range(2, n_O, 3):  # pin Z components of all O modes
+        O_lo[j] = -20.0; O_hi[j] = 20.0
     d_lo = np.full(n_d, -5.0); d_hi = np.full(n_d, 5.0)
     field_lo = np.concatenate([O_lo, d_lo])
     field_hi = np.concatenate([O_hi, d_hi])
@@ -559,16 +561,15 @@ def fit_constrained_zernike_rayfield(
     # But ZernikeRayField expects the SAME set of modes for both O and d.
     # Workaround: create config with the larger mode set (order 2), and
     # pad the O coefficients with zeros for the extra modes.
-    config_full = ZernikeOriginFieldConfig(image_size=image_size, max_order=int(max_order_d))
-    all_modes = config_full.modes()  # 6 modes for order 2
+    max_order_full = max(int(max_order_o), int(max_order_d))
+    config_full = ZernikeOriginFieldConfig(image_size=image_size, max_order=max_order_full)
+    all_modes = config_full.modes()
     n_all = len(all_modes)
 
     def _pad_coeffs(c_O: np.ndarray, c_d: np.ndarray) -> ZernikeRayFieldCoefficients:
-        """Pad order-0 O coeffs to match order-2 mode count."""
-        # c_O: (1, 3), c_d: (n_modes_d, 3)
-        # Need to map mode 0 (piston) to the first mode in all_modes
+        """Pad O and d coeffs to match the unified mode count."""
         O_padded = np.zeros((n_all, 3), dtype=np.float64)
-        O_padded[0, :] = c_O[0, :]  # piston is always mode 0
+        O_padded[:n_modes_O, :] = c_O
         d_padded = np.zeros((n_all, 3), dtype=np.float64)
         d_padded[:n_modes_d, :] = c_d
         return ZernikeRayFieldCoefficients(origin_coeffs=O_padded, direction_coeffs=d_padded)
@@ -592,7 +593,7 @@ def fit_constrained_zernike_rayfield(
     opt_t = [np.array([opt_xy[0], opt_xy[1], opt_z[i]], dtype=np.float64) for i in range(n_poses)]
 
     diag = ZernikeFitDiagnostics(
-        max_order=int(max_order_d),
+        max_order=max_order_full,
         n_zernike_coeffs=n_field_per_ch,
         n_poses=n_poses,
         n_observations=n_obs,
