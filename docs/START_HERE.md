@@ -41,7 +41,7 @@ StereoComplex is built around:
 - a practical image-folder API for fitting a non-central origin-field model from
   calibration images.
 
-## Three workflows
+## Main workflows
 
 | Workflow | Entry point | Tutorial |
 | --- | --- | --- |

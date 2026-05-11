@@ -39,9 +39,8 @@ expert pipelines (`fit_stereo_zernike_origin_field`,
 **Sub-namespaces**: `stereocomplex.synthetic`, `stereocomplex.physics`,
 `stereocomplex.rayfields` each expose their respective symbol sets.
 
-Symbols not in Tier 1/2 remain accessible at the top level with a
-`DeprecationWarning` until v1.0; from v0.3 they should be imported from
-their sub-namespace.
+Symbols outside `stereocomplex.__all__` should be imported from their
+canonical sub-namespace.  In v0.x, the public surface may still change.
 
 ## Recommended imports
 

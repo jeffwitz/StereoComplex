@@ -81,7 +81,6 @@ if scene_root.exists():
     # See `docs/FROM_OPENCV_TO_STEREOCOMPLEX.md` for the full guide.
 
     # %%
-    import numpy as np
 else:
     print("Sample dataset not found.  Place your images in my_data/left/ and my_data/right/")
     print("See docs/BRING_YOUR_OWN_DATA.md for instructions.")

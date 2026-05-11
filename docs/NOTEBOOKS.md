@@ -21,12 +21,15 @@ versioned directly in Git:
 
 | Notebook | What it teaches | Companion script |
 |---|---|---|
+| **`00_getting_started.py`** | **Start here if you know OpenCV.**  Compare raw vs Ray2D-refined calibration, check quality, export to OpenCV format. | `00_getting_started.py` |
 | `01_ray2d_vs_opencv.ipynb` | How the 2D planar refinement (`rayfield_tps_robust`) changes ChArUco detection and why that matters for standard OpenCV calibration. | `01_ray2d_vs_opencv.py` |
 | `02_ray3d.ipynb` | How the compact central 3D ray-field is calibrated, how the Pycaso-style sweeps are organized, and how the compression experiments are read. | `02_ray3d.py` |
 | `03_rayfield_virtual_rectification.ipynb` | How a ray-field can be turned into virtual rectification maps and then reused with a classic dense stereo pipeline. | `03_rayfield_virtual_rectification.py` |
 | `04_parallel_plate_origin_field.ipynb` | How an inclined parallel-plate oracle creates non-central stereo data, renders ChArUco images with vignetting/blur/noise, and runs Zernike rayfield BA (`O(u,v)`, `d(u,v)`, poses, rig). | `04_parallel_plate_origin_field.py` |
 | `05_noncentral_calibration_from_images.ipynb` | Practical workflow: fit a non-central Zernike origin-field model from two image folders and a ChArUco board definition. | `05_noncentral_calibration_from_images.py` |
 | `06_cmo_model_selection.ipynb` | CMO workflow: generate a ChArUco CMO scene, measure generic Zernike `O(u,v), d(u,v)` rayfields, then select among pinhole, Brown-Conrady, plate, and CMO physical candidates. | `06_cmo_model_selection.py` |
+| `07_model_selection_matrix.py` | Run the complete 6-oracle classification matrix (pinhole through exotic), noiseless and under noise. | `07_model_selection_matrix.py` |
+| `08_direct_vs_rayfield_inversion.py` | Compare direct ChArUco inversion (pipeline A) against rayfield-mediated selection (pipeline B) on a CMO oracle. | `08_direct_vs_rayfield_inversion.py` |
 
 Use notebook 04 if you want to understand why and how the non-central model
 works on a controlled physical oracle. Use notebook 05 if you want the shortest
