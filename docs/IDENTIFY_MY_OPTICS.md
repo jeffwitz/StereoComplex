@@ -76,12 +76,13 @@ The two stages are independent. If the Zernike fit is good, the physical
 interpretation is reliable. If the Zernike fit is noisy, the physical
 interpretation will reflect that noise.
 
-## Direct physical reading from the rayfield
+## Direct geometric reading from the rayfield
 
-Before running model selection, you can **read optical parameters directly
-from the measured Zernike rayfield** at the centre pixel — without any
-numerical optimisation.  This gives you a physical understanding of the
-microscope before you run any model fit.
+Before running model selection, you can **read CMO-consistent geometric
+descriptors directly from the measured Zernike rayfield** at the centre
+pixel — without any numerical optimisation.  These are not fitted CMO
+parameters (the Zernike origin has gauge freedom), but they give you a
+physical understanding of the microscope before you run any model fit.
 
 ### Step 1: read the sub-pupil positions
 

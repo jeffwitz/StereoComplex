@@ -11,8 +11,10 @@
 # 4. Zernike rayfield fit (origin order 0, direction order 2, constrained poses)
 # 5. Pixel reprojection errors
 #
-# **Key result:** Stereo reprojection RMS < 0.5 px on real CMO data,
-# where OpenCV stereo calibration completely fails (RMS > 300 px).
+# **Key result:** Stereo rayfield fit reaches subpixel pixel-equivalent
+# residuals (< 0.5 px) on this dataset, whereas a standard central OpenCV
+# stereo calibration (under the tested configuration) does not converge to
+# a usable model.
 
 # %%
 from __future__ import annotations
@@ -364,7 +366,9 @@ print(f"Ray RMS: {zd.ray_rms_mm:.4f} mm")
 #
 # For each of the 3300 rays, the ray at the observed pixel is intersected
 # with the board plane.  The 3-D distance to the true board point is
-# converted to pixels using the local pixel scale ``t / fx``.
+# converted to a local pixel-equivalent residual ``e_mm / (t / fx)``.
+# This is a local first-order approximation, not an OpenCV image
+# reprojection residual.
 
 # %%
 all_err_px_L, all_err_px_R = [], []
@@ -376,7 +380,7 @@ for pi in range(len(paired_z)):
     X_world = (R_mat @ obj_pts.T).T + t_vec[None, :]
     n_plane = R_mat[:, 2]
 
-    for k in range(165):
+    for k in range(obj_pts.shape[0]):
         uv_L = left_pixels[pi][k]
         uv_R = right_pixels[pi][k]
         Xk = X_world[k]
@@ -414,7 +418,7 @@ def _stats(a: np.ndarray, unit: str) -> str:
     )
 
 
-print(f"PIXEL reprojection errors (ray→plane intersection):")
+print(f"Local pixel-equivalent reprojection errors (ray→plane intersection):")
 print(f"  Left:   {_stats(all_err_px_L, 'px')}")
 print(f"  Right:  {_stats(all_err_px_R, 'px')}")
 combined = np.concatenate([all_err_px_L, all_err_px_R])
@@ -446,12 +450,13 @@ for pi, z_str in enumerate(paired_z):
     print(f"  {z_str}: Z = {opt_t[pi][2]:.2f} mm")
 
 # %% [markdown]
-# ## 5 — Physical interpretation: extracting CMO parameters from the rayfield
+# ## 5 — Physical interpretation: CMO-like descriptors from the rayfield
 #
 # The Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$ is a **measured
 # geometric quantity**.  By postulating a CMO physical model, we can read
-# the microscope's optical parameters directly from the rayfield at the
-# centre pixel — **without any optimisation**.
+# geometric descriptors directly from the rayfield at the centre pixel —
+# **without any numerical optimisation**.  These are CMO-consistent
+# readouts, not fitted CMO parameters (the Zernike origin has gauge freedom).
 #
 # ### 5.1 — Sub-pupil positions → baseline
 #
@@ -472,8 +477,9 @@ for pi, z_str in enumerate(paired_z):
 # b = \|O_R - O_L\| \approx 24.9\;\text{mm}
 # $$
 #
-# The near-symmetry $O_L \approx -O_R$ confirms the expected antisymmetric
-# sub-pupil layout of a Greenough/CMO design.
+# The near-antisymmetry $O_L \approx -O_R$ confirms a well-balanced stereo
+# geometry.  Under a CMO interpretation these points correspond to effective
+# off-axis sub-pupils of the shared objective.
 #
 # ### 5.2 — Sub-pupil depth → objective focal length
 #
@@ -509,7 +515,7 @@ for pi, z_str in enumerate(paired_z):
 # This is a strong stereo angle — consistent with a microscope designed for
 # 3‑D depth perception at short working distance.
 #
-# ### 5.4 — Summary: CMO parameters read directly from the rayfield
+# ### 5.4 — Summary: CMO-consistent descriptors read from the rayfield
 #
 # | Parameter | Symbol | Value | Source |
 # |---|---|---|---|
@@ -519,16 +525,16 @@ for pi, z_str in enumerate(paired_z):
 # | Objective focal length | $f_{\text{obj}}$ | 62.2 mm | $WD - z_p$ |
 # | Convergence angle | $\theta$ | 22.6° | $\arccos(d_L \cdot d_R)$ |
 #
-# **No numerical optimisation was used.**  These parameters are a direct
-# geometric reading of the measured rayfield.
+# **No numerical optimisation was used.**  These descriptors are a direct
+# geometric reading of the measured rayfield (under Zernike gauge).
 
 # %% [markdown]
 # ## 6 — Model comparison: Zernike vs CMO across the field of view
 #
-# With the CMO parameters derived above, we can construct a CMO physical
+# With these CMO-consistent descriptors, we can construct a CMO physical
 # model and compare its rays to the Zernike rayfield **across the entire
-# sensor**, not just at the centre pixel.  This reveals what the simple CMO
-# model captures — and what it misses.
+# sensor**, not just at the centre pixel.  This reveals what a simple CMO
+# model captures — and what a perspective CMO model misses.
 #
 # ### 6.1 — Building the CMO model from derived parameters
 #
@@ -661,7 +667,8 @@ print(f"\n  CMO d_y range: {dl_cmo[:,1].max()-dl_cmo[:,1].min():.4f}")
 # 1. **StereoComplex calibrates a real CMO microscope where OpenCV fails**
 #    (OpenCV stereo RMS > 300 px vs. StereoComplex 0.47 px).
 #
-# 2. **The Zernike rayfield is an observable**: from it, we directly read
+# 2. **The Zernike rayfield is an observable**: from it, we read CMO-consistent
+#    geometric descriptors
 #    $b \approx 24.9\;\text{mm}$, $f_{\text{obj}} \approx 62\;\text{mm}$,
 #    $WD \approx 65\;\text{mm}$, and a convergence angle of $22.6^\circ$ —
 #    all without running a physical model fit.
@@ -696,7 +703,7 @@ results = []
 for o_order, d_order in orders_to_test:
     nO = zernike_mode_count[o_order] * 3
     nd = zernike_mode_count[d_order] * 3
-    n_params = (nO + nd) * 2 + 15  # 2 channels + poses
+    n_params = (nO + nd) * 2 + 15  # 2×(O+d) + (3 rot + 2 XY + 10 Z) poses
 
     t0 = time.time()
     _lf, _rf, _zd, _oR, _ot = fit_constrained_zernike_rayfield(
@@ -712,7 +719,7 @@ for o_order, d_order in orders_to_test:
         Rm, tv = _oR[pi], _ot[pi]
         Xw = (Rm @ obj_pts.T).T + tv[None, :]
         n_plane = Rm[:, 2]
-        for k in range(165):
+        for k in range(obj_pts.shape[0]):
             for uv, Xk, field, el in [
                 (left_pixels[pi][k], Xw[k], _lf, _eL),
                 (right_pixels[pi][k], Xw[k], _rf, _eR),
@@ -753,6 +760,14 @@ best = min(results, key=lambda r: r["rms"])
 baseline = results[0]
 improvement = (baseline["rms"] - best["rms"]) / baseline["rms"] * 100
 
+# Save sweep results
+import json
+SWEEP_DIR = Path("docs/assets/pycaso_real_data")
+SWEEP_DIR.mkdir(parents=True, exist_ok=True)
+with open(SWEEP_DIR / "zernike_order_sweep.json", "w") as f:
+    json.dump(results, f, indent=2)
+print(f"\nSweep saved to {SWEEP_DIR / 'zernike_order_sweep.json'}")
+
 # %% [markdown]
 # ### 8.1 — Interpretation
 #
@@ -790,7 +805,8 @@ print(f"\nSpread (max−min): b={max(b_vals)-min(b_vals):.2f}mm  "
 #    (OpenCV stereo RMS > 300 px vs. StereoComplex 0.47 px baseline,
 #    0.41 px with O(2)+d(3)).
 #
-# 2. **The Zernike rayfield is an observable**: from it, we directly read
+# 2. **The Zernike rayfield is an observable**: from it, we read CMO-consistent
+#    geometric descriptors
 #    $b \approx 24.9\;\text{mm}$, $f_{\text{obj}} \approx 62\;\text{mm}$,
 #    $WD \approx 65\;\text{mm}$, and a convergence angle of $22.6^\circ$ —
 #    all without running a physical model fit.
