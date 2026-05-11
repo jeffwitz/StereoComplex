@@ -142,6 +142,24 @@ Editable install:
 .venv/bin/python -m pip install -e .
 ```
 
+## From OpenCV to StereoComplex
+
+Already know `cv2.calibrateCamera`?  Here is the fast path:
+
+| I want to… | Function |
+|---|---|
+| Improve my ChArUco corners before OpenCV | `sc.refine_charuco_corners(...)` |
+| Compare OpenCV raw vs Ray2D-refined | `sc.compare_opencv_stereo_calibration(...)` |
+| Calibrate like OpenCV with refined corners | `sc.calibrate_opencv(...)` |
+| Switch to a central ray-based model | `sc.calibrate_central(...)` |
+| Test for non-central optics | `sc.calibrate_noncentral(...)` |
+| Identify CMO / plate / Brown / etc. | `sc.identify_optics(...)` |
+| Check if my calibration is usable | `sc.assess_calibration(result)` |
+| Export to OpenCV format | `result.to_opencv()` |
+
+See `docs/FROM_OPENCV_TO_STEREOCOMPLEX.md` for the full 3-minute quickstart
+and `examples/notebooks/00_getting_started.py` for a walkthrough notebook.
+
 ## Quickstart: optical model identification
 
 After fitting a Zernike origin field, ask which physical model best explains it:
