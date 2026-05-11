@@ -87,11 +87,37 @@ Use this notebook if you want the ray-space model-selection story on a CMO-like
 optical system. It generates a ChArUco CMO scene from the shared
 `stereocomplex.physics` model, fits generic Zernike `O(u,v), d(u,v)` rayfields
 to the generated rays, and then compares physical candidates in ray space. The
-The notebook compares a shared physical CMO candidate against generic per-channel
+notebook compares a shared physical CMO candidate against generic per-channel
 candidates, including a polynomial surrogate that uses the same low-level
 Brown-Conrady and polynomial angular primitives.
 
 Scientific companion page: [CMO model selection](CMO_MODEL_SELECTION.md).
+
+### 00 Getting started — from OpenCV to StereoComplex
+
+`00_getting_started.py` is the recommended first notebook for OpenCV users:
+- define a ChArUco board,
+- compare OpenCV raw vs Ray2D-refined calibration,
+- check quality with `assess_calibration`,
+- export to OpenCV format with `result.to_opencv()`.
+
+Companion guide: [From OpenCV to StereoComplex](FROM_OPENCV_TO_STEREOCOMPLEX.md).
+
+### 07 Model selection classification matrix
+
+`07_model_selection_matrix.py` runs the complete 6-oracle classification
+matrix (pinhole, Brown, plate, CMO, Greenough, exotic), both noiseless
+and under 20 µm measurement noise.
+
+Scientific companion page: [CMO model selection](CMO_MODEL_SELECTION.md).
+
+### 08 Direct vs rayfield-mediated inversion
+
+`08_direct_vs_rayfield_inversion.py` compares fitting optical models
+directly to ChArUco corners (pipeline A) against the rayfield-mediated
+strategy (pipeline B) on a CMO oracle.
+
+Scientific companion page: [Rayfield mediation](DIRECT_VS_RAYFIELD_INVERSION.md).
 
 ## Open locally
 

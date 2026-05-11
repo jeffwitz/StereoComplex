@@ -14,7 +14,7 @@ StereoComplex is a research prototype, but it exposes a small **public API** mea
 
 ## Namespace structure (v0.3+)
 
-`stereocomplex.__all__` contains ~24 symbols split into two tiers:
+`stereocomplex.__all__` contains 31 symbols split into two tiers:
 
 **Tier 1 — primary entry points** (13 symbols): the functions and dataclasses
 you call in 95 % of sessions (`fit_opencv_stereo_from_image_dirs`,

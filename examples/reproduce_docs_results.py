@@ -47,6 +47,13 @@ def require_paths(paths: list[Path]) -> None:
         )
 
 
+def _fmt(x, ndigits=2):
+    """Format a float or return '?' if None/missing."""
+    if x is None:
+        return "?"
+    return f"{float(x):.{ndigits}f}"
+
+
 def format_direct_vs_rayfield_summary(summary: dict) -> str:
     """Format the notebook-08 summary as a compact report."""
     if not summary:
@@ -59,14 +66,16 @@ def format_direct_vs_rayfield_summary(summary: dict) -> str:
     pa = summary.get("pipeline_A", {})
     pb = summary.get("pipeline_B", {})
     if pa:
-        lines.append(f"  pipeline A:  rms={pa.get('rms_px','?'):.2f} px  "
+        lines.append(f"  pipeline A:  rms={_fmt(pa.get('rms_px'), 2)} px  "
                      f"converged={pa.get('converged','?')}  "
-                     f"elapsed={pa.get('elapsed_s','?'):.0f}s")
+                     f"elapsed={_fmt(pa.get('elapsed_s'), 0)}s")
     if pb:
         lines.append(f"  pipeline B:  winner={pb.get('rayfield_winner','?')}  "
                      f"correct={summary.get('rayfield_correct','?')}  "
-                     f"Zernike rms={pb.get('zernike_rms_mm','?'):.4f} mm")
-    lines.append(f"  total runtime:       ~{pa.get('elapsed_s',0) + pb.get('zernike_elapsed_s',0):.0f}s")
+                     f"Zernike rms={_fmt(pb.get('zernike_rms_mm'), 4)} mm")
+    ta = pa.get('elapsed_s', 0) or 0
+    tb = pb.get('zernike_elapsed_s', 0) or 0
+    lines.append(f"  total runtime:       ~{float(ta) + float(tb):.0f}s")
     return "\n".join(lines)
 
 

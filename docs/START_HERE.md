@@ -45,22 +45,22 @@ StereoComplex is built around:
 
 | Workflow | Entry point | Tutorial |
 | --- | --- | --- |
-| **Fix OpenCV calibration** that plateaus on blur / distortion | `fit_opencv_stereo_from_image_dirs(..., method2d="rayfield_tps_robust")` | :doc:`BRING_YOUR_OWN_DATA` |
-| **Non-central calibration** when a pinhole model leaves systematic bias | `fit_stereo_zernike_origin_field_from_image_dirs(...)` | :doc:`NONCENTRAL_FROM_IMAGES` |
-| **Identify physical optics** from a measured rayfield | `select_physical_model_from_rayfield(...)` | :doc:`IDENTIFY_MY_OPTICS` |
+| **From OpenCV** — quickstart for OpenCV users | `sc.compare_opencv_stereo_calibration(...)` | :doc:`FROM_OPENCV_TO_STEREOCOMPLEX` |
+| **Fix OpenCV calibration** that plateaus on blur / distortion | `sc.calibrate_opencv(..., method2d="rayfield_tps_robust")` | :doc:`BRING_YOUR_OWN_DATA` |
+| **Non-central calibration** when a pinhole model leaves systematic bias | `sc.calibrate_noncentral(...)` | :doc:`NONCENTRAL_FROM_IMAGES` |
+| **Identify physical optics** from a measured rayfield | `sc.identify_optics(...)` | :doc:`IDENTIFY_MY_OPTICS` |
 
 ## Which path should I use?
 
-1. **I just want a better OpenCV calibration**
-   → use `fit_opencv_stereo_from_image_dirs(..., method2d="rayfield_tps_robust")`.
-2. **I want a ray-based central 3D model**
-   → use `fit_stereo_central_rayfield_from_image_dirs(...)`.
-3. **I suspect my system is non-central**
-   → start with notebook 05 and
-   `fit_stereo_zernike_origin_field_from_image_dirs(...)`.
-4. **I want to identify what physical optics best explain my rayfield**
-   → use `select_physical_model_from_rayfield(...)` and read
-   :doc:`IDENTIFY_MY_OPTICS`.
+1. **I'm coming from OpenCV** → start with :doc:`FROM_OPENCV_TO_STEREOCOMPLEX`
+   or run ``examples/notebooks/00_getting_started.py``.
+2. **I just want a better OpenCV calibration**
+   → use ``sc.calibrate_opencv(..., method2d="rayfield_tps_robust")``
+   or ``sc.compare_opencv_stereo_calibration(...)``.
+3. **I want a ray-based central 3D model**
+   → use ``sc.calibrate_central(...)``.
+4. **I suspect my system is non-central**
+   → use ``sc.calibrate_noncentral(...)`` then ``sc.identify_optics(...)``.
 5. **I want to understand the scientific validation**
    → read notebook 04 and :doc:`PARALLEL_PLATE_ORIGIN_FIELD`.
 

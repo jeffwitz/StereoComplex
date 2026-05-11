@@ -29,9 +29,8 @@
 
 ```bash
 # Fast check (~60 s)
-python examples/notebooks/07_model_selection_matrix.py
-python examples/notebooks/08_direct_vs_rayfield_inversion.py
+python examples/reproduce_docs_results.py --fast
 
 # Full sweep (~15 min)
-python examples/sweep_direct_vs_rayfield.py
+python examples/reproduce_docs_results.py --full
 ```

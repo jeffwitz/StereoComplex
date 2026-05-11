@@ -11,6 +11,7 @@
 
 # %%
 from pathlib import Path
+import numpy as np
 import stereocomplex as sc
 
 # Replace with your board dimensions

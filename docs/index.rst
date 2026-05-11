@@ -36,7 +36,7 @@ Motivation: in many practical stereo systems, calibration accuracy is limited by
 4. **Experimental non-central stereo calibration.** The non-central backend fits a Zernike origin field ``O(u,v)``, so each pixel defines a 3D line instead of sharing one optical center.
 5. **Synthetic non-central oracle benchmark.** An inclined parallel-plate model generates physically plausible non-central stereo data without fitting plate parameters.
 6. **Practical non-central image workflow.** A public experimental API fits a Zernike origin-field model directly from two image folders.
-7. **Ray-space optical model selection.** A measured Zernike rayfield can be used to compare compact physical hypotheses such as central Brown-Conrady, inclined plate, and CMO polynomial-channel models.
+7. **Ray-space optical model selection.** A measured Zernike rayfield can be used to compare compact physical hypotheses such as central Brown-Conrady, inclined plate, physical CMO shared-rig, and generic non-central polynomial / Zernike fallback models.
 
 .. rubric:: Ray-field terminology
 
@@ -206,6 +206,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 
 - Getting started:
   :doc:`START_HERE`,
+  :doc:`FROM_OPENCV_TO_STEREOCOMPLEX`,
   :doc:`BRING_YOUR_OWN_DATA`,
   :doc:`NONCENTRAL_FROM_IMAGES`,
   :doc:`FIX_MY_CALIBRATION`,
@@ -221,11 +222,15 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 - Optical model identification and scientific benchmarks:
   :doc:`IDENTIFY_MY_OPTICS`,
   :doc:`CMO_PHYSICAL_MODEL`,
-  :doc:`PARALLEL_PLATE_ORIGIN_FIELD`,
   :doc:`CMO_MODEL_SELECTION`,
+  :doc:`DIRECT_VS_RAYFIELD_INVERSION`,
+  :doc:`PARALLEL_PLATE_ORIGIN_FIELD`,
   :doc:`PYCASO_Z_SWEEP`,
   :doc:`COMPRESSION_RECONSTRUCTION`,
   :doc:`ROBUSTNESS_SWEEP`.
+- Project status:
+  :doc:`VALIDATION_STATUS`,
+  :doc:`ROADMAP`.
 - Reference:
   :doc:`PUBLIC_API`,
   :doc:`ARCHITECTURE`,
@@ -240,6 +245,7 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
    :hidden:
 
    START_HERE
+   FROM_OPENCV_TO_STEREOCOMPLEX
    BRING_YOUR_OWN_DATA
    NONCENTRAL_FROM_IMAGES
    FIX_MY_CALIBRATION
@@ -270,11 +276,20 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 
    IDENTIFY_MY_OPTICS
    CMO_PHYSICAL_MODEL
-   PARALLEL_PLATE_ORIGIN_FIELD
    CMO_MODEL_SELECTION
+   DIRECT_VS_RAYFIELD_INVERSION
+   PARALLEL_PLATE_ORIGIN_FIELD
    PYCASO_Z_SWEEP
    COMPRESSION_RECONSTRUCTION
    ROBUSTNESS_SWEEP
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Project status
+   :hidden:
+
+   VALIDATION_STATUS
+   ROADMAP
 
 .. toctree::
    :maxdepth: 2
