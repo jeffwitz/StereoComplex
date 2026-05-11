@@ -1,0 +1,48 @@
+"""Tests for calibration quality assessment."""
+
+from __future__ import annotations
+
+from stereocomplex.api.calibration_quality import assess_calibration, CalibrationAssessment
+
+
+class _MockOpenCVReport:
+    n_stereo_frames = 6
+    stereo_rms_px = 0.12
+    mono_left_rms_px = 0.10
+    mono_right_rms_px = 0.11
+
+
+class _MockOpenCVResult:
+    report = _MockOpenCVReport()
+
+
+def test_assess_calibration_ok_for_good_opencv_result():
+    a = assess_calibration(_MockOpenCVResult())
+    assert a.status == "ok"
+    assert isinstance(a, CalibrationAssessment)
+
+
+class _MockWarnReport:
+    n_stereo_frames = 3
+    stereo_rms_px = 0.80
+    mono_left_rms_px = 0.60
+    mono_right_rms_px = 0.40
+
+
+class _MockWarnResult:
+    report = _MockWarnReport()
+
+
+def test_assess_calibration_warns_for_few_frames():
+    a = assess_calibration(_MockWarnResult())
+    assert a.status == "warning"
+
+
+def test_assess_calibration_handles_zernike_result_without_report():
+    """Zernike results have attributes directly, not nested under .report."""
+    class ZernikeResult:
+        n_initialized_frames = 5
+        train_skew_p95_mm = 0.3
+        train_point_to_ray_p95_mm = 0.2
+    a = assess_calibration(ZernikeResult())
+    assert a.status == "ok"

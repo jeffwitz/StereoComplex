@@ -45,6 +45,7 @@ __all__ = [
     "build_charuco_board",
     "detect_charuco_corners",
     "fit_opencv_stereo_from_image_dirs",
+    "identify_optics",
     "fit_stereo_central_rayfield_from_image_dirs",
     "fit_stereo_zernike_origin_field_from_image_dirs",
     "load_stereo_central_rayfield",

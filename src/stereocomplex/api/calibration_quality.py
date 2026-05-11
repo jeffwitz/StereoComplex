@@ -43,14 +43,7 @@ def assess_calibration(result: Any) -> CalibrationAssessment:
     """
     msgs: list[str] = []
     recs: list[str] = []
-    report = getattr(result, "report", None)
-
-    if report is None:
-        return CalibrationAssessment(
-            status="failed",
-            messages=["No calibration report found on result object."],
-            recommendations=["Ensure you are passing a StereoComplex result object."],
-        )
+    report = getattr(result, "report", result)  # fall back to result itself for Zernike fits
 
     # --- frame count ---
     n_frames = getattr(report, "n_stereo_frames", None) or getattr(report, "n_initialized_frames", None) or 0
@@ -71,7 +64,7 @@ def assess_calibration(result: Any) -> CalibrationAssessment:
             recs.append("Consider rayfield-based calibration for better accuracy.")
 
     # --- mono RMS ---
-    for side, attr in [("left", "mono_rms_left_px"), ("right", "mono_rms_right_px")]:
+    for side, attr in [("left", "mono_left_rms_px"), ("right", "mono_right_rms_px")]:
         rms = getattr(report, attr, None)
         if rms is not None and rms > 0.5:
             msgs.append(f"{side.capitalize()} mono RMS is high ({rms:.2f} px).")
