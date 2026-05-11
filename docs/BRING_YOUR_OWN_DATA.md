@@ -10,7 +10,7 @@ to:
 
 - a baseline **OpenCV raw vs Ray2D + OpenCV** comparison,
 - a calibrated StereoComplex model,
-- optionally an non-central Zernike rayfield model (validated on real CMO hardware),
+- optionally a non-central Zernike rayfield model (validated on real CMO hardware),
 - an exported `models/<name>/model.json + weights.npz`,
 - and then `model.triangulate(...)` in Python.
 
@@ -110,7 +110,7 @@ What this does:
 4. run the central stereo ray-field bundle adjustment,
 5. optionally export a reusable model directory.
 
-### Option C: fit an non-central origin field
+### Option C: fit a non-central rayfield (validated on real CMO)
 
 Use this when a central/pinhole model leaves systematic ray gaps or
 reconstruction bias, for example with protective glass, an inclined window, a
