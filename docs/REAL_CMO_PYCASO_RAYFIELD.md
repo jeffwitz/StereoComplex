@@ -281,7 +281,7 @@ across the field than the minimal perspective CMO model used here.
 - [ ] Pycaso example data cloned at `examples/pycaso_data`
 - [ ] Run `PYTHONPATH=src python examples/notebooks/09_pycaso_real_data.py`
 - [ ] Detection summary shows 165/165 corners after completion
-- [ ] Zernike fit converges (55 NFEV, ~20 s)
+- [ ] Zernike fit converges (typical: 55 NFEV, tens of seconds on a modern CPU)
 - [ ] Local pixel-equivalent RMS < 0.5 px
 - [ ] CMO-consistent descriptors printed
 - [ ] Zernike order sweep table printed
@@ -289,15 +289,21 @@ across the field than the minimal perspective CMO model used here.
 
 ## Saved artefacts
 
-The notebook generates:
+The notebook generates three JSON files:
 
 ```text
 docs/assets/pycaso_real_data/
-    zernike_order_sweep.json     ← sweep table (all orders, RMS, descriptors)
+    detection_summary.json       ← per-frame ChArUco counts (L/R)
+    summary.json                 ← calibration RMS, CMO descriptors, sweep best
+    zernike_order_sweep.json     ← full sweep table (all orders, RMS, descriptors)
 ```
 
-Numerical values reported in this page are produced by the notebook and
-saved in `docs/assets/pycaso_real_data/summary.json`.
+All numerical values reported in this page are produced by the notebook
+and saved in these artefacts.  To regenerate:
+
+```bash
+PYTHONPATH=src python examples/notebooks/09_pycaso_real_data.py
+```
 
 ## See also
 

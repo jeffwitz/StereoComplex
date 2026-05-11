@@ -262,6 +262,7 @@ print(f"Paired stereo frames: {len(paired_z)}")
 # ── Detect + complete + TPS-denoise ────────────────────────
 print("\nDetect → Hessian complete → ray2D TPS denoise:")
 denoised_L, denoised_R = [], []
+det_counts_L, det_counts_R = [], []
 for z_str in paired_z:
     lg = cv2.imread(str(LEFT_DIR / f"{z_str}.png"), 0)
     rg = cv2.imread(str(RIGHT_DIR / f"{z_str}.png"), 0)
@@ -304,6 +305,28 @@ for z_str in paired_z:
             out.append(comp_L if out is denoised_L else comp_R)
 
     print(f"  {z_str}: L {nL}→165  R {nR}→165")
+    det_counts_L.append(nL)
+    det_counts_R.append(nR)
+
+# Save detection summary
+import json
+DET_DIR = Path("docs/assets/pycaso_real_data")
+DET_DIR.mkdir(parents=True, exist_ok=True)
+detection_summary = {
+    "n_pairs": len(paired_z),
+    "n_corners_expected": 165,
+    "n_corners_completed": 165,
+    "left_detected_per_frame": det_counts_L,
+    "right_detected_per_frame": det_counts_R,
+    "left_mean_detected": float(np.mean(det_counts_L)),
+    "right_mean_detected": float(np.mean(det_counts_R)),
+    "left_min_detected": int(np.min(det_counts_L)),
+    "right_min_detected": int(np.min(det_counts_R)),
+    "left_max_detected": int(np.max(det_counts_L)),
+    "right_max_detected": int(np.max(det_counts_R)),
+}
+with open(DET_DIR / "detection_summary.json", "w") as f:
+    json.dump(detection_summary, f, indent=2)
 
 # %% [markdown]
 # ## 2 — Zernike rayfield fit
@@ -767,6 +790,52 @@ SWEEP_DIR.mkdir(parents=True, exist_ok=True)
 with open(SWEEP_DIR / "zernike_order_sweep.json", "w") as f:
     json.dump(results, f, indent=2)
 print(f"\nSweep saved to {SWEEP_DIR / 'zernike_order_sweep.json'}")
+
+# Save comprehensive summary.json
+summary = {
+    "dataset": {
+        "n_pairs": len(paired_z),
+        "image_size": list(IMG_SIZE),
+        "board": f"{NCX-1}×{NCY-1} ChArUco, {SQR} mm, {DICT_NAME}",
+        "z_range_mm": [float(paired_z[0]), float(paired_z[-1])],
+    },
+    "detection": detection_summary,
+    "zernike_fit": {
+        "model": "O(0)+d(2), constrained poses (shared R+XY, per-pose Z)",
+        "n_params": 57,
+        "converged": bool(zd.converged),
+        "nfev": int(zd.nfev),
+        "ray_rms_mm": float(zd.ray_rms_mm),
+    },
+    "reprojection": {
+        "metric": "local pixel-equivalent (ray-plane intersection)",
+        "left_rms_px": float(np.sqrt(np.mean(all_err_px_L ** 2))),
+        "left_p95_px": float(np.percentile(all_err_px_L, 95)),
+        "right_rms_px": float(np.sqrt(np.mean(all_err_px_R ** 2))),
+        "right_p95_px": float(np.percentile(all_err_px_R, 95)),
+        "both_rms_px": float(np.sqrt(np.mean(np.concatenate([all_err_px_L, all_err_px_R]) ** 2))),
+    },
+    "cmo_descriptors": {
+        "baseline_mm": float(np.linalg.norm(Or_c - Ol_c)),
+        "subpupil_depth_mm": float((abs(Ol_c[2]) + abs(Or_c[2])) / 2),
+        "working_distance_mm": float(np.mean([opt_t[i][2] for i in range(len(opt_t))])),
+        "f_obj_mm": float(np.mean([opt_t[i][2] for i in range(len(opt_t))]) - (abs(Ol_c[2]) + abs(Or_c[2])) / 2),
+        "convergence_angle_deg": float(np.degrees(np.arccos(np.clip(np.dot(dl_c, dr_c), -1, 1)))),
+    },
+    "order_sweep_best": {
+        "model": f"O({best['O']})+d({best['d']})",
+        "n_params": best["p"],
+        "rms_px": best["rms"],
+        "p95_px": best["p95"],
+    },
+}
+summary["cmo_descriptors"]["f_obj_mm"] = (
+    summary["cmo_descriptors"]["working_distance_mm"]
+    - summary["cmo_descriptors"]["subpupil_depth_mm"]
+)
+with open(SWEEP_DIR / "summary.json", "w") as f:
+    json.dump(summary, f, indent=2)
+print(f"Summary saved to {SWEEP_DIR / 'summary.json'}")
 
 # %% [markdown]
 # ### 8.1 — Interpretation
