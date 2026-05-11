@@ -816,11 +816,11 @@ summary = {
         "both_rms_px": float(np.sqrt(np.mean(np.concatenate([all_err_px_L, all_err_px_R]) ** 2))),
     },
     "cmo_descriptors": {
-        "baseline_mm": float(np.linalg.norm(Or_c - Ol_c)),
-        "subpupil_depth_mm": float((abs(Ol_c[2]) + abs(Or_c[2])) / 2),
-        "working_distance_mm": float(np.mean([opt_t[i][2] for i in range(len(opt_t))])),
-        "f_obj_mm": float(np.mean([opt_t[i][2] for i in range(len(opt_t))]) - (abs(Ol_c[2]) + abs(Or_c[2])) / 2),
-        "convergence_angle_deg": float(np.degrees(np.arccos(np.clip(np.dot(dl_c, dr_c), -1, 1)))),
+        "baseline_mm": float(np.linalg.norm(Or_c[0] - Ol_c[0])),
+        "subpupil_depth_mm": float((abs(float(Ol_c[0,2])) + abs(float(Or_c[0,2]))) / 2),
+        "working_distance_mm": float(np.mean([float(opt_t[i][2]) for i in range(len(opt_t))])),
+        "convergence_angle_deg": float(np.degrees(np.arccos(np.clip(float(np.dot(dl_c[0], dr_c[0])), -1.0, 1.0)))),
+        "f_obj_mm": 0.0,
     },
     "order_sweep_best": {
         "model": f"O({best['O']})+d({best['d']})",
@@ -829,10 +829,8 @@ summary = {
         "p95_px": best["p95"],
     },
 }
-summary["cmo_descriptors"]["f_obj_mm"] = (
-    summary["cmo_descriptors"]["working_distance_mm"]
-    - summary["cmo_descriptors"]["subpupil_depth_mm"]
-)
+s = summary["cmo_descriptors"]
+s["f_obj_mm"] = s["working_distance_mm"] - s["subpupil_depth_mm"]
 with open(SWEEP_DIR / "summary.json", "w") as f:
     json.dump(summary, f, indent=2)
 print(f"Summary saved to {SWEEP_DIR / 'summary.json'}")
