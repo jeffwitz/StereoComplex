@@ -26,8 +26,9 @@ The simplest entry points for a new user (all importable as ``sc.X``):
 | ``sc.assess_calibration(result)`` | Quality gate: ok / warning / failed + recommendations |
 | ``result.to_opencv()`` | Export to ``(K1, d1, K2, d2, R, T)`` |
 
-The long-form names (``fit_opencv_stereo_from_image_dirs``, etc.) are also
-available and are the canonical names used throughout the documentation.
+The short aliases are recommended for onboarding and interactive use; the
+long-form names (``fit_opencv_stereo_from_image_dirs``, etc.) are canonical
+for scripts, documentation, and advanced composition.
 
 ## Sub-namespaces
 
