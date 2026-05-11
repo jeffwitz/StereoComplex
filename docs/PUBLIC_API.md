@@ -12,45 +12,44 @@ StereoComplex is a research prototype, but it exposes a small **public API** mea
 - Everything else (`stereocomplex.core`, `stereocomplex.eval`, `paper/`,
   `docs/examples/`) is **internal** and may change without notice.
 
-## Namespace structure (v0.3+)
+## Recommended user-facing API
 
-`stereocomplex.__all__` contains 31 symbols split into two tiers:
+The simplest entry points for a new user (all importable as ``sc.X``):
 
-**Tier 1 — primary entry points** (13 symbols): the functions and dataclasses
-you call in 95 % of sessions (`fit_opencv_stereo_from_image_dirs`,
-`fit_stereo_zernike_origin_field_from_image_dirs`,
-`select_physical_model_from_rayfield`, `detect_charuco_corners`,
-`refine_charuco_corners`, `load/save_stereo_central_rayfield`,
-`build_charuco_board`, `CharucoBoardSpec`, `StereoImagePair`,
-`PhysicalModelSpec`, `StereoCentralRayFieldModel`).
+| Function | Purpose |
+|---|---|
+| ``sc.compare_opencv_stereo_calibration(...)`` | Compare OpenCV raw vs Ray2D-refined in one call |
+| ``sc.calibrate_opencv(...)`` | OpenCV stereo calibration with refined corners |
+| ``sc.calibrate_central(...)`` | Central ray-based stereo calibration |
+| ``sc.calibrate_noncentral(...)`` | Non-central Zernike rayfield calibration |
+| ``sc.identify_optics(...)`` | Select the best physical optical model by BIC |
+| ``sc.assess_calibration(result)`` | Quality gate: ok / warning / failed + recommendations |
+| ``result.to_opencv()`` | Export to ``(K1, d1, K2, d2, R, T)`` |
 
-**Tier 2 — result/report dataclasses** (11 symbols): types returned by Tier 1
-functions (`StereoOpenCVCalibration{Result,Report}`,
-`StereoCentralRayFieldFit{Result,Report}`,
-`StereoZernikeOriginFieldFitResult`, `ParallelPlateFromRayfieldFitResult`,
-`PhysicalModelFitResult`, `OpticalModelSelectionReport`,
-`Reconstruction{Result,ErrorReport,ComparisonReport}`).
+The long-form names (``fit_opencv_stereo_from_image_dirs``, etc.) are also
+available and are the canonical names used throughout the documentation.
 
-**Advanced composition** (`stereocomplex.advanced`): lower-level functions for
-expert pipelines (`fit_stereo_zernike_origin_field`,
-`fit_physical_model_to_rayfield`, `reconstruct_points_*`,
-`compare_3d_reconstruction_with_without_origin_field`, etc.).
+## Sub-namespaces
 
-**Sub-namespaces**: `stereocomplex.synthetic`, `stereocomplex.physics`,
-`stereocomplex.rayfields` each expose their respective symbol sets.
+- ``stereocomplex.physics`` — physical models (Brown-Conrady, CMO, parallel plate, polynomial surrogate) and model selection
+- ``stereocomplex.advanced`` — lower-level composition functions for expert pipelines
+- ``stereocomplex.rayfields`` — Zernike rayfield models and the compact Zernike fallback candidate
+- ``stereocomplex.synthetic`` — synthetic dataset generation and benchmarks
+- ``stereocomplex.benchmarks`` — oracle builders, observation simulators, diagnostics
 
-Symbols outside `stereocomplex.__all__` should be imported from their
+Symbols not in ``stereocomplex.__all__`` should be imported from their
 canonical sub-namespace.  In v0.x, the public surface may still change.
 
-## Recommended imports
-
-Top-level re-exports (stable):
+## Example
 
 ```python
 import stereocomplex as sc
 
-model = sc.load_stereo_central_rayfield("models/my_model")
-XYZ_mm, skew_mm = model.triangulate(uv_left_px, uv_right_px)
+report = sc.compare_opencv_stereo_calibration(
+    left_dir="left", right_dir="right", board=board,
+)
+assessment = sc.assess_calibration(report["refined_result"])
+K1, d1, K2, d2, R, T = report["refined_result"].to_opencv()
 ```
 
 Direct API imports (stable):
