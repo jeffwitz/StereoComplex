@@ -444,3 +444,234 @@ print(f"  Convergence angle: {angle:.1f}°")
 print(f"\nPer-frame Z (shared R + XY, per-pose Z):")
 for pi, z_str in enumerate(paired_z):
     print(f"  {z_str}: Z = {opt_t[pi][2]:.2f} mm")
+
+# %% [markdown]
+# ## 5 — Physical interpretation: extracting CMO parameters from the rayfield
+#
+# The Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$ is a **measured
+# geometric quantity**.  By postulating a CMO physical model, we can read
+# the microscope's optical parameters directly from the rayfield at the
+# centre pixel — **without any optimisation**.
+#
+# ### 5.1 — Sub-pupil positions → baseline
+#
+# In a CMO stereo microscope, the two channels share a common main objective
+# but look through **off-axis sub-pupils** of the objective's aperture.
+# Each channel's ray origin $O(u,v)$ is the 3‑D position of that sub-pupil
+# in the camera coordinate frame.
+#
+# From the Zernike rayfield at the centre pixel:
+# $$
+# O_L = (-12.7,\,-0.1,\,2.7)\;\text{mm},
+# \qquad
+# O_R = (12.1,\,-0.1,\,2.3)\;\text{mm}
+# $$
+#
+# The **stereo baseline** is the Euclidean distance between the two sub-pupils:
+# $$
+# b = \|O_R - O_L\| \approx 24.9\;\text{mm}
+# $$
+#
+# The near-symmetry $O_L \approx -O_R$ confirms the expected antisymmetric
+# sub-pupil layout of a Greenough/CMO design.
+#
+# ### 5.2 — Sub-pupil depth → objective focal length
+#
+# In the CMO model, a sub-pupil is located at $z_{\text{pupil}} = WD - f_{\text{obj}}$,
+# where $WD$ is the working distance (objective → object plane) and
+# $f_{\text{obj}}$ is the objective's effective focal length.
+#
+# From the Zernike rayfield:
+# $$
+# z_{\text{pupil}} = \frac{|O_{L,z}| + |O_{R,z}|}{2} \approx 2.5\;\text{mm}
+# $$
+#
+# The board's Z position is given by the optimised poses; averaging over
+# all frames gives $WD \approx 64.7\;\text{mm}$.  Hence:
+# $$
+# f_{\text{obj}} = WD - z_{\text{pupil}} \approx 64.7 - 2.5 = 62.2\;\text{mm}
+# $$
+#
+# ### 5.3 — Chief-ray directions → convergence angle
+#
+# At the centre pixel, the left and right chief-ray directions are:
+# $$
+# d_L = (0.204,\,0.059,\,0.977),
+# \qquad
+# d_R = (-0.187,\,0.060,\,0.980)
+# $$
+#
+# The **convergence angle** (the angle between the two chief rays) is:
+# $$
+# \theta = \arccos(d_L \cdot d_R) \approx 22.6^\circ
+# $$
+#
+# This is a strong stereo angle — consistent with a microscope designed for
+# 3‑D depth perception at short working distance.
+#
+# ### 5.4 — Summary: CMO parameters read directly from the rayfield
+#
+# | Parameter | Symbol | Value | Source |
+# |---|---|---|---|
+# | Baseline | $b$ | 24.9 mm | $\|O_R - O_L\|$ |
+# | Sub-pupil depth | $z_p$ | 2.5 mm | $(|O_{L,z}|+|O_{R,z}|)/2$ |
+# | Working distance | $WD$ | 64.7 mm | Mean board Z from poses |
+# | Objective focal length | $f_{\text{obj}}$ | 62.2 mm | $WD - z_p$ |
+# | Convergence angle | $\theta$ | 22.6° | $\arccos(d_L \cdot d_R)$ |
+#
+# **No numerical optimisation was used.**  These parameters are a direct
+# geometric reading of the measured rayfield.
+
+# %% [markdown]
+# ## 6 — Model comparison: Zernike vs CMO across the field of view
+#
+# With the CMO parameters derived above, we can construct a CMO physical
+# model and compare its rays to the Zernike rayfield **across the entire
+# sensor**, not just at the centre pixel.  This reveals what the simple CMO
+# model captures — and what it misses.
+#
+# ### 6.1 — Building the CMO model from derived parameters
+#
+# The CMO model computes rays from physical parameters.  With $f_{\text{obj}},
+# WD, b$ fixed to the values read from the rayfield, and assuming zero
+# distortion and principal point at the image centre:
+#
+# ```python
+# cmo = CMOPhysicalStereoModel(
+#     f_obj_mm=62.2, working_distance_mm=64.7, b_mm=24.9,
+#     f_tube_mm=50.0,
+#     cx_principal_px=1024, cy_principal_px=1024,
+#     pixel_pitch_mm=0.0055,
+#     distortion_left=(0,0,0,0,0),
+#     distortion_right=(0,0,0,0,0),
+# )
+# ```
+
+# %%
+from stereocomplex.physics.cmo_physical import CMOPhysicalStereoModel
+
+Ol_c, dl_c = lf.ray(np.array([1024.0]), np.array([1024.0]))
+Or_c, dr_c = rf.ray(np.array([1024.0]), np.array([1024.0]))
+b_est = float(np.linalg.norm(Or_c[0] - Ol_c[0]))
+WD_est = float(np.mean([opt_t[i][2] for i in range(len(opt_t))]))
+z_pupil = float((abs(Ol_c[0, 2]) + abs(Or_c[0, 2])) / 2)
+f_obj_est = WD_est - z_pupil
+
+cmo_params = np.array([
+    f_obj_est, WD_est, b_est, 50.0, 1024.0, 1024.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+], dtype=np.float64)
+cmo = CMOPhysicalStereoModel.from_parameter_vector(
+    cmo_params, image_size=IMG_SIZE, pixel_pitch_mm=0.0055,
+)
+
+# Evaluate both models on a 11×11 grid spanning the full sensor
+u_grid = np.linspace(0, 2047, 11)
+v_grid = np.linspace(0, 2047, 11)
+uu, vv = np.meshgrid(u_grid, v_grid)
+u_flat = uu.ravel()
+v_flat = vv.ravel()
+
+Ol_z, dl_z = lf.ray(u_flat, v_flat)
+Or_z, dr_z = rf.ray(u_flat, v_flat)
+Ol_cmo, dl_cmo = cmo.ray(u_flat, v_flat, "left")
+Or_cmo, dr_cmo = cmo.ray(u_flat, v_flat, "right")
+
+ang_L = np.degrees(np.arccos(np.clip(np.sum(dl_z * dl_cmo, axis=1), -1, 1)))
+ang_R = np.degrees(np.arccos(np.clip(np.sum(dr_z * dr_cmo, axis=1), -1, 1)))
+
+# %% [markdown]
+# ### 6.2 — Direction differences across the field
+
+# %%
+print("Direction difference (Zernike − CMO) in degrees")
+print(f"{'':>6s}", end="")
+for u in u_grid:
+    print(f"{u:>8.0f}", end="")
+print()
+for i, v in enumerate(v_grid):
+    print(f"{v:>6.0f}", end="")
+    for j in range(len(u_grid)):
+        idx = i * len(u_grid) + j
+        print(f"{ang_L[idx]:>8.3f}", end="")
+    print()
+print(f"\nMean angular error: L={ang_L.mean():.2f}°  R={ang_R.mean():.2f}°")
+
+# %% [markdown]
+# ### 6.3 — The Y-component reveals telecentricity
+#
+# The direction vector's Y-component $d_y$ tells us how much the chief ray
+# tilts vertically as we move across the sensor.  A **perspective** model
+# (like the CMO) predicts a strong linear gradient: $d_y \propto (v - c_y)$.
+# A **telecentric** system has $d_y \approx \text{constant}$ across the field.
+
+# %%
+print("d_y (Zernike, Left) — nearly constant → telecentric")
+for i, v in enumerate(v_grid):
+    print(f"  v={v:4.0f}: ", end="")
+    for j in range(len(u_grid)):
+        idx = i * len(u_grid) + j
+        print(f"{dl_z[idx,1]:7.4f}", end="")
+    print()
+
+print(f"\n  Zernike d_y range: {dl_z[:,1].max()-dl_z[:,1].min():.4f}")
+
+print("\nd_y (CMO, Left) — linear gradient → perspective")
+for i, v in enumerate(v_grid):
+    print(f"  v={v:4.0f}: ", end="")
+    for j in range(len(u_grid)):
+        idx = i * len(u_grid) + j
+        print(f"{dl_cmo[idx,1]:7.4f}", end="")
+    print()
+
+print(f"\n  CMO d_y range: {dl_cmo[:,1].max()-dl_cmo[:,1].min():.4f}")
+
+# %% [markdown]
+# ### 6.4 — Interpretation
+#
+# The Zernike rayfield shows $d_y \approx 0.059 \pm 0.04$ across the entire
+# sensor — a nearly **constant** vertical tilt of ~3.4°.  The CMO model
+# predicts $d_y$ varying from −0.116 (top) to +0.116 (bottom) — a **linear
+# perspective gradient** with range 0.23, about **3× larger** than the real
+# rayfield.
+#
+# This is the signature of **telecentricity**: the real microscope's chief
+# rays are nearly parallel (constant direction) across the field of view,
+# whereas the simple CMO model assumes they all converge to a single sub-pupil
+# point.  The tube lens and objective together create an approximately
+# **object-space telecentric** condition in the Y direction.
+#
+# The CMO model captures the **first-order geometry** (sub-pupil positions,
+# baseline, working distance, convergence angle) correctly, but cannot
+# reproduce the **detailed ray-direction structure** of the real optics.
+# This structural mismatch explains why fitting the CMO model to the Zernike
+# rayfield produces a ray-space RMS of ~3.7 mm and a pixel reprojection RMS
+# of ~600 px — the optimiser pushes the principal point to extreme values and
+# saturates the distortion coefficients at their bounds, trying to compensate
+# for a perspective-to-telecentric gap that no combination of its 18
+# parameters can bridge.
+#
+# The Zernike rayfield, with 42 parameters (origin order 0 + direction
+# order 2, per channel), has enough flexibility to capture the real ray
+# geometry and achieves **0.47 px RMS** stereo reprojection.
+
+# %% [markdown]
+# ## 7 — Conclusions
+#
+# 1. **StereoComplex calibrates a real CMO microscope where OpenCV fails**
+#    (OpenCV stereo RMS > 300 px vs. StereoComplex 0.47 px).
+#
+# 2. **The Zernike rayfield is an observable**: from it, we directly read
+#    $b \approx 24.9\;\text{mm}$, $f_{\text{obj}} \approx 62\;\text{mm}$,
+#    $WD \approx 65\;\text{mm}$, and a convergence angle of $22.6^\circ$ —
+#    all without running a physical model fit.
+#
+# 3. **Model comparison in ray space is a diagnostic**: the Zernike-vs-CMO
+#    comparison across the FOV reveals that the real optics are more
+#    telecentric than the perspective CMO model, explaining why the CMO
+#    fit cannot achieve better than ~600 px reprojection.
+#
+# 4. **The workflow generalises**: the same rayfield → physical reading →
+#    model comparison sequence can be applied to any stereo microscope to
+#    identify its optical architecture and quantify deviations from ideal
+#    models.

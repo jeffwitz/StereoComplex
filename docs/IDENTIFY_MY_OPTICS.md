@@ -76,6 +76,85 @@ The two stages are independent. If the Zernike fit is good, the physical
 interpretation is reliable. If the Zernike fit is noisy, the physical
 interpretation will reflect that noise.
 
+## Direct physical reading from the rayfield
+
+Before running model selection, you can **read optical parameters directly
+from the measured Zernike rayfield** at the centre pixel — without any
+numerical optimisation.  This gives you a physical understanding of the
+microscope before you run any model fit.
+
+### Step 1: read the sub-pupil positions
+
+In a CMO (Common Main Objective) stereo microscope, each channel looks
+through an off-axis sub-pupil of the shared objective.  The Zernike ray
+origin $O(u,v)$ is the 3‑D position of that sub-pupil.  At the centre pixel
+$(c_x, c_y)$:
+
+$$O_L = (O_{L,x},\, O_{L,y},\, O_{L,z}), \qquad
+  O_R = (O_{R,x},\, O_{R,y},\, O_{R,z})$$
+
+The **stereo baseline** is:
+
+$$b = \|O_R - O_L\|$$
+
+### Step 2: read the sub-pupil depth
+
+In the CMO physical model, the sub-pupil is located at
+$z_{\text{pupil}} = WD - f_{\text{obj}}$, where $WD$ is the working distance
+from the objective to the object plane and $f_{\text{obj}}$ is the
+objective's effective focal length.  From the rayfield:
+
+$$z_{\text{pupil}} = \frac{|O_{L,z}| + |O_{R,z}|}{2}$$
+
+### Step 3: read the working distance
+
+The board poses estimated during the Zernike bundle adjustment give the
+board's Z position in the camera frame.  Averaging over all frames gives
+$WD$.  Then:
+
+$$f_{\text{obj}} = WD - z_{\text{pupil}}$$
+
+### Step 4: read the convergence angle
+
+The chief-ray directions at the centre pixel give the stereo convergence
+angle:
+
+$$\theta = \arccos(d_L \cdot d_R)$$
+
+### Step 5: compare across the field of view
+
+Build the CMO model with the parameters read above (zero distortion,
+principal point at image centre).  Evaluate both the Zernike rayfield and
+the CMO model on a grid spanning the full sensor.  Compare the direction
+components:
+
+- **If $d_y$ is nearly constant** across the field in the Zernike rayfield,
+  but the CMO model predicts a strong linear gradient, the real optics are
+  **more telecentric** than the perspective CMO model.
+- **If $d_x$ varies linearly** in both models with similar slope, the
+  perspective assumption holds in X.
+
+### Example: Pycaso CMO microscope
+
+From the Zernike rayfield at (1024, 1024) on the Pycaso dataset:
+
+| Parameter | Symbol | Value | Source |
+|---|---|---|---|
+| Baseline | $b$ | 24.9 mm | $\|O_R - O_L\|$ |
+| Sub-pupil depth | $z_p$ | 2.5 mm | $(|O_{L,z}|+|O_{R,z}|)/2$ |
+| Working distance | $WD$ | 64.7 mm | Mean board Z from poses |
+| Objective focal length | $f_{\text{obj}}$ | 62.2 mm | $WD - z_p$ |
+| Convergence angle | $\theta$ | 22.6° | $\arccos(d_L \cdot d_R)$ |
+
+The $d_y$ comparison reveals **object-space telecentricity in Y**: the
+Zernike $d_y \approx 0.059 \pm 0.04$ (nearly constant), while the CMO
+predicts $d_y$ varying from −0.116 to +0.116 (perspective gradient, range
+3× larger).  This structural mismatch explains why the CMO model cannot
+achieve better than ~600 px reprojection even with 18 optimised parameters,
+while the Zernike rayfield achieves 0.47 px.
+
+See the full analysis in [Notebook 09](../examples/09_pycaso_real_data.py).
+
 ## Read The Report Like An Engineer
 
 Start with the RMS columns, then use BIC to check whether the lower residual is

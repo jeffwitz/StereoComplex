@@ -48,6 +48,12 @@ def _roty(angle_rad: float) -> Array:
     return np.array([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]], dtype=np.float64)
 
 
+def _rotx(angle_rad: float) -> Array:
+    c = float(np.cos(angle_rad))
+    s = float(np.sin(angle_rad))
+    return np.array([[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s, c]], dtype=np.float64)
+
+
 def _grid_pixels(image_size: tuple[int, int], grid_shape: tuple[int, int]) -> Array:
     width, height = image_size
     nx, ny = grid_shape
@@ -99,6 +105,7 @@ class CMOPhysicalStereoModel:
     cy_principal_px: float
     pixel_pitch_mm: float
     theta_axis_tilt_rad: float = 0.0
+    theta_pitch_rad: float = 0.0
     distortion_left: tuple[float, float, float, float, float] = (0.0, 0.0, 0.0, 0.0, 0.0)
     distortion_right: tuple[float, float, float, float, float] = (0.0, 0.0, 0.0, 0.0, 0.0)
     image_size: tuple[int, int] | None = None
@@ -110,7 +117,7 @@ class CMOPhysicalStereoModel:
 
     @property
     def n_parameters(self) -> int:
-        return 17 if self.share_principal_point else 19
+        return 18 if self.share_principal_point else 20
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs) -> "CMOPhysicalStereoModel":
@@ -118,19 +125,21 @@ class CMOPhysicalStereoModel:
         if "pixel_pitch_mm" not in kwargs:
             raise ValueError("pixel_pitch_mm must be provided as a fixed CMOPhysicalStereoModel parameter")
         share_principal_point = bool(kwargs.get("share_principal_point", True))
-        expected = 17 if share_principal_point else 19
+        expected = 18 if share_principal_point else 20
         if arr.size != expected:
             raise ValueError(f"CMOPhysicalStereoModel expects {expected} parameters")
         if share_principal_point:
             delta_cx_diff = 0.0
             delta_cy_diff = 0.0
             theta_idx = 6
-            left_start = 7
+            pitch_idx = 7
+            left_start = 8
         else:
             delta_cx_diff = float(arr[6])
             delta_cy_diff = float(arr[7])
             theta_idx = 8
-            left_start = 9
+            pitch_idx = 9
+            left_start = 10
         return cls(
             f_obj_mm=float(arr[0]),
             working_distance_mm=float(arr[1]),
@@ -140,6 +149,7 @@ class CMOPhysicalStereoModel:
             cy_principal_px=float(arr[5]),
             pixel_pitch_mm=float(kwargs["pixel_pitch_mm"]),
             theta_axis_tilt_rad=float(arr[theta_idx]),
+            theta_pitch_rad=float(arr[pitch_idx]),
             distortion_left=tuple(float(v) for v in arr[left_start : left_start + 5]),  # type: ignore[arg-type]
             distortion_right=tuple(float(v) for v in arr[left_start + 5 : left_start + 10]),  # type: ignore[arg-type]
             image_size=kwargs.get("image_size"),
@@ -160,6 +170,7 @@ class CMOPhysicalStereoModel:
         if not self.share_principal_point:
             common.extend([self.delta_cx_diff_px, self.delta_cy_diff_px])
         common.append(self.theta_axis_tilt_rad)
+        common.append(self.theta_pitch_rad)
         return np.r_[
             np.asarray(common, dtype=np.float64),
             np.asarray(self.distortion_left, dtype=np.float64),
@@ -176,6 +187,7 @@ class CMOPhysicalStereoModel:
             "cx_principal_px": float(self.cx_principal_px),
             "cy_principal_px": float(self.cy_principal_px),
             "theta_axis_tilt_rad": float(self.theta_axis_tilt_rad),
+            "theta_pitch_rad": float(self.theta_pitch_rad),
         }
         if not self.share_principal_point:
             params.update(
@@ -241,6 +253,11 @@ class CMOPhysicalStereoModel:
 
         if self.theta_axis_tilt_rad != 0.0:
             R = _roty(float(self.theta_axis_tilt_rad))
+            pupil = (R @ pupil.T).T
+            directions = (R @ directions.T).T
+
+        if self.theta_pitch_rad != 0.0:
+            R = _rotx(float(self.theta_pitch_rad))
             pupil = (R @ pupil.T).T
             directions = (R @ directions.T).T
 
@@ -365,9 +382,9 @@ def fit_cmo_physical_stereo_model_to_rayfields(
     """Fit the shared physical CMO rig to left/right measured rayfields."""
 
     x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
-    if x0.size not in {17, 19}:
-        raise ValueError("initial_parameters must contain 17 shared-PP or 19 aligned-PP values")
-    share_principal_point = x0.size == 17
+    if x0.size not in {18, 20}:
+        raise ValueError("initial_parameters must contain 18 shared-PP or 20 aligned-PP values")
+    share_principal_point = x0.size == 18
     full = _grid_pixels(image_size, grid_shape)
     support_l = full if support_pixels_left is None else np.asarray(support_pixels_left, dtype=np.float64).reshape(-1, 2)
     support_r = full if support_pixels_right is None else np.asarray(support_pixels_right, dtype=np.float64).reshape(-1, 2)
@@ -404,11 +421,11 @@ def fit_cmo_physical_stereo_model_to_rayfields(
 
     if bounds is None:
         if share_principal_point:
-            lower_common = [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, -0.25]
-            upper_common = [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 0.25]
+            lower_common = [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, -0.25, -0.25]
+            upper_common = [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 0.25, 0.25]
         else:
-            lower_common = [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, -50.0, -50.0, -0.25]
-            upper_common = [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 50.0, 50.0, 0.25]
+            lower_common = [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, -50.0, -50.0, -0.25, -0.25]
+            upper_common = [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 50.0, 50.0, 0.25, 0.25]
         lower = np.array(
             lower_common + [-1.0, -1.0, -0.1, -0.1, -1.0] * 2,
             dtype=np.float64,
