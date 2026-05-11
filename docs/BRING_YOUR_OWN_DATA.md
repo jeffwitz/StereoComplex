@@ -10,7 +10,7 @@ to:
 
 - a baseline **OpenCV raw vs Ray2D + OpenCV** comparison,
 - a calibrated StereoComplex model,
-- optionally an experimental non-central Zernike origin-field model,
+- optionally an non-central Zernike rayfield model (validated on real CMO hardware),
 - an exported `models/<name>/model.json + weights.npz`,
 - and then `model.triangulate(...)` in Python.
 
@@ -110,7 +110,7 @@ What this does:
 4. run the central stereo ray-field bundle adjustment,
 5. optionally export a reusable model directory.
 
-### Option C: fit an experimental non-central origin field
+### Option C: fit an non-central origin field
 
 Use this when a central/pinhole model leaves systematic ray gaps or
 reconstruction bias, for example with protective glass, an inclined window, a
@@ -143,7 +143,7 @@ right_field = fit.right_field
 ```
 
 This path fits a Zernike origin field `O(u,v)` initialized from an OpenCV stereo
-calibration. It is experimental and should be checked with diverse board poses,
+calibration. The model is validated on a real CMO microscope (notebook 09). As with any calibration, check results with diverse board poses,
 train/test pose splits, and support-aware rayfield metrics before deployment.
 
 For the practical walkthrough, see :doc:`NONCENTRAL_FROM_IMAGES`. For the
