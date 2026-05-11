@@ -333,13 +333,13 @@ print(f"    absorbing the 12 nuisance pose parameters into the rayfield fit.")
 # versus ~52 mm for the wrong models (Brown-Conrady, inclined plate).
 # The BIC gap is > 90 000 units — an unambiguous classification.
 #
-# **2. Pipeline A is structurally slow.**
-# Each function evaluation of the direct fit requires inverse-projecting
-# every 3D board point through the current optical model — a separate
-# `least_squares` optimisation per point.  With ~180 corners this means
-# ~180 × 50 = 9 000 inner optimisations per outer iteration.  Pipeline B
-# evaluates rays *forward* (pixel → line), which is O(1) per pixel.
-# **The rayfield approach is 100–1000× faster** for model comparison.
+# **2. Pipeline A can be expensive without analytic projectors.**
+# Generic direct fitting uses numerical inverse projection (~180
+# `least_squares` calls per evaluation).  Analytic `project_point`
+# methods (Pinhole, Brown-Conrady, CMO) make it practical, but the
+# joint optics+pose optimisation remains fragile on hard non-central
+# architectures.  Pipeline B evaluates rays *forward* (pixel → line),
+# which is O(1) per pixel and cheaper for model comparison.
 #
 # **3. Poses are eliminated from model selection.**
 # In the rayfield pipeline, board poses are absorbed into the Zernike

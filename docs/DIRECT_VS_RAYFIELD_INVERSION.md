@@ -131,8 +131,9 @@ from their oracle rayfields.
 ### Direct fitting baseline (6-oracle sweep)
 
 Pipeline A fits the expected-winner candidate directly to noisy ChArUco
-observations (0.05 px noise).  All six oracles converge when the model is
-well-initialised:
+observations (0.05 px noise).  The versioned sweep converges on 4/6
+oracles with solvePnP initialisation; CMO can converge with truth poses
+(0.047 px in 2 s), while Greenough remains non-converged:
 
 | Oracle | RMS | Converged | Notes |
 |---|---|:---:|---|
