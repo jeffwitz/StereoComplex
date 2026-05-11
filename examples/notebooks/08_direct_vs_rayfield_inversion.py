@@ -364,7 +364,7 @@ print(f"    absorbing the 12 nuisance pose parameters into the rayfield fit.")
 # | Parameter recovery for known model | Maximum-likelihood (efficient) | Two-stage (Zernike → physical) |
 #
 # **Recommendation:** use pipeline B when comparing competing optical
-# hypotheses or diagnosing unknown instruments.  Use pipeline A only when
+# hypotheses or diagnosing unknown instruments.  Use pipeline A primarily when
 # fitting a single well-known model with maximum-likelihood efficiency.
 #
 # ### Limitations
