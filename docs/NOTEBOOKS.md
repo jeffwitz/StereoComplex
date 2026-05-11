@@ -30,6 +30,7 @@ versioned directly in Git:
 | `06_cmo_model_selection.ipynb` | CMO workflow: generate a ChArUco CMO scene, measure generic Zernike `O(u,v), d(u,v)` rayfields, then select among pinhole, Brown-Conrady, plate, and CMO physical candidates. | `06_cmo_model_selection.py` |
 | `07_model_selection_matrix.py` | Run the complete 6-oracle classification matrix (pinhole through exotic), noiseless and under noise. | `07_model_selection_matrix.py` |
 | `08_direct_vs_rayfield_inversion.py` | Compare direct ChArUco inversion (pipeline A) against rayfield-mediated selection (pipeline B) on a CMO oracle. | `08_direct_vs_rayfield_inversion.py` |
+| **`09_pycaso_real_data.py`** | **Real-data demonstration on a Pycaso CMO microscope.**  ChArUco detection (legacy pattern), Hessian corner completion, ray2D TPS denoising, Zernike rayfield fit (0.47 px RMS), physical descriptor extraction, telecentricity diagnosis, and Zernike order sweep. | `09_pycaso_real_data.py` |
 
 Use notebook 04 if you want to understand why and how the non-central model
 works on a controlled physical oracle. Use notebook 05 if you want the shortest
@@ -121,6 +122,35 @@ directly to ChArUco corners (pipeline A) against the rayfield-mediated
 strategy (pipeline B) on a CMO oracle.
 
 Scientific companion page: [Rayfield mediation](DIRECT_VS_RAYFIELD_INVERSION.md).
+
+### 09 Pycaso real data — from ChArUco to CM0-like descriptors
+
+`09_pycaso_real_data.py` is the **first real-data demonstration** of the
+complete StereoComplex pipeline on a physical CMO stereo microscope (Pycaso):
+
+- **ChArUco detection** with `legacy_pattern=True` for the older Pycaso
+  board convention (`DICT_6X6_250`, 16×12 squares, 0.3 mm).
+- **Hessian corner completion** ($|\det H|$ + Otsu + barycentre) fills
+  any missing corners → 165/165 points on every frame.
+- **ray2D TPS denoising** (`predict_points_rayfield_tps_robust`) smooths
+  the corner positions.
+- **Zernike rayfield fit** (constrained poses: shared R+XY, per-pose Z)
+  achieves **0.47 px** local pixel-equivalent RMS (O(0)+d(2), 57 params);
+  a sweep up to O(2)+d(4) reaches **0.41 px** (−13 %).
+- **CMO-consistent geometric descriptors** are read directly from the
+  rayfield without fitting: $b \approx 24.9$ mm, $f_{\text{obj}} \approx 62$ mm,
+  $WD \approx 65$ mm, convergence angle $22.6^\circ$.
+- **Telecentricity diagnosis:** comparing Zernike $d_y$ (nearly constant
+  across the FOV) against the perspective CMO model reveals that the real
+  optics are more object-space telecentric than the simple CMO model.
+
+Key result: **sub-pixel rayfield residuals on a real CMO microscope, with
+physically interpretable geometric descriptors**, whereas a standard central
+OpenCV stereo calibration does not converge to a usable model under the
+tested configuration.
+
+Scientific companion pages: [Identify My Optics](IDENTIFY_MY_OPTICS.md),
+[CMO Physical Model](CMO_PHYSICAL_MODEL.md).
 
 ## Open locally
 
