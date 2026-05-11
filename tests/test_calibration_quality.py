@@ -56,3 +56,12 @@ def test_assess_calibration_warns_on_zernike_with_few_observations():
         residual_rms = 0.02
     a = assess_calibration(ZernikeResult())
     assert any("30" in m for m in a.messages)
+
+
+def test_assess_calibration_fails_on_zernike_not_converged():
+    class ZernikeResult:
+        success = False
+        n_observations = 80
+        residual_rms = 0.05
+    a = assess_calibration(ZernikeResult())
+    assert a.status == "failed"

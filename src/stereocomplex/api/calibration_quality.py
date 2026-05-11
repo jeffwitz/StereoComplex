@@ -51,8 +51,11 @@ def assess_calibration(result: Any) -> CalibrationAssessment:
     if is_zernike:
         # --- Zernike non-central fit ---
         if not getattr(report, "success", True):
-            msgs.append("Zernike fit did not converge.")
-            recs.append("Try reducing max_order or adding more calibration poses.")
+            return CalibrationAssessment(
+                status="failed",
+                messages=["Zernike fit did not converge."],
+                recommendations=["Try reducing max_order or adding more calibration poses."],
+            )
         n_obs = getattr(report, "n_observations", 0)
         if n_obs < 50:
             msgs.append(f"Only {n_obs} observations (minimum 50 recommended).")
@@ -99,7 +102,7 @@ def assess_calibration(result: Any) -> CalibrationAssessment:
         recs.append("Increase Zernike order or use more calibration poses.")
 
     # --- decision ---
-    if any("high" in m or "only" in m for m in msgs) or (is_zernike and any("did not converge" in m for m in msgs)):
+    if any("high" in m or "only" in m for m in msgs):
         status = "warning"
     else:
         status = "ok"
