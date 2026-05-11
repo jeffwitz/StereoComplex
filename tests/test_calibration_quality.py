@@ -41,8 +41,18 @@ def test_assess_calibration_warns_for_few_frames():
 def test_assess_calibration_handles_zernike_result_without_report():
     """Zernike results have attributes directly, not nested under .report."""
     class ZernikeResult:
-        n_initialized_frames = 5
+        success = True
+        n_observations = 80
+        residual_rms = 0.05
         train_skew_p95_mm = 0.3
-        train_point_to_ray_p95_mm = 0.2
     a = assess_calibration(ZernikeResult())
     assert a.status == "ok"
+
+
+def test_assess_calibration_warns_on_zernike_with_few_observations():
+    class ZernikeResult:
+        success = True
+        n_observations = 30
+        residual_rms = 0.02
+    a = assess_calibration(ZernikeResult())
+    assert any("30" in m for m in a.messages)
