@@ -34,7 +34,7 @@ StereoComplex is built around:
 - a central 3D ray-field (Zernike) calibrated by point↔ray bundle adjustment,
 - a non-central Zernike rayfield backend where each pixel maps to a 3D line
   through `O(u,v)` and `d(u,v)`, validated on real CMO microscope data
-  (0.47 px RMS, see :doc:`Notebook 09 <../examples/09_pycaso_real_data>`),
+  (0.47 px RMS, see :doc:`Notebook 09 <../examples/notebooks/09_pycaso_real_data>`),
 - an inclined parallel-plate oracle benchmark for validating non-central
   reconstruction without fitting a glass model,
 - a practical image-folder API for fitting a non-central origin-field model from
@@ -201,6 +201,6 @@ Run the stereo calibration/reconstruction comparison (OpenCV):
 
 - Try the public calibration wrappers on your own stereo folders: :doc:`BRING_YOUR_OWN_DATA`
 - If the central/pinhole assumptions remain biased, try the non-central image-folder path: :doc:`NONCENTRAL_FROM_IMAGES`
-- For non-central validation on real hardware, see :doc:`../examples/09_pycaso_real_data` and :doc:`IDENTIFY_MY_OPTICS`
+- For non-central validation on real hardware, see :doc:`../examples/notebooks/09_pycaso_real_data` and :doc:`IDENTIFY_MY_OPTICS`
 - For the synthetic oracle validation, read: :doc:`PARALLEL_PLATE_ORIGIN_FIELD`
 - Extend the simulator and add more varied real scenes/optics.

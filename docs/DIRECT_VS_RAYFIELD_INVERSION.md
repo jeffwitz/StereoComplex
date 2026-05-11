@@ -113,7 +113,7 @@ CMO microscope (Pycaso, Notebook 09) — support the architectural argument:
 | Experiment | Documented in | What it supports |
 |---|---|---|
 | ChArUco → Zernike → selection | Notebook 08 | The full rayfield-mediated loop is feasible |
-| Real CMO microscope | [Notebook 09](../examples/09_pycaso_real_data.py) | 0.47 px RMS, CMO descriptors recovered, telecentricity diagnosed |
+| Real CMO microscope | [Notebook 09](../examples/notebooks/09_pycaso_real_data.py) | 0.47 px RMS, CMO descriptors recovered, telecentricity diagnosed |
 | 6-oracle classification matrix | [CMO Model Selection](CMO_MODEL_SELECTION.md) | Ray-space model selection works |
 | Direct expected-model fit | This page | Direct fitting works when model is known |
 

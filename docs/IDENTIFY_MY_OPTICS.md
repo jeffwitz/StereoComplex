@@ -154,7 +154,7 @@ predicts $d_y$ varying from −0.116 to +0.116 (perspective gradient, range
 achieve better than ~600 px reprojection even with 18 optimised parameters,
 while the Zernike rayfield achieves 0.47 px.
 
-See the full analysis in [Notebook 09](../examples/09_pycaso_real_data.py).
+See the full analysis in [Notebook 09](../examples/notebooks/09_pycaso_real_data.py).
 
 ## Read The Report Like An Engineer
 

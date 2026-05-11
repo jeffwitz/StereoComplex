@@ -30,7 +30,7 @@ versioned directly in Git:
 | `06_cmo_model_selection.ipynb` | CMO workflow: generate a ChArUco CMO scene, measure generic Zernike `O(u,v), d(u,v)` rayfields, then select among pinhole, Brown-Conrady, plate, and CMO physical candidates. | `06_cmo_model_selection.py` |
 | `07_model_selection_matrix.py` | Run the complete 6-oracle classification matrix (pinhole through exotic), noiseless and under noise. | `07_model_selection_matrix.py` |
 | `08_direct_vs_rayfield_inversion.py` | Compare direct ChArUco inversion (pipeline A) against rayfield-mediated selection (pipeline B) on a CMO oracle. | `08_direct_vs_rayfield_inversion.py` |
-| **`09_pycaso_real_data.py`** | **Real-data demonstration on a Pycaso CMO microscope.**  ChArUco detection (legacy pattern), Hessian corner completion, ray2D TPS denoising, Zernike rayfield fit (0.47 px RMS), physical descriptor extraction, telecentricity diagnosis, and Zernike order sweep. | `09_pycaso_real_data.py` |
+| **`notebooks/09_pycaso_real_data.py`** | **Real-data demonstration on a Pycaso CMO microscope.**  ChArUco detection (legacy pattern), Hessian corner completion, ray2D TPS denoising, Zernike rayfield fit (0.47 px RMS), physical descriptor extraction, telecentricity diagnosis, and Zernike order sweep. | `notebooks/09_pycaso_real_data.py` |
 
 Use notebook 04 if you want to understand why and how the non-central model
 works on a controlled physical oracle. Use notebook 05 if you want the shortest
@@ -125,7 +125,7 @@ Scientific companion page: [Rayfield mediation](DIRECT_VS_RAYFIELD_INVERSION.md)
 
 ### 09 Pycaso real data — from ChArUco to CM0-like descriptors
 
-`09_pycaso_real_data.py` is the **first real-data demonstration** of the
+`notebooks/09_pycaso_real_data.py` is the **first real-data demonstration** of the
 complete StereoComplex pipeline on a physical CMO stereo microscope (Pycaso):
 
 - **ChArUco detection** with `legacy_pattern=True` for the older Pycaso
