@@ -47,3 +47,4 @@ CLAUDE.md
 .github/
 .codex
 examples/notebooks/.ipynb_checkpoints/
+examples/pycaso_calib_data/
