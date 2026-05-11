@@ -248,5 +248,55 @@
         }
       ]
     }
+  },
+  {
+    "oracle": "exotic",
+    "expected_winner": "zernike_compact",
+    "n_poses": 8,
+    "n_corners": 46,
+    "t_sim_s": 5.780329704284668,
+    "pipeline_A": {
+      "rms_px": 0.5113463006843818,
+      "bic": 5.8697049390412985,
+      "converged": true,
+      "elapsed_s": 5456.489902019501
+    },
+    "pipeline_B": {
+      "winner": "zernike_compact",
+      "correct": true,
+      "elapsed_s": 8.776127815246582,
+      "candidates": [
+        {
+          "name": "central_pinhole",
+          "rms_mm": 6.165111530073718,
+          "bic": 2392.4846690420113
+        },
+        {
+          "name": "central_brown_conrady",
+          "rms_mm": 4.753966946968342,
+          "bic": 1772.5071588403164
+        },
+        {
+          "name": "pinhole_parallel_plate",
+          "rms_mm": 5.190094287015969,
+          "bic": 1978.512229990487
+        },
+        {
+          "name": "cmo_physical_shared",
+          "rms_mm": 3.458526427572508,
+          "bic": 985.5235068869061
+        },
+        {
+          "name": "polynomial_surrogate_channel",
+          "rms_mm": 3.5719143715853456,
+          "bic": 1171.2693326087372
+        },
+        {
+          "name": "zernike_compact",
+          "rms_mm": 2.933985965015716,
+          "bic": 661.3197853591818
+        }
+      ]
+    }
   }
 ]
