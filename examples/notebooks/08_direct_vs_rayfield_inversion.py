@@ -260,7 +260,12 @@ print("└───────────────────────�
 print(f"\nPipeline A (direct):  CMO rms={r_direct.rms_px:.1f} px,  bic={r_direct.bic:.1f},  {t_direct:.0f}s")
 print(f"Pipeline B (Zernike): rms={zernike_diag.ray_rms_mm:.4f} mm (Zernike fit),  ray selection winner: {report.best_by_bic}")
 print(f"Total FAST runtime: {t_direct + t_zernike:.0f}s")
-print("\nNote: Direct BIC uses pixel residuals; rayfield BIC uses mm line residuals.")
+print("\nNote: this FAST case is intentionally hard — only 2 poses and a")
+print("pinhole solvePnP initialisation on CMO optics (~2 px off).  The full")
+print("6-oracle sweep shows pipeline A converges on pinhole, Brown, plate,")
+print("and exotic oracles (RMS < 0.5 px), but remains fragile on CMO and")
+print("Greenough where the pinhole initialisation is a poor match.")
+print("\nDirect BIC uses pixel residuals; rayfield BIC uses mm line residuals.")
 print("They are NOT numerically comparable — compare winners within each column.")
 
 # %% [markdown]

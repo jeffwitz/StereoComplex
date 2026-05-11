@@ -1,12 +1,27 @@
 # Changelog
 
-## Unreleased
+## [0.6.0] - 2026-05-11
 
-### Documentation
-- Clarified the role of each documentation page with "This page answers" callouts.
-- Added `docs/VALIDATION_STATUS.md` distinguishing synthetic-validated, exploratory, and future work.
-- Added `examples/reproduce_docs_results.py` for lightweight reproduction of documented results.
-- Reframed `DIRECT_VS_RAYFIELD_INVERSION.md` as a methodological page on rayfield mediation.
+### Added
+
+- **OpenCV-user façade**:
+  - Short function aliases: `sc.calibrate_opencv`, `sc.calibrate_central`,
+    `sc.calibrate_noncentral`, `sc.identify_optics`.
+  - `sc.compare_opencv_stereo_calibration()`: one-call raw vs Ray2D-refined comparison.
+  - `sc.assess_calibration(result)` → `CalibrationAssessment(status, messages, recommendations)`.
+  - `StereoOpenCVCalibrationResult.to_dict()` and `.to_opencv()` export methods.
+- **Documentation**:
+  - `docs/FROM_OPENCV_TO_STEREOCOMPLEX.md` — 3-minute quickstart for OpenCV users.
+  - `docs/VALIDATION_STATUS.md` — synthetic/exploratory/real-data status matrix.
+  - `docs/ROADMAP.md` — 5-phase user-facing API roadmap.
+  - `docs/DIRECT_VS_RAYFIELD_INVERSION.md` reframed as methodological page.
+  - "This page answers" callouts on 4 main doc pages.
+  - `examples/reproduce_docs_results.py` — lightweight reproduction check.
+  - `examples/notebooks/00_getting_started.py` — OpenCV onboarding notebook.
+- **Analytic `project_point`** on `CentralPinholeModel`, `CentralBrownConradyModel`,
+  and `CMOPhysicalChannelModel`, making pipeline A fast (~2–10 s per oracle).
+- **6-oracle sweep**: pipeline B correctly classifies all 6 families;
+  pipeline A converges on 4/6 (fails on CMO and Greenough due to pinhole init).
 
 ## [0.5.3] - 2026-05-10
 
