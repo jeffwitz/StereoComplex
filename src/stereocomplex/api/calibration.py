@@ -29,6 +29,7 @@ class CharucoBoardSpec:
     check_markers: bool | None = None
     min_markers: int | None = None
     try_refine_markers: bool | None = None
+    legacy_pattern: bool = False  # for pre-4.x OpenCV ChArUco patterns
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "CharucoBoardSpec":
@@ -51,6 +52,7 @@ class CharucoBoardSpec:
             try_refine_markers=(
                 bool(payload["try_refine_markers"]) if payload.get("try_refine_markers") is not None else None
             ),
+            legacy_pattern=bool(payload.get("legacy_pattern", False)),
         )
 
     @classmethod
@@ -94,6 +96,7 @@ class CharucoBoardSpec:
                 if isinstance(opencv_charuco, dict) and opencv_charuco.get("tryRefineMarkers") is not None
                 else None
             ),
+            legacy_pattern=bool(opencv_charuco.get("legacyPattern", False)),
         )
 
 
@@ -243,6 +246,8 @@ def _build_charuco_runtime(board: CharucoBoardSpec) -> _CharucoRuntime:
             float(board.marker_size_mm),
             dictionary,
         )
+        if board.legacy_pattern and hasattr(charuco_board, "setLegacyPattern"):
+            charuco_board.setLegacyPattern(True)
     elif hasattr(aruco, "CharucoBoard_create"):  # pragma: no cover
         charuco_board = aruco.CharucoBoard_create(
             int(board.squares_x),
@@ -262,6 +267,13 @@ def _build_charuco_runtime(board: CharucoBoardSpec) -> _CharucoRuntime:
     detector_params.cornerRefinementMinAccuracy = float(board.corner_refinement_min_accuracy)
     if board.adaptive_thresh_win_size_max is not None:
         detector_params.adaptiveThreshWinSizeMax = int(board.adaptive_thresh_win_size_max)
+    # Wider detection range for small markers (e.g. Pycaso 0.15 mm markers)
+    if hasattr(detector_params, "minMarkerPerimeterRate"):
+        detector_params.minMarkerPerimeterRate = 0.005
+    if hasattr(detector_params, "maxMarkerPerimeterRate"):
+        detector_params.maxMarkerPerimeterRate = 0.20
+    if hasattr(detector_params, "polygonalApproxAccuracyRate"):
+        detector_params.polygonalApproxAccuracyRate = 0.03
 
     charuco_detector = None
     if hasattr(aruco, "CharucoDetector"):
