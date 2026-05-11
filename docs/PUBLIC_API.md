@@ -57,10 +57,13 @@ Direct API imports (stable):
 
 ```python
 from stereocomplex.api import (
+    CalibrationAssessment,
     CharucoBoardSpec,
     StereoOpenCVCalibrationResult,
     StereoCentralRayFieldModel,
+    assess_calibration,
     build_charuco_board,
+    compare_opencv_stereo_calibration,
     detect_charuco_corners,
     fit_opencv_stereo_from_image_dirs,
     fit_stereo_central_rayfield_from_image_dirs,
