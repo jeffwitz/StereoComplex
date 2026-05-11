@@ -373,8 +373,9 @@ print(f"    absorbing the 12 nuisance pose parameters into the rayfield fit.")
 #   serve as a routine tool — the current inverse-projection implementation
 #   is correct but impractically slow for real-time use.
 # - The Zernike rayfield fit (stage B1) adds its own uncertainty, which
-#   propagates to the model-selection stage.  This notebook uses oracle
-#   rayfields in FAST mode to isolate the model-selection comparison.
+#   propagates to the model-selection stage.  The 6-oracle sweep uses
+#   oracle rayfields; this notebook demonstrates the full ChArUco →
+#   Zernike → selection loop on the CMO oracle.
 # - The CMO oracle has a narrow field of view (~9°), requiring a dense
 #   board (1 mm squares) to achieve sufficient corner coverage.
 #

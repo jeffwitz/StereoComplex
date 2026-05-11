@@ -134,18 +134,19 @@ Pipeline A fits the expected-winner candidate directly to noisy ChArUco
 observations (0.05 px noise).  All six oracles converge when the model is
 well-initialised:
 
-| Oracle | RMS | Notes |
-|---|---|:---|
-| Pinhole | 0.04 px | ✓ solvePnP init |
-| Brown-Conrady | 0.06 px | ✓ solvePnP init |
-| Inclined plate | 0.11 px | ✓ solvePnP init |
-| CMO shared-rig | 0.05 px | ✓ with truth poses (solvePnP pinhole init fails) |
-| Greenough | 1.51 px | ✓ solvePnP init |
-| Exotic Zernike | 0.52 px | ✓ solvePnP init |
+| Oracle | RMS | Converged | Notes |
+|---|---|:---:|---|
+| Pinhole | 0.04 px | ✓ | solvePnP init |
+| Brown-Conrady | 0.06 px | ✓ | solvePnP init |
+| Inclined plate | 0.11 px | ✓ | solvePnP init |
+| CMO shared-rig | 1.63 px | ✗ | solvePnP init fails; with truth poses → 0.05 px in 2 s |
+| Greenough | 1.51 px | ✗ | does not converge with solvePnP init |
+| Exotic Zernike | 0.52 px | ✓ | solvePnP init |
 
-CMO is the only oracle where solvePnP initialisation fails — the pinhole
-model is ~2 px off for CMO optics.  With ground-truth poses, CMO
-converges to RMS = 0.047 px in 2 s.
+The hard cases for direct fitting are precisely the non-central
+architectures (CMO, Greenough) where rayfield mediation is most useful.
+The CMO failure is an initialisation issue, not an optimiser bug:
+with ground-truth poses, pipeline A converges to RMS = 0.047 px in 2 s.
 
 ### End-to-end ChArUco → Zernike → selection (notebook 08)
 
