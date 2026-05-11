@@ -1,94 +1,47 @@
 # %% [markdown]
-# # 09 — StereoComplex on a real CMO microscope (Pycaso data)
+# # 09 — StereoComplex on real CMO microscope data
 #
-# This notebook runs the full StereoComplex pipeline on the public
-# Pycaso calibration dataset.  Pycaso is an open-source CMO stereo
-# microscope calibration tool by the Lille Mechanics Laboratory.
+# This notebook runs the full StereoComplex pipeline on real calibration
+# images from a CMO stereo microscope.  It accepts either:
 #
-# **First run:** ~20 MB of calibration images are downloaded automatically
-# to `examples/pycaso_calib_data/` (git-ignored, persistent).
+# - a **local Pycaso clone** (point ``PYCASO_CLONE`` below);
+# - any **left/right image folders** with calibration frames.
 #
-# **Subsequent runs:** instant — the data is already cached locally.
+# Pycaso (`LaboratoireMecaniqueLille/Pycaso`) is an open-source CMO
+# calibration tool whose example data includes paired left/right
+# calibration images in ``Exemple/Images_example/``.
 
 # %%
 from __future__ import annotations
 
-import io
-import os
-import shutil
-import zipfile
 from pathlib import Path
-from urllib.request import urlopen
-
-import numpy as np
 import stereocomplex as sc
+import numpy as np
 
-# ── Pycaso data cache ────────────────────────────────────────────────
-# Stored alongside this notebook so it survives reboots but is never
-# committed (the directory is in .gitignore).
-CACHE = Path(__file__).resolve().parent / "pycaso_calib_data"
-PYCASO_REPO = "LaboratoireMecaniqueLille/Pycaso"
-PYCASO_PATH = "data/calibration/CMO"  # Path inside the Pycaso repo
+# ══════════════════════════════════════════════════════════════════════
+# Set this to your local Pycaso clone, or to any left/right folder pair.
+PYCASO_CLONE = Path("../Pycaso")  # ← adjust to your local path
+# ══════════════════════════════════════════════════════════════════════
 
-
-def _download_pycaso_calibration(target: Path) -> None:
-    """Download the Pycaso CMO calibration frames from GitHub.
-
-    Uses the GitHub API to fetch the directory listing, then downloads
-    individual files via ``raw.githubusercontent.com``.  No git clone
-    is needed.
-    """
-    import json
-
-    api_url = f"https://api.github.com/repos/{PYCASO_REPO}/contents/{PYCASO_PATH}"
-    print(f"  Fetching file list from {api_url} …")
-    with urlopen(api_url) as resp:
-        entries = json.loads(resp.read().decode())
-
-    for entry in entries:
-        if entry["type"] != "file":
-            continue
-        name = entry["name"]
-        dl_url = entry["download_url"]
-        if dl_url is None:
-            continue
-        dest = target / name
-        print(f"  Downloading {name} ({entry['size']:,} bytes) …")
-        with urlopen(dl_url) as src:
-            dest.write_bytes(src.read())
-
-
-def _ensure_pycaso_data() -> tuple[Path, Path]:
-    """Return ``(left_dir, right_dir)``, downloading if needed."""
-    if not (CACHE / "left").exists() or not (CACHE / "right").exists():
-        print("Pycaso calibration data not found — downloading …")
-        CACHE.mkdir(parents=True, exist_ok=True)
-
-        _download_pycaso_calibration(CACHE)
-
-        # Pycaso stores all frames flat; split into left/right by prefix.
-        # Typical naming:  "CMO_L_0001.png", "CMO_R_0001.png".
-        left_dir = CACHE / "left"
-        right_dir = CACHE / "right"
-        left_dir.mkdir(exist_ok=True)
-        right_dir.mkdir(exist_ok=True)
-        for f in sorted(CACHE.glob("*_L_*")):
-            shutil.move(str(f), str(left_dir / f.name))
-        for f in sorted(CACHE.glob("*_R_*")):
-            shutil.move(str(f), str(right_dir / f.name))
-        print(f"  Done — {len(list(left_dir.iterdir()))} left, "
-              f"{len(list(right_dir.iterdir()))} right frames")
-    else:
-        print("Pycaso data already cached — skipping download.")
-
-    return CACHE / "left", CACHE / "right"
-
+_IMG = PYCASO_CLONE / "Exemple" / "Images_example"
+LEFT_DIR = _IMG / "left_calibration"
+RIGHT_DIR = _IMG / "right_calibration"
 
 # %% [markdown]
 # ## 1 — Load calibration data
 
 # %%
-left_dir, right_dir = _ensure_pycaso_data()
+if LEFT_DIR.exists() and RIGHT_DIR.exists():
+    left_dir = LEFT_DIR
+    right_dir = RIGHT_DIR
+    print(f"Using Pycaso data: {left_dir}")
+    print(f"  Left frames:  {len(list(left_dir.iterdir()))}")
+    print(f"  Right frames: {len(list(right_dir.iterdir()))}")
+else:
+    print(f"Pycaso data not found at {PYCASO_CLONE}")
+    print("Clone it with:  git clone https://github.com/LaboratoireMecaniqueLille/Pycaso ../Pycaso")
+    print("Or set PYCASO_CLONE to your own left/right image folders.")
+    exit(1)
 
 # %% [markdown]
 # ## 2 — Detect corners and calibrate
