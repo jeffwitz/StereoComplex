@@ -48,3 +48,4 @@ CLAUDE.md
 .codex
 examples/notebooks/.ipynb_checkpoints/
 examples/pycaso_calib_data/
+examples/pycaso_data/
