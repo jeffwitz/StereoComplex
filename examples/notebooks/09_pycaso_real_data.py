@@ -167,8 +167,17 @@ def complete_corners_hessian(
     charuco_ids: np.ndarray | None,
     ncx: int = 16,
     ncy: int = 12,
+    *,
+    marker_corners: list | None = None,
+    marker_ids: np.ndarray | None = None,
+    id_to_obj: dict | None = None,
+    chess3_obj: np.ndarray | None = None,
 ) -> np.ndarray:
-    """Fill missing ChArUco corners via affine projection + Hessian barycentre.
+    """Fill missing ChArUco corners via Ray2D TPS (or affine) + Hessian barycentre.
+
+    Prediction uses Ray2D TPS on ArUco marker corners when available (handles
+    lens distortion), falling back to affine projection.  Missing corners are
+    then refined via the Hessian determinant blob barycentre method.
 
     Returns ``(N, 2)`` array for all ``(ncx-1)*(ncy-1)`` inner corners.
     OpenCV-detected corners are kept (sub-pixel); missing ones are completed.
@@ -178,8 +187,6 @@ def complete_corners_hessian(
 
     R = abs_det_hessian(gray, sigma=9.0)
     mask = otsu_mask(R)
-    A = fit_affine(charuco_corners, charuco_ids, ncx)
-    pred_xy = project_affine(A, np.arange(n_corners, dtype=np.int32), ncx)
 
     detected: dict[int, np.ndarray] = {}
     if charuco_ids is not None and len(charuco_ids) > 0:
@@ -189,6 +196,37 @@ def complete_corners_hessian(
             detected[int(ids_arr[i])] = corners_arr[i].astype(np.float64)
 
     cids = sorted(detected.keys())
+
+    # ── Prediction: Ray2D TPS first, affine fallback ──
+    pred_xy = None
+    if marker_corners is not None and marker_ids is not None and id_to_obj is not None and chess3_obj is not None:
+        obj_xy_list, img_uv_list = [], []
+        for i in range(len(marker_ids)):
+            mid = int(marker_ids[i].ravel()[0])
+            o = id_to_obj.get(mid)
+            if o is None:
+                continue
+            mc = np.asarray(marker_corners[i], dtype=np.float64).reshape(-1, 2)
+            if mc.shape[0] == 4:
+                obj_xy_list.append(o)
+                img_uv_list.append(mc)
+        if len(obj_xy_list) >= 4:
+            try:
+                pred_xy = predict_points_rayfield_tps_robust(
+                    np.concatenate(obj_xy_list, axis=0),
+                    np.concatenate(img_uv_list, axis=0),
+                    chess3_obj[:, :2].astype(np.float64),
+                    lam=10.0, huber_c=3.0, iters=3, ransac_reproj_px=3.0,
+                )
+            except Exception:
+                pred_xy = None
+
+    if pred_xy is None:
+        # Affine fallback
+        A = fit_affine(charuco_corners, charuco_ids, ncx)
+        pred_xy = project_affine(A, np.arange(n_corners, dtype=np.int32), ncx)
+
+    # ── Grid step + blob size ──
     l_step = 50.0
     if len(cids) >= 2:
         dp = float(np.linalg.norm(detected[cids[-1]] - detected[cids[0]]))
@@ -205,6 +243,7 @@ def complete_corners_hessian(
         if not math.isnan(a_test) and float(a_test) > 0:
             d_init = max(3, int(math.sqrt(float(a_test))))
 
+    # ── Fill: keep detected, complete missing via Hessian ──
     result = np.full((n_corners, 2), np.nan)
     for idx in range(n_corners):
         if idx in detected:
@@ -273,14 +312,26 @@ for z_str in paired_z:
     nL = 0 if ids_L is None else len(ids_L)
     nR = 0 if ids_R is None else len(ids_R)
 
-    # Hessian completion
-    comp_L = complete_corners_hessian(lg, cc_L, ids_L, NCX, NCY)
-    comp_R = complete_corners_hessian(rg, cc_R, ids_R, NCX, NCY)
+    # ArUco marker detection (for Ray2D prediction in completion + TPS denoising)
+    mk_c_L, mk_ids_L = aruco_det.detectMarkers(lg)[:2]
+    mk_c_R, mk_ids_R = aruco_det.detectMarkers(rg)[:2]
+
+    # Hessian completion (uses Ray2D TPS for missing-corner prediction)
+    comp_L = complete_corners_hessian(
+        lg, cc_L, ids_L, NCX, NCY,
+        marker_corners=mk_c_L, marker_ids=mk_ids_L,
+        id_to_obj=id_to_obj, chess3_obj=chess3,
+    )
+    comp_R = complete_corners_hessian(
+        rg, cc_R, ids_R, NCX, NCY,
+        marker_corners=mk_c_R, marker_ids=mk_ids_R,
+        id_to_obj=id_to_obj, chess3_obj=chess3,
+    )
 
     # ray2D TPS denoising (fit on marker corners, predict all 165)
-    for gray, mk_c, mk_ids, out in [
-        (lg, *aruco_det.detectMarkers(lg)[:2], denoised_L),
-        (rg, *aruco_det.detectMarkers(rg)[:2], denoised_R),
+    for mk_c, mk_ids, out in [
+        (mk_c_L, mk_ids_L, denoised_L),
+        (mk_c_R, mk_ids_R, denoised_R),
     ]:
         obj_xy_list, img_uv_list = [], []
         if mk_ids is not None:
