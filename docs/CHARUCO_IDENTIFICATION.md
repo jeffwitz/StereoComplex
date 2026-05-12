@@ -88,6 +88,106 @@ The current default used in the examples/paper is `rayfield_tps_robust`:
 
 Compared to the grid backend, TPS is usually more stable when the residual field is only observed sparsely (AruCo corners).
 
+### 4c) `hessian_barycentre` — subpixel refinement via the Hessian structure tensor
+
+When ChArUco corners are missing or poorly localised (e.g. at extreme Z
+positions, low contrast, or strong blur), a **photometric refinement** can
+recover them using the local image structure.  StereoComplex implements the
+**Pycaso method**: predict missing corners with Ray2D TPS, then refine with
+the Hessian determinant + Otsu + barycentre.
+
+#### Mathematics
+
+The Hessian matrix of the image $I(x,y)$ is:
+
+$$H = \begin{pmatrix} I_{xx} & I_{xy} \\ I_{xy} & I_{yy} \end{pmatrix}$$
+
+where $I_{xx} = \partial^2 I / \partial x^2$, $I_{xy} = \partial^2 I / \partial x \partial y$,
+$I_{yy} = \partial^2 I / \partial y^2$, computed via Sobel derivatives on a
+Gaussian-blurred image ($\sigma = 9$ px).
+
+The **corner response** is the absolute value of the Hessian determinant:
+
+$$R(x,y) = |\det H| = |I_{xx} I_{yy} - I_{xy}^2|$$
+
+This responds strongly to saddle-like image structures (corners) and is
+invariant to the orientation of the corner.  Unlike the Harris measure
+($\det H - \kappa \cdot \text{trace}^2(H)$), this simpler invariant is
+used in Pycaso because the Otsu threshold isolates corner-like blobs
+without needing to tune a sensitivity parameter $\kappa$.
+
+#### Otsu thresholding
+
+The response $R(x,y)$ is normalised to $[0, 255]$ and binarised with
+Otsu's method, which automatically selects the threshold that minimises
+intra-class variance:
+
+$$\text{mask}(x,y) = \begin{cases} 1 & \text{if } R(x,y) \ge \tau_{\text{Otsu}} \\ 0 & \text{otherwise} \end{cases}$$
+
+This yields a binary image where corner-like regions are white blobs.
+
+#### Subpixel barycentre
+
+For each missing corner, the algorithm:
+
+1. **Predicts** the pixel position using **Ray2D TPS** fitted to the
+   detected ArUco marker corners (or an affine fallback if markers are
+   unavailable).  TPS handles non-linear lens distortion better than a
+   pure affine or homography.
+
+2. **Searches** a square window centred at the predicted position in the
+   binary mask.
+
+3. **Labels** connected components in the window (`cv2.connectedComponentsWithStats`).
+
+4. **Selects** the central blob (closest to the predicted position), or
+   the largest blob if `prefer_largest=True` (the original Pycaso behaviour).
+
+5. **Computes the subpixel barycentre** via image moments:
+
+   $$x_{\text{sub}} = x_0 + \frac{M_{10}}{M_{00}}, \qquad
+     y_{\text{sub}} = y_0 + \frac{M_{01}}{M_{00}}$$
+
+   where $M_{pq} = \sum_{(x,y) \in \text{blob}} x^p y^q \cdot \text{mask}(x,y)$
+   and $(x_0, y_0)$ is the window origin.  `cv2.moments` computes these
+   exactly on the binary component.
+
+6. **Refines** a second time: the window is re-centred at the first
+   barycentre, and steps 2–5 are repeated (two-pass refinement).
+
+#### Integration with Ray2D TPS
+
+The initial prediction uses Ray2D TPS rather than a simple affine mapping.
+This is important for optics with strong distortion (e.g. microscopes,
+endoscopes, laparoscopes) where an affine model cannot accurately predict
+corner positions across the full field of view.  The TPS warp is fitted to
+the ArUco marker corners (4 corners per detected marker, known 3‑D
+positions) and maps any board coordinate to the image.
+
+When marker detection fails (fewer than 4 markers), the algorithm falls
+back to an affine fit on the detected ChArUco corners.
+
+#### When to use
+
+- **Missing corners:** the primary use case — fills undetected ChArUco
+  corners (typically 0–50 missing out of 165 on Pycaso data at extreme Z).
+- **Low-contrast targets:** when OpenCV corner refinement fails.
+- **After Ray2D TPS:** TPS provides the initial prediction; Hessian
+  provides the photometric refinement.
+- **Not a replacement for OpenCV:** detected OpenCV corners are kept
+  (they are already subpixel).  Only missing corners are completed.
+
+#### Limitations
+
+- The Hessian response is computed at a fixed scale ($\sigma = 9$ px).
+  Corners at very different scales may be missed.
+- Otsu thresholding is global; local contrast variations can cause
+  false positives/negatives.
+- The method is **heuristic** — it is validated by the downstream
+  rayfield residuals, not by independent ground truth.
+- For corners near image borders, the search window may be truncated,
+  producing `NaN` (filled by affine fallback).
+
 ### 5) `kfield` (a “local K” field approximated by smoothed affines)
 
 This method was an intermediate step: the idea is to replace a global `K` by a spatially varying field, under a low-frequency assumption.
@@ -146,6 +246,7 @@ Summary of dependencies (as of the current code):
 - `rayfield`: does not require `K`/distortion; assumes a low-frequency planar warp and uses only correspondences (Aruco) + regularization.
 - `rayfield_tps`: a `rayfield` variant where the residual is reconstructed by regularized TPS (instead of a bilinear grid + Laplacian).
 - `rayfield_tps_robust`: TPS residual + robust loss (recommended default).
+- `hessian_barycentre`: does not require `K`/distortion; predicts missing corners via Ray2D TPS (or affine fallback), refines with $|\det H|$ + Otsu + subpixel blob barycentre. Heuristic; validated by downstream rayfield residuals.
 
 ## Photometric refinements (CLI `--refine`)
 
@@ -156,6 +257,9 @@ They should be considered as ablations/experiments rather than the recommended m
 
 - If the optics are well approximated by pinhole + distortion: prefer `pnp`.
 - If the optics are complex/non-central: prefer `rayfield_tps_robust` (low-frequency assumption) and increase regularization if needed.
+- **If corners are missing** (incomplete ChArUco detection at some poses):
+  use the `hessian_barycentre` method after Ray2D TPS prediction.  This is
+  the workflow demonstrated in Notebook 09 on real Pycaso CMO data.
 
 ## Paper comparison (reproducible script)
 
