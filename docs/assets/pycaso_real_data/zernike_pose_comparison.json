@@ -1,0 +1,120 @@
+{
+  "fits": [
+    {
+      "name": "Zernike O(0)+d(2), constrained R+XY+Z",
+      "rms_px": 0.41,
+      "n_params": 87,
+      "center_left_O_mm": [
+        -8.500144399287764,
+        2.1981819102573144,
+        1.2385142385426344
+      ],
+      "center_left_d": [
+        0.13504947433857442,
+        -0.03568043173871648,
+        0.9901962160459985
+      ],
+      "center_right_O_mm": [
+        8.317166260654233,
+        2.694664905878704,
+        1.177222455729624
+      ],
+      "center_right_d": [
+        -0.12562456576033393,
+        -0.04521611325759305,
+        0.9910469068512368
+      ],
+      "baseline_mm": 16.824749325935894,
+      "subpupil_depth_mm": 1.2078683471361291,
+      "convergence_angle_deg": 14.988291570179136,
+      "dy_mean": -0.03562923099365998,
+      "dy_range": 0.05521638887321269,
+      "dx_range": 0.05054579274761484,
+      "theta_LR_mean_deg": 14.980687753811132,
+      "theta_LR_range_deg": 0.38234103734717273,
+      "origin_asymmetry_x_mean_mm": 0.9645459988840132,
+      "origin_asymmetry_z_mean_mm": 0.13097956214419254,
+      "origin_z_range_mm": [
+        1.0801293674017387,
+        1.3257059393429382
+      ],
+      "pose_stats": {
+        "type": "constrained",
+        "n_pose_params": 15
+      }
+    },
+    {
+      "name": "Zernike O(0)+d(2), full per-frame poses",
+      "rms_px": 0.17,
+      "n_params": 132,
+      "center_left_O_mm": [
+        -16.065365893123765,
+        6.215911051264081,
+        4.947375563348127
+      ],
+      "center_left_d": [
+        0.25752368079558763,
+        -0.09941120542413384,
+        0.9611446124624602
+      ],
+      "center_right_O_mm": [
+        11.640709142937215,
+        6.995307348336993,
+        2.9502898167592093
+      ],
+      "center_right_d": [
+        -0.18044795619890128,
+        -0.11185932720279324,
+        0.977203165171592
+      ],
+      "baseline_mm": 27.788889937724413,
+      "subpupil_depth_mm": 3.9488326900536683,
+      "convergence_angle_deg": 25.32660561744168,
+      "dy_mean": -0.09902246323755302,
+      "dy_range": 0.19047199988822855,
+      "dx_range": 0.20749669903523243,
+      "theta_LR_mean_deg": 25.256137510376476,
+      "theta_LR_range_deg": 1.2362530780805194,
+      "origin_asymmetry_x_mean_mm": 4.985881856675408,
+      "origin_asymmetry_z_mean_mm": 2.4134597294711546,
+      "origin_z_range_mm": [
+        2.799823382315051,
+        8.12341715514879
+      ],
+      "pose_stats": {
+        "type": "full",
+        "n_pose_params": 60,
+        "max_rotvec_delta_rad": 0.020712580925551952,
+        "rms_rotvec_delta_rad": 0.012633377837560918,
+        "max_rot_delta_deg": 1.1867434698572992,
+        "rms_rot_delta_deg": 0.7238392310863511,
+        "xy_range_mm": [
+          0.004276661817682381,
+          0.006725224746117586
+        ],
+        "z_range_mm": 0.6063968637615886,
+        "z_values_mm": [
+          64.79947564793304,
+          64.84733901151036,
+          64.91092545986314,
+          64.97863402690515,
+          65.05227616376918,
+          65.12999306607202,
+          65.17683479248815,
+          65.30401493463424,
+          65.35609640887023,
+          65.40587251169462
+        ]
+      }
+    }
+  ],
+  "interpretation": {
+    "baseline": "Constrained=16.8mm, Full=27.8mm \u2192 Full is 65% larger, less physical",
+    "convergence": "Constrained=15.0\u00b0, Full=25.3\u00b0 \u2192 Full has wider stereo angle",
+    "dy_range": "Constrained=0.0552, Full=0.1905 \u2192 Full has 3.5\u00d7 larger dy variation",
+    "asymmetry": "Constrained=0.965mm, Full=4.986mm \u2192 Full is 5\u00d7 more asymmetric",
+    "theta_field_variation": "Constrained \u03b8 range=0.38\u00b0, Full \u03b8 range=1.24\u00b0 \u2192 Full convergence varies 3\u00d7 more across FOV",
+    "pose_rotation": "Full poses RMS rotation variation=0.72\u00b0 across frames",
+    "verdict": "Full-pose Zernike (0.17 px) achieves lower pixel RMS than constrained (0.41 px) by absorbing small pose variations (RMS 0.72\u00b0) into its 57 rayfield coefficients. This produces less physically consistent indicators: 65% larger baseline, 3.5\u00d7 larger dy range, 5\u00d7 more origin asymmetry, 3\u00d7 more convergence variation across the FOV. The constrained Zernike is the BETTER intermediate observable for physical model identification \u2014 it captures the real optics without over-fitting pose noise."
+  }
+}
