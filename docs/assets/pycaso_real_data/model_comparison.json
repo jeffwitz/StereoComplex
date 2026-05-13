@@ -14,6 +14,16 @@
       "model": "CMO perspective",
       "params": 19,
       "ray_rms_mm": 3.4777072140533547
+    },
+    {
+      "model": "CMO telecentric + pupil shear",
+      "params": 14,
+      "ray_rms_mm": 0.1258,
+      "pix_rms_px": 13.57,
+      "pix_p95_px": 23.12,
+      "direction_rms_deg": 0.29,
+      "moment_rms_mm": 0.335,
+      "comment": "per-channel slopes + shared shear, 7x direction improvement, 2x pixel improvement over no-shear"
     }
   ],
   "telecentric_params": {

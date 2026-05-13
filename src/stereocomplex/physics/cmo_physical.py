@@ -678,8 +678,9 @@ class CMOTelecentricStereoModel:
         ])
         # Pupil shear: affine origin variation, transverse to direction
         delta_O = np.column_stack([rho_x * tilde_u, rho_y * tilde_v, np.zeros_like(uf)])
-        delta_O = delta_O - np.sum(delta_O * directions, axis=1, keepdims=True) * directions
         pupil = O_rigid + delta_O
+        # Project full origin to be transverse to direction (gauge)
+        pupil = pupil - np.sum(pupil * directions, axis=1, keepdims=True) * directions
 
         return pupil.reshape(shape + (3,)), directions.reshape(shape + (3,))
 
