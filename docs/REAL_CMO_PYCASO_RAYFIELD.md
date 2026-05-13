@@ -342,14 +342,20 @@ optimisation**:
 | **Telecentric CMO (seed)** | **7** | **0.073** | **+0.058** |
 | Perspective CMO (optimised) | 19 | 0.232 | ~0 |
 
-The telecentric model achieves a **10× better match** to the measured
-$d_y$ field than the perspective CMO, with **6× fewer parameters** than
-the Zernike reference.
+The telecentric model achieves:
 
-The telecentric model also provides a **22× better full rayfield fit**
-than the perspective CMO (0.16 mm vs. 3.5 mm two-plane RMS), with **3×
-fewer parameters** (7 vs. 19).  The optimised convergence half-angle
-(11.3°) matches the Zernike centre-pixel reading exactly.
+- **Direction-field diagnostic:** the $d_y$ range (0.073) and mean
+  (+0.058) match the Zernike within < 10 %, compared to the perspective
+  CMO's 3× range error.
+- **Full rayfield fit:** two-plane RMS improves by **22×** relative to
+  the perspective CMO (0.16 mm vs. 3.5 mm), with **3× fewer parameters**
+  (7 vs. 19).  The optimised convergence half-angle (11.3°) matches the
+  Zernike centre-pixel reading exactly.
+
+> The quasi-telecentric CMO model is **not a replacement** for the
+> measured Zernike rayfield when subpixel reconstruction is required
+> (Zernike: 0.47 px, telecentric: 27 px pixel-equivalent).  It is a
+> **compact physical explanation** of the dominant CMO geometry.
 
 ### Why this workflow generalises
 
@@ -427,13 +433,16 @@ plausible:
 
 ## Saved artefacts
 
-The notebook generates three JSON files:
+The notebook generates the following artefacts:
 
 ```text
 docs/assets/pycaso_real_data/
-    detection_summary.json       ← per-frame ChArUco counts (L/R)
-    summary.json                 ← calibration RMS, CMO descriptors, sweep best
-    zernike_order_sweep.json     ← full sweep table (all orders, RMS, descriptors)
+    detection_summary.json              ← per-frame ChArUco counts (L/R)
+    summary.json                        ← calibration RMS, CMO descriptors, sweep best
+    zernike_order_sweep.json            ← full sweep table (all orders, RMS, descriptors)
+    model_comparison.json               ← Zernike vs telecentric vs perspective comparison
+    telecentric_component_diagnostics.json  ← per-component error breakdown
+    diagnostic_cmo_vs_zernike.txt       ← full diagnostic report
 ```
 
 All numerical values reported in this page are produced by the notebook
