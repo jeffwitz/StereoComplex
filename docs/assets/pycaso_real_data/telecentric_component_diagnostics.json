@@ -1,17 +1,49 @@
 {
-  "telecentric_at_seed": {
-    "origin_error_L_mean_mm": 0.46653536858156536,
-    "origin_error_R_mean_mm": 0.4817901850879925,
-    "direction_rms_L_deg": 23.115520296713584,
-    "direction_rms_R_deg": 22.187200954907528,
-    "dy_error_L_mean": 0.02131098591981196,
-    "dx_error_L_mean": 0.39920088429082073,
-    "dz_error_L_mean": 0.004522634709152092
-  },
-  "telecentric_dy_optimised": {
-    "direction_rms_L_deg": 23.023431385093495,
-    "direction_rms_R_deg": 22.086077299889926,
-    "dy_error_L_mean": 0.001697926612675911
-  },
-  "interpretation": "Direction match is good (dy error ~0.005), but s_x=s_y=0 gives large dx/dz errors because perspective CMO-style d_x variation is missing. Adding s_x,s_y helps but the full rayfield RMS remains high because origin errors (|O_z - O_tc| \u2248 0.5mm) and the two-plane residual amplifies small angular errors at Z=50,80mm."
+  "models": [
+    {
+      "name": "shared slopes + shared shear",
+      "params": 12,
+      "two_plane_rms": 4.885900069900097,
+      "dir_rms_L": 0.2856186518844697,
+      "dir_rms_R": 0.2910760435394166,
+      "mom_rms_L": 0.32755665678709694,
+      "mom_rms_R": 24.71408730444131
+    },
+    {
+      "name": "per-channel slopes + shared shear",
+      "params": 14,
+      "two_plane_rms": 4.849682343053605,
+      "dir_rms_L": 0.2803990913135946,
+      "dir_rms_R": 0.2910999757563672,
+      "mom_rms_L": 0.3273108449720915,
+      "mom_rms_R": 24.713739617183723
+    },
+    {
+      "name": "per-channel slopes + per-channel shear",
+      "params": 16,
+      "two_plane_rms": 4.843434868899644,
+      "dir_rms_L": 0.28020459811559517,
+      "dir_rms_R": 0.2908716040655311,
+      "mom_rms_L": 0.3270303859870422,
+      "mom_rms_R": 24.714246762437657
+    },
+    {
+      "name": "perspective CMO",
+      "params": 19,
+      "two_plane_rms": 3.478454528316797,
+      "dir_rms_L": 1.9657740619419612,
+      "dir_rms_R": 2.0098951999854426,
+      "mom_rms_L": 0.45565708977129016,
+      "mom_rms_R": 24.324000240528232
+    },
+    {
+      "name": "Zernike O(0)+d(2)",
+      "params": 57,
+      "two_plane_rms": 0.0006589174390985027,
+      "dir_rms_L": 0.0,
+      "dir_rms_R": 0.0,
+      "mom_rms_L": 0.0,
+      "mom_rms_R": 0.0
+    }
+  ]
 }
