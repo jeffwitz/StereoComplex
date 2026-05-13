@@ -516,25 +516,45 @@ class CMOTelecentricStereoModel:
     s_y_R: float = 0.0
     shared_slopes: bool = True
 
+    # Pupil shear: small affine origin variation (transverse to direction)
+    rho_x_L: float = 0.0
+    rho_y_L: float = 0.0
+    rho_x_R: float = 0.0
+    rho_y_R: float = 0.0
+    shared_shear: bool = True
+
     image_size: tuple[int, int] | None = None
     name: str = "cmo_telecentric"
     is_stereo_shared: bool = True
 
     @property
     def n_parameters(self) -> int:
-        return 10 if self.shared_slopes else 12
+        n = 12 if self.shared_slopes else 14
+        if not self.shared_shear:
+            n += 2  # per-channel rho
+        return n
 
     @classmethod
     def from_parameter_vector(
         cls, x: Array, **kwargs: Any,
     ) -> "CMOTelecentricStereoModel":
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
-        if arr.size not in {10, 12}:
-            raise ValueError(f"CMOTelecentricStereoModel expects 10 or 12 parameters, got {arr.size}")
-        shared = arr.size == 10
+        if arr.size not in {12, 14, 16}:
+            raise ValueError(f"CMOTelecentricStereoModel expects 12/14/16 parameters, got {arr.size}")
+        sh_slope = arr.size == 12              # shared slopes
+        sh_shear = arr.size in {12, 14}        # shared shear
+        # Slope extraction
         sxL=float(arr[8]); syL=float(arr[9])
-        sxR=sxL if shared else float(arr[10])
-        syR=syL if shared else float(arr[11])
+        sxR=sxL if sh_slope else float(arr[10])
+        syR=syL if sh_slope else float(arr[11])
+        # Shear extraction (starts after slope block)
+        if sh_shear:
+            rho_idx = 10 if sh_slope else 12
+            rxL=float(arr[rho_idx]); ryL=float(arr[rho_idx+1])
+            rxR=rxL; ryR=ryL
+        else:  # 16 = per-channel both
+            rxL=float(arr[12]); ryL=float(arr[13])
+            rxR=float(arr[14]); ryR=float(arr[15])
         return cls(
             f_obj_mm=float(arr[0]),
             working_distance_mm=float(arr[1]),
@@ -547,7 +567,10 @@ class CMOTelecentricStereoModel:
             d_y_common=float(arr[7]),
             s_x_L=sxL, s_y_L=syL,
             s_x_R=sxR, s_y_R=syR,
-            shared_slopes=shared,
+            shared_slopes=sh_slope,
+            rho_x_L=rxL, rho_y_L=ryL,
+            rho_x_R=rxR, rho_y_R=ryR,
+            shared_shear=sh_shear,
             image_size=kwargs.get("image_size"),
         )
 
@@ -561,6 +584,10 @@ class CMOTelecentricStereoModel:
         ]
         if not self.shared_slopes:
             vec.extend([self.s_x_R, self.s_y_R])
+        if self.shared_shear:
+            vec.extend([self.rho_x_L, self.rho_y_L])
+        else:
+            vec.extend([self.rho_x_L, self.rho_y_L, self.rho_x_R, self.rho_y_R])
         return np.array(vec, dtype=np.float64)
 
     def parameter_dict(self) -> dict[str, object]:
@@ -576,6 +603,7 @@ class CMOTelecentricStereoModel:
             "s_x_L": float(self.s_x_L),
             "s_y_L": float(self.s_y_L),
             "shared_slopes": bool(self.shared_slopes),
+            "shared_shear": bool(self.shared_shear),
         }
         if not self.shared_slopes:
             free["s_x_R"] = float(self.s_x_R)
@@ -583,6 +611,14 @@ class CMOTelecentricStereoModel:
         else:
             free["s_x"] = float(self.s_x_L)
             free["s_y"] = float(self.s_y_L)
+        free["rho_x_L"] = float(self.rho_x_L)
+        free["rho_y_L"] = float(self.rho_y_L)
+        if not self.shared_shear:
+            free["rho_x_R"] = float(self.rho_x_R)
+            free["rho_y_R"] = float(self.rho_y_R)
+        else:
+            free["rho_x"] = float(self.rho_x_L)
+            free["rho_y"] = float(self.rho_y_L)
         return {"free": free,
             "fixed": {
                 "pixel_pitch_mm": float(self.pixel_pitch_mm),
@@ -629,14 +665,21 @@ class CMOTelecentricStereoModel:
 
         directions = _normalize(d_raw)
 
-        # Origin: sub-pupil (left at -b/2, right at +b/2)
+        # Origin: sub-pupil (left at -b/2, right at +b/2) + pupil shear
         pupil_sign = -1.0 if channel == "left" else 1.0
         z_pupil = float(self.working_distance_mm) - float(self.f_obj_mm)
-        pupil = np.column_stack([
+        rho_x = float(self.rho_x_L) if channel == "left" else float(self.rho_x_R)
+        rho_y = float(self.rho_y_L) if channel == "left" else float(self.rho_y_R)
+
+        O_rigid = np.column_stack([
             np.full_like(uf, pupil_sign * 0.5 * float(self.b_mm)),
             np.zeros_like(uf),
             np.full_like(uf, z_pupil),
         ])
+        # Pupil shear: affine origin variation, transverse to direction
+        delta_O = np.column_stack([rho_x * tilde_u, rho_y * tilde_v, np.zeros_like(uf)])
+        delta_O = delta_O - np.sum(delta_O * directions, axis=1, keepdims=True) * directions
+        pupil = O_rigid + delta_O
 
         return pupil.reshape(shape + (3,)), directions.reshape(shape + (3,))
 
