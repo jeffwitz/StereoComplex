@@ -424,6 +424,26 @@ are physically plausible:
    and one calibration target.  Generalisation to other instruments or boards
    requires additional validation.
 
+### Zernike pose model: constrained vs full
+
+The Zernike rayfield can be fitted with constrained poses (shared R+XY,
+per-pose Z, 15 params) or full per-frame poses (60 params).  The choice
+affects how well the compact telecentric model can match the rayfield:
+
+| Rayfield target | Pix RMS | Telecentric fit |
+|---|---|---|
+| Zernike constrained | 0.41 px | 0.13 mm, 0.3° dir (good match) |
+| Zernike full poses | 0.17 px | 0.69 mm, 5.0° dir (harder target) |
+
+The full-pose Zernike achieves lower corner error (0.17 px) by absorbing
+noise and pose errors into its 57 rayfield coefficients, making the
+resulting rayfield **less physically consistent** and harder for a compact
+model to match.  The constrained-pose Zernike is the **optimal intermediate
+observable**: flexible enough to capture the real optics, constrained
+enough to remain a physically coherent target for model identification.
+
+See `docs/assets/pycaso_real_data/pose_model_comparison.json`.
+
 ## Reproducibility checklist
 
 - [ ] Pycaso example data cloned at `examples/pycaso_data`
@@ -446,6 +466,8 @@ docs/assets/pycaso_real_data/
     zernike_order_sweep.json            ← full sweep table (all orders, RMS, descriptors)
     model_comparison.json               ← Zernike vs telecentric vs perspective comparison
     telecentric_component_diagnostics.json  ← per-component error breakdown
+    pose_model_comparison.json          ← constrained vs full poses benchmark
+    two_plane_sensitivity.json          ← Z-plane sweep showing metric amplification
     diagnostic_cmo_vs_zernike.txt       ← full diagnostic report
 ```
 

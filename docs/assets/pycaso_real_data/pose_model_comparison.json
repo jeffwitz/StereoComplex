@@ -1,0 +1,39 @@
+{
+  "description": "Zernike O(0)+d(2) fit with constrained vs full per-frame poses",
+  "zernike_constrained_poses": {
+    "pose_model": "shared R + shared XY + per-pose Z",
+    "n_pose_params": 15,
+    "n_rayfield_params": 72,
+    "n_total_params": 87,
+    "ray_rms_mm": 0.0006,
+    "pix_rms_px": 0.41,
+    "pix_p95_px": 0.8,
+    "notes": "Optimal intermediate: flexible enough for optics, constrained enough to stay physical"
+  },
+  "zernike_full_poses": {
+    "pose_model": "full per-frame (6 params each)",
+    "n_pose_params": 60,
+    "n_rayfield_params": 72,
+    "n_total_params": 132,
+    "ray_rms_mm": 0.0002,
+    "pix_rms_px": 0.17,
+    "pix_p95_px": 0.3,
+    "notes": "Absorbs noise + pose errors \u2192 less physical rayfield, harder for compact model to fit"
+  },
+  "telecentric_on_zernike_constrained": {
+    "two_plane_rms_mm": 0.13,
+    "direction_rms_deg": 0.3,
+    "moment_rms_mm": 0.35
+  },
+  "telecentric_on_zernike_full": {
+    "two_plane_rms_mm": 0.69,
+    "direction_rms_deg": 5.0,
+    "moment_rms_mm": 6.0,
+    "notes": "Zernike full-pose rayfield is LESS physical \u2014 harder target for compact model"
+  },
+  "telecentric_direct_corners": {
+    "pix_rms_px": 7.6,
+    "notes": "Intrinsic limit of 14-param compact model. 7 px gap vs Zernike is the cost of physical interpretability."
+  },
+  "conclusion": "Constrained-pose Zernike is the optimal intermediate observable. Zernike full-pose absorbs too much noise, making rayfield identification harder. Telecentric plateaus at ~7.6 px direct corner fit \u2014 this is the genuine calibration performance of a physically-motivated compact model."
+}
