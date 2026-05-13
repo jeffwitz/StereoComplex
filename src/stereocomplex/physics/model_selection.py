@@ -105,9 +105,12 @@ def _aic_bic(rss: float, n_residual_scalars: int, n_observations: int, p: int) -
     return float(aic), float(bic)
 
 
-def default_physical_model_specs() -> list[PhysicalModelSpec]:
-    """Return the standard candidate set used in the parallel-plate notebook."""
-    return [
+def default_physical_model_specs(*, include_telecentric: bool = False) -> list[PhysicalModelSpec]:
+    """Return the standard candidate set used in the parallel-plate notebook.
+
+    Set *include_telecentric* to True to add the quasi-telecentric CMO candidate.
+    """
+    specs = [
         PhysicalModelSpec(
             name="central_pinhole",
             model_class=CentralPinholeModel,
@@ -133,6 +136,20 @@ def default_physical_model_specs() -> list[PhysicalModelSpec]:
             model_kwargs={"eta": 1.5, "d1_mm": 80.0},
         ),
     ]
+    if include_telecentric:
+        from stereocomplex.physics.cmo_physical import CMOTelecentricChannelModel  # noqa: PLC0415
+        specs.append(
+            PhysicalModelSpec(
+                name="cmo_telecentric",
+                model_class=CMOTelecentricChannelModel,
+                initial_parameters=np.array(
+                    [62.0, 65.0, 25.0, 1024., 1024., 62.0, 0.2, 0.06, 0.0, 0.0],
+                    dtype=np.float64,
+                ),
+                model_kwargs={"pixel_pitch_mm": 0.0055},
+            ),
+        )
+    return specs
 
 
 def _make_model(model_class: type, x: np.ndarray, K: np.ndarray, model_kwargs: dict[str, Any]) -> PhysicalRayFieldModel:
@@ -357,21 +374,21 @@ def select_physical_model_from_rayfield(
         kwargs = dict(spec.model_kwargs or {})
         try:
             if stereo_mode and bool(getattr(spec.model_class, "is_stereo_shared", False)):
-                if spec.model_class is not CMOPhysicalStereoModel:
-                    raise NotImplementedError(f"stereo-shared dispatch is not implemented for {spec.model_class}")
                 pixel_pitch = kwargs.pop("pixel_pitch_mm", None)
                 if pixel_pitch is None:
-                    raise ValueError("pixel_pitch_mm is required for CMOPhysicalStereoModel selection")
-                result = _as_shared_cmo_selection_result(
-                    spec.name,
-                    fit_cmo_physical_stereo_model_to_rayfields(
-                        left_field=target_field,
-                        right_field=target_right,
-                        image_size=image_size,
-                        initial_parameters=spec.initial_parameters,
-                        bounds=spec.bounds,
-                        pixel_pitch_mm=float(pixel_pitch),
-                        z_planes=z_planes,
+                    raise ValueError("pixel_pitch_mm is required for stereo-shared CMO selection")
+
+                if spec.model_class is CMOPhysicalStereoModel or spec.model_class.__name__ == "CMOPhysicalStereoModel":
+                    result = _as_shared_cmo_selection_result(
+                        spec.name,
+                        fit_cmo_physical_stereo_model_to_rayfields(
+                            left_field=target_field,
+                            right_field=target_right,
+                            image_size=image_size,
+                            initial_parameters=spec.initial_parameters,
+                            bounds=spec.bounds,
+                            pixel_pitch_mm=float(pixel_pitch),
+                            z_planes=z_planes,
                         grid_shape=grid_shape,
                         support_pixels_left=support_pixels,
                         support_pixels_right=support_pixels_right,
@@ -380,6 +397,24 @@ def select_physical_model_from_rayfield(
                         max_nfev=max_nfev,
                     ),
                 )
+                elif spec.model_class.__name__ in ("CMOTelecentricStereoModel", "CMOTelecentricChannelModel"):
+                    from stereocomplex.physics.cmo_physical import fit_cmo_telecentric_model_to_rayfields  # noqa: PLC0415
+                    result = _as_shared_cmo_selection_result(
+                        spec.name,
+                        fit_cmo_telecentric_model_to_rayfields(
+                            left_field=target_field,
+                            right_field=target_right,
+                            image_size=image_size,
+                            initial_parameters=spec.initial_parameters,
+                            pixel_pitch_mm=float(pixel_pitch),
+                            z_planes=z_planes,
+                            grid_shape=grid_shape,
+                            full_grid_weight=full_grid_weight,
+                            max_nfev=max_nfev,
+                        ),
+                    )
+                else:
+                    raise NotImplementedError(f"stereo-shared dispatch is not implemented for {spec.model_class}")
             elif stereo_mode:
                 left = fit_physical_model_to_rayfield(
                     model_class=spec.model_class,
