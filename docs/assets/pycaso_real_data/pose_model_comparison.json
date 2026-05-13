@@ -1,39 +1,57 @@
 {
-  "description": "Zernike O(0)+d(2) fit with constrained vs full per-frame poses",
-  "zernike_constrained_poses": {
-    "pose_model": "shared R + shared XY + per-pose Z",
-    "n_pose_params": 15,
-    "n_rayfield_params": 72,
-    "n_total_params": 87,
-    "ray_rms_mm": 0.0006,
-    "pix_rms_px": 0.41,
-    "pix_p95_px": 0.8,
-    "notes": "Optimal intermediate: flexible enough for optics, constrained enough to stay physical"
-  },
-  "zernike_full_poses": {
-    "pose_model": "full per-frame (6 params each)",
-    "n_pose_params": 60,
-    "n_rayfield_params": 72,
-    "n_total_params": 132,
-    "ray_rms_mm": 0.0002,
-    "pix_rms_px": 0.17,
-    "pix_p95_px": 0.3,
-    "notes": "Absorbs noise + pose errors \u2192 less physical rayfield, harder for compact model to fit"
-  },
-  "telecentric_on_zernike_constrained": {
-    "two_plane_rms_mm": 0.13,
-    "direction_rms_deg": 0.3,
-    "moment_rms_mm": 0.35
-  },
-  "telecentric_on_zernike_full": {
-    "two_plane_rms_mm": 0.69,
-    "direction_rms_deg": 5.0,
-    "moment_rms_mm": 6.0,
-    "notes": "Zernike full-pose rayfield is LESS physical \u2014 harder target for compact model"
-  },
-  "telecentric_direct_corners": {
-    "pix_rms_px": 7.6,
-    "notes": "Intrinsic limit of 14-param compact model. 7 px gap vs Zernike is the cost of physical interpretability."
-  },
-  "conclusion": "Constrained-pose Zernike is the optimal intermediate observable. Zernike full-pose absorbs too much noise, making rayfield identification harder. Telecentric plateaus at ~7.6 px direct corner fit \u2014 this is the genuine calibration performance of a physically-motivated compact model."
+  "models": [
+    {
+      "name": "constrained",
+      "n_params": 87,
+      "ray_rms_mm": 0.0005771694364251843,
+      "pix_rms_px": 0.41220130622623846,
+      "pix_p95_px": 0.8009162696126209,
+      "baseline_mm": 16.824749325935894,
+      "convergence_deg": 14.988291570179136,
+      "dy_mean": -0.03562923099365998,
+      "dy_range": 0.05521638887321269,
+      "origin_asym_x_mm": 0.18297813863353163,
+      "time_s": 29.789172887802124
+    },
+    {
+      "name": "wobble",
+      "n_params": 89,
+      "ray_rms_mm": 0.00026712266689480073,
+      "pix_rms_px": 0.6628311545969617,
+      "pix_p95_px": 1.4732376816324693,
+      "baseline_mm": 8.440348381227922,
+      "convergence_deg": 7.686984721160914,
+      "dy_mean": -0.059208025282759744,
+      "dy_range": 0.09738781704164459,
+      "origin_asym_x_mm": 2.836263118924296,
+      "time_s": 54.91297245025635
+    },
+    {
+      "name": "full",
+      "n_params": 132,
+      "ray_rms_mm": 0.0002306304821930859,
+      "pix_rms_px": 0.1668152539817432,
+      "pix_p95_px": 0.3041537017316486,
+      "baseline_mm": 27.788889937724413,
+      "convergence_deg": 25.32660561744168,
+      "dy_mean": -0.09902246323755302,
+      "dy_range": 0.19047199988822855,
+      "origin_asym_x_mm": 4.42465675018655,
+      "time_s": 89.58055973052979
+    }
+  ],
+  "z_stage_mm": [
+    2.65,
+    2.72,
+    2.79,
+    2.86,
+    2.93,
+    3.0,
+    3.07,
+    3.21,
+    3.28,
+    3.35
+  ],
+  "z_mean_mm": 2.9859999999999998,
+  "interpretation": "Wobble model adds 2 params (tilt rate vs Z) between constrained (0 rot variation) and full (30 rot params). Correlation of rotation with Z is 0.99 \u2014 systematic, not random."
 }
