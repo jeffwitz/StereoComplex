@@ -1,0 +1,152 @@
+======================================================================
+COMPLETE DIAGNOSTIC — CMO Model vs Zernike Rayfield on Pycaso Data
+======================================================================
+
+── 1. DATASET ──
+  Source: Pycaso CMO stereo microscope calibration
+  Sensor: 2048×2048 px
+  Board: ChArUco 16×12 squares, 0.3mm, DICT_6X6_250 (legacy pattern)
+  Frames: 10 stereo pairs
+  Z range: 2.65–3.35 mm (Δ=0.70mm)
+  Working distance (from Z-stack span ratio): 62.1 mm
+  fx (from span ratio): 25658 px
+  Poses: nearly fronto-parallel (±3.5° tilt), Z-only stage
+  OpenCV stereo: RMS > 300 px, baseline ~741 mm (unusable)
+
+── 2. ZERNIKE RAYFIELD (O(0)+d(2), constrained poses) ──
+  Model: Origin order 0 (rigid sub-pupil per channel)
+         Direction order 2 (spatially varying correction, 6 Zernike modes)
+  Pose constraint: shared rotation (3p) + shared X,Y (2p) + per-pose Z (10p) = 15 pose params
+  Total params: 57 (3 O_L + 18 d_L + 3 O_R + 18 d_R + 15 poses)
+  Ray RMS: 0.0007 mm
+  Reprojection: 0.47 px RMS, P95=0.85 px (local pixel-equivalent)
+  Converged: True, NFEV: 55
+
+  Centre pixel (1024,1024) rays from Zernike:
+    L: O = (-12.74, -0.10, 2.66) mm
+       d = ( 0.2036,  0.0585, 0.9773)
+    R: O = ( 12.14, -0.08, 2.33) mm
+       d = (-0.1874,  0.0599, 0.9804)
+
+  CMO-consistent descriptors read from Zernike (no optimisation):
+    Baseline b = |Or - Ol| = 24.9 mm
+    Sub-pupil depth z_p = (|Oz_L|+|Oz_R|)/2 = 2.5 mm
+    Working distance WD = mean board Z = 64.7 mm
+    f_obj = WD - z_p = 62.2 mm
+    Convergence angle = arccos(dL·dR) = 22.6°
+
+  Zernike order sweep (O(0..2)+d(2..4)):
+    O(0)+d(2): 57p, 0.470 px RMS (baseline, most physical)
+    O(1)+d(3): 93p, 0.412 px RMS
+    O(2)+d(3): 111p, 0.409 px RMS (best, plateau)
+    b varies 20-25 mm across orders (gauge-sensitive)
+    WD stable <0.5 mm, f_obj stable ~1.5 mm spread
+
+── 3. THE CORE MISMATCH: d_y FIELD ──
+
+  d_y (Zernike) across FOV — NEARLY CONSTANT → quasi-telecentric:
+    v=0:    +0.098  +0.098  +0.098  +0.097  +0.097
+    v=512:  +0.078  +0.078  +0.078  +0.078  +0.078
+    v=1024: +0.059  +0.059  +0.059  +0.058  +0.058
+    v=1535: +0.039  +0.039  +0.039  +0.039  +0.039
+    v=2047: +0.019  +0.019  +0.020  +0.020  +0.020
+    Range: 0.079  Mean: +0.059
+
+  d_y (perspective CMO: f_obj=62, WD=65, b=25, PP=centre, dist=0):
+    v=0:    -0.116  -0.115  -0.114  -0.113  -0.111
+    v=512:  -0.058  -0.058  -0.057  -0.057  -0.056
+    v=1024: -0.000  -0.000  -0.000  -0.000  -0.000
+    v=1535: +0.058  +0.058  +0.057  +0.057  +0.056
+    v=2047: +0.116  +0.115  +0.114  +0.113  +0.111
+    Range: 0.232  Mean: ~0.000
+
+  RANGE RATIO (CMO/Zernike): 2.9×
+  The CMO predicts a linear perspective gradient 3× larger than reality.
+
+── 4. CMO MODEL FITS (optimised, 19 params) ──
+
+  CMO with telecentric offset ε free (±500mm):
+    RMS = 3.48 mm  (vs Zernike 0.0007 mm — factor 5000×)
+    f_obj = 242.6 mm   (vs 62 mm from Zernike — unphysical)
+    WD = 64.9 mm       (consistent with Zernike)
+    b = 177.9 mm       (vs 25 mm from Zernike — absurd)
+    PP = (2136, 1638)  (image is 2048×2048)
+    yaw = 0.5°, pitch = −3.5°
+    ε = −203.6 mm      (telecentric offset, large negative)
+    Effective sub-pupil Z = WD − f_obj + ε = −381 mm
+      → sub-pupil is 381 mm BEHIND the sensor!
+      → physically nonsensical
+    Distortion coefficients pegged at bounds (±1.0 for k1,k2,k3)
+
+  Same result regardless of initialization (ε=0 or ε free).
+  The optimizer converges to the SAME degenerate solution every time.
+  This IS the "best" the CMO model can do in ray-space.
+
+── 5. WHY THE CMO MODEL CANNOT MATCH THE ZERNIKE RAYFIELD ──
+
+  The CMO model (CMOPhysicalStereoModel) computes rays as:
+    origin  = sub-pupil = (±b/2, 0, WD − f_obj + ε)
+    direction = normalize( point_on_working_plane − sub_pupil )
+    where point_on_working_plane = (WD·α_x, WD·α_y, WD)
+    and α = undistort( (u−cx)·pixel_pitch / f_tube )
+
+  This is a PURE PERSPECTIVE model:
+    - All rays from one channel pass through a SINGLE point (the sub-pupil)
+    - The direction field d(u,v) is ENTIRELY determined by the pixel-to-angle
+      mapping α(u,v) = (u−cx)/f_tube * pixel_pitch
+    - The only "free" variations come from 5 Brown-Conrady distortion coeffs
+      applied to α before computing the ray
+
+  The Zernike rayfield shows that the real microscope is NOT perspective:
+    - d_y is NEARLY CONSTANT across the FOV (range 0.08, mean +0.06)
+    - A perspective model predicts d_y ∝ (v−cy) → linear gradient (range 0.23)
+    - The 3× range mismatch cannot be fixed by:
+      * Moving the principal point (shifts the zero-crossing)
+      * Adding distortion (only warps α, doesn't change the perspective structure)
+      * Adding a telecentric offset ε (moves the sub-pupil Z, changes gradient
+        magnitude but NOT the functional form d_y ∝ (v−cy))
+      * Adding pitch/yaw rotations (rotate the entire bundle, don't change the
+        perspective character)
+
+  The optimizer's "solution" (f_obj=243, b=178, ε=−204) is a mathematical
+  artifact: it pushes the sub-pupil 381 mm behind the sensor to make the rays
+  as parallel as possible, then uses extreme distortion (±1.0, hitting bounds)
+  and a shifted PP (2136,1638) to warp the angular mapping.  This "works"
+  in the sense of reducing RMS from ~12 mm to 3.5 mm, but the parameters
+  are physically meaningless.
+
+── 6. WHAT WOULD BE NEEDED ──
+
+  To model this microscope with a compact physical parameterization,
+  the model needs to produce NEARLY PARALLEL rays (d ≈ constant across FOV)
+  rather than perspective rays (d ∝ pixel position).
+
+  Possible approaches:
+
+  A. PER-PIXEL DIRECTION FIELD (already done by Zernike):
+     d(u,v) = d_pinhole(u,v) + Σ a_m·Z_m(u,v)
+     → 18 params per channel for order 2, captures real ray geometry
+     → This is what StereoComplex already does
+
+  B. TELECENTRIC CMO MODEL:
+     Replace the perspective projection with an afocal/telecentric one.
+     Instead of: ray = line from sub-pupil through point on working plane,
+     Use: direction = optical axis + small per-pixel perturbation
+     This would naturally produce nearly-constant d across the FOV.
+
+  C. TWO-COMPONENT MODEL:
+     A physically-motivated model with:
+     - A perspective core (sub-pupil → chief ray)
+     - A telecentric "shell" that makes peripheral rays more parallel
+     - Parameterized by the "degree of telecentricity" (0 = perspective, 1 = telecentric)
+
+  D. POLYNOMIAL DIRECTION MODEL:
+     Directly fit a low-order polynomial to d_x(u,v) and d_y(u,v).
+     This is what the Zernike d-field already does, but could be done with
+     fewer parameters if restricted to physically meaningful basis functions
+     (e.g., only radial terms for axisymmetric systems).
+
+  The key insight: the real CMO microscope sits BETWEEN perspective and
+  telecentric.  The Zernike rayfield captures this effortlessly.  A
+  physical model needs to parameterize this "degree of telecentricity"
+  explicitly.

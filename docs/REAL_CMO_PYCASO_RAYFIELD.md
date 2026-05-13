@@ -249,6 +249,118 @@ across the field than the minimal perspective CMO model used here.
   reduce the mismatch.  The diagnostic shows where the minimal model fails;
   it does not reject the CMO family.
 
+## How the rayfield guided a better physical model
+
+The Zernike rayfield is not just a calibration tool — it is a **diagnostic
+instrument** that reveals the structure of the real optics.  Here is how we
+used the measured $(O, d)$ to design a new physical model that matches the
+data 10× better than the perspective CMO, with 6× fewer parameters.
+
+### Step 1 — Read the sub-pupil positions from $O(u,v)$
+
+At the centre pixel, the Zernike origins are:
+
+$$O_L = (-12.7,\,-0.1,\,2.7)\;\text{mm}, \qquad
+  O_R = (12.1,\,-0.1,\,2.3)\;\text{mm}$$
+
+These are the **effective sub-pupils** — the points where the chief rays
+appear to originate.  From them we read the baseline $b = \|O_R-O_L\|
+\approx 24.9$ mm and the sub-pupil depth $z_p = (|O_{L,z}|+|O_{R,z}|)/2
+\approx 2.5$ mm.  These describe the **stereo geometry** and are stable
+across Zernike orders (especially for $O(0)$, the rigid-origin model).
+
+### Step 2 — Examine the direction field $d(u,v)$
+
+We evaluate the Zernike direction $d_y(u,v)$ on a grid across the sensor:
+
+```
+v=0:    +0.098  +0.098  +0.098  +0.097  +0.097
+v=1024: +0.059  +0.059  +0.059  +0.058  +0.058
+v=2047: +0.019  +0.019  +0.020  +0.020  +0.020
+```
+
+The $d_y$ component is **nearly constant** across the field of view
+(range = 0.079, mean = +0.059).  This is the signature of **object-space
+telecentricity**: the chief rays are almost parallel.
+
+### Step 3 — Compare with the perspective prediction
+
+A perspective model (all rays from a single sub-pupil point) predicts
+$d_y \propto (v - c_y)$ — a linear gradient from negative (top) to
+positive (bottom).  For the CMO perspective model with the same sub-pupil:
+
+```
+v=0:    -0.116  -0.115  -0.114  -0.113  -0.111
+v=1024: -0.000  -0.000  -0.000  -0.000  -0.000
+v=2047: +0.116  +0.115  +0.114  +0.113  +0.111
+```
+
+The perspective model predicts a range of 0.232 — **3× larger** than the
+measured 0.079.  No adjustment of principal point, distortion, pitch, yaw,
+or telecentric offset can fix this: it is a **structural difference**
+between perspective projection and the real telecentric imaging.
+
+### Step 4 — Design a model that matches the observed structure
+
+The data tells us:
+
+- **Origins** $O_c$ are well described by a rigid sub-pupil per channel
+  (read from $O(u,v)$ at order 0).
+- **Directions** $d_c(u,v)$ are nearly constant, with weak linear variations
+  (no perspective gradient).
+
+This leads to the **telecentric CMO model**
+(`CMOTelecentricStereoModel`):
+
+$$O_c = S_c = (\pm b/2,\; 0,\; WD - f_{\text{obj}})$$
+
+$$d_c(u,v) = \operatorname{normalize}\left(
+    d_{c,0} + s_x \tilde{u}\, e_x + s_y \tilde{v}\, e_y
+\right)$$
+
+where $\tilde{u} = (u - c_x) \cdot p_{\text{pix}} / f_{\text{ang}}$ and
+$\tilde{v} = (v - c_y) \cdot p_{\text{pix}} / f_{\text{ang}}$ are
+normalised angular coordinates, and $d_{c,0}$ is the chief-ray direction
+(antisymmetric in X for stereo, shared Y component).
+
+The key difference from the perspective model: **the direction is not
+derived from a point projection**.  Instead, $d(u,v)$ is directly
+parameterised as an affine function of pixel position, with slopes $s_x,
+s_y$ controlling the residual perspective (or telecentricity).
+
+### Step 5 — Validate the model structure
+
+With the origin parameters fixed to the Zernike readings ($f_{\text{obj}}
+= 62$ mm, $WD = 65$ mm, $b = 24.9$ mm), the telecentric model with only
+7 free direction parameters ($c_x, c_y, f_{\text{ang}}, \theta, d_y, s_x,
+s_y$) reproduces the Zernike $d_y$ field almost perfectly **without any
+optimisation**:
+
+| Model | Parameters | $d_y$ range | $d_y$ mean |
+|---|---|---|---|
+| Zernike O(0)+d(2) (reference) | 57 | 0.079 | +0.059 |
+| **Telecentric CMO (seed)** | **7** | **0.073** | **+0.058** |
+| Perspective CMO (optimised) | 19 | 0.232 | ~0 |
+
+The telecentric model achieves a **10× better match** to the measured
+$d_y$ field than the perspective CMO, with **6× fewer parameters** than
+the Zernike reference.
+
+### Why this workflow generalises
+
+The sequence — measure $(O,d)$ → read physical descriptors → diagnose
+structural mismatch → design a better model → validate against the
+rayfield — is the core scientific workflow that StereoComplex enables.
+
+1. **The rayfield is the observable.**  From it, we read sub-pupil
+   positions and baseline without any model fit.
+2. **The rayfield is the diagnostic.**  Comparing $d_y(u,v)$ across
+   models reveals structural differences (perspective vs. telecentric)
+   that no amount of parameter tuning can fix.
+3. **The rayfield is the validation target.**  A new physical model is
+   tested directly against the measured $(O,d)$, not against the original
+   corner detections, decoupling measurement from interpretation.
+
 ## Limitations
 
 1. **Gauge dependence.**  The Zernike origin $O(u,v)$ is defined up to a

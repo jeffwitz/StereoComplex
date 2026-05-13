@@ -106,6 +106,7 @@ class CMOPhysicalStereoModel:
     pixel_pitch_mm: float
     theta_axis_tilt_rad: float = 0.0
     theta_pitch_rad: float = 0.0
+    telecentric_offset_mm: float = 0.0
     distortion_left: tuple[float, float, float, float, float] = (0.0, 0.0, 0.0, 0.0, 0.0)
     distortion_right: tuple[float, float, float, float, float] = (0.0, 0.0, 0.0, 0.0, 0.0)
     image_size: tuple[int, int] | None = None
@@ -117,7 +118,7 @@ class CMOPhysicalStereoModel:
 
     @property
     def n_parameters(self) -> int:
-        return 18 if self.share_principal_point else 20
+        return 19 if self.share_principal_point else 21
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs) -> "CMOPhysicalStereoModel":
@@ -125,7 +126,7 @@ class CMOPhysicalStereoModel:
         if "pixel_pitch_mm" not in kwargs:
             raise ValueError("pixel_pitch_mm must be provided as a fixed CMOPhysicalStereoModel parameter")
         share_principal_point = bool(kwargs.get("share_principal_point", True))
-        expected = 18 if share_principal_point else 20
+        expected = 19 if share_principal_point else 21
         if arr.size != expected:
             raise ValueError(f"CMOPhysicalStereoModel expects {expected} parameters")
         if share_principal_point:
@@ -133,13 +134,15 @@ class CMOPhysicalStereoModel:
             delta_cy_diff = 0.0
             theta_idx = 6
             pitch_idx = 7
-            left_start = 8
+            tele_idx = 8
+            left_start = 9
         else:
             delta_cx_diff = float(arr[6])
             delta_cy_diff = float(arr[7])
             theta_idx = 8
             pitch_idx = 9
-            left_start = 10
+            tele_idx = 10
+            left_start = 11
         return cls(
             f_obj_mm=float(arr[0]),
             working_distance_mm=float(arr[1]),
@@ -150,6 +153,7 @@ class CMOPhysicalStereoModel:
             pixel_pitch_mm=float(kwargs["pixel_pitch_mm"]),
             theta_axis_tilt_rad=float(arr[theta_idx]),
             theta_pitch_rad=float(arr[pitch_idx]),
+            telecentric_offset_mm=float(arr[tele_idx]),
             distortion_left=tuple(float(v) for v in arr[left_start : left_start + 5]),  # type: ignore[arg-type]
             distortion_right=tuple(float(v) for v in arr[left_start + 5 : left_start + 10]),  # type: ignore[arg-type]
             image_size=kwargs.get("image_size"),
@@ -171,6 +175,7 @@ class CMOPhysicalStereoModel:
             common.extend([self.delta_cx_diff_px, self.delta_cy_diff_px])
         common.append(self.theta_axis_tilt_rad)
         common.append(self.theta_pitch_rad)
+        common.append(self.telecentric_offset_mm)
         return np.r_[
             np.asarray(common, dtype=np.float64),
             np.asarray(self.distortion_left, dtype=np.float64),
@@ -188,6 +193,7 @@ class CMOPhysicalStereoModel:
             "cy_principal_px": float(self.cy_principal_px),
             "theta_axis_tilt_rad": float(self.theta_axis_tilt_rad),
             "theta_pitch_rad": float(self.theta_pitch_rad),
+            "telecentric_offset_mm": float(self.telecentric_offset_mm),
         }
         if not self.share_principal_point:
             params.update(
@@ -234,7 +240,7 @@ class CMOPhysicalStereoModel:
         alpha_x, alpha_y = undistort_brown_normalized(alpha_x_d, alpha_y_d, *coeffs, n_iter=10)
 
         sign = -1.0 if channel == "left" else 1.0
-        z_pupil = float(self.working_distance_mm) - float(self.f_obj_mm)
+        z_pupil = float(self.working_distance_mm) - float(self.f_obj_mm) + float(self.telecentric_offset_mm)
         pupil = np.column_stack(
             [
                 np.full_like(alpha_x, sign * 0.5 * float(self.b_mm)),
@@ -382,9 +388,9 @@ def fit_cmo_physical_stereo_model_to_rayfields(
     """Fit the shared physical CMO rig to left/right measured rayfields."""
 
     x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
-    if x0.size not in {18, 20}:
-        raise ValueError("initial_parameters must contain 18 shared-PP or 20 aligned-PP values")
-    share_principal_point = x0.size == 18
+    if x0.size not in {19, 21}:
+        raise ValueError("initial_parameters must contain 19 shared-PP or 21 aligned-PP values")
+    share_principal_point = x0.size == 19
     full = _grid_pixels(image_size, grid_shape)
     support_l = full if support_pixels_left is None else np.asarray(support_pixels_left, dtype=np.float64).reshape(-1, 2)
     support_r = full if support_pixels_right is None else np.asarray(support_pixels_right, dtype=np.float64).reshape(-1, 2)
@@ -421,11 +427,11 @@ def fit_cmo_physical_stereo_model_to_rayfields(
 
     if bounds is None:
         if share_principal_point:
-            lower_common = [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, -0.25, -0.25]
-            upper_common = [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 0.25, 0.25]
+            lower_common = [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, -0.25, -0.25, -500.0]
+            upper_common = [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 0.25, 0.25, 500.0]
         else:
-            lower_common = [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, -50.0, -50.0, -0.25, -0.25]
-            upper_common = [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 50.0, 50.0, 0.25, 0.25]
+            lower_common = [1.0, 1.0, 0.0, 1.0, -np.inf, -np.inf, -50.0, -50.0, -0.25, -0.25, -500.0]
+            upper_common = [500.0, 1000.0, 200.0, 1000.0, np.inf, np.inf, 50.0, 50.0, 0.25, 0.25, 500.0]
         lower = np.array(
             lower_common + [-1.0, -1.0, -0.1, -0.1, -1.0] * 2,
             dtype=np.float64,
@@ -474,9 +480,263 @@ def fit_cmo_physical_stereo_model_to_rayfields(
     )
 
 
+@dataclass(frozen=True)
+class CMOTelecentricStereoModel:
+    """Quasi-telecentric CMO model with rigid sub-pupil + affine direction field.
+
+    Each channel has a **constant origin** :math:`S_c` (the effective sub-pupil)
+    and a direction field that varies **affinely** across pixels.  This captures
+    the quasi-telecentric character of infinity-corrected CMO microscopes where
+    the direction is nearly constant across the field of view.
+
+    The direction field is:
+
+    .. math::
+        d_c(u,v) = \\operatorname{normalize}\\left(
+            d_{c,0} + s_x \\tilde{u}\\, e_x + s_y \\tilde{v}\\, e_y
+        \\right)
+
+    where :math:`\\tilde{u} = (u - c_x) \\cdot p_{\\text{pix}} / f_{\\text{obj}}`
+    and :math:`\\tilde{v} = (v - c_y) \\cdot p_{\\text{pix}} / f_{\\text{obj}}`.
+    """
+
+    f_obj_mm: float               # for sub-pupil depth: z_pupil = WD - f_obj
+    working_distance_mm: float
+    b_mm: float
+    cx_principal_px: float
+    cy_principal_px: float
+    pixel_pitch_mm: float
+
+    f_angular_mm: float = 0.0      # pixel→angle normalisation (≈ f_obj, but decoupled)
+    theta_convergence_half_rad: float = 0.0
+    d_y_common: float = 0.0
+    s_x: float = 0.0
+    s_y: float = 0.0
+
+    image_size: tuple[int, int] | None = None
+    name: str = "cmo_telecentric"
+    is_stereo_shared: bool = True
+
+    @property
+    def n_parameters(self) -> int:
+        return 10
+
+    @classmethod
+    def from_parameter_vector(
+        cls, x: Array, **kwargs: Any,
+    ) -> "CMOTelecentricStereoModel":
+        arr = np.asarray(x, dtype=np.float64).reshape(-1)
+        if arr.size != 10:
+            raise ValueError(f"CMOTelecentricStereoModel expects 10 parameters, got {arr.size}")
+        return cls(
+            f_obj_mm=float(arr[0]),
+            working_distance_mm=float(arr[1]),
+            b_mm=float(arr[2]),
+            cx_principal_px=float(arr[3]),
+            cy_principal_px=float(arr[4]),
+            pixel_pitch_mm=float(kwargs["pixel_pitch_mm"]),
+            f_angular_mm=float(arr[5]),
+            theta_convergence_half_rad=float(arr[6]),
+            d_y_common=float(arr[7]),
+            s_x=float(arr[8]),
+            s_y=float(arr[9]),
+            image_size=kwargs.get("image_size"),
+        )
+
+    def parameter_vector(self) -> Array:
+        return np.array([
+            self.f_obj_mm, self.working_distance_mm, self.b_mm,
+            self.cx_principal_px, self.cy_principal_px,
+            self.f_angular_mm,
+            self.theta_convergence_half_rad, self.d_y_common,
+            self.s_x, self.s_y,
+        ], dtype=np.float64)
+
+    def parameter_dict(self) -> dict[str, object]:
+        return {
+            "free": {
+                "f_obj_mm": float(self.f_obj_mm),
+                "working_distance_mm": float(self.working_distance_mm),
+                "b_mm": float(self.b_mm),
+                "cx_principal_px": float(self.cx_principal_px),
+                "cy_principal_px": float(self.cy_principal_px),
+                "f_angular_mm": float(self.f_angular_mm),
+                "theta_convergence_half_deg": float(np.degrees(self.theta_convergence_half_rad)),
+                "d_y_common": float(self.d_y_common),
+                "s_x": float(self.s_x),
+                "s_y": float(self.s_y),
+            },
+            "fixed": {
+                "pixel_pitch_mm": float(self.pixel_pitch_mm),
+                "image_width": float(self.image_size[0]) if self.image_size else float("nan"),
+                "image_height": float(self.image_size[1]) if self.image_size else float("nan"),
+            },
+        }
+
+    def channel(self, channel: Literal["left", "right"]) -> "CMOTelecentricChannelModel":
+        return CMOTelecentricChannelModel(rig=self, channel=channel)
+
+    def ray(self, u: Array, v: Array, channel: Literal["left", "right"]) -> tuple[Array, Array]:
+        uu, vv = np.broadcast_arrays(np.asarray(u, dtype=np.float64), np.asarray(v, dtype=np.float64))
+        shape = uu.shape
+        uf, vf = uu.reshape(-1), vv.reshape(-1)
+
+        # Normalised angular coordinates (using f_angular, decoupled from sub-pupil depth)
+        f_ang = float(self.f_angular_mm) if float(self.f_angular_mm) > 0.1 else float(self.f_obj_mm)
+        tilde_u = (uf - float(self.cx_principal_px)) * float(self.pixel_pitch_mm) / f_ang
+        tilde_v = (vf - float(self.cy_principal_px)) * float(self.pixel_pitch_mm) / f_ang
+
+        # Chief-ray direction (symmetric X, shared Y)
+        sign = -1.0 if channel == "left" else 1.0
+        sin_th = float(np.sin(float(self.theta_convergence_half_rad)))
+        cos_th = float(np.cos(float(self.theta_convergence_half_rad)))
+        dy = float(self.d_y_common)
+
+        d0 = np.column_stack([
+            np.full_like(uf, sign * sin_th),
+            np.full_like(uf, dy),
+            np.full_like(uf, cos_th),
+        ])
+
+        # Affine correction
+        d_raw = np.column_stack([
+            d0[:, 0] + float(self.s_x) * tilde_u,
+            d0[:, 1] + float(self.s_y) * tilde_v,
+            d0[:, 2],
+        ])
+
+        directions = _normalize(d_raw)
+
+        # Origin: sub-pupil
+        z_pupil = float(self.working_distance_mm) - float(self.f_obj_mm)
+        pupil = np.column_stack([
+            np.full_like(uf, sign * 0.5 * float(self.b_mm)),
+            np.zeros_like(uf),
+            np.full_like(uf, z_pupil),
+        ])
+
+        return pupil.reshape(shape + (3,)), directions.reshape(shape + (3,))
+
+
+@dataclass(frozen=True)
+class CMOTelecentricChannelModel:
+    """Single-channel facade for a shared telecentric CMO rig."""
+
+    rig: CMOTelecentricStereoModel
+    channel: Literal["left", "right"]
+    name: str = "cmo_telecentric_channel"
+    is_stereo_shared: bool = True
+
+    @property
+    def n_parameters(self) -> int:
+        return self.rig.n_parameters
+
+    def parameter_vector(self) -> Array:
+        return self.rig.parameter_vector()
+
+    @classmethod
+    def from_parameter_vector(cls, x: Array, **kwargs: Any) -> "CMOTelecentricChannelModel":
+        rig = CMOTelecentricStereoModel.from_parameter_vector(
+            x,
+            pixel_pitch_mm=kwargs["pixel_pitch_mm"],
+            image_size=kwargs.get("image_size"),
+        )
+        channel = kwargs.get("channel", "left")
+        if channel not in {"left", "right"}:
+            raise ValueError("channel must be 'left' or 'right'")
+        return cls(rig=rig, channel=channel)
+
+    def parameter_dict(self) -> dict[str, object]:
+        return self.rig.parameter_dict()
+
+    def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
+        return self.rig.ray(u, v, self.channel)
+
+
+def fit_cmo_telecentric_model_to_rayfields(
+    left_field,
+    right_field,
+    image_size: tuple[int, int],
+    initial_parameters: Array,
+    *,
+    pixel_pitch_mm: float,
+    z_planes: tuple[float, float] = (50.0, 250.0),
+    grid_shape: tuple[int, int] = (17, 13),
+    full_grid_weight: float = 0.0,
+    max_nfev: int = 500,
+) -> CMOPhysicalStereoFitResult:
+    """Fit the telecentric CMO model to left/right measured rayfields."""
+    x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
+    if x0.size != 10:
+        raise ValueError("initial_parameters must contain exactly 10 values")
+
+    full = _grid_pixels(image_size, grid_shape)
+    support_l = full
+    support_r = full
+    include_full = full_grid_weight > 0
+
+    def model_at(x: Array) -> CMOTelecentricStereoModel:
+        return CMOTelecentricStereoModel.from_parameter_vector(
+            x, pixel_pitch_mm=pixel_pitch_mm, image_size=image_size)
+
+    def residuals(x: Array) -> Array:
+        model = model_at(x)
+        left = model.channel("left")
+        right = model.channel("right")
+        blocks = [
+            rayfield_two_plane_residuals(left_field, left, support_l, z_planes=z_planes),
+            rayfield_two_plane_residuals(right_field, right, support_r, z_planes=z_planes),
+        ]
+        if include_full:
+            blocks.extend([
+                float(full_grid_weight) * rayfield_two_plane_residuals(left_field, left, full, z_planes=z_planes),
+                float(full_grid_weight) * rayfield_two_plane_residuals(right_field, right, full, z_planes=z_planes),
+            ])
+        return np.concatenate(blocks)
+
+    # Bounds: physically reasonable ranges
+    lower = np.array([1.0, 1.0, 0.0, -np.inf, -np.inf, 1.0, 0.0, -0.3, -10.0, -10.0], dtype=np.float64)
+    upper = np.array([500.0, 1000.0, 200.0, np.inf, np.inf, 500.0, 0.5, 0.3, 10.0, 10.0], dtype=np.float64)
+
+    sol = least_squares(residuals, x0=x0, bounds=(lower, upper),
+                         loss="huber", f_scale=1.0, max_nfev=int(max_nfev),
+                         xtol=1e-10, ftol=1e-10, gtol=1e-10)
+
+    fitted = model_at(sol.x)
+    left_res = rayfield_two_plane_residuals(left_field, fitted.channel("left"), support_l, z_planes=z_planes)
+    right_res = rayfield_two_plane_residuals(right_field, fitted.channel("right"), support_r, z_planes=z_planes)
+    combined = residuals(sol.x)
+    rss = float(np.sum(combined * combined))
+    n_res = int(combined.size)
+    n_samples = int(support_l.shape[0] + support_r.shape[0])
+    left_rms = _ray_rms(left_res)
+    right_rms = _ray_rms(right_res)
+    aic, bic = _aic_bic(rss, n_res, n_samples, fitted.n_parameters)
+
+    return CMOPhysicalStereoFitResult(
+        model=fitted,
+        success=bool(sol.success),
+        message=str(sol.message),
+        n_parameters=fitted.n_parameters,
+        n_samples=n_samples,
+        n_residual_scalars=n_res,
+        rss=rss,
+        left_rms_mm=left_rms,
+        right_rms_mm=right_rms,
+        rms_mm=float(np.sqrt(0.5 * (left_rms**2 + right_rms**2))),
+        aic=aic,
+        bic=bic,
+        parameter_vector=np.asarray(sol.x, dtype=np.float64).copy(),
+        parameter_dict=fitted.parameter_dict(),
+    )
+
+
 __all__ = [
     "CMOPhysicalChannelModel",
     "CMOPhysicalStereoFitResult",
     "CMOPhysicalStereoModel",
+    "CMOTelecentricChannelModel",
+    "CMOTelecentricStereoModel",
     "fit_cmo_physical_stereo_model_to_rayfields",
+    "fit_cmo_telecentric_model_to_rayfields",
 ]
