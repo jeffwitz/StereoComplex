@@ -510,8 +510,11 @@ class CMOTelecentricStereoModel:
     f_angular_mm: float = 0.0      # pixel→angle normalisation (≈ f_obj, but decoupled)
     theta_convergence_half_rad: float = 0.0
     d_y_common: float = 0.0
-    s_x: float = 0.0
-    s_y: float = 0.0
+    s_x_L: float = 0.0
+    s_y_L: float = 0.0
+    s_x_R: float = 0.0
+    s_y_R: float = 0.0
+    shared_slopes: bool = True
 
     image_size: tuple[int, int] | None = None
     name: str = "cmo_telecentric"
@@ -519,15 +522,19 @@ class CMOTelecentricStereoModel:
 
     @property
     def n_parameters(self) -> int:
-        return 10
+        return 10 if self.shared_slopes else 12
 
     @classmethod
     def from_parameter_vector(
         cls, x: Array, **kwargs: Any,
     ) -> "CMOTelecentricStereoModel":
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
-        if arr.size != 10:
-            raise ValueError(f"CMOTelecentricStereoModel expects 10 parameters, got {arr.size}")
+        if arr.size not in {10, 12}:
+            raise ValueError(f"CMOTelecentricStereoModel expects 10 or 12 parameters, got {arr.size}")
+        shared = arr.size == 10
+        sxL=float(arr[8]); syL=float(arr[9])
+        sxR=sxL if shared else float(arr[10])
+        syR=syL if shared else float(arr[11])
         return cls(
             f_obj_mm=float(arr[0]),
             working_distance_mm=float(arr[1]),
@@ -538,34 +545,45 @@ class CMOTelecentricStereoModel:
             f_angular_mm=float(arr[5]),
             theta_convergence_half_rad=float(arr[6]),
             d_y_common=float(arr[7]),
-            s_x=float(arr[8]),
-            s_y=float(arr[9]),
+            s_x_L=sxL, s_y_L=syL,
+            s_x_R=sxR, s_y_R=syR,
+            shared_slopes=shared,
             image_size=kwargs.get("image_size"),
         )
 
     def parameter_vector(self) -> Array:
-        return np.array([
+        vec = [
             self.f_obj_mm, self.working_distance_mm, self.b_mm,
             self.cx_principal_px, self.cy_principal_px,
             self.f_angular_mm,
             self.theta_convergence_half_rad, self.d_y_common,
-            self.s_x, self.s_y,
-        ], dtype=np.float64)
+            self.s_x_L, self.s_y_L,
+        ]
+        if not self.shared_slopes:
+            vec.extend([self.s_x_R, self.s_y_R])
+        return np.array(vec, dtype=np.float64)
 
     def parameter_dict(self) -> dict[str, object]:
-        return {
-            "free": {
-                "f_obj_mm": float(self.f_obj_mm),
-                "working_distance_mm": float(self.working_distance_mm),
-                "b_mm": float(self.b_mm),
-                "cx_principal_px": float(self.cx_principal_px),
-                "cy_principal_px": float(self.cy_principal_px),
-                "f_angular_mm": float(self.f_angular_mm),
-                "theta_convergence_half_deg": float(np.degrees(self.theta_convergence_half_rad)),
-                "d_y_common": float(self.d_y_common),
-                "s_x": float(self.s_x),
-                "s_y": float(self.s_y),
-            },
+        free = {
+            "f_obj_mm": float(self.f_obj_mm),
+            "working_distance_mm": float(self.working_distance_mm),
+            "b_mm": float(self.b_mm),
+            "cx_principal_px": float(self.cx_principal_px),
+            "cy_principal_px": float(self.cy_principal_px),
+            "f_angular_mm": float(self.f_angular_mm),
+            "theta_convergence_half_deg": float(np.degrees(self.theta_convergence_half_rad)),
+            "d_y_common": float(self.d_y_common),
+            "s_x_L": float(self.s_x_L),
+            "s_y_L": float(self.s_y_L),
+            "shared_slopes": bool(self.shared_slopes),
+        }
+        if not self.shared_slopes:
+            free["s_x_R"] = float(self.s_x_R)
+            free["s_y_R"] = float(self.s_y_R)
+        else:
+            free["s_x"] = float(self.s_x_L)
+            free["s_y"] = float(self.s_y_L)
+        return {"free": free,
             "fixed": {
                 "pixel_pitch_mm": float(self.pixel_pitch_mm),
                 "image_width": float(self.image_size[0]) if self.image_size else float("nan"),
@@ -600,10 +618,12 @@ class CMOTelecentricStereoModel:
             np.full_like(uf, cos_th),
         ])
 
-        # Affine correction
+        # Affine correction (per-channel slopes)
+        sx_ch = float(self.s_x_L) if channel == "left" else float(self.s_x_R)
+        sy_ch = float(self.s_y_L) if channel == "left" else float(self.s_y_R)
         d_raw = np.column_stack([
-            d0[:, 0] + float(self.s_x) * tilde_u,
-            d0[:, 1] + float(self.s_y) * tilde_v,
+            d0[:, 0] + sx_ch * tilde_u,
+            d0[:, 1] + sy_ch * tilde_v,
             d0[:, 2],
         ])
 

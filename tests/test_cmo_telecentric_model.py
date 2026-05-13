@@ -21,20 +21,20 @@ def test_cmo_telecentric_exports():
 
 
 def test_telecentric_zero_slope_constant_direction():
-    """With s_x=s_y=0, direction should be constant across pixels."""
+    """With s_x=s_y_L=0, s_y_R=0, direction should be constant across pixels."""
     m = CMOTelecentricStereoModel(
         f_obj_mm=62.0, working_distance_mm=65.0, b_mm=25.0,
         cx_principal_px=1024, cy_principal_px=1024,
         pixel_pitch_mm=0.0055, f_angular_mm=62.0,
         theta_convergence_half_rad=np.deg2rad(11.25),
-        d_y_common=0.06, s_x=0.0, s_y=0.0,
+        d_y_common=0.06, s_x_L=0.0, s_y_L=0.0, s_x_R=0.0, s_y_R=0.0,
         image_size=(2048, 2048),
     )
     u_test = np.array([0., 1024., 2047.])
     v_test = np.array([0., 1024., 2047.])
     _, dL = m.ray(u_test, v_test, "left")
     _, dR = m.ray(u_test, v_test, "right")
-    # All directions should be identical (s_x=s_y=0 means no pixel dependence)
+    # All directions should be identical (s_x=s_y_L=0, s_y_R=0 means no pixel dependence)
     for d in [dL, dR]:
         for i in range(1, len(d)):
             np.testing.assert_allclose(d[i], d[0], atol=1e-12)
@@ -47,7 +47,7 @@ def test_telecentric_origin_is_constant_per_channel():
         cx_principal_px=1024, cy_principal_px=1024,
         pixel_pitch_mm=0.0055, f_angular_mm=62.0,
         theta_convergence_half_rad=0.2, d_y_common=0.0,
-        s_x=0.1, s_y=-0.1, image_size=(2048, 2048),
+        s_x_L=0.1, s_x_R=0.1, s_y_L=-0.1, s_y_R=-0.1, image_size=(2048, 2048),
     )
     u_test = np.array([0., 1024., 2047.])
     v_test = np.array([0., 1024., 2047.])
@@ -62,13 +62,13 @@ def test_telecentric_origin_is_constant_per_channel():
 
 
 def test_telecentric_left_right_symmetry():
-    """With d_y=0, s_x=s_y=0, left/right d_x should be antisymmetric."""
+    """With d_y=0, s_x=s_y_L=0, s_y_R=0, left/right d_x should be antisymmetric."""
     m = CMOTelecentricStereoModel(
         f_obj_mm=62.0, working_distance_mm=65.0, b_mm=25.0,
         cx_principal_px=1024, cy_principal_px=1024,
         pixel_pitch_mm=0.0055, f_angular_mm=62.0,
         theta_convergence_half_rad=0.2, d_y_common=0.0,
-        s_x=0.0, s_y=0.0, image_size=(2048, 2048),
+        s_x_L=0.0, s_y_L=0.0, s_x_R=0.0, s_y_R=0.0, image_size=(2048, 2048),
     )
     _, dL = m.ray(np.array([1024.]), np.array([1024.]), "left")
     _, dR = m.ray(np.array([1024.]), np.array([1024.]), "right")
@@ -83,20 +83,20 @@ def test_telecentric_slope_controls_dy_range():
         cx_principal_px=1024, cy_principal_px=1024,
         pixel_pitch_mm=0.0055, f_angular_mm=62.0,
         theta_convergence_half_rad=0.0, d_y_common=0.0,
-        s_x=0.0, s_y=0.0, image_size=(2048, 2048),
+        s_x_L=0.0, s_y_L=0.0, s_x_R=0.0, s_y_R=0.0, image_size=(2048, 2048),
     )
     m_pos = CMOTelecentricStereoModel(
         f_obj_mm=62.0, working_distance_mm=65.0, b_mm=25.0,
         cx_principal_px=1024, cy_principal_px=1024,
         pixel_pitch_mm=0.0055, f_angular_mm=62.0,
         theta_convergence_half_rad=0.0, d_y_common=0.0,
-        s_x=0.0, s_y=0.5, image_size=(2048, 2048),
+        s_x_L=0.0, s_x_R=0.0, s_y_L=0.5, s_y_R=0.5, image_size=(2048, 2048),
     )
     u_test = np.array([1024., 1024.])
     v_test = np.array([0., 2047.])
     _, d0 = m_zero.ray(u_test, v_test, "left")
     _, dp = m_pos.ray(u_test, v_test, "left")
-    assert abs(d0[1, 1] - d0[0, 1]) < 1e-12  # s_y=0: no variation
+    assert abs(d0[1, 1] - d0[0, 1]) < 1e-12  # s_y_L=0, s_y_R=0: no variation
     assert dp[0, 1] != dp[1, 1]  # s_y!=0: some variation
 
 
@@ -107,7 +107,7 @@ def test_parameter_vector_round_trip():
         cx_principal_px=1024, cy_principal_px=1024,
         pixel_pitch_mm=0.0055, f_angular_mm=62.0,
         theta_convergence_half_rad=0.2, d_y_common=0.06,
-        s_x=0.4, s_y=-0.4, image_size=(2048, 2048),
+        s_x_L=0.4, s_x_R=0.4, s_y_L=-0.4, s_y_R=-0.4, image_size=(2048, 2048),
     )
     x = m.parameter_vector()
     m2 = CMOTelecentricStereoModel.from_parameter_vector(
@@ -122,7 +122,7 @@ def test_fit_cmo_telecentric_recovers_oracle():
         cx_principal_px=1024, cy_principal_px=1024,
         pixel_pitch_mm=0.0055, f_angular_mm=62.0,
         theta_convergence_half_rad=0.2, d_y_common=0.06,
-        s_x=0.4, s_y=-0.4, image_size=(2048, 2048),
+        s_x_L=0.4, s_x_R=0.4, s_y_L=-0.4, s_y_R=-0.4, image_size=(2048, 2048),
     )
     left_oracle = oracle.channel("left")
     right_oracle = oracle.channel("right")
