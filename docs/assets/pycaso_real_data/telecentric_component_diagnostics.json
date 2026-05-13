@@ -1,0 +1,17 @@
+{
+  "telecentric_at_seed": {
+    "origin_error_L_mean_mm": 0.46653536858156536,
+    "origin_error_R_mean_mm": 0.4817901850879925,
+    "direction_rms_L_deg": 23.115520296713584,
+    "direction_rms_R_deg": 22.187200954907528,
+    "dy_error_L_mean": 0.02131098591981196,
+    "dx_error_L_mean": 0.39920088429082073,
+    "dz_error_L_mean": 0.004522634709152092
+  },
+  "telecentric_dy_optimised": {
+    "direction_rms_L_deg": 23.023431385093495,
+    "direction_rms_R_deg": 22.086077299889926,
+    "dy_error_L_mean": 0.001697926612675911
+  },
+  "interpretation": "Direction match is good (dy error ~0.005), but s_x=s_y=0 gives large dx/dz errors because perspective CMO-style d_x variation is missing. Adding s_x,s_y helps but the full rayfield RMS remains high because origin errors (|O_z - O_tc| \u2248 0.5mm) and the two-plane residual amplifies small angular errors at Z=50,80mm."
+}

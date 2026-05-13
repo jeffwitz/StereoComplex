@@ -346,6 +346,11 @@ The telecentric model achieves a **10× better match** to the measured
 $d_y$ field than the perspective CMO, with **6× fewer parameters** than
 the Zernike reference.
 
+The telecentric model also provides a **22× better full rayfield fit**
+than the perspective CMO (0.16 mm vs. 3.5 mm two-plane RMS), with **3×
+fewer parameters** (7 vs. 19).  The optimised convergence half-angle
+(11.3°) matches the Zernike centre-pixel reading exactly.
+
 ### Why this workflow generalises
 
 The sequence — measure $(O,d)$ → read physical descriptors → diagnose
@@ -360,6 +365,27 @@ rayfield — is the core scientific workflow that StereoComplex enables.
 3. **The rayfield is the validation target.**  A new physical model is
    tested directly against the measured $(O,d)$, not against the original
    corner detections, decoupling measurement from interpretation.
+
+### Full rayfield fit
+
+The full two-plane ray-space residual (comparing $(O,d)$ at $z=50$ mm
+and $z=80$ mm) confirms the telecentric model's superiority:
+
+| Model | Params | Two-plane ray RMS (mm) | Status |
+|---|---|---|---|
+| Zernike O(0)+d(2) | 57 | 0.0007 | reference |
+| **CMO telecentric** | **7** | **0.16** | **compact, physically plausible** |
+| Perspective CMO | 19 | 3.5 | degenerate parameters |
+
+The telecentric model achieves a **22× improvement** over the perspective
+CMO with **3× fewer parameters**.  The fitted parameters are physically
+plausible:
+
+- $\theta_{\text{half}} = 11.3^\circ$ (matches Zernike centre-pixel reading)
+- $d_y = 0.0585$ (matches Zernike mean)
+- $s_y = -0.50$ (captures the flat Y gradient)
+- $s_x = 0.49$ (captures the X-direction variation)
+- Sub-pupil Z = 2.5 mm (matches Zernike $O_z$)
 
 ## Limitations
 

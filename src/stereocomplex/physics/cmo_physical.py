@@ -587,13 +587,15 @@ class CMOTelecentricStereoModel:
         tilde_v = (vf - float(self.cy_principal_px)) * float(self.pixel_pitch_mm) / f_ang
 
         # Chief-ray direction (symmetric X, shared Y)
-        sign = -1.0 if channel == "left" else 1.0
+        # Left channel: ray from (-b/2, 0, z_pupil) to (0, 0, WD) → d_x > 0
+        # Right channel: ray from (+b/2, 0, z_pupil) to (0, 0, WD) → d_x < 0
+        dir_sign = 1.0 if channel == "left" else -1.0
         sin_th = float(np.sin(float(self.theta_convergence_half_rad)))
         cos_th = float(np.cos(float(self.theta_convergence_half_rad)))
         dy = float(self.d_y_common)
 
         d0 = np.column_stack([
-            np.full_like(uf, sign * sin_th),
+            np.full_like(uf, dir_sign * sin_th),
             np.full_like(uf, dy),
             np.full_like(uf, cos_th),
         ])
@@ -607,10 +609,11 @@ class CMOTelecentricStereoModel:
 
         directions = _normalize(d_raw)
 
-        # Origin: sub-pupil
+        # Origin: sub-pupil (left at -b/2, right at +b/2)
+        pupil_sign = -1.0 if channel == "left" else 1.0
         z_pupil = float(self.working_distance_mm) - float(self.f_obj_mm)
         pupil = np.column_stack([
-            np.full_like(uf, sign * 0.5 * float(self.b_mm)),
+            np.full_like(uf, pupil_sign * 0.5 * float(self.b_mm)),
             np.zeros_like(uf),
             np.full_like(uf, z_pupil),
         ])
