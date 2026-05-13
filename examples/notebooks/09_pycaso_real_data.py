@@ -638,7 +638,7 @@ z_pupil = float((abs(Ol_c[0, 2]) + abs(Or_c[0, 2])) / 2)
 f_obj_est = WD_est - z_pupil
 
 cmo_params = np.array([
-    f_obj_est, WD_est, b_est, 50.0, 1024.0, 1024.0, 0.0, 0.0,
+    f_obj_est, WD_est, b_est, 50.0, 1024.0, 1024.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 ], dtype=np.float64)
 cmo = CMOPhysicalStereoModel.from_parameter_vector(
@@ -917,7 +917,81 @@ print(f"\nSpread (max−min): b={max(b_vals)-min(b_vals):.2f}mm  "
       f"f_obj={max(f_vals)-min(f_vals):.2f}mm  WD={max(wd_vals)-min(wd_vals):.2f}mm")
 
 # %% [markdown]
-# ## 9 — Conclusions
+# ## 9 — Compact physical model: telecentric CMO with pupil shear
+#
+# The Zernike rayfield gives us a measured $(O, d)$.  From it we diagnosed
+# that the perspective CMO model fails because $d_y$ is nearly constant
+# (telecentric), not linearly varying (perspective).  We built
+# `CMOTelecentricStereoModel`: rigid sub-pupils + affine direction field.
+# This achieved 0.16 mm ray-space RMS (22× better than perspective).
+#
+# The Plucker diagnostic revealed the remaining error is in the **line
+# moment** $O \times d$, not the direction.  We now add **pupil shear** —
+# a small affine variation of the origin, transverse to the direction:
+#
+# $$O_c(u,v) = S_c + \rho_{x,c} \tilde{u}\, e_x + \rho_{y,c} \tilde{v}\, e_y$$
+#
+# with $\Delta O_c \leftarrow (I - d_c d_c^T) \Delta O_c$ (transverse gauge).
+
+# %%
+from stereocomplex.physics.cmo_physical import CMOTelecentricStereoModel, _ray_rms
+from stereocomplex.physics.model_selection import rayfield_two_plane_residuals, _grid_pixels
+from scipy.optimize import least_squares
+
+support = _grid_pixels(IMG_SIZE, (12, 9))
+
+# Per-channel slopes + shared pupil shear — 14 params
+f_obj_est = WD_est - float((abs(Ol_c[0,2]) + abs(Or_c[0,2])) / 2)
+theta_fixed = float(np.arctan2(b_est / 2, f_obj_est))
+base14 = np.array([f_obj_est, WD_est, b_est, 0,0,0,0,0,0,0,0,0,0,0], dtype=np.float64)
+x0_14 = np.array([1024., 1024., f_obj_est, theta_fixed, dl_c[0,1], 0.,0.,0.,0.,0.,0.], dtype=np.float64)
+lo14 = np.array([0.,0.,20.,0.,-0.3, -10.,-10.,-10.,-10., -10.,-10.], dtype=np.float64)
+hi14 = np.array([2048.,2048.,200.,0.5,0.3, 10.,10.,10.,10., 10.,10.], dtype=np.float64)
+
+def _build_ps(x, b):
+    p = b.copy()
+    for i in range(len(x)):
+        p[3 + i] = x[i]
+    return CMOTelecentricStereoModel.from_parameter_vector(p, pixel_pitch_mm=0.0055, image_size=IMG_SIZE)
+
+def _res_ps(x):
+    m = _build_ps(x, base14)
+    l, r = m.channel("left"), m.channel("right")
+    return np.concatenate([
+        rayfield_two_plane_residuals(lf, l, support, z_planes=(50., 80.)),
+        rayfield_two_plane_residuals(rf, r, support, z_planes=(50., 80.)),
+    ])
+
+sol_ps = least_squares(_res_ps, x0=x0_14, bounds=(lo14, hi14), loss="linear",
+                        max_nfev=500, xtol=1e-10, ftol=1e-10, gtol=1e-10)
+m_ps = _build_ps(sol_ps.x, base14)
+l_ps = rayfield_two_plane_residuals(lf, m_ps.channel("left"), support, z_planes=(50., 80.))
+r_ps = rayfield_two_plane_residuals(rf, m_ps.channel("right"), support, z_planes=(50., 80.))
+rms_ps = float(np.sqrt(0.5 * (_ray_rms(l_ps)**2 + _ray_rms(r_ps)**2)))
+fp = m_ps.parameter_dict()["free"]
+
+print(f"Telecentric + pupil shear (14 params):")
+print(f"  Ray-space RMS = {rms_ps:.4f} mm  (Zernike ref: {zd.ray_rms_mm:.4f} mm)")
+print(f"  Slopes: L(sx={fp['s_x_L']:.3f}, sy={fp['s_y_L']:.3f})  R(sx={fp['s_x_R']:.3f}, sy={fp['s_y_R']:.3f})")
+print(f"  Pupil shear: rho=({fp['rho_x_L']:.3f}, {fp['rho_y_L']:.3f}) mm")
+print(f"  theta={fp['theta_convergence_half_deg']:.1f}  d_y={fp['d_y_common']:.4f}  f_ang={fp['f_angular_mm']:.1f} mm")
+print(f"  PP=({fp['cx_principal_px']:.0f}, {fp['cy_principal_px']:.0f})")
+
+# Plucker re-check after shear
+u_test = np.linspace(0, 2047, 11); v_test = np.linspace(0, 2047, 11)
+uu, vv = np.meshgrid(u_test, v_test); uf, vf = uu.ravel(), vv.ravel()
+O_z, d_z = lf.ray(uf, vf)
+O_m, d_m = m_ps.ray(uf, vf, "left")
+m_z = np.cross(O_z, d_z); m_m = np.cross(O_m, d_m)
+dir_err = np.degrees(np.arccos(np.clip(np.sum(d_z * d_m, axis=1), -1, 1)))
+mom_err = np.linalg.norm(m_z - m_m, axis=1)
+print(f"\n  Plucker after shear:")
+print(f"    Direction RMS = {np.sqrt(np.mean(dir_err**2)):.2f} deg")
+print(f"    Moment RMS    = {np.sqrt(np.mean(mom_err**2)):.3f} mm")
+print(f"    (before shear: direction ~2.0 deg, moment ~0.5 mm)")
+
+# %% [markdown]
+# ## 10 — Conclusions
 #
 # 1. **StereoComplex calibrates a real CMO microscope where OpenCV fails**
 #    (OpenCV stereo RMS > 300 px vs. StereoComplex 0.47 px baseline,
