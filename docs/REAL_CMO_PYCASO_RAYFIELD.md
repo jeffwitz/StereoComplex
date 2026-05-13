@@ -435,12 +435,20 @@ affects how well the compact telecentric model can match the rayfield:
 | Zernike constrained | 0.41 px | 0.13 mm, 0.3° dir (good match) |
 | Zernike full poses | 0.17 px | 0.69 mm, 5.0° dir (harder target) |
 
-The full-pose Zernike achieves lower corner error (0.17 px) by absorbing
-noise and pose errors into its 57 rayfield coefficients, making the
-resulting rayfield **less physically consistent** and harder for a compact
-model to match.  The constrained-pose Zernike is the **optimal intermediate
-observable**: flexible enough to capture the real optics, constrained
-enough to remain a physically coherent target for model identification.
+The full-pose Zernike achieves lower corner error (0.17 px vs 0.41 px)
+by using more parameters (132 vs 87).  However, this flexibility comes at
+a cost: the inferred rayfield geometry changes substantially — baseline
+(27.8 vs 16.8 mm), convergence angle (25.3° vs 15.0°), $d_y$ range
+(0.19 vs 0.055), and origin asymmetry (5.0 vs 1.0 mm).  This is a
+**pose/rayfield identifiability issue**: without external ground truth,
+neither variant can be proven physically correct.
+
+The constrained-pose Zernike is the more **conservative** intermediate
+for CMO-like interpretation — it is more symmetric, more telecentric,
+and more compatible with the quasi-telecentric compact model.  The
+full-pose Zernike may reveal real asymmetries or may simply overfit.
+Which interpretation is correct depends on independent validation of
+the microscope geometry.
 
 See `docs/assets/pycaso_real_data/pose_model_comparison.json`.
 

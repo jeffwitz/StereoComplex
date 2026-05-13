@@ -109,12 +109,14 @@
     }
   ],
   "interpretation": {
-    "baseline": "Constrained=16.8mm, Full=27.8mm \u2192 Full is 65% larger, less physical",
-    "convergence": "Constrained=15.0\u00b0, Full=25.3\u00b0 \u2192 Full has wider stereo angle",
-    "dy_range": "Constrained=0.0552, Full=0.1905 \u2192 Full has 3.5\u00d7 larger dy variation",
-    "asymmetry": "Constrained=0.965mm, Full=4.986mm \u2192 Full is 5\u00d7 more asymmetric",
-    "theta_field_variation": "Constrained \u03b8 range=0.38\u00b0, Full \u03b8 range=1.24\u00b0 \u2192 Full convergence varies 3\u00d7 more across FOV",
-    "pose_rotation": "Full poses RMS rotation variation=0.72\u00b0 across frames",
-    "verdict": "Full-pose Zernike (0.17 px) achieves lower pixel RMS than constrained (0.41 px) by absorbing small pose variations (RMS 0.72\u00b0) into its 57 rayfield coefficients. This produces less physically consistent indicators: 65% larger baseline, 3.5\u00d7 larger dy range, 5\u00d7 more origin asymmetry, 3\u00d7 more convergence variation across the FOV. The constrained Zernike is the BETTER intermediate observable for physical model identification \u2014 it captures the real optics without over-fitting pose noise."
+    "observation_fit": "Full-pose achieves 0.17 px vs 0.41 px constrained \u2014 it fits corners better, as expected with more parameters (132 vs 87).",
+    "baseline": "Constrained=16.8mm, Full=27.8mm \u2192 different by 11.0mm. Poses and rayfield compensate strongly.",
+    "convergence": "Constrained=15.0\u00b0, Full=25.3\u00b0 \u2192 substantial redistribution between poses and rayfield.",
+    "dy_range": "Constrained=0.0552, Full=0.1905 \u2192 full-pose has 3.5\u00d7 larger direction variation, less telecentric.",
+    "asymmetry": "Constrained X asymmetry=0.965mm, Full=4.986mm \u2192 full-pose is 5\u00d7 less symmetric. Whether the real microscope IS symmetric is unknown.",
+    "theta_field": "Constrained \u03b8 range across FOV=0.38\u00b0, Full=1.24\u00b0 \u2192 full-pose convergence varies 3\u00d7 more spatially.",
+    "pose_rotation": "Full-pose RMS rotation variation across frames=0.72\u00b0. This 0.72\u00b0 of per-frame tilt is absorbed by the rayfield in the constrained model.",
+    "key_finding": "The choice of pose model STRONGLY changes the inferred rayfield geometry. This is a pose/rayfield identifiability issue \u2014 without external ground truth, we cannot claim either variant is physically correct.",
+    "recommendation": "The constrained Zernike is the more CONSERVATIVE intermediate for CMO-like interpretation (more symmetric, more telecentric). The full-pose Zernike fits the observations better but yields a less regular rayfield. Neither is proven 'correct' \u2014 they represent different points on the bias-variance tradeoff of the inverse problem."
   }
 }
