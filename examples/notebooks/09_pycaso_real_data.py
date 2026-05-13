@@ -990,6 +990,28 @@ print(f"    Direction RMS = {np.sqrt(np.mean(dir_err**2)):.2f} deg")
 print(f"    Moment RMS    = {np.sqrt(np.mean(mom_err**2)):.3f} mm")
 print(f"    (before shear: direction ~2.0 deg, moment ~0.5 mm)")
 
+# Pixel-equivalent reprojection errors
+class _W:
+    def __init__(s, m, c): s.m = m; s.c = c
+    def ray(s, u, v): return s.m.channel(s.c).ray(u, v)
+epx_ps = []
+for pi in range(len(paired_z)):
+    Rm, t = opt_R[pi], opt_t[pi]
+    Xw = (Rm @ obj_pts.T).T + t[None, :]
+    n_plane = Rm[:, 2]
+    for k in range(obj_pts.shape[0]):
+        for uv, f in [(left_pixels[pi][k], _W(m_ps, "left")), (right_pixels[pi][k], _W(m_ps, "right"))]:
+            O, d = f.ray(np.array([uv[0]]), np.array([uv[1]]))
+            dn = float(np.dot(d[0], n_plane))
+            if abs(dn) > 1e-10:
+                tL = float(np.dot(t - O[0], n_plane)) / dn
+                e = float(np.linalg.norm((O[0] + tL * d[0]) - Xw[k]))
+                epx_ps.append(e / max(abs(tL), 1.0) * FX)
+epx_ps = np.array(epx_ps)
+print(f"\n  Pixel-equivalent reprojection:")
+print(f"    RMS = {np.sqrt(np.mean(epx_ps**2)):.2f} px  P50 = {np.percentile(epx_ps, 50):.2f} px  P95 = {np.percentile(epx_ps, 95):.2f} px")
+print(f"    (Zernike: 0.47 px, telecentric no-shear: ~28 px, perspective: ~86 px)")
+
 # %% [markdown]
 # ## 10 — Conclusions
 #
