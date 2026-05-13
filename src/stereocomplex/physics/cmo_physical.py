@@ -36,6 +36,20 @@ from stereocomplex.physics.parallel_plate_fit import rayfield_two_plane_residual
 Array = np.ndarray
 
 
+def transverse_gauge_origin(O: Array, d: Array) -> Array:
+    """Project origin to be transverse to direction (line-representation gauge).
+
+    The physical sub-pupil does NOT satisfy O·d=0.  This function returns
+    O_perp = O - (O·d)d, which represents the SAME 3D line as (O,d) but
+    with an origin that satisfies the transverse gauge convention used by
+    the Zernike rayfield.  Use ONLY for comparison with Zernike fields,
+    NOT inside the physical model's ray() method.
+    """
+    O_arr = np.asarray(O, dtype=np.float64)
+    d_arr = np.asarray(d, dtype=np.float64)
+    return O_arr - np.sum(O_arr * d_arr, axis=-1, keepdims=True) * d_arr
+
+
 def _normalize(v: Array, eps: float = 1e-15) -> Array:
     arr = np.asarray(v, dtype=np.float64)
     n = np.linalg.norm(arr, axis=-1, keepdims=True)
@@ -514,6 +528,10 @@ class CMOTelecentricStereoModel:
     s_y_L: float = 0.0
     s_x_R: float = 0.0
     s_y_R: float = 0.0
+    s_xy_L: float = 0.0  # cross-term: d_x += s_xy * ṽ
+    s_yx_L: float = 0.0  # cross-term: d_y += s_yx * ũ
+    s_xy_R: float = 0.0
+    s_yx_R: float = 0.0
     shared_slopes: bool = True
 
     # Pupil shear: small affine origin variation (transverse to direction)
@@ -677,19 +695,21 @@ class CMOTelecentricStereoModel:
             np.full_like(uf, cos_th),
         ])
 
-        # Affine + quadratic correction (per-channel)
+        # Affine + cross + quadratic correction (per-channel)
         sx_ch = float(self.s_x_L) if channel == "left" else float(self.s_x_R)
         sy_ch = float(self.s_y_L) if channel == "left" else float(self.s_y_R)
+        sxy_ch = float(self.s_xy_L) if channel == "left" else float(self.s_xy_R)
+        syx_ch = float(self.s_yx_L) if channel == "left" else float(self.s_yx_R)
         qx_ch = float(self.q_xx_L) if channel == "left" else float(self.q_xx_R)
         qy_ch = float(self.q_yy_L) if channel == "left" else float(self.q_yy_R)
 
-        # Centered quadratics: remove mean to avoid shifting the piston
+        # Centered quadratics
         umean2 = float(np.mean(tilde_u ** 2))
         vmean2 = float(np.mean(tilde_v ** 2))
 
         d_raw = np.column_stack([
-            d0[:, 0] + sx_ch * tilde_u + qx_ch * (tilde_u ** 2 - umean2),
-            d0[:, 1] + sy_ch * tilde_v + qy_ch * (tilde_v ** 2 - vmean2),
+            d0[:, 0] + sx_ch * tilde_u + sxy_ch * tilde_v + qx_ch * (tilde_u ** 2 - umean2),
+            d0[:, 1] + sy_ch * tilde_v + syx_ch * tilde_u + qy_ch * (tilde_v ** 2 - vmean2),
             d0[:, 2],
         ])
 
@@ -706,11 +726,9 @@ class CMOTelecentricStereoModel:
             np.zeros_like(uf),
             np.full_like(uf, z_pupil),
         ])
-        # Pupil shear: affine origin variation, transverse to direction
+        # Pupil shear: affine origin variation
         delta_O = np.column_stack([rho_x * tilde_u, rho_y * tilde_v, np.zeros_like(uf)])
-        pupil = O_rigid + delta_O
-        # Project full origin to be transverse to direction (gauge)
-        pupil = pupil - np.sum(pupil * directions, axis=1, keepdims=True) * directions
+        pupil = O_rigid + delta_O  # physical origin, NOT gauge-projected
 
         return pupil.reshape(shape + (3,)), directions.reshape(shape + (3,))
 

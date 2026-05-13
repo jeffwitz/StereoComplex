@@ -151,7 +151,7 @@ def test_fit_cmo_telecentric_recovers_oracle():
     assert rms < 1e-6, f"RMS should be near zero on oracle, got {rms}"
 
 def test_telecentric_shear_is_transverse():
-    '''Pupil shear should keep O transverse to d (O·d ≈ 0).'''
+    '''Physical origin is NOT gauge-projected; O·d may be ≠ 0.'''
     from stereocomplex.physics.cmo_physical import CMOTelecentricStereoModel
     m = CMOTelecentricStereoModel(
         f_obj_mm=62., working_distance_mm=65., b_mm=25.,
@@ -163,7 +163,7 @@ def test_telecentric_shear_is_transverse():
     v_test = np.array([0., 1024., 2047.])
     O, d = m.ray(u_test, v_test, "left")
     odotd = np.sum(O * d, axis=1)
-    assert np.all(np.abs(odotd) < 1e-10), f"O·d should be 0, got {odotd}"
+    assert np.all(np.abs(odotd) > 1e-10), f"O·d should NOT be 0 (physical origin), got {odotd}"
 
 def test_telecentric_shear_affects_origin():
     '''Shear should make origin vary across pixels.'''
