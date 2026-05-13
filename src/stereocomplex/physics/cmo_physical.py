@@ -25,7 +25,7 @@ CMO-like shared-rig parameterization.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from scipy.optimize import least_squares  # type: ignore

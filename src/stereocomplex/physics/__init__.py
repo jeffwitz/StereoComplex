@@ -41,7 +41,10 @@ from stereocomplex.physics.cmo_physical import (
     CMOPhysicalChannelModel,
     CMOPhysicalStereoFitResult,
     CMOPhysicalStereoModel,
+    CMOTelecentricChannelModel,
+    CMOTelecentricStereoModel,
     fit_cmo_physical_stereo_model_to_rayfields,
+    fit_cmo_telecentric_model_to_rayfields,
 )
 from stereocomplex.physics.model_selection import (
     OpticalModelSelectionReport,
@@ -70,6 +73,8 @@ __all__ = [
     "CMOPhysicalChannelModel",
     "CMOPhysicalStereoFitResult",
     "CMOPhysicalStereoModel",
+    "CMOTelecentricChannelModel",
+    "CMOTelecentricStereoModel",
     "CMOPlanePose",
     "CMOPlaneTargetSpec",
     "NonCentralPolynomialChannelModel",
@@ -94,6 +99,7 @@ __all__ = [
     "default_physical_model_specs",
     "fit_cmo_stereo_model_and_poses_from_zernike_rayfields",
     "fit_cmo_physical_stereo_model_to_rayfields",
+    "fit_cmo_telecentric_model_to_rayfields",
     "fit_parallel_plate_to_zernike_rayfield",
     "fit_physical_model_to_rayfield",
     "generate_cmo_plane_dataset",

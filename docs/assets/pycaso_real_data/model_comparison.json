@@ -1,0 +1,40 @@
+{
+  "results": [
+    {
+      "model": "Zernike O(0)+d(2)",
+      "params": 57,
+      "ray_rms_mm": 0.0006589174390985027,
+      "comment": "reference"
+    },
+    {
+      "model": "CMO perspective",
+      "params": 19,
+      "ray_rms_mm": 3.477065856731816,
+      "comment": "degenerate params"
+    },
+    {
+      "model": "CMO telecentric",
+      "params": 7,
+      "ray_rms_mm": 18.15912180564134,
+      "comment": "origin fixed from Zernike"
+    },
+    {
+      "model": "CMO telecentric (seed, no opt)",
+      "params": 7,
+      "ray_rms_mm": 36.50396518569218,
+      "comment": "seed from Zernike reading"
+    }
+  ],
+  "telecentric_params": {
+    "f_obj_mm": 62.208914898071626,
+    "working_distance_mm": 64.70220034514719,
+    "b_mm": 24.884604246022516,
+    "cx_principal_px": 939.0062048569267,
+    "cy_principal_px": 823.3332371826209,
+    "f_angular_mm": 61.21797653613006,
+    "theta_convergence_half_deg": 1.9605055014342867e-18,
+    "d_y_common": 0.06736633337271525,
+    "s_x": 0.454823104577737,
+    "s_y": -0.456675375624338
+  }
+}
