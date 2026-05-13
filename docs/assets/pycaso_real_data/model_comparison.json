@@ -1,41 +1,64 @@
 {
-  "results": [
+  "zernike_ref_rms_mm": 0.0006589174390985027,
+  "models": [
     {
-      "model": "Zernike O(0)+d(2)",
-      "params": 57,
-      "ray_rms_mm": 0.0006589174390985027
-    },
-    {
-      "model": "CMO telecentric (sign fixed)",
-      "params": 7,
-      "ray_rms_mm": 0.15636799619342878
-    },
-    {
-      "model": "CMO perspective",
-      "params": 19,
-      "ray_rms_mm": 3.4777072140533547
-    },
-    {
-      "model": "CMO telecentric + pupil shear",
+      "name": "CMO telecentric + pupil shear",
       "params": 14,
-      "ray_rms_mm": 0.1258,
-      "pix_rms_px": 13.57,
-      "pix_p95_px": 23.12,
-      "direction_rms_deg": 0.29,
-      "moment_rms_mm": 0.335,
-      "comment": "per-channel slopes + shared shear, 7x direction improvement, 2x pixel improvement over no-shear"
+      "two_plane_60_70": 0.0642743931935673,
+      "two_plane_50_80": 0.1318299672984942,
+      "two_plane_62_67": 0.05387268946129688,
+      "two_plane_30_100": 0.2891692472679725,
+      "dir_rms_L_deg": 0.3036548455390846,
+      "dir_rms_R_deg": 0.32838378561824483,
+      "mom_rms_L_mm": 0.35026110013866674,
+      "mom_rms_R_mm": 0.3593551165855276,
+      "converged": true
+    },
+    {
+      "name": "CMO perspective",
+      "params": 19,
+      "two_plane_60_70": 3.5805597364095947,
+      "two_plane_50_80": 3.707513367572105,
+      "dir_rms_L_deg": 2.5186834391862045,
+      "dir_rms_R_deg": 2.784358372827907,
+      "mom_rms_L_mm": 1.4755280894579108,
+      "mom_rms_R_mm": 2.0462962015575727
+    },
+    {
+      "name": "Zernike O(0)+d(2)",
+      "params": 57,
+      "two_plane_60_70": 0.0006589174390985027,
+      "dir_rms_L_deg": 0,
+      "dir_rms_R_deg": 0,
+      "mom_rms_L_mm": 0,
+      "mom_rms_R_mm": 0
     }
   ],
-  "telecentric_params": {
-    "f_obj_mm": 62.208914898071626,
-    "working_distance_mm": 64.70220034514719,
-    "b_mm": 24.9,
-    "cx_principal_px": 939.0062019636053,
-    "cy_principal_px": 1011.9755996264231,
-    "f_angular_mm": 67.6826059399024,
-    "theta_convergence_half_deg": 11.302374510747642,
-    "d_y_common": 0.058470154413566504,
-    "s_x": 0.49310046430480015,
-    "s_y": -0.4951086143075706
-  }
+  "z_plane_sweep": [
+    {
+      "z1": 62,
+      "z2": 67,
+      "delta_z": 5,
+      "rms_mm": 0.05387268946129688
+    },
+    {
+      "z1": 60,
+      "z2": 70,
+      "delta_z": 10,
+      "rms_mm": 0.0642743931935673
+    },
+    {
+      "z1": 50,
+      "z2": 80,
+      "delta_z": 30,
+      "rms_mm": 0.1318299672984942
+    },
+    {
+      "z1": 30,
+      "z2": 100,
+      "delta_z": 70,
+      "rms_mm": 0.2891692472679725
+    }
+  ],
+  "interpretation": "Angular error ~0.3\u00b0 is amplified by \u0394Z: pos_err \u2248 \u0394Z*tan(0.3\u00b0). Board-plane (\u0394Z=5mm) \u2192 ~0.03mm. Two-plane (\u0394Z=30mm) \u2192 0.16mm. Two-plane (\u0394Z=70mm) \u2192 0.37mm."
 }

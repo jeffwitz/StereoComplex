@@ -1,49 +1,31 @@
 {
   "models": [
     {
-      "name": "shared slopes + shared shear",
-      "params": 12,
-      "two_plane_rms": 4.885900069900097,
-      "dir_rms_L": 0.2856186518844697,
-      "dir_rms_R": 0.2910760435394166,
-      "mom_rms_L": 0.32755665678709694,
-      "mom_rms_R": 24.71408730444131
-    },
-    {
-      "name": "per-channel slopes + shared shear",
+      "name": "CMO telecentric + pupil shear",
       "params": 14,
-      "two_plane_rms": 4.849682343053605,
-      "dir_rms_L": 0.2803990913135946,
-      "dir_rms_R": 0.2910999757563672,
-      "mom_rms_L": 0.3273108449720915,
-      "mom_rms_R": 24.713739617183723
+      "two_plane_rms_50_80": 0.1318299672984942,
+      "dir_rms_L_deg": 0.3036548455390846,
+      "dir_rms_R_deg": 0.32838378561824483,
+      "mom_rms_L_mm": 0.35026110013866674,
+      "mom_rms_R_mm": 0.3593551165855276
     },
     {
-      "name": "per-channel slopes + per-channel shear",
-      "params": 16,
-      "two_plane_rms": 4.843434868899644,
-      "dir_rms_L": 0.28020459811559517,
-      "dir_rms_R": 0.2908716040655311,
-      "mom_rms_L": 0.3270303859870422,
-      "mom_rms_R": 24.714246762437657
-    },
-    {
-      "name": "perspective CMO",
+      "name": "CMO perspective",
       "params": 19,
-      "two_plane_rms": 3.478454528316797,
-      "dir_rms_L": 1.9657740619419612,
-      "dir_rms_R": 2.0098951999854426,
-      "mom_rms_L": 0.45565708977129016,
-      "mom_rms_R": 24.324000240528232
+      "two_plane_rms_50_80": 3.707513367572105,
+      "dir_rms_L_deg": 2.5186834391862045,
+      "dir_rms_R_deg": 2.784358372827907,
+      "mom_rms_L_mm": 1.4755280894579108,
+      "mom_rms_R_mm": 2.0462962015575727
     },
     {
       "name": "Zernike O(0)+d(2)",
       "params": 57,
-      "two_plane_rms": 0.0006589174390985027,
-      "dir_rms_L": 0.0,
-      "dir_rms_R": 0.0,
-      "mom_rms_L": 0.0,
-      "mom_rms_R": 0.0
+      "two_plane_rms_50_80": 0,
+      "dir_rms_L_deg": 0,
+      "dir_rms_R_deg": 0,
+      "mom_rms_L_mm": 0,
+      "mom_rms_R_mm": 0
     }
   ]
 }
