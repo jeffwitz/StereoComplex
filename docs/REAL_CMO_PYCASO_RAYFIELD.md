@@ -377,15 +377,19 @@ rayfield — is the core scientific workflow that StereoComplex enables.
 The full two-plane ray-space residual (comparing $(O,d)$ at $z=50$ mm
 and $z=80$ mm) confirms the telecentric model's superiority:
 
-| Model | Params | Two-plane ray RMS (mm) | Status |
-|---|---|---|---|
-| Zernike O(0)+d(2) | 57 | 0.0007 | reference |
-| **CMO telecentric** | **7** | **0.16** | **compact, physically plausible** |
-| Perspective CMO | 19 | 3.5 | degenerate parameters |
+| Model | Params | Two-plane RMS (mm) | Dir RMS | Mom RMS | Pix RMS |
+|---|---|---|---|---|---|
+| Zernike O(0)+d(2) | 57 | 0.0007 | 0° | 0 mm | 0.47 px |
+| Telecentric + pupil shear | 14 | 0.126 | 0.29° | 0.34 mm | 13.6 px |
+| Telecentric (no shear) | 7 | 0.156 | 0.29° | 0.34 mm | 27.7 px |
+| Perspective CMO | 19 | 3.48 | ~2.0° | ~0.5 mm | 86.0 px |
 
 The telecentric model achieves a **22× improvement** over the perspective
-CMO with **3× fewer parameters**.  The fitted parameters are physically
-plausible:
+CMO in ray-space, with **3× fewer parameters** (7 vs 19).  Pupil shear
+(14 params) adds a modest ~20% further improvement (0.156→0.126 mm),
+confirming that the dominant residual is **not** a simple affine origin
+shift but likely higher-order direction curvature.  The fitted parameters
+are physically plausible:
 
 - $\theta_{\text{half}} = 11.3^\circ$ (matches Zernike centre-pixel reading)
 - $d_y = 0.0585$ (matches Zernike mean)
