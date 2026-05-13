@@ -523,6 +523,13 @@ class CMOTelecentricStereoModel:
     rho_y_R: float = 0.0
     shared_shear: bool = True
 
+    # Quadratic direction correction (centered, before normalization)
+    q_xx_L: float = 0.0
+    q_yy_L: float = 0.0
+    q_xx_R: float = 0.0
+    q_yy_R: float = 0.0
+    shared_quadratic: bool = True
+
     image_size: tuple[int, int] | None = None
     name: str = "cmo_telecentric"
     is_stereo_shared: bool = True
@@ -532,6 +539,8 @@ class CMOTelecentricStereoModel:
         n = 12 if self.shared_slopes else 14
         if not self.shared_shear:
             n += 2  # per-channel rho
+        if not self.shared_quadratic:
+            n += 2  # per-channel q
         return n
 
     @classmethod
@@ -542,19 +551,31 @@ class CMOTelecentricStereoModel:
         if arr.size not in {12, 14, 16}:
             raise ValueError(f"CMOTelecentricStereoModel expects 12/14/16 parameters, got {arr.size}")
         sh_slope = arr.size == 12              # shared slopes
-        sh_shear = arr.size in {12, 14}        # shared shear
+        sh_shear = arr.size in {12, 14}        # shared shear (12=shared both, 14=per-ch slopes+sh shear)
+        sh_quad = True                          # quadratic always shared for now
         # Slope extraction
         sxL=float(arr[8]); syL=float(arr[9])
-        sxR=sxL if sh_slope else float(arr[10])
-        syR=syL if sh_slope else float(arr[11])
-        # Shear extraction (starts after slope block)
+        if sh_slope:
+            sxR=sxL; syR=syL
+            rho_idx=10
+        else:
+            sxR=float(arr[10]); syR=float(arr[11])
+            rho_idx=12
+        # Shear extraction
         if sh_shear:
-            rho_idx = 10 if sh_slope else 12
             rxL=float(arr[rho_idx]); ryL=float(arr[rho_idx+1])
             rxR=rxL; ryR=ryL
-        else:  # 16 = per-channel both
-            rxL=float(arr[12]); ryL=float(arr[13])
-            rxR=float(arr[14]); ryR=float(arr[15])
+            q_idx = rho_idx + 2
+        else:
+            rxL=float(arr[rho_idx]); ryL=float(arr[rho_idx+1])
+            rxR=float(arr[rho_idx+2]); ryR=float(arr[rho_idx+3])
+            q_idx = rho_idx + 4
+        # Quadratic extraction (only if present in vector)
+        if arr.size > q_idx + 1:
+            qxL=float(arr[q_idx]); qyL=float(arr[q_idx+1])
+            qxR=qxL; qyR=qyL  # shared quadratic
+        else:
+            qxL=0.0; qyL=0.0; qxR=0.0; qyR=0.0
         return cls(
             f_obj_mm=float(arr[0]),
             working_distance_mm=float(arr[1]),
@@ -571,6 +592,8 @@ class CMOTelecentricStereoModel:
             rho_x_L=rxL, rho_y_L=ryL,
             rho_x_R=rxR, rho_y_R=ryR,
             shared_shear=sh_shear,
+            q_xx_L=qxL, q_yy_L=qyL, q_xx_R=qxR, q_yy_R=qyR,
+            shared_quadratic=sh_quad,
             image_size=kwargs.get("image_size"),
         )
 
@@ -654,12 +677,19 @@ class CMOTelecentricStereoModel:
             np.full_like(uf, cos_th),
         ])
 
-        # Affine correction (per-channel slopes)
+        # Affine + quadratic correction (per-channel)
         sx_ch = float(self.s_x_L) if channel == "left" else float(self.s_x_R)
         sy_ch = float(self.s_y_L) if channel == "left" else float(self.s_y_R)
+        qx_ch = float(self.q_xx_L) if channel == "left" else float(self.q_xx_R)
+        qy_ch = float(self.q_yy_L) if channel == "left" else float(self.q_yy_R)
+
+        # Centered quadratics: remove mean to avoid shifting the piston
+        umean2 = float(np.mean(tilde_u ** 2))
+        vmean2 = float(np.mean(tilde_v ** 2))
+
         d_raw = np.column_stack([
-            d0[:, 0] + sx_ch * tilde_u,
-            d0[:, 1] + sy_ch * tilde_v,
+            d0[:, 0] + sx_ch * tilde_u + qx_ch * (tilde_u ** 2 - umean2),
+            d0[:, 1] + sy_ch * tilde_v + qy_ch * (tilde_v ** 2 - vmean2),
             d0[:, 2],
         ])
 
