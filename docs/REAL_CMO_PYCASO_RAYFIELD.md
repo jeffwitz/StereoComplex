@@ -40,7 +40,7 @@ corners → TPS smoothing on the full set), the gauge ambiguity vanishes:
 | Convergence stability | 15° ↔ 25° | **22.3° (stable)** |
 
 **Why this matters.** The Zernike rayfield closes a feedback loop that
-no other calibration method provides:
+standard reprojection-error diagnostics do not expose directly:
 
 ```text
 Ray2D corner preprocessing
@@ -51,7 +51,7 @@ Gauge drift? ──yes──→ improve 2-D preprocessing ──→ repeat
        │
        no
        ↓
-Rayfield is well-conditioned → reliable physical interpretation
+Stable rayfield → physically interpretable descriptors
 ```
 
 Without Ray3D, you cannot know whether your corners are good enough.
@@ -61,7 +61,8 @@ RMS.  Only the rayfield reveals the problem.
 
 With Ray3D, the corner quality becomes **measurable and improvable**.
 The double TPS pass is the concrete engineering fix; the Zernike
-rayfield is the instrument that proved it was necessary and sufficient.
+rayfield is the instrument that proved it was necessary, and
+sufficient to remove the observed gauge drift in this case study.
 
 **This feedback loop (Ray2D → Ray3D → diagnose → fix Ray2D → verify
 with Ray3D) is a general strategy for any stereo calibration pipeline,
@@ -298,12 +299,12 @@ across the field than the minimal perspective CMO model used here.
   reduce the mismatch.  The diagnostic shows where the minimal model fails;
   it does not reject the CMO family.
 
-## How the rayfield guided a better physical model
+## Example application: designing a telecentric CMO model
 
-The Zernike rayfield is not just a calibration tool — it is a **diagnostic
-instrument** that reveals the structure of the real optics.  Here is how we
-used the measured $(O, d)$ to design a new physical model that matches the
-data 10× better than the perspective CMO, with 6× fewer parameters.
+The stable rayfield enables physical interpretation.  Here we show how
+the measured $(O, d)$ guided the design of a compact telecentric CMO
+model — a concrete example of the "read descriptors → diagnose mismatch
+→ design model → validate" workflow that the rayfield enables.
 
 ### Step 1 — Read the sub-pupil positions from $O(u,v)$
 
@@ -405,21 +406,6 @@ The telecentric model achieves:
 > measured Zernike rayfield when subpixel reconstruction is required
 > (Zernike: 0.47 px, telecentric: 27 px pixel-equivalent).  It is a
 > **compact physical explanation** of the dominant CMO geometry.
-
-### Why this workflow generalises
-
-The sequence — measure $(O,d)$ → read physical descriptors → diagnose
-structural mismatch → design a better model → validate against the
-rayfield — is the core scientific workflow that StereoComplex enables.
-
-1. **The rayfield is the observable.**  From it, we read sub-pupil
-   positions and baseline without any model fit.
-2. **The rayfield is the diagnostic.**  Comparing $d_y(u,v)$ across
-   models reveals structural differences (perspective vs. telecentric)
-   that no amount of parameter tuning can fix.
-3. **The rayfield is the validation target.**  A new physical model is
-   tested directly against the measured $(O,d)$, not against the original
-   corner detections, decoupling measurement from interpretation.
 
 ### Full rayfield fit
 
@@ -560,12 +546,12 @@ the 2‑D residual alone, but from the disappearance of gauge drift in the
 > alone, but from the disappearance of pose/rayfield gauge drift in the
 > 3‑D Zernike fit.
 
-A sweep over gauge-regularized full-pose fits (anchoring $Z_0$ and $Z_1$
-direction coefficients to the constrained solution with angular tolerance
-$\sigma$) confirms that **regularization is unnecessary** after proper
-preprocessing: the Pareto curve is nearly vertical, and even the
-unregularized full-pose fit has negligible drift.  See notebook
-section 10.3 and `pareto_gauge_regularization.png`.
+A gauge-regularized sweep (notebook section 10.3) was run as a **control
+experiment**: full-pose fits with $Z_0$ and $Z_1$ anchored to the
+constrained solution at varying strengths.  The result confirms that
+after double TPS, even the unregularized fit shows negligible drift —
+the Pareto curve is nearly vertical.  Regularization is not needed
+when preprocessing is sufficient.
 
 Artefacts: `zernike_conditioning_diagnostic.json`,
 `zernike_gauge_regularization_sweep.json`,
