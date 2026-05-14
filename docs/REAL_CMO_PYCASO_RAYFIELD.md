@@ -403,11 +403,11 @@ reprojection guard: models exceeding 1.5 px incur a hard penalty
 ($+10^6 + N \log(e_{\text{px}}^2 / 1.5^2)$), enforcing a usability
 constraint that the ray-space BIC alone does not capture.
 
-| Model | Params | RMS (mm) | BIC ray | Pixel RMS | BIC usable | Status |
+| Model | Params | RMS (mm) | $BIC_{ray}$ | Pixel RMS | $BIC_{usable}$ | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| cmo_telecentric_shear | 14 | 0.111 | -36129 | 14.6 px | +978890 | REJECTED |
-| cmo_telecentric | 12 | 0.146 | -33201 | 27.7 px | +986044 | REJECTED |
-| **CMO + SE(3) 26p** | **26** | **0.002** | **-32433** | **1.06 px** | **-32433** | **BEST USABLE** |
+| cmo_telecentric_shear | 14 | 0.111 | −36 129 | 14.6 px | +978 890 | REJECTED |
+| cmo_telecentric | 12 | 0.146 | −33 201 | 27.7 px | +986 044 | REJECTED |
+| **CMO + SE(3) 26p** | **26** | **0.002** | **−32 433** | **1.06 px** | **−32 433** | **BEST USABLE** |
 | Zernike O(0)+d(2) | 57 | -- | reference | 0.47 px | reference | best flexible |
 
 The ray-space BIC confirms that the CMO telecentric family is correct
