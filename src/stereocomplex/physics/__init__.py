@@ -58,6 +58,7 @@ from stereocomplex.physics.model_selection import (
     fit_physical_model_to_rayfield,
     reprojection_guard_penalty,
     select_physical_model_from_rayfield,
+    usable_bic,
 )
 from stereocomplex.physics.parallel_plate_fit import (
     ParallelPlateFromRayfieldFitResult,
@@ -131,4 +132,5 @@ __all__ = [
     "save_gray",
     "select_physical_model_from_rayfield",
     "undistort_brown_normalized",
+    "usable_bic",
 ]
