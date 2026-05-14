@@ -29,7 +29,7 @@ StereoComplex pipeline produces:
 | Quantity | Value | What it tells us |
 |---|---|---|
 | **Compact physical CMO model** (26 params, with SE(3) arm) | **1.06 px** (P50=0.87, P95=1.84) | Interpretable, BIC-best among physical candidates |
-| Flexible Zernike rayfield (57 params, non-parametric) | 0.47 px | Approximate noise floor of corner detection |
+| Flexible Zernike rayfield (57 params, non-parametric) | 0.47 px (P50=0.34, P95=0.86) | Approximate noise floor of corner detection |
 | OpenCV standard stereo calibration | **> 300 px** | Standard pinhole stereo fails on this architecture |
 | Naive perspective CMO model (19 params) | ~86 px | Wrong family — direction field is telecentric, not perspective |
 | Stereo baseline $b$ | **24.9 mm** | Distance between the two effective sub-pupils |
@@ -333,7 +333,8 @@ Fitting jointly against the Zernike rayfield:
 | Direction RMS (°) | 0.27 | **0.003** | 0 |
 | Moment RMS (mm) | 0.32 | **0.001** | 0 |
 | **Pixel RMS (px)** | 14.6 | **1.06** | 0.47 |
-| **Pixel P50 (px)** | 13.2 | **0.87** | — |
+| **Pixel P50 (px)** | 13.2 | **0.87** | 0.34 |
+| **Pixel P95 (px)** | 22.4 | **1.84** | 0.86 |
 
 
 The SE(3) arm alignment reduces pixel RMS by **14×** (14.6 → 1.06 px).
@@ -439,8 +440,8 @@ spatial parameterisation (i.e., Zernike flexibility).
 | Perspective CMO | 19 | ~86 px | — | Baseline (inadequate) |
 | Telecentric L0 | 14 | ~14.6 px | 13.2 px | Correct family, missing DOF |
 | **CMO + SE(3)** | **26** | **1.06 px** | **0.87 px** | **Compact physical model** |
-| CMO + SE(3) + corner BA | 26 | ~0.98 px | — | Refined (negligible gain) |
-| Zernike O(0)+d(2) | 57 | 0.47 px | — | Flexible subpixel reference |
+| CMO + SE(3) + corner BA | 26 | ~0.98 px | ~0.80 px | Refined (negligible gain) |
+| Zernike O(0)+d(2) | 57 | 0.47 px | 0.34 px | Flexible subpixel reference |
 
 ### Step 8 — Why the residual analysis was decisive
 
