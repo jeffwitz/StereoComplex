@@ -89,12 +89,12 @@ microscope itself.
 | Pycaso dataset can be processed as legacy ChArUco | Detection with `DICT_6X6_250` + `setLegacyPattern(True)` | Supported |
 | Hessian completion fills all 165 corners | $\|\det H\|$ + Otsu + barycentre | Supported |
 | Double TPS eliminates the pose/rayfield gauge | Z₀ drift drops from 8.5° to 0.023° | **Key result** |
-| Zernike rayfield reaches subpixel calibration | 0.47 px local pixel-equivalent RMS | Supported |
+| Zernike rayfield reaches subpixel calibration | 0.47 px local pixel-equivalent RMS | Supported |
 | Physical descriptors are read directly from $(O, d)$ | $b, WD, f_{\text{obj}}, \theta$ without model fit | Diagnostic |
 | $d_y(u,v)$ reveals telecentricity | 3× range difference vs perspective | Diagnostic |
-| Residual modal analysis identifies missing DOF | $\Delta d$ and $\Delta m$ are 97–98 % $Z_0^0$ (global, not spatial) | **Diagnostic method** |
-| SE(3) arm alignment resolves the global residual | 14.6 → 1.06 px (14× improvement) | **Key result** |
-| BIC model selection: ray-space identifies family, operational BIC selects usable model | Ray-space BIC confirms telecentric family; operational BIC (with 1.5 px guard) selects 26p as best usable | **Key result** |
+| Residual modal analysis identifies missing DOF | $\Delta d$ and $\Delta m$ are 97–98 % $Z_0^0$ (global, not spatial) | **Diagnostic method** |
+| SE(3) arm alignment resolves the global residual | 14.6 → 1.06 px (14× improvement) | **Key result** |
+| BIC model selection: ray-space identifies family, operational BIC selects usable model | Ray-space BIC confirms telecentric family; operational BIC (with 1.5 px guard) selects 26p as best usable | **Key result** |
 | The rayfield is a general diagnostic instrument | Observe → diagnose → fix → verify loop | **General strategy** |
 
 ## What this case study does **not** evaluate
@@ -109,15 +109,15 @@ microscope itself.
 
 | Property | Value |
 |---|---|
-| Sensor | 2048 × 2048 px |
-| Board | Legacy ChArUco, 16 × 12 squares, 0.3 mm |
+| Sensor | 2048 × 2048 px |
+| Board | Legacy ChArUco, 16 × 12 squares, 0.3 mm |
 | Dictionary | DICT_6X6_250, `setLegacyPattern(True)` |
 | Frames | 10 stereo pairs |
-| Z range | 2.65 – 3.35 mm (Δ = 0.70 mm) |
+| Z range | 2.65 – 3.35 mm (Δ = 0.70 mm) |
 
-The 10 frames span a narrow depth range (0.70 mm) typical of
+The 10 frames span a narrow depth range (0.70 mm) typical of
 high-magnification microscopy.  With 165 corners per frame, we have
-3300 ray observations (165 × 10 × 2 channels) — well-conditioned for
+3300 ray observations (165 × 10 × 2 channels) — well-conditioned for
 the 57-parameter Zernike fit.  Ten frames is sufficient for this
 dataset; the calibration remains stable with as few as 6 frames.
 
@@ -157,11 +157,11 @@ The second TPS pass is critical for rayfield stability:
 
 1. TPS on ArUco marker corners predicts all 165 ChArUco grid corners.
 2. A second TPS pass uses the completed 165 corners themselves as control
-   points with tighter smoothing (λ = 3, Huber c = 1.5).
+   points with tighter smoothing (λ = 3, Huber c = 1.5).
 
 Before double TPS, the constrained and full-pose Zernike fits produce
-dramatically different rayfields (Z₀ drift = 8.5°, baseline 17 ↔ 28 mm).
-After double TPS, the gauge ambiguity vanishes (Z₀ drift = 0.023°).
+dramatically different rayfields (Z₀ drift = 8.5°, baseline 17 ↔ 28 mm).
+After double TPS, the gauge ambiguity vanishes (Z₀ drift = 0.023°).
 The Zernike rayfield becomes a **stable experimental oracle**.
 
 The double TPS is a denoising regularizer whose validity is confirmed
@@ -186,10 +186,10 @@ residual from a projective camera model.
 ### Step 1 — The Zernike rayfield as observable
 
 The Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$ maps each
-pixel to a 3‑D line.  We fit O(0) + d(2): rigid sub-pupil per channel
-(origin order 0), spatially-varying direction correction (direction
-order 2), with constrained poses (shared rotation + XY, per-pose Z).
-This gives 57 parameters total.  The fit reaches **0.47 px** local
+pixel to a 3‑D line.  We fit O(0) + d(2): rigid sub-pupil per channel
+(origin order 0), spatially-varying direction correction (direction
+order 2), with constrained poses (shared rotation + XY, per-pose Z).
+This gives 57 parameters total.  The fit reaches **0.47 px** local
 pixel-equivalent RMS.
 
 From the centre-pixel ray $(O, d)$ we **read physical descriptors
@@ -197,16 +197,16 @@ directly** — no model fit required:
 
 | Descriptor | Symbol | How to read it | Value |
 |---|---|---|---|
-| Stereo baseline | $b$ | $\|O_R - O_L\|$ | **24.9 mm** |
-| Sub-pupil depth | $z_p$ | $(|O_{L,z}| + |O_{R,z}|)/2$ | **2.5 mm** |
-| Working distance | $WD$ | Mean of pose Z estimates | **64.7 mm** |
-| Objective focal length | $f_{\text{obj}}$ | $WD - z_p$ | **62.2 mm** |
+| Stereo baseline | $b$ | $\|O_R - O_L\|$ | **24.9 mm** |
+| Sub-pupil depth | $z_p$ | $(|O_{L,z}| + |O_{R,z}|)/2$ | **2.5 mm** |
+| Working distance | $WD$ | Mean of pose Z estimates | **64.7 mm** |
+| Objective focal length | $f_{\text{obj}}$ | $WD - z_p$ | **62.2 mm** |
 | Convergence angle | $\theta$ | $\arccos(d_L \cdot d_R)$ | **22.6°** |
 
 These are coordinates in millimetres, expressed in the camera frame:
-the left sub-pupil sits 12.7 mm to the left of the optical centre,
-0.1 mm above, and 2.7 mm forward of the principal plane.  The baseline
-$b = \|O_R - O_L\| = 24.9$ mm is a physical length you could verify
+the left sub-pupil sits 12.7 mm to the left of the optical centre,
+0.1 mm above, and 2.7 mm forward of the principal plane.  The baseline
+$b = \|O_R - O_L\| = 24.9$ mm is a physical length you could verify
 at the microscope mount.
 
 These are **not fitted physical CMO parameters** — they are rayfield
@@ -220,8 +220,8 @@ $S_c = (\pm b/2,\; 0,\; WD - f_{\text{obj}})$ and fan out to the sensor,
 predicting $d_y(u,v) \propto (v - c_y)$.
 
 **What we observe.**  The Zernike $d_y$ field is **nearly constant**
-across the field (range = 0.079, mean = +0.059), while the perspective
-CMO predicts a gradient from −0.116 to +0.116 (range = 0.232) — a
+across the field (range = 0.079, mean = +0.059), while the perspective
+CMO predicts a gradient from −0.116 to +0.116 (range = 0.232) — a
 **3× range difference**.
 
 **Diagnosis.**  The near-constant $d_y$ is the signature of **object-space
@@ -254,8 +254,8 @@ the **14-parameter** variant.
 
 | Metric | Perspective CMO | Telecentric + shear |
 |---|---|---|
-| Ray RMS (two-plane) | 3.48 mm | **0.12 mm** (29× better) |
-| Pixel RMS | 86 px | **14.6 px** (5.9× better) |
+| Ray RMS (two-plane) | 3.48 mm | **0.12 mm** (29× better) |
+| Pixel RMS | 86 px | **14.6 px** (5.9× better) |
 | Parameters | 19 | 14 |
 
 The 14-parameter telecentric model captures the dominant geometry with
@@ -264,20 +264,20 @@ matches the observed structure.
 
 ### Step 4 — Residual analysis: what is the model still missing?
 
-The telecentric model reaches 0.12 mm ray RMS but plateaus at ~14.6 px
+The telecentric model reaches 0.12 mm ray RMS but plateaus at ~14.6 px
 reprojection.  We compute the residual against the Zernike oracle:
 
 - **Direction residual:** $\Delta d = d_{\text{Zernike}} - d_{\text{CMO}}$
 - **Moment residual:** $\Delta m = m_{\text{Zernike}} - m_{\text{CMO}}$,
   where $m = O \times d$ (the Plücker moment).
 
-Projecting on Zernike modes up to order 4:
+Projecting on Zernike modes up to order 4:
 
 | Mode | Δd (L) | Δd (R) | Δm (L) | Δm (R) | Interpretation |
 |---|---:|---:|---:|---:|---|
-| $Z_0^0$ (piston) | **97 %** | **96 %** | **98 %** | **98 %** | **Global offset** |
-| $Z_1^1$ (tilt) | 2 % | 3 % | 2 % | 2 % | Negligible |
-| All $n \ge 2$ | < 0.5 % | < 1 % | < 0.1 % | < 0.1 % | Negligible |
+| $Z_0^0$ (piston) | **97 %** | **96 %** | **98 %** | **98 %** | **Global offset** |
+| $Z_1^1$ (tilt) | 2 % | 3 % | 2 % | 2 % | Negligible |
+| All $n \ge 2$ | < 0.5 % | < 1 % | < 0.1 % | < 0.1 % | Negligible |
 
 **Both Δd and Δm are dominated by $Z_0^0$ — a constant mode.**  A
 $Z_0$-dominated residual is a **global line-bundle offset**, not a
@@ -293,9 +293,9 @@ $\xi = W(u,v)$ before the direction model.
 
 | Model | Params | Ray RMS | Pixel RMS |
 |---|---|---|---|
-| Telecentric L0 | 14 | 0.118 mm | 14.6 px |
-| + affine warp | 20 | 0.115 mm | **16.0 px** (worse) |
-| + quadratic warp | 26 | 0.115 mm | **16.5 px** (worse) |
+| Telecentric L0 | 14 | 0.118 mm | 14.6 px |
+| + affine warp | 20 | 0.115 mm | **16.0 px** (worse) |
+| + quadratic warp | 26 | 0.115 mm | **16.5 px** (worse) |
 
 The pre-warp degrades pixel RMS — consistent with the $Z_0$ diagnostic
 (a warp would produce spatial, not global, changes).
@@ -305,11 +305,11 @@ transverse origin fields with direction fixed.
 
 | Origin model | Ray RMS | vs constant |
 |---|---|---|
-| O0 (constant) | 0.117 mm | baseline |
-| O1 (affine) | 0.107 mm | 8 % reduction |
-| O2 (quadratic) | 0.107 mm | no further gain |
+| O0 (constant) | 0.117 mm | baseline |
+| O1 (affine) | 0.107 mm | 8 % reduction |
+| O2 (quadratic) | 0.107 mm | no further gain |
 
-Only 8 % improvement — the residual is not spatial.
+Only 8 % improvement — the residual is not spatial.
 
 ### Step 6 — SE(3) arm alignment: the breakthrough
 
@@ -334,13 +334,13 @@ Fitting jointly against the Zernike rayfield:
 | **Pixel P50 (px)** | 13.2 | **0.87** | — |
 
 
-The SE(3) arm alignment reduces pixel RMS by **14×** (14.6 → 1.06 px).
+The SE(3) arm alignment reduces pixel RMS by **14×** (14.6 → 1.06 px).
 Rotations are stable across runs (~2.5° left, ~3.7° right); translations
 are sub-mm but trade off with telecentric base parameters.
 
 > **Important caveat — what the 0.0007 mm Zernike RMS really means.**
 >
-> The Zernike model's two-plane RMS of 0.0007 mm is a **self-evaluation
+> The Zernike model's two-plane RMS of 0.0007 mm is a **self-evaluation
 > residual**: it measures how accurately a 57-parameter Zernike model
 > reconstructs its own ray-field on the support points it was fitted to.
 > It is not an absolute physical accuracy.  By construction, a model with
@@ -348,7 +348,7 @@ are sub-mm but trade off with telecentric base parameters.
 >
 > The Telecentric models (14 to 26 parameters) are evaluated **against the
 > Zernike rayfield**, using it as a reference.  Their two-plane RMS of
-> 0.002–0.118 mm therefore reflects two things: (i) the structural
+> 0.002–0.118 mm therefore reflects two things: (i) the structural
 > mismatch between a compact physical model and the flexible Zernike
 > representation, and (ii) the noise that Zernike absorbed but that no
 > physical model should reproduce.
@@ -357,21 +357,21 @@ are sub-mm but trade off with telecentric base parameters.
 > reference: it measures each model against the same observable — the
 > ChArUco corner detections.  There:
 >
-> - Zernike (57 params, fitted to corners) achieves 0.47 px RMS,
+> - Zernike (57 params, fitted to corners) achieves 0.47 px RMS,
 >   approximately the noise floor of ChArUco corner detection.
 > - The Telecentric model with 14 parameters, fitted to the Zernike
->   rayfield and evaluated on the same corners, achieves ~14.6 px RMS.
-> - The SE(3)-aligned Telecentric model (26 params) achieves 1.06 px RMS
+>   rayfield and evaluated on the same corners, achieves ~14.6 px RMS.
+> - The SE(3)-aligned Telecentric model (26 params) achieves 1.06 px RMS
 >   — a 14× improvement over the base telecentric, and within 2.3× of
 >   the Zernike reference.
-> - The perspective CMO (19 params) achieves 86 px RMS — structurally
+> - The perspective CMO (19 params) achieves 86 px RMS — structurally
 >   inadequate for this microscope architecture.
 >
-> The Telecentric + SE(3) model is therefore not a *replacement* for
+> The Telecentric + SE(3) model is therefore not a *replacement* for
 > Zernike when minimal pixel residual is the goal.  It is a *compact
 > physical explanation* of the dominant CMO geometry, designed using the
-> Zernike rayfield as a diagnostic tool.  The remaining pixel gap (1.06 px
-> vs 0.47 px) reflects distributed low-amplitude aberrations that a
+> Zernike rayfield as a diagnostic tool.  The remaining pixel gap (1.06 px
+> vs 0.47 px) reflects distributed low-amplitude aberrations that a
 > 26-parameter physical model cannot capture — field curvature,
 > astigmatism, and other real microscope optics.
 
@@ -379,62 +379,62 @@ are sub-mm but trade off with telecentric base parameters.
 
 | Variant | Params | Ray RMS | Px RMS | P50 | P95 |
 |---|---|---|---|---|---|
-| Telecentric (baseline) | 14 | 0.048 mm | 14.6 px | 13.2 px | 22.4 px |
-| + Rotation only L/R | 20 | 0.014 mm | 3.74 px | 2.68 px | 7.13 px |
-| + Translation only L/R | 20 | 0.010 mm | 2.44 px | 2.06 px | 4.15 px |
-| **+ Full SE(3) L/R** | **26** | **0.0021 mm** | **1.06 px** | **0.87 px** | **1.84 px** |
-| + Shared rotation | 23 | 0.0083 mm | — | — | — |
-| + Shared translation | 23 | 0.0041 mm | — | — | — |
-| + Differential only | 20 | 0.0070 mm | 4.04 px | 2.85 px | 7.74 px |
+| Telecentric (baseline) | 14 | 0.048 mm | 14.6 px | 13.2 px | 22.4 px |
+| + Rotation only L/R | 20 | 0.014 mm | 3.74 px | 2.68 px | 7.13 px |
+| + Translation only L/R | 20 | 0.010 mm | 2.44 px | 2.06 px | 4.15 px |
+| **+ Full SE(3) L/R** | **26** | **0.0021 mm** | **1.06 px** | **0.87 px** | **1.84 px** |
+| + Shared rotation | 23 | 0.0083 mm | — | — | — |
+| + Shared translation | 23 | 0.0041 mm | — | — | — |
+| + Differential only | 20 | 0.0070 mm | 4.04 px | 2.85 px | 7.74 px |
 
 **Both rotation and translation are essential.  Per-arm DOFs are
 individually necessary — 26 parameters is the smallest validated compact model among the tested parameterisations.**
 
 ### Step 7 — Autopsy of the 26p model and BIC model selection
 
-The 26p model achieves 1.06 px with excellent L/R symmetry (1.10 vs
-1.01 px).  Residual direction RMS is 0.003°, moment RMS is 0.0006 mm —
+The 26p model achieves 1.06 px with excellent L/R symmetry (1.10 vs
+1.01 px).  Residual direction RMS is 0.003°, moment RMS is 0.0006 mm —
 the SE(3) has eliminated the Z₀ piston.
 
 **Formal BIC model selection** on the Pycaso Zernike rayfield.
 The ray-space BIC identifies the correct optical
 family; the **operational BIC** (with reprojection guard) adds a
-reprojection guard: models exceeding 1.5 px incur a hard penalty
+reprojection guard: models exceeding 1.5 px incur a hard penalty
 ($+10^6 + N \log(e_{\text{px}}^2 / 1.5^2)$), enforcing a usability
 constraint that the ray-space BIC alone does not capture.
 
-| Model | P | RMS (mm) | BIC ray | Px RMS | BIC usable | Status |
-|---|---|---|---:|---:|---:|---:|---|
-| cmo_telecentric_shear | 14 | 0.111 | −36 129 | 14.6 px | +978 890 | REJECTED |
-| cmo_telecentric | 12 | 0.146 | −33 201 | 27.7 px | +986 044 | REJECTED |
-| **CMO + SE(3) 26p** | **26** | **0.002** | **−32 433** | **1.06 px** | **−32 433** | **BEST USABLE** |
-| Zernike O(0)+d(2) | 57 | — | reference | 0.47 px | reference | best flexible |
+| Model | Params | RMS (mm) | BIC ray | Pixel RMS | BIC usable | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| cmo_telecentric_shear | 14 | 0.111 | -36129 | 14.6 px | +978890 | REJECTED |
+| cmo_telecentric | 12 | 0.146 | -33201 | 27.7 px | +986044 | REJECTED |
+| **CMO + SE(3) 26p** | **26** | **0.002** | **-32433** | **1.06 px** | **-32433** | **BEST USABLE** |
+| Zernike O(0)+d(2) | 57 | -- | reference | 0.47 px | reference | best flexible |
 
 The ray-space BIC confirms that the CMO telecentric family is correct
-(> 40 000 points over pinhole, Brown-Conrady, parallel-plate).  But the
-14p base model is **unusable** at 14.6 px — the operational BIC
+(> 40 000 points over pinhole, Brown-Conrady, parallel-plate).  But the
+14p base model is **unusable** at 14.6 px — the operational BIC
 correctly rejects it.  The SE(3)-aligned 26p model is the first compact
-physical model to pass the 1.5 px usability threshold, making it the
-best **usable** physical model.  The shear variant (14 params)
-is preferred over no-shear (12 params), confirming that pupil shear
-captures meaningful structure (ΔBIC ≈ 2 900).
+physical model to pass the 1.5 px usability threshold, making it the
+best **usable** physical model.  The shear variant (14 params)
+is preferred over no-shear (12 params), confirming that pupil shear
+captures meaningful structure (ΔBIC ≈ 2 900).
 
 **What remains after 26p.**  The residual is distributed across Zernike
 orders 1–3 with no single dominant block.  PCA on the two-plane residual
-reveals effective rank ≈ 4 (96 % variance in 2 modes), but the modes
+reveals effective rank ≈ 4 (96 % variance in 2 modes), but the modes
 are **spatially varying** — no global correction helps.  A rank‑2
-per-pixel correction would theoretically reach ~0.22 px, but requires
+per-pixel correction would theoretically reach ~0.22 px, but requires
 spatial parameterisation (i.e., Zernike flexibility).
 
 **Final model hierarchy:**
 
 | Model | Params | Pixel RMS | P50 | Nature |
 |---|---|---|---|---|
-| Perspective CMO | 19 | ~86 px | — | Baseline (inadequate) |
-| Telecentric L0 | 14 | ~14.6 px | 13.2 px | Correct family, missing DOF |
-| **CMO + SE(3)** | **26** | **1.06 px** | **0.87 px** | **Compact physical model** |
-| CMO + SE(3) + corner BA | 26 | ~0.98 px | — | Refined (negligible gain) |
-| Zernike O(0)+d(2) | 57 | 0.47 px | — | Flexible subpixel reference |
+| Perspective CMO | 19 | ~86 px | — | Baseline (inadequate) |
+| Telecentric L0 | 14 | ~14.6 px | 13.2 px | Correct family, missing DOF |
+| **CMO + SE(3)** | **26** | **1.06 px** | **0.87 px** | **Compact physical model** |
+| CMO + SE(3) + corner BA | 26 | ~0.98 px | — | Refined (negligible gain) |
+| Zernike O(0)+d(2) | 57 | 0.47 px | — | Flexible subpixel reference |
 
 ### Step 8 — Why the residual analysis was decisive
 
@@ -467,11 +467,11 @@ as free variables, initialised from the rayfield solution.
 
 | Stage | Pixel RMS | P50 | P95 |
 |---|---|---|---|
-| 26p rayfield fit (init) | 1.06 px | 0.87 px | 1.84 px |
-| + pose-only BA (200 iters) | ~1.00 px | — | — |
-| + joint model+pose BA | ~0.98 px | — | — |
+| 26p rayfield fit (init) | 1.06 px | 0.87 px | 1.84 px |
+| + pose-only BA (200 iters) | ~1.00 px | — | — |
+| + joint model+pose BA | ~0.98 px | — | — |
 
-The corner BA improves the pixel RMS by only **~7 %** (1.06 → 0.98 px)
+The corner BA improves the pixel RMS by only **~7 %** (1.06 → 0.98 px)
 after hundreds of iterations.  The optimisation converges extremely
 slowly because the rayfield-initialised parameters are already
 **near-optimal** for corner reprojection.
@@ -485,16 +485,16 @@ adjustment, effectively decoupling the hard non-linear problem
 (identifying the optical model family and parameters) from the
 fine-tuning (pose refinement).
 
-The subpixel reference remains the Zernike rayfield at 0.47 px.  The
-compact 26p model reaches its practical limit at ~1 px — a 2.1× gap
+The subpixel reference remains the Zernike rayfield at 0.47 px.  The
+compact 26p model reaches its practical limit at ~1 px — a 2.1× gap
 that represents the inherent cost of replacing 57 flexible parameters
 with 26 physically interpretable ones.
 
 ## The Ray2D → Ray3D feedback loop
 
 The double TPS pass was essential: before it, the Zernike rayfield was
-gauge-unstable (Z₀ drift = 8.5°).  After it, the gauge ambiguity
-vanishes (Z₀ drift = 0.023°) and the Zernike rayfield becomes a **stable
+gauge-unstable (Z₀ drift = 8.5°).  After it, the gauge ambiguity
+vanishes (Z₀ drift = 0.023°) and the Zernike rayfield becomes a **stable
 experimental oracle**.
 
 This feedback loop — Ray2D → Ray3D → diagnose → fix Ray2D → verify with
