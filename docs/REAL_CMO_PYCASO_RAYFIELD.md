@@ -329,33 +329,21 @@ ablation study to isolate the essential degrees of freedom:
 | Telecentric (baseline) | 14 | 0.048 mm | 14.6 px | 13.2 px | 22.4 px |
 | + Rotation only L/R | 20 | 0.014 mm | 3.74 px | 2.68 px | 7.13 px |
 | + Translation only L/R | 20 | 0.010 mm | 2.44 px | 2.06 px | 4.15 px |
-| + Full SE(3) L/R | 26 | 0.0021 mm | **1.06 px** | **0.87 px** | **1.84 px** |
-| + Differential SE(3) | 26→20 | 0.0021 mm | **1.07 px** | **0.88 px** | **1.86 px** |
-| + Symmetric SE(3) | 26→20 | 0.0021 mm | **1.09 px** | **0.90 px** | **1.90 px** |
+| **+ Full SE(3) L/R** | **26** | **0.0021 mm** | **1.06 px** | **0.87 px** | **1.84 px** |
+| + Shared rotation | 23 | 0.0083 mm | — | — | — |
+| + Shared translation | 23 | 0.0041 mm | — | — | — |
+| + Differential only | 20 | 0.0070 mm | 4.04 px | 2.85 px | 7.74 px |
 
 **Key findings:**
 
 1. **Both rotation and translation are essential.**  Rotation alone
-   (3.74 px) or translation alone (2.44 px) leave significant residual
-   error — the ray bundle has both an angular and a positional offset.
-2. **The common mode is redundant.**  The differential SE(3) model —
-   common rigid transform + relative left/right difference — achieves
-   1.07 px, identical to the full independent SE(3) (1.06 px).  The
-   common rigid transform can be absorbed into the global microscope
-   extrinsics without changing reprojection.
-3. **CMO symmetry is compatible with the data.**  The symmetrised SE(3)
-   (mean rotation ± stereo component, antisymmetric translation)
-   achieves 1.09 px — statistically indistinguishable from the full
-   26-parameter model.  The data does not require broken left/right
-   symmetry.
-
-**Minimal model: 26 parameters (14 telecentric + 12 SE(3) per-arm).**
-
-The common mode cannot be dropped: fitting with shared rotation (+289 %
-ray RMS degradation), shared translation (+92 %), or differential-only
-(+226 %) all significantly degrade the fit.  The left and right arms have
-genuinely different misalignments — the per-arm SE(3) degrees of freedom
-are individually necessary.
+   (3.74 px) or translation alone (2.44 px) leave significant residual.
+2. **Per-arm SE(3) degrees of freedom are individually necessary.**
+   Sharing rotation (+289 % ray RMS), sharing translation (+92 %), or
+   reducing to differential-only (+226 %, 4.04 px) all significantly
+   degrade the fit.  The left and right arms have genuinely different
+   misalignments that cannot be captured by a smaller parameter set.
+3. **26 parameters is the true minimum** for the compact physical model.
 
 ### Step 7 — Autopsy of the 26p model: what remains?
 
