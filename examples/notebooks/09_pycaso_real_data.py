@@ -1019,7 +1019,120 @@ print(f"    RMS = {np.sqrt(np.mean(epx_ps**2)):.2f} px  P50 = {np.percentile(epx
 print(f"    (Zernike: 0.47 px, telecentric no-shear: ~28 px, perspective: ~86 px)")
 
 # %% [markdown]
-# ## 10 — Conclusions
+# ## 10 — Zernike/pose identifiability: conditioning diagnostic
+#
+# The difference between constrained-pose Zernike (0.47 px) and full-pose
+# Zernike (0.17 px) hides an identifiability problem.  Freeing poses
+# changes the rayfield dramatically: Δd ≈ 8.5°, Δm ≈ 9.7 mm, and baseline
+# jumps from 17 mm to 28 mm.  We diagnose whether this is caused by poorly
+# constrained Zernike modes trading off with pose parameters.
+#
+# ### 10.1 — Design matrix conditioning
+#
+# The Zernike basis on the square sensor is well-conditioned
+# (cond(B₂) = 4.8, cond(B₄) = 14.5).  However, Z₀⁰ and Z₂⁰ are
+# not orthogonal on the square (off-diagonal correlation 0.56), and on
+# sparse ChArUco-like sampling the conditioning degrades to cond(B₄) = 71.
+# Z₂²(cos) loads almost entirely onto the last singular vector — it is
+# the least observable mode.
+
+# %%
+import json
+from pathlib import Path
+
+SWEEP_DIR = Path("docs/assets/pycaso_real_data")
+
+# Load the diagnostic
+with open(SWEEP_DIR / "zernike_conditioning_diagnostic.json") as f:
+    diag = json.load(f)
+
+# Phase 1: design matrix
+p1 = diag["phase1_design_matrix"]
+print("Design matrix conditioning:")
+for key in ["regular_grid_41x41", "sparse_central_85pct"]:
+    d = p1[key]
+    print(f"  {key}: n={d['n_pixels']}, cond(B₂)={d['condition_number_order2']:.1f}, "
+          f"cond(B₄)={d['condition_number_order4']:.1f}, "
+          f"max_corr={d['max_off_diagonal_correlation']:.3f}")
+
+# Phase 2: modal decomposition
+p2 = diag["phase2_modal_decomposition"]
+print(f"\nModal decomposition of Δd = d_full − d_constrained:")
+for ch in ["left", "right"]:
+    dch = p2[ch]
+    print(f"  {ch}: RMS={dch['delta_direction_rms_deg']:.2f}°, "
+          f"P50={dch['delta_direction_p50_deg']:.2f}°, "
+          f"Δm RMS={dch['delta_moment_rms_mm']:.2f} mm")
+    for m in dch["top_direction_modes"][:4]:
+        if m["frac_var_d"] < 0.005:
+            continue
+        print(f"    {m['mode']:18s}  {m['frac_var_d']*100:5.1f}%  "
+              f"({m['rms_d_deg']:.2f}°)  "
+              f"cd=({m['c_d'][0]:+.4f}, {m['c_d'][1]:+.4f}, {m['c_d'][2]:+.4f})")
+
+# Phase 3: sensitivity
+p3 = diag["phase3_sensitivity"]
+sens = p3["mode_sensitivities"]
+print(f"\nMode → physical indicator sensitivity:")
+print(f"  {'Mode':18s}  {'Top O→':>25s}  {'Top d→':>25s}")
+for s in sens:
+    o_label = f"{s['top_O_key']}={s['top_O_val']:.2f}"
+    d_label = f"{s['top_d_key']}={s['top_d_val']:.2f}"
+    flag = " ★" if s["top_d_val"] > 1.0 else ""
+    print(f"  {s['mode']:18s}  {o_label:>25s}  {d_label:>25s}{flag}")
+
+# Phase 4: stability
+p4 = diag["phase4_stability"]
+stab = p4["coefficient_variation"]
+print(f"\nStability: {p4['n_stable']} stable, {p4['n_moderate']} moderate, "
+      f"{p4['n_unstable']} unstable out of {len(stab)} modes")
+print(f"  {'Mode':18s}  {'ΔO_L':>8s}  {'ΔO_R':>8s}  {'Δd_L':>8s}  {'Δd_R':>8s}  {'Stability':>10s}")
+for s in stab:
+    print(f"  {s['mode']:18s}  {s['delta_O_L_mm']:8.3f}  {s['delta_O_R_mm']:8.3f}  "
+          f"{s['delta_d_L']:8.4f}  {s['delta_d_R']:8.4f}  {s['stability']:>10s}")
+
+# Physical indicator shifts
+ind_deltas = p3["indicator_deltas"]
+print(f"\nPhysical indicator shifts (full − constrained):")
+print(f"  baseline:          {ind_deltas['baseline_mm']:+.2f} mm")
+print(f"  convergence angle: {ind_deltas['convergence_angle_deg']:+.2f}°")
+print(f"  dy_range_L:        {ind_deltas['dy_range_L']:+.4f}")
+print(f"  dy_range_R:        {ind_deltas['dy_range_R']:+.4f}")
+print(f"  subpupil_depth:    {ind_deltas['subpupil_depth_mm']:+.2f} mm")
+
+# %% [markdown]
+# ### 10.2 — Interpretation
+#
+# **Key finding: 90 % of Δd is a global direction piston (Z₀⁰).**
+# This mode shifts all ray directions by a constant offset — equivalent
+# to changing the effective focal length.  It is a **gauge freedom**:
+# changing the pinhole scale is nearly unobservable from corner data
+# because poses absorb it.
+#
+# **Z₁¹(cos/sin) account for the remaining ~10 %** — these are tilt modes
+# that couple to board rotation.  They represent the actual geometric
+# change when poses are freed (the 0.31° true wobble).
+#
+# **Stability diagnosis:**
+#
+# | Mode      | Δd_L  | Stability  | Couples to          | Interpretation               |
+# |-----------|-------|------------|---------------------|------------------------------|
+# | Z₀⁰(m0)   | 0.149 | UNSTABLE   | subpupil_depth      | Gauge mode (global scale)    |
+# | Z₁¹(cos)  | 0.078 | UNSTABLE   | d_y range (tele)    | Tilt ↔ R_x coupling          |
+# | Z₁¹(sin)  | 0.093 | UNSTABLE   | d_y range (tele)    | Tilt ↔ R_y coupling          |
+# | Z₂⁰(m0)   | 0.001 | MODERATE   | d_x antisymmetry    | Defocus ↔ convergence        |
+# | Z₂²(cos)  | 0.002 | UNSTABLE   | d_y range (weak)    | Astigmatism (poorly excited)  |
+# | Z₂²(sin)  | 0.003 | UNSTABLE   | d_y range           | Astigmatism ↔ shear          |
+#
+# **Recommendation:** Keep constrained poses as the conservative
+# intermediate.  Z₀⁰ direction is a gauge mode — regularize it rather
+# than freeing it.  The 0.31° true wobble confirms constrained poses
+# are physically justified.  If lower pixel error is needed, add mild
+# Tikhonov regularization on direction coefficients proportional to
+# their pose sensitivity rather than freeing all poses.
+
+# %% [markdown]
+# ## 11 — Conclusions
 #
 # 1. **StereoComplex calibrates a real CMO microscope where OpenCV fails**
 #    (OpenCV stereo RMS > 300 px vs. StereoComplex 0.47 px baseline,
@@ -1042,7 +1155,14 @@ print(f"    (Zernike: 0.47 px, telecentric no-shear: ~28 px, perspective: ~86 px
 #    telecentric than the perspective CMO model, explaining why the CMO
 #    fit cannot achieve better than ~600 px reprojection.
 #
-# 5. **The workflow generalises**: the same rayfield → physical reading →
+# 5. **The constrained-vs-full-pose Zernike difference is dominated by a
+#    gauge mode**: 90 % of Δd is Z₀⁰ (global direction piston), which
+#    changes the effective focal length and is absorbed by poses.  The
+#    actual geometric wobble is only 0.31° RMS.  Constrained poses are
+#    the physically justified intermediate; regularization is preferable
+#    to freeing all poses.
+#
+# 6. **The workflow generalises**: the same rayfield → physical reading →
 #    model comparison sequence can be applied to any stereo microscope to
 #    identify its optical architecture and quantify deviations from ideal
 #    models.
