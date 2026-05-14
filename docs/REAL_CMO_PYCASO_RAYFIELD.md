@@ -28,16 +28,24 @@ StereoComplex pipeline produces:
 
 | Quantity | Value | What it tells us |
 |---|---|---|
-| Calibration residual (Zernike rayfield) | **0.47 px** | Subpixel accuracy on a 2048×2048 sensor |
-| Calibration residual (OpenCV standard) | **> 300 px** | Standard pinhole stereo fails on this microscope |
+| **Compact physical CMO model** (26 params, with SE(3) arm) | **1.06 px** | Interpretable, BIC-best among physical candidates |
+| Flexible Zernike rayfield (57 params, non-parametric) | 0.47 px | Approximate noise floor of corner detection |
+| OpenCV standard stereo calibration | **> 300 px** | Standard pinhole stereo fails on this architecture |
+| Naive perspective CMO model (19 params) | ~86 px | Wrong family — direction field is telecentric, not perspective |
 | Stereo baseline $b$ | **24.9 mm** | Distance between the two effective sub-pupils |
 | Working distance $WD$ | **64.7 mm** | Object plane distance |
 | Objective focal length $f_{\text{obj}}$ | **62.2 mm** | Read from the rayfield geometry |
 | Stereo convergence angle $\theta$ | **22.6°** | Inter-channel angular separation |
 
-These descriptors are not the output of fitting a physical model.  They are
-**directly read** from the measured rayfield at the centre pixel — physical
-lengths you could in principle verify with calipers on the microscope itself.
+The **headline result** is the 26-parameter physical model: it reaches
+1.06 px on a 2048×2048 sensor — within 2.3× of the non-parametric
+noise floor — while using less than half the parameters and remaining
+fully interpretable in terms of sub-pupils, focal length, telecentricity,
+and an SE(3) arm correction per channel.  The geometric descriptors
+($b$, $WD$, $f_{\text{obj}}$, $\theta$) are not the output of fitting:
+they are **directly read** from the measured rayfield at the centre pixel
+— physical lengths you could in principle verify with calipers on the
+microscope itself.
 
 ### What this case study claims, and what it does not
 
