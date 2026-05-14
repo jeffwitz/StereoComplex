@@ -146,7 +146,7 @@ Propose physical models → fit → residual analysis → iterate
 ```
 
 Ray2D TPS is a **purely 2‑D regularisation step**.  It does not assume
-any 3‑D camera model — it predicts where occluded corners likely are
+any 3‑D camera model — it predicts or regularizes missing or noisy ChArUco grid corners
 based on their neighbours, using a homography + thin-plate spline
 residual field.  This step does not bias the 3‑D model selection that
 follows.
@@ -388,7 +388,7 @@ are sub-mm but trade off with telecentric base parameters.
 | + Differential only | 20 | 0.0070 mm | 4.04 px | 2.85 px | 7.74 px |
 
 **Both rotation and translation are essential.  Per-arm DOFs are
-individually necessary — 26 parameters is the true minimum.**
+individually necessary — 26 parameters is the smallest validated compact model among the tested parameterisations.**
 
 ### Step 7 — Autopsy of the 26p model and BIC model selection
 
@@ -408,7 +408,12 @@ the SE(3) has eliminated the Z₀ piston.
 
 The telecentric CMO wins by **> 40 000 BIC points** over all alternative
 physical models — a decisive confirmation that the CMO architecture is
-the correct model family for this dataset.  The shear variant (14 params)
+the correct model family for this dataset.  (This BIC comparison
+identifies the correct optical family from the physical candidates;
+the SE(3)-refined 26p model is a subsequent refinement that builds on
+this family.  The BIC table is not a final comparison between the 14p
+base and the 26p aligned model — it validates the telecentric family
+against alternatives like pinhole, Brown-Conrady, and parallel-plate.)  The shear variant (14 params)
 is preferred over no-shear (12 params), confirming that pupil shear
 captures meaningful structure (ΔBIC ≈ 2 900).
 
