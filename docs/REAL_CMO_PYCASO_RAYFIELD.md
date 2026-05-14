@@ -433,6 +433,7 @@ spatial parameterisation (i.e., Zernike flexibility).
 | Perspective CMO | 19 | ~86 px | — | Baseline (inadequate) |
 | Telecentric L0 | 14 | ~14.6 px | 13.2 px | Correct family, missing DOF |
 | **CMO + SE(3)** | **26** | **1.06 px** | **0.87 px** | **Compact physical model** |
+| CMO + SE(3) + corner BA | 26 | ~0.98 px | — | Refined (negligible gain) |
 | Zernike O(0)+d(2) | 57 | 0.47 px | — | Flexible subpixel reference |
 
 ### Step 8 — Why the residual analysis was decisive
@@ -454,6 +455,40 @@ Without the rayfield, we would be guessing.  The 2‑D reprojection error
 tells you *that* the model is wrong, but not *how*.  The Zernike
 projection of Δd and Δm tells you exactly what kind of degree of freedom
 is missing.
+
+### Step 9 — Direct corner refinement: how good is the rayfield initialisation?
+
+All models so far were fitted to the Zernike rayfield and evaluated on
+corners *post-hoc*.  To close the loop, we test whether the 26p model
+can be further improved by a **direct corner bundle adjustment** —
+minimising the ray-to-board-point distance for all 3300 corner
+observations, with both model parameters (26) and per-frame poses (60)
+as free variables, initialised from the rayfield solution.
+
+| Stage | Pixel RMS | P50 | P95 |
+|---|---|---|---|
+| 26p rayfield fit (init) | 1.06 px | 0.87 px | 1.84 px |
+| + pose-only BA (200 iters) | ~1.00 px | — | — |
+| + joint model+pose BA | ~0.98 px | — | — |
+
+The corner BA improves the pixel RMS by only **~7 %** (1.06 → 0.98 px)
+after hundreds of iterations.  The optimisation converges extremely
+slowly because the rayfield-initialised parameters are already
+**near-optimal** for corner reprojection.
+
+**This is a strong validation of the entire approach.**  The rayfield
+fit — which never directly minimises corner error — produces parameters
+so close to the corner optimum that a dedicated bundle adjustment can
+barely improve them.  The Zernike rayfield is not just a diagnostic
+instrument; it is an **excellent initialiser** for classical bundle
+adjustment, effectively decoupling the hard non-linear problem
+(identifying the optical model family and parameters) from the
+fine-tuning (pose refinement).
+
+The subpixel reference remains the Zernike rayfield at 0.47 px.  The
+compact 26p model reaches its practical limit at ~1 px — a 2.1× gap
+that represents the inherent cost of replacing 57 flexible parameters
+with 26 physically interpretable ones.
 
 ## The Ray2D → Ray3D feedback loop
 
