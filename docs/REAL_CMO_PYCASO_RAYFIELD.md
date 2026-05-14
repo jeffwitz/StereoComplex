@@ -28,7 +28,7 @@ StereoComplex pipeline produces:
 
 | Quantity | Value | What it tells us |
 |---|---|---|
-| **Compact physical CMO model** (26 params, with SE(3) arm) | **1.06 px** (P50=0.87, P95=1.84) | Interpretable, BIC-best among physical candidates |
+| **Compact physical CMO model** (26 params, with SE(3) arm) | **1.06 px** (P50=0.87, P95=1.84) | Best usable physical model under the 1.5 px operational BIC guard |
 | Flexible Zernike rayfield (57 params, non-parametric) | 0.47 px (P50=0.34, P95=0.86) | Approximate noise floor of corner detection |
 | OpenCV standard stereo calibration | **> 300 px** | Standard pinhole stereo fails on this architecture |
 | Naive perspective CMO model (19 params) | ~86 px | Wrong family — direction field is telecentric, not perspective |
@@ -44,8 +44,8 @@ parameters and remaining fully interpretable in terms of sub-pupils, focal lengt
 and an SE(3) arm correction per channel.  The geometric descriptors
 ($b$, $WD$, $f_{\text{obj}}$, $\theta$) are not the output of fitting:
 they are **directly read** from the measured rayfield at the centre pixel
-— physical lengths you could in principle verify with calipers on the
-microscope itself.
+— physical-scale quantities that can be compared with microscope
+geometry or manufacturer specifications.
 
 ### What this case study claims, and what it does not
 
@@ -148,8 +148,8 @@ Propose physical models → fit → residual analysis → iterate
 Ray2D TPS is a **purely 2‑D regularisation step**.  It does not assume
 any 3‑D camera model — it predicts or regularizes missing or noisy ChArUco grid corners
 based on their neighbours, using a homography + thin-plate spline
-residual field.  This step does not bias the 3‑D model selection that
-follows.
+residual field.  This step does not impose a 3‑D camera model; its
+validity is checked afterwards through rayfield gauge stability.
 
 ### The double TPS pass
 
