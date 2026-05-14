@@ -846,6 +846,528 @@ def fit_cmo_telecentric_model_to_rayfields(
     )
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# Polynomial pre-warp helpers
+# ═══════════════════════════════════════════════════════════════════════
+
+def _poly_terms_2d(level: int) -> list[tuple[int, int]]:
+    """Monomial exponent pairs (pu, pv) for a 2D polynomial of given level.
+
+    Level 0: constant (1 term).
+    Level 1: + u, v (3 terms).
+    Level 2: + u^2, uv, v^2 (6 terms).
+    Level 3: + u^3, u^2 v, u v^2, v^3 (10 terms).
+    """
+    terms: list[tuple[int, int]] = [(0, 0)]
+    if level >= 1:
+        terms.extend([(1, 0), (0, 1)])
+    if level >= 2:
+        terms.extend([(2, 0), (1, 1), (0, 2)])
+    if level >= 3:
+        terms.extend([(3, 0), (2, 1), (1, 2), (0, 3)])
+    return terms
+
+
+def _n_warp_coeff_per_axis(level: int) -> int:
+    return len(_poly_terms_2d(level))
+
+
+def _n_warp_coeff_total(level: int, shared: bool) -> int:
+    """Total warp coefficients across both axes and channels."""
+    if level == 0:
+        return 0  # identity warp, no coefficients
+    per_axis = _n_warp_coeff_per_axis(level)
+    per_channel = per_axis * 2  # xi + eta
+    return per_channel if shared else per_channel * 2
+
+
+def _polyval_2d(u: Array, v: Array, coeffs: tuple[float, ...], level: int) -> Array:
+    """Evaluate a 2D polynomial at (u, v)."""
+    u_arr = np.asarray(u, dtype=np.float64)
+    v_arr = np.asarray(v, dtype=np.float64)
+    result = np.zeros_like(u_arr)
+    terms = _poly_terms_2d(level)
+    for (pu, pv), c in zip(terms, coeffs):
+        result = result + float(c) * (u_arr ** float(pu)) * (v_arr ** float(pv))
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# CMOWarpedStereoModel
+# ═══════════════════════════════════════════════════════════════════════
+
+@dataclass(frozen=True)
+class CMOWarpedStereoModel:
+    """CMO model with configurable polynomial pixel pre-warp.
+
+    Pipeline per channel::
+
+        (xi, eta) = W_c(u, v)              -- polynomial pre-warp (level 0..3)
+        d = normalize(d_chief + affine correction on warped coords)
+        O = S_c + pupil shear on warped coords
+
+    The warp maps pixel coordinates to optical field coordinates before
+    the telecentric direction model acts.  This captures non-radial,
+    asymmetric field-angle distortions that a pure affine direction field
+    cannot.
+    """
+
+    # --- Telecentric stereo base ---
+    f_obj_mm: float
+    working_distance_mm: float
+    b_mm: float
+    cx_principal_px: float
+    cy_principal_px: float
+    pixel_pitch_mm: float
+    f_angular_mm: float = 0.0
+    theta_convergence_half_rad: float = 0.0
+    d_y_common: float = 0.0
+    s_x_L: float = 0.0
+    s_y_L: float = 0.0
+    s_x_R: float = 0.0
+    s_y_R: float = 0.0
+    s_xy_L: float = 0.0
+    s_yx_L: float = 0.0
+    s_xy_R: float = 0.0
+    s_yx_R: float = 0.0
+    shared_slopes: bool = True
+    rho_x_L: float = 0.0
+    rho_y_L: float = 0.0
+    rho_x_R: float = 0.0
+    rho_y_R: float = 0.0
+    shared_shear: bool = True
+    q_xx_L: float = 0.0
+    q_yy_L: float = 0.0
+    q_xx_R: float = 0.0
+    q_yy_R: float = 0.0
+    shared_quadratic: bool = True
+    image_size: tuple[int, int] | None = None
+    name: str = "cmo_warped_stereo"
+    is_stereo_shared: bool = True
+
+    # --- Warp fields ---
+    warp_xi_L: tuple[float, ...] = ()
+    warp_eta_L: tuple[float, ...] = ()
+    warp_xi_R: tuple[float, ...] = ()
+    warp_eta_R: tuple[float, ...] = ()
+    warp_level: int = 0
+    shared_warp: bool = True
+
+    def __post_init__(self) -> None:
+        if int(self.warp_level) == 0:
+            return  # level 0 = identity, no coeff validation needed
+        per_axis = _n_warp_coeff_per_axis(int(self.warp_level))
+        for name, tup in [("warp_xi_L", self.warp_xi_L), ("warp_eta_L", self.warp_eta_L),
+                          ("warp_xi_R", self.warp_xi_R), ("warp_eta_R", self.warp_eta_R)]:
+            if len(tup) != per_axis:
+                raise ValueError(f"{name} has {len(tup)} coeffs, expected {per_axis} for level {self.warp_level}")
+
+    @property
+    def n_parameters(self) -> int:
+        n = 12 if self.shared_slopes else 14
+        if not self.shared_shear:
+            n += 2
+        if not self.shared_quadratic:
+            n += 2
+        n += _n_warp_coeff_total(int(self.warp_level), bool(self.shared_warp))
+        return n
+
+    def _get_warp_coeffs(self, channel: Literal["left", "right"]) -> tuple[tuple[float, ...], tuple[float, ...]]:
+        if channel == "left":
+            return self.warp_xi_L, self.warp_eta_L
+        return self.warp_xi_R, self.warp_eta_R
+
+    def parameter_vector(self) -> Array:
+        vec: list[float] = [
+            float(self.f_obj_mm), float(self.working_distance_mm), float(self.b_mm),
+            float(self.cx_principal_px), float(self.cy_principal_px),
+            float(self.f_angular_mm),
+            float(self.theta_convergence_half_rad), float(self.d_y_common),
+            float(self.s_x_L), float(self.s_y_L),
+        ]
+        if not self.shared_slopes:
+            vec.extend([float(self.s_x_R), float(self.s_y_R)])
+        if self.shared_shear:
+            vec.extend([float(self.rho_x_L), float(self.rho_y_L)])
+        else:
+            vec.extend([float(self.rho_x_L), float(self.rho_y_L), float(self.rho_x_R), float(self.rho_y_R)])
+        if self.warp_level > 0:
+            vec.extend(self.warp_xi_L)
+            vec.extend(self.warp_eta_L)
+            if not self.shared_warp:
+                vec.extend(self.warp_xi_R)
+                vec.extend(self.warp_eta_R)
+        return np.array(vec, dtype=np.float64)
+
+    @classmethod
+    def from_parameter_vector(cls, x: Array, **kwargs: Any) -> "CMOWarpedStereoModel":
+        arr = np.asarray(x, dtype=np.float64).reshape(-1)
+        pixel_pitch_mm = float(kwargs["pixel_pitch_mm"])
+        image_size = kwargs.get("image_size")
+        warp_level = int(kwargs.get("warp_level", 0))
+        shared_warp = bool(kwargs.get("shared_warp", True))
+
+        n_warp = _n_warp_coeff_total(warp_level, shared_warp)
+        n_base = int(arr.size) - n_warp
+
+        if n_base not in {12, 14, 16}:
+            raise ValueError(
+                f"CMOWarpedStereoModel: invalid base param count {n_base} "
+                f"(warp_level={warp_level}, shared_warp={shared_warp})"
+            )
+        shared_slopes = n_base == 12
+        shared_shear = n_base in {12, 14}
+
+        base = arr[:n_base]
+        sx_L = float(base[8]); sy_L = float(base[9])
+        if shared_slopes:
+            sx_R, sy_R = sx_L, sy_L
+            rho_idx = 10
+        else:
+            sx_R = float(base[10]); sy_R = float(base[11])
+            rho_idx = 12
+        if shared_shear:
+            rx_L = float(base[rho_idx]); ry_L = float(base[rho_idx + 1])
+            rx_R, ry_R = rx_L, ry_L
+        else:
+            rx_L = float(base[rho_idx]); ry_L = float(base[rho_idx + 1])
+            rx_R = float(base[rho_idx + 2]); ry_R = float(base[rho_idx + 3])
+
+        warp_flat = arr[n_base:]
+        if warp_level > 0 and n_warp > 0:
+            per_axis = _n_warp_coeff_per_axis(warp_level)
+            xi_L = tuple(float(v) for v in warp_flat[:per_axis])
+            eta_L = tuple(float(v) for v in warp_flat[per_axis:2 * per_axis])
+            if shared_warp:
+                xi_R, eta_R = xi_L, eta_L
+            else:
+                xi_R = tuple(float(v) for v in warp_flat[2 * per_axis:3 * per_axis])
+                eta_R = tuple(float(v) for v in warp_flat[3 * per_axis:4 * per_axis])
+        else:
+            xi_L = eta_L = xi_R = eta_R = ()
+
+        return cls(
+            f_obj_mm=float(base[0]), working_distance_mm=float(base[1]), b_mm=float(base[2]),
+            cx_principal_px=float(base[3]), cy_principal_px=float(base[4]),
+            pixel_pitch_mm=pixel_pitch_mm, f_angular_mm=float(base[5]),
+            theta_convergence_half_rad=float(base[6]), d_y_common=float(base[7]),
+            s_x_L=sx_L, s_y_L=sy_L, s_x_R=sx_R, s_y_R=sy_R, shared_slopes=shared_slopes,
+            rho_x_L=rx_L, rho_y_L=ry_L, rho_x_R=rx_R, rho_y_R=ry_R, shared_shear=shared_shear,
+            image_size=image_size,
+            warp_xi_L=xi_L, warp_eta_L=eta_L, warp_xi_R=xi_R, warp_eta_R=eta_R,
+            warp_level=warp_level, shared_warp=shared_warp,
+        )
+
+    def parameter_dict(self) -> dict[str, object]:
+        d: dict[str, object] = {
+            "f_obj_mm": float(self.f_obj_mm),
+            "working_distance_mm": float(self.working_distance_mm),
+            "b_mm": float(self.b_mm),
+            "cx_principal_px": float(self.cx_principal_px),
+            "cy_principal_px": float(self.cy_principal_px),
+            "f_angular_mm": float(self.f_angular_mm),
+            "theta_convergence_half_rad": float(self.theta_convergence_half_rad),
+            "theta_convergence_half_deg": float(np.degrees(float(self.theta_convergence_half_rad))),
+            "d_y_common": float(self.d_y_common),
+            "warp_level": int(self.warp_level),
+            "shared_warp": bool(self.shared_warp),
+        }
+        free: dict[str, float] = {}
+        free["s_x_L"] = float(self.s_x_L); free["s_y_L"] = float(self.s_y_L)
+        if not self.shared_slopes:
+            free["s_x_R"] = float(self.s_x_R); free["s_y_R"] = float(self.s_y_R)
+        if self.shared_shear:
+            free["rho_x"] = float(self.rho_x_L)
+            free["rho_y"] = float(self.rho_y_L)
+        else:
+            free["rho_x_L"] = float(self.rho_x_L); free["rho_y_L"] = float(self.rho_y_L)
+            free["rho_x_R"] = float(self.rho_x_R); free["rho_y_R"] = float(self.rho_y_R)
+        d["free"] = free
+
+        terms = _poly_terms_2d(int(self.warp_level))
+        for ch, xi_tup, eta_tup in [("L", self.warp_xi_L, self.warp_eta_L),
+                                      ("R", self.warp_xi_R, self.warp_eta_R)]:
+            for i, (pu, pv) in enumerate(terms):
+                if i < len(xi_tup):
+                    d[f"warp_xi_{ch}_u{pu}v{pv}"] = float(xi_tup[i])
+                    d[f"warp_eta_{ch}_u{pu}v{pv}"] = float(eta_tup[i])
+        return d
+
+    def channel(self, channel: Literal["left", "right"]) -> "CMOWarpedChannelModel":
+        return CMOWarpedChannelModel(rig=self, channel=channel)
+
+    def ray(self, u: Array, v: Array, channel: Literal["left", "right"]) -> tuple[Array, Array]:
+        uu, vv = np.broadcast_arrays(np.asarray(u, dtype=np.float64), np.asarray(v, dtype=np.float64))
+        shape = uu.shape
+        uf, vf = uu.reshape(-1), vv.reshape(-1)
+
+        if self.warp_level > 0:
+            xi_c, eta_c = self._get_warp_coeffs(channel)
+            xi = _polyval_2d(uf, vf, xi_c, int(self.warp_level))
+            eta = _polyval_2d(uf, vf, eta_c, int(self.warp_level))
+        else:
+            xi, eta = uf.astype(np.float64), vf.astype(np.float64)
+
+        f_ang = float(self.f_angular_mm) if float(self.f_angular_mm) > 0.1 else float(self.f_obj_mm)
+        pp = float(self.pixel_pitch_mm) / f_ang
+        tilde_u = (xi - float(self.cx_principal_px)) * pp
+        tilde_v = (eta - float(self.cy_principal_px)) * pp
+
+        dir_sign = 1.0 if channel == "left" else -1.0
+        sin_th = float(np.sin(float(self.theta_convergence_half_rad)))
+        cos_th = float(np.cos(float(self.theta_convergence_half_rad)))
+        dy = float(self.d_y_common)
+        d0 = np.column_stack([
+            np.full_like(uf, dir_sign * sin_th),
+            np.full_like(uf, dy),
+            np.full_like(uf, cos_th),
+        ])
+
+        sx_ch = float(self.s_x_L) if channel == "left" else float(self.s_x_R)
+        sy_ch = float(self.s_y_L) if channel == "left" else float(self.s_y_R)
+        sxy_ch = float(self.s_xy_L) if channel == "left" else float(self.s_xy_R)
+        syx_ch = float(self.s_yx_L) if channel == "left" else float(self.s_yx_R)
+        qx_ch = float(self.q_xx_L) if channel == "left" else float(self.q_xx_R)
+        qy_ch = float(self.q_yy_L) if channel == "left" else float(self.q_yy_R)
+
+        umean2 = float(np.mean(tilde_u ** 2))
+        vmean2 = float(np.mean(tilde_v ** 2))
+
+        d_raw = np.column_stack([
+            d0[:, 0] + sx_ch * tilde_u + sxy_ch * tilde_v + qx_ch * (tilde_u ** 2 - umean2),
+            d0[:, 1] + sy_ch * tilde_v + syx_ch * tilde_u + qy_ch * (tilde_v ** 2 - vmean2),
+            d0[:, 2],
+        ])
+        directions = _normalize(d_raw)
+
+        pupil_sign = -1.0 if channel == "left" else 1.0
+        z_pupil = float(self.working_distance_mm) - float(self.f_obj_mm)
+        rho_x = float(self.rho_x_L) if channel == "left" else float(self.rho_x_R)
+        rho_y = float(self.rho_y_L) if channel == "left" else float(self.rho_y_R)
+
+        O_rigid = np.column_stack([
+            np.full_like(uf, pupil_sign * 0.5 * float(self.b_mm)),
+            np.zeros_like(uf),
+            np.full_like(uf, z_pupil),
+        ])
+        delta_O = np.column_stack([rho_x * tilde_u, rho_y * tilde_v, np.zeros_like(uf)])
+        pupil = O_rigid + delta_O
+
+        return pupil.reshape(shape + (3,)), directions.reshape(shape + (3,))
+
+
+@dataclass(frozen=True)
+class CMOWarpedChannelModel:
+    """Single-channel facade for a shared warped CMO rig."""
+
+    rig: CMOWarpedStereoModel
+    channel: Literal["left", "right"]
+    name: str = "cmo_warped_channel"
+    is_stereo_shared: bool = True
+
+    @property
+    def n_parameters(self) -> int:
+        return self.rig.n_parameters
+
+    def parameter_vector(self) -> Array:
+        return self.rig.parameter_vector()
+
+    @classmethod
+    def from_parameter_vector(cls, x: Array, **kwargs: Any) -> "CMOWarpedChannelModel":
+        rig = CMOWarpedStereoModel.from_parameter_vector(x, **kwargs)
+        channel = kwargs.get("channel", "left")
+        if channel not in {"left", "right"}:
+            raise ValueError("channel must be 'left' or 'right'")
+        return cls(rig=rig, channel=channel)
+
+    def parameter_dict(self) -> dict[str, object]:
+        return self.rig.parameter_dict()
+
+    def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
+        return self.rig.ray(u, v, self.channel)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Fitting and residual analysis
+# ═══════════════════════════════════════════════════════════════════════
+
+def fit_cmo_warped_model_to_rayfields(
+    left_field,
+    right_field,
+    image_size: tuple[int, int],
+    initial_parameters: Array,
+    *,
+    pixel_pitch_mm: float,
+    z_planes: tuple[float, float] = (50.0, 250.0),
+    grid_shape: tuple[int, int] = (17, 13),
+    max_nfev: int = 500,
+    warp_level: int = 0,
+    shared_warp: bool = True,
+) -> CMOPhysicalStereoFitResult:
+    """Fit the warped CMO model to left/right measured rayfields."""
+    x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
+    full = _grid_pixels(image_size, grid_shape)
+
+    def model_at(x: Array) -> CMOWarpedStereoModel:
+        return CMOWarpedStereoModel.from_parameter_vector(
+            x, pixel_pitch_mm=pixel_pitch_mm, image_size=image_size,
+            warp_level=warp_level, shared_warp=shared_warp)
+
+    def residuals(x: Array) -> Array:
+        model = model_at(x)
+        left = model.channel("left")
+        right = model.channel("right")
+        return np.concatenate([
+            rayfield_two_plane_residuals(left_field, left, full, z_planes=z_planes),
+            rayfield_two_plane_residuals(right_field, right, full, z_planes=z_planes),
+        ])
+
+    # Bounds
+    tele_lo = [1.0, 1.0, 0.0, -np.inf, -np.inf, 1.0, 0.0, -0.3, -10.0, -10.0]
+    tele_hi = [500.0, 1000.0, 200.0, np.inf, np.inf, 500.0, 0.5, 0.3, 10.0, 10.0]
+    if x0.size > 10:
+        n_extra = x0.size - 10
+        tele_lo.extend([-np.inf] * n_extra)
+        tele_hi.extend([np.inf] * n_extra)
+
+    n_warp = _n_warp_coeff_total(warp_level, shared_warp)
+    warp_lo: list[float] = []
+    warp_hi: list[float] = []
+    if n_warp > 0:
+        for pu, pv in _poly_terms_2d(warp_level):
+            deg = pu + pv
+            lim = {0: 500.0, 1: 10.0, 2: 0.01, 3: 1e-4}.get(deg, 1e-4)
+            warp_lo.append(-lim); warp_hi.append(lim)
+        n_repeats = 2 if shared_warp else 4
+        warp_lo = warp_lo * n_repeats
+        warp_hi = warp_hi * n_repeats
+
+    n_tele = x0.size - n_warp
+    lower = np.array(tele_lo[:n_tele] + warp_lo, dtype=np.float64)
+    upper = np.array(tele_hi[:n_tele] + warp_hi, dtype=np.float64)
+
+    sol = least_squares(residuals, x0=x0, bounds=(lower, upper),
+                         loss="huber", f_scale=1.0, max_nfev=int(max_nfev),
+                         xtol=1e-10, ftol=1e-10, gtol=1e-10)
+
+    fitted = model_at(sol.x)
+    left_res = rayfield_two_plane_residuals(left_field, fitted.channel("left"), full, z_planes=z_planes)
+    right_res = rayfield_two_plane_residuals(right_field, fitted.channel("right"), full, z_planes=z_planes)
+    combined = residuals(sol.x)
+    rss = float(np.sum(combined * combined))
+    n_res = int(combined.size)
+    n_samples = int(full.shape[0] * 2)
+    left_rms = _ray_rms(left_res)
+    right_rms = _ray_rms(right_res)
+    aic, bic = _aic_bic(rss, n_res, n_samples, fitted.n_parameters)
+
+    return CMOPhysicalStereoFitResult(
+        model=fitted, success=bool(sol.success), message=str(sol.message),
+        n_parameters=fitted.n_parameters, n_samples=n_samples,
+        n_residual_scalars=n_res, rss=rss,
+        left_rms_mm=left_rms, right_rms_mm=right_rms,
+        rms_mm=float(np.sqrt(0.5 * (left_rms**2 + right_rms**2))),
+        aic=aic, bic=bic,
+        parameter_vector=np.asarray(sol.x, dtype=np.float64).copy(),
+        parameter_dict=fitted.parameter_dict(),
+    )
+
+
+def compute_cmo_zernike_residuals(
+    cmo_model,
+    zernike_left,
+    zernike_right,
+    grid_shape: tuple[int, int] = (17, 13),
+    image_size: tuple[int, int] | None = None,
+    zernike_order: int = 4,
+) -> dict[str, Any]:
+    """Compute direction/moment residuals between a CMO model and Zernike rayfield.
+
+    Returns delta_d (deg), delta_m (mm), and Zernike modal projection
+    of the direction residual field.
+    """
+    if image_size is None:
+        raise ValueError("image_size is required")
+    W, H = int(image_size[0]), int(image_size[1])
+    pixels = _grid_pixels(image_size, grid_shape)
+    uf, vf = pixels[:, 0], pixels[:, 1]
+
+    OzL, dzL = zernike_left.ray(uf, vf)
+    OzR, dzR = zernike_right.ray(uf, vf)
+
+    if hasattr(cmo_model, "channel"):
+        OmL, dmL = cmo_model.ray(uf, vf, "left")
+        OmR, dmR = cmo_model.ray(uf, vf, "right")
+    else:
+        OmL, dmL = cmo_model.ray(uf, vf)
+        OmR, dmR = OmL, dmL
+
+    dot_L = np.clip(np.sum(dzL * dmL, axis=1), -1.0, 1.0)
+    dot_R = np.clip(np.sum(dzR * dmR, axis=1), -1.0, 1.0)
+    ang_L = np.degrees(np.arccos(dot_L))
+    ang_R = np.degrees(np.arccos(dot_R))
+
+    mzL = np.cross(OzL, dzL); mmL = np.cross(OmL, dmL)
+    mzR = np.cross(OzR, dzR); mmR = np.cross(OmR, dmR)
+    mom_L = np.linalg.norm(mzL - mmL, axis=1)
+    mom_R = np.linalg.norm(mzR - mmR, axis=1)
+
+    delta_d_L = dzL - dmL
+    delta_d_R = dzR - dmR
+
+    from stereocomplex.core.model_compact.zernike import zernike_modes, eval_real_zernike
+    modes = zernike_modes(int(zernike_order))
+    xi = 2.0 * uf / float(W - 1) - 1.0
+    zeta = 2.0 * vf / float(H - 1) - 1.0
+    rho = np.sqrt(xi*xi + zeta*zeta) / np.sqrt(2.0)
+    theta = np.arctan2(zeta, xi)
+    B = np.empty((uf.size, len(modes)), dtype=np.float64)
+    for j, mode in enumerate(modes):
+        B[:, j] = eval_real_zernike(mode, rho, theta)
+    BtB_inv = np.linalg.inv(B.T @ B + 1e-10 * np.eye(B.shape[1]))
+    B_pinv = BtB_inv @ B.T
+
+    projection: dict[str, float] = {}
+    for ch_label, dd in [("L", delta_d_L), ("R", delta_d_R)]:
+        for comp, cl in enumerate(["dx", "dy", "dz"]):
+            c = B_pinv @ dd[:, comp]
+            for j, mode in enumerate(modes):
+                projection[f"{ch_label}_n{mode.n}_m{mode.m}_{mode.kind}_{cl}"] = float(c[j])
+
+    Bsq = np.sum(B**2, axis=0)
+    var_total_L = float(np.sum(delta_d_L**2))
+    var_total_R = float(np.sum(delta_d_R**2))
+    mode_contribs = []
+    for j, mode in enumerate(modes):
+        cLx = projection.get(f"L_n{mode.n}_m{mode.m}_{mode.kind}_dx", 0.0)
+        cLy = projection.get(f"L_n{mode.n}_m{mode.m}_{mode.kind}_dy", 0.0)
+        cLz = projection.get(f"L_n{mode.n}_m{mode.m}_{mode.kind}_dz", 0.0)
+        cRx = projection.get(f"R_n{mode.n}_m{mode.m}_{mode.kind}_dx", 0.0)
+        cRy = projection.get(f"R_n{mode.n}_m{mode.m}_{mode.kind}_dy", 0.0)
+        cRz = projection.get(f"R_n{mode.n}_m{mode.m}_{mode.kind}_dz", 0.0)
+        frac_L = float((cLx**2 + cLy**2 + cLz**2) * Bsq[j]) / max(var_total_L, 1e-16)
+        frac_R = float((cRx**2 + cRy**2 + cRz**2) * Bsq[j]) / max(var_total_R, 1e-16)
+        mode_contribs.append({
+            "mode": f"Z_{mode.n}^{mode.m}({mode.kind})",
+            "n": mode.n, "m": mode.m, "kind": mode.kind,
+            "frac_var_L": frac_L, "frac_var_R": frac_R,
+        })
+    mode_contribs.sort(key=lambda x: abs(x["frac_var_L"]) + abs(x["frac_var_R"]), reverse=True)
+
+    return {
+        "dir_rms_deg_L": float(np.sqrt(np.mean(ang_L**2))),
+        "dir_rms_deg_R": float(np.sqrt(np.mean(ang_R**2))),
+        "dir_rms_deg_total": float(np.sqrt(np.mean(np.concatenate([ang_L, ang_R])**2))),
+        "mom_rms_mm_L": float(np.sqrt(np.mean(mom_L**2))),
+        "mom_rms_mm_R": float(np.sqrt(np.mean(mom_R**2))),
+        "mom_rms_mm_total": float(np.sqrt(np.mean(np.concatenate([mom_L, mom_R])**2))),
+        "zernike_projection": projection,
+        "top_direction_modes": mode_contribs[:8],
+        "all_mode_contributions": mode_contribs,
+        "n_points": int(pixels.shape[0]),
+        "grid_shape": grid_shape,
+    }
+
 __all__ = [
     "CMOPhysicalChannelModel",
     "CMOPhysicalStereoFitResult",

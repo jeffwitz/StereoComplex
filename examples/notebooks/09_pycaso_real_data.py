@@ -1034,6 +1034,125 @@ print(f"    RMS = {np.sqrt(np.mean(epx_ps**2)):.2f} px  P50 = {np.percentile(epx
 print(f"    (Zernike: 0.47 px, telecentric no-shear: ~28 px, perspective: ~86 px)")
 
 # %% [markdown]
+# ### 9.6 — Warped CMO: image-space pre-warp
+#
+# The telecentric model (section 9) captures the dominant geometry but
+# plateaus at ~14 px reprojection.  The residual is not in the direction
+# field — it is in the **pixel→ray mapping**: a real microscope has
+# non-radial, asymmetric field-coordinate distortions that an affine
+# direction field cannot capture.
+#
+# We enrich the CMO model with a polynomial **pre-warp** on the pixel
+# coordinates before the telecentric direction model acts:
+#
+# $$\xi = W_{c,x}(u,v), \qquad \eta = W_{c,y}(u,v)$$
+#
+# $$d_c = \operatorname{normalize}\big(d_{\text{chief}} + s_x \tilde\xi\, e_x + s_y \tilde\eta\, e_y + \cdots\big)$$
+#
+# This is NOT Brown distortion (radial, centred).  It is a general 2D
+# polynomial ($\xi = a_0 + a_1 u + a_2 v + a_3 u^2 + \cdots$) that can
+# capture asymmetric, non-radial field-angle effects.
+#
+# We test three levels hierarchically: **Level 0** = identity (current
+# telecentric), **Level 1** = affine warp (3 terms/axis), **Level 2** =
+# quadratic warp (6 terms/axis).  Each model is fitted to the Zernike
+# rayfield (not directly to corners), then evaluated on reprojection.
+
+# %%
+from stereocomplex.physics.cmo_physical import (
+    CMOWarpedStereoModel,
+    fit_cmo_warped_model_to_rayfields,
+    compute_cmo_zernike_residuals,
+    _n_warp_coeff_per_axis,
+)
+
+# Start from best telecentric parameters (section 9)
+tele_x = m_ps.parameter_vector()  # 12-element base vector
+print(f"Telecentric base: {tele_x.size} params")
+
+warp_results = []
+for level in [1, 2]:
+    per_axis = _n_warp_coeff_per_axis(level)
+    # Identity warp initialisation
+    xi_init = [0.0, 1.0, 0.0] + [0.0] * max(0, per_axis - 3)
+    eta_init = [0.0, 0.0, 1.0] + [0.0] * max(0, per_axis - 3)
+    x0_warp = np.concatenate([tele_x, xi_init, eta_init])
+
+    result = fit_cmo_warped_model_to_rayfields(
+        lf, rf, IMG_SIZE, x0_warp,
+        pixel_pitch_mm=0.0055,
+        z_planes=(50., 80.),
+        grid_shape=(12, 9),
+        warp_level=level, shared_warp=True,
+        max_nfev=500,
+    )
+    m_fitted = result.model
+
+    # Pixel-equivalent reprojection
+    class _W:
+        def __init__(s, m, c): s.m = m; s.c = c
+        def ray(s, u, v): return s.m.channel(s.c).ray(u, v)
+    epx = []
+    for pi in range(len(paired_z)):
+        Rm, t = opt_R[pi], opt_t[pi]
+        Xw = (Rm @ obj_pts.T).T + t[None, :]
+        n_plane = Rm[:, 2]
+        for k in range(obj_pts.shape[0]):
+            for uv, f in [(left_pixels[pi][k], _W(m_fitted, "left")),
+                          (right_pixels[pi][k], _W(m_fitted, "right"))]:
+                O, d = f.ray(np.array([uv[0]]), np.array([uv[1]]))
+                dn = float(np.dot(d[0], n_plane))
+                if abs(dn) > 1e-10:
+                    tL = float(np.dot(t - O[0], n_plane)) / dn
+                    e = float(np.linalg.norm((O[0] + tL * d[0]) - Xw[k]))
+                    epx.append(e / max(abs(tL), 1.0) * FX)
+    epx = np.array(epx)
+    px_rms = float(np.sqrt(np.mean(epx**2)))
+    px_p50 = float(np.percentile(epx, 50))
+
+    warp_results.append({
+        "level": level,
+        "n_params": result.n_parameters,
+        "ray_rms_mm": result.rms_mm,
+        "px_rms": px_rms,
+        "px_p50": px_p50,
+    })
+    print(f"  Level {level} ({result.n_parameters} params): "
+          f"ray RMS={result.rms_mm:.4f} mm, "
+          f"pixel RMS={px_rms:.2f} px, P50={px_p50:.2f} px")
+
+# Residual analysis on best model
+best = warp_results[-1]
+if best["level"] >= 1:
+    res = compute_cmo_zernike_residuals(
+        m_fitted, lf, rf,
+        grid_shape=(17, 13), image_size=IMG_SIZE, zernike_order=4,
+    )
+    print(f"\nResidual direction RMS: L={res['dir_rms_deg_L']:.4f}°, "
+          f"R={res['dir_rms_deg_R']:.4f}°")
+    print(f"Residual moment RMS:   L={res['mom_rms_mm_L']:.4f} mm, "
+          f"R={res['mom_rms_mm_R']:.4f} mm")
+    print(f"Top residual Zernike modes:")
+    for m in res["top_direction_modes"][:5]:
+        if abs(m["frac_var_L"]) + abs(m["frac_var_R"]) < 0.001:
+            continue
+        print(f"  {m['mode']:18s}  L={m['frac_var_L']*100:.1f}%  R={m['frac_var_R']*100:.1f}%")
+
+# Comparison table
+print(f"\n{'Model':>30s}  {'Params':>6s}  {'Ray RMS':>8s}  {'Px RMS':>7s}  {'Px P50':>7s}")
+print(f"  {'─'*30}  {'─'*6}  {'─'*8}  {'─'*7}  {'─'*7}")
+# Baseline: telecentric with pupil shear
+epx_ps_arr = np.array(epx_ps)
+ps_px_rms = float(np.sqrt(np.mean(epx_ps_arr**2)))
+ps_px_p50 = float(np.percentile(epx_ps_arr, 50))
+print(f"  {'telecentric (L0)':>30s}  {12:>6d}  {rms_ps:8.4f}  {ps_px_rms:7.2f}  {ps_px_p50:7.2f}")
+for wr in warp_results:
+    label = f"warped L{wr['level']}"
+    print(f"  {label:>30s}  {wr['n_params']:>6d}  {wr['ray_rms_mm']:8.4f}  {wr['px_rms']:7.2f}  {wr['px_p50']:7.2f}")
+# Zernike reference
+print(f"  {'Zernike O(0)+d(2)':>30s}  {57:>6d}  {0.0007:8.4f}  {0.47:7.2f}  {'─':>7s}")
+
+# %% [markdown]
 # ## 10 — Zernike/pose identifiability: conditioning diagnostic
 #
 # The difference between constrained-pose Zernike (0.47 px) and full-pose
