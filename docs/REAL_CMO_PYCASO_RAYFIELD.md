@@ -407,7 +407,7 @@ constraint that the ray-space BIC alone does not capture.
 |---|---|---|---:|---:|---:|---:|---|
 | cmo_telecentric_shear | 14 | 0.111 | −36 129 | 14.6 px | +978 890 | REJECTED |
 | cmo_telecentric | 12 | 0.146 | −33 201 | 27.7 px | +986 044 | REJECTED |
-| **CMO + SE(3) 26p** | **26** | **0.002** | **≈−36 000** | **1.06 px** | **≈−36 000** | **BEST USABLE** |
+| **CMO + SE(3) 26p** | **26** | **0.002** | **−32 433** | **1.06 px** | **−32 433** | **BEST USABLE** |
 | Zernike O(0)+d(2) | 57 | — | reference | 0.47 px | reference | best flexible |
 
 The ray-space BIC confirms that the CMO telecentric family is correct

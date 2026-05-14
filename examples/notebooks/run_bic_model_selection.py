@@ -243,43 +243,57 @@ print(f"Best by AIC: {report.best_by_aic}")
 print(f"Best by RMS: {report.best_by_rms}")
 
 # ── Operational BIC with reprojection guard ──
-# Known pixel RMS from direct corner evaluation (from aligned_cmo_fit.json etc.)
+# Pixel RMS values measured in separate evaluation scripts:
+#   telecentric_shear: 14.6 px (run_warped_model.py)
+#   telecentric (no shear): 27.7 px (notebook section 9)
+#   26p aligned CMO: 1.06 px (ablate_se3.py, autopsy_26p.py)
+# These are dataset-specific (Pycaso: 10 frames × 165 corners × 2 channels)
+from stereocomplex.physics.model_selection import _aic_bic  # noqa: PLC0415
+
+n_px_obs = 3300  # 165 corners × 10 frames × 2 channels
 px_rms_known = {
     "cmo_telecentric_shear": 14.6,
     "cmo_telecentric": 27.7,
-    "pinhole_parallel_plate": None,  # not evaluated in pixels
+    "pinhole_parallel_plate": None,
     "central_pinhole": None,
     "central_brown_conrady": None,
 }
-# Also add the SE(3)-aligned 26p model
-n_corners = 3300  # 165 × 10 × 2
+
+# Compute 26p BIC using the same residual structure as the other candidates
+# (same grid, same n_res, same n_obs — so BIC values are comparable)
+rms_26p_mm = 0.002145  # from autopsy_26p.json
+ref = report.candidates[0]  # use same n_res, n_obs as other candidates
+rss_26p = rms_26p_mm**2 * ref.n_residual_scalars
+_, bic_26p = _aic_bic(rss_26p, ref.n_residual_scalars, ref.n_samples, p=26)
+px_26p = 1.06  # from ablate_se3.py
 
 print(f"\n{'Model':>25s}  {'BIC ray':>10s}  {'Px RMS':>8s}  {'Guard':>10s}  {'BIC usable':>12s}  {'Status':>15s}")
 print(f"  {'─'*25}  {'─'*10}  {'─'*8}  {'─'*10}  {'─'*12}  {'─'*15}")
 for r in sorted(report.candidates, key=lambda r_: r_.bic):
     px = px_rms_known.get(r.model_name)
     if px is not None:
-        guard = reprojection_guard_penalty(px, threshold_px=1.5, n_pixel_observations=n_corners)
+        guard = reprojection_guard_penalty(px, threshold_px=1.5, n_pixel_observations=n_px_obs)
         bic_u = r.bic + guard
         status = "USABLE" if px <= 1.5 else "REJECTED"
         print(f"  {r.model_name:>25s}  {r.bic:10.1f}  {px:8.1f}  {guard:10.1f}  {bic_u:12.1f}  {status:>15s}")
     else:
         print(f"  {r.model_name:>25s}  {r.bic:10.1f}  {'─':>8s}  {'─':>10s}  {'─':>12s}  {'no px data':>15s}")
 
-# Add 26p aligned model manually
-bic_26p = -36129  # approximate from telecentric_shear (slightly higher params = slightly higher BIC)
-px_26p = 1.06
-guard_26p = reprojection_guard_penalty(px_26p, threshold_px=1.5, n_pixel_observations=n_corners)
+# 26p aligned model — BIC computed from measured ray RMS, not hardcoded
+guard_26p = reprojection_guard_penalty(px_26p, threshold_px=1.5, n_pixel_observations=n_px_obs)
 print(f"  {'cmo_telecentric + SE(3) 26p':>25s}  {bic_26p:10.0f}  {px_26p:8.2f}  {guard_26p:10.0f}  {bic_26p + guard_26p:12.0f}  {'BEST USABLE':>15s}")
 
-# Zernike
+# Zernike ref
 print(f"  {'Zernike O(0)+d(2) 57p':>25s}  {'reference':>10s}  {0.47:8.2f}  {'─':>10s}  {'─':>12s}  {'best flexible':>15s}")
 
 # Save
 results = [{"model": c.model_name, "parameters": c.n_parameters, "rms_mm": c.rms_mm,
-            "full_grid_rms_mm": c.full_grid_rms_mm, "bic": c.bic, "aic": c.aic}
+            "full_grid_rms_mm": c.full_grid_rms_mm, "bic_ray": c.bic, "aic": c.aic}
            for c in sorted(report.candidates, key=lambda r_: r_.bic)]
 with open(OUT / "bic_model_selection.json", "w") as f:
-    json.dump({"description": "BIC model selection on Pycaso Zernike rayfield", "candidates": results, "best_by_bic": report.best_by_bic}, f, indent=2)
+    json.dump({"description": "BIC model selection on Pycaso Zernike rayfield",
+               "candidates": results, "best_by_bic_ray": report.best_by_bic,
+               "operational_bic": {"model_26p": {"bic_ray": bic_26p, "px_rms": px_26p, "bic_usable": bic_26p + guard_26p, "status": "BEST USABLE"}}
+              }, f, indent=2)
 print(f"\nSaved: {OUT / 'bic_model_selection.json'}")
 print("Done!")
