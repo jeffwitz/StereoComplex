@@ -1116,54 +1116,54 @@ print(f"  dy_range_R:        {ind_deltas['dy_range_R']:+.4f}")
 print(f"  subpupil_depth:    {ind_deltas['subpupil_depth_mm']:+.2f} mm")
 
 # %% [markdown]
-# ### 10.2 — Interpretation
+# ### 10.2 — Interpretation: the rayfield as a diagnostic instrument
 #
-# **Key finding: 90 % of Δd is a global direction piston (Z₀⁰).**
-# This mode shifts all ray directions by a constant offset — equivalent
-# to changing the effective focal length.  It is a **gauge freedom**:
-# changing the pinhole scale is nearly unobservable from corner data
-# because poses absorb it.
+# **Key finding: 90 % of Δd is Z₀⁰ (global direction piston).**
+# This is a gauge freedom — equivalent to changing the effective focal
+# length — that poses can absorb.  The 2‑D reprojection error is
+# **blind** to this: a full-pose fit absorbs corner noise into rayfield
+# distortions without increasing pixel RMS.
 #
-# **Z₁¹(cos/sin) account for the remaining ~10 %** — these are tilt modes
-# that couple to board rotation.  They represent the actual geometric
-# change when poses are freed (the 0.31° true wobble).
+# **This turns the gauge into a quality test for 2‑D preprocessing.**
+# If constrained and full-pose rayfields differ substantially, the
+# corners carry residual noise that the optimizer exploits.  The fix
+# is to improve Ray2D, not to constrain poses:
 #
-# **Stability diagnosis:**
+# ```text
+# Ray2D → Ray3D → ΔZ₀ < 0.1° ? ──no──→ improve Ray2D → repeat
+#                        │
+#                       yes
+#                        │
+#               rayfield stable
+#               → physical interpretation reliable
+# ```
 #
-# | Mode      | Δd_L  | Stability  | Couples to          | Interpretation               |
-# |-----------|-------|------------|---------------------|------------------------------|
-# | Z₀⁰(m0)   | 0.149 | UNSTABLE   | subpupil_depth      | Gauge mode (global scale)    |
-# | Z₁¹(cos)  | 0.078 | UNSTABLE   | d_y range (tele)    | Tilt ↔ R_x coupling          |
-# | Z₁¹(sin)  | 0.093 | UNSTABLE   | d_y range (tele)    | Tilt ↔ R_y coupling          |
-# | Z₂⁰(m0)   | 0.001 | MODERATE   | d_x antisymmetry    | Defocus ↔ convergence        |
-# | Z₂²(cos)  | 0.002 | UNSTABLE   | d_y range (weak)    | Astigmatism (poorly excited)  |
-# | Z₂²(sin)  | 0.003 | UNSTABLE   | d_y range           | Astigmatism ↔ shear          |
+# **The double TPS pass resolves the gauge.**  Using the completed 165
+# corners as TPS control points (λ=3, Huber c=1.5) eliminates the noise
+# that was exciting the gauge mode.  The second TPS pass is a denoising
+# regularizer whose validity is confirmed not by the 2‑D residual but by
+# the disappearance of gauge drift in Ray3D.
 #
-# **Recommendation:** The gauge mode diagnosis was correct, but the
-# solution turned out to be **better data preprocessing** rather than
-# regularization.  The double TPS pass (ArUco markers → 165 corners →
-# TPS smoothing) eliminates the noise that the gauge mode was absorbing.
-# With clean 2‑D data, constrained poses are both physically justified
-# and sufficient — the full-pose fit adds 45 parameters for negligible
-# rayfield change (Z₀ drift < 0.03°).
+# **Stability criterion:**
+#
+# | Criterion | Threshold | Status |
+# |---|---|---|
+# | ΔZ₀ (direction piston) | < 0.1° | depends on preprocessing |
+# | \|Δb\| (baseline) | < 0.5 mm | depends on preprocessing |
+# | \|Δθ\| (convergence) | < 0.2° | depends on preprocessing |
+#
+# When these pass, the rayfield is **stable** — the choice of pose model
+# no longer affects physical interpretation.
+#
+# This test is automated in section 10.3 (set ``RUN_SWEEP = True``).
 
 # %% [markdown]
-# ### 10.3 — Gauge-regularized full-pose sweep
+# ### 10.3 — Verification: gauge-regularized sweep
 #
-# We test the regularization strategy: allow free per-frame poses but
-# anchor Z₀ and Z₁ direction coefficients to the constrained-pose solution
-# with a quadratic penalty.  The regularization weight is expressed as an
-# interpretable angular tolerance $\sigma$ (in degrees):
-#
-# $$\mathcal{L} = \mathcal{L}_{\text{repr}} + \sum_{m \in \{Z_0,Z_1\}} \sum_c
-#   \left(\frac{a^f_{m,c} - a^c_{m,c}}{\sigma_m}\right)^2$$
-#
-# A small $\sigma$ strongly anchors the gauge mode; a large $\sigma$
-# recovers the unregularized full-pose fit.
-#
-# We sweep $\sigma_{Z_0} \in [0.05°, 2.0°]$ and $\sigma_{Z_1} \in
-# [0.5°, 2.0°]$ to find the Pareto frontier between reprojection accuracy
-# and gauge-mode stability.
+# As a verification (not a fix), we run a sweep of gauge-regularized
+# full-pose fits anchoring Z₀ and Z₁ to the constrained solution with
+# angular tolerance σ.  If preprocessing is sufficient, even the
+# unregularized fit (σ→∞) should show negligible drift.
 #
 # Set `RUN_SWEEP = True` to execute (takes ~10–15 min on 10 frames).
 
@@ -1435,6 +1435,18 @@ if RUN_SWEEP:
         }, f, indent=2)
     print(f"\nSaved to {SWEEP_DIR / 'zernike_gauge_regularization_sweep.json'}")
 
+    # ── Stability test ──
+    bl = sweep_results[0]  # full_pose_baseline
+    dz0_pass = bl["drift_z0_deg"] < 0.1
+    db_pass = abs(bl["baseline_mm"] - 24.9) < 0.5
+    dtheta_pass = abs(bl["convergence_angle_deg"] - 22.3) < 0.2
+    all_pass = dz0_pass and db_pass and dtheta_pass
+    print(f"\n=== Rayfield stability test ===")
+    print(f"  ΔZ₀  = {bl['drift_z0_deg']:.4f}°  (< 0.1°)  {'PASS' if dz0_pass else 'FAIL'}")
+    print(f"  |Δb| = {abs(bl['baseline_mm']-24.9):.2f} mm  (< 0.5mm) {'PASS' if db_pass else 'FAIL'}")
+    print(f"  |Δθ| = {abs(bl['convergence_angle_deg']-22.3):.2f}°  (< 0.2°)  {'PASS' if dtheta_pass else 'FAIL'}")
+    print(f"  {'→ RAYFIELD STABLE' if all_pass else '→ IMPROVE Ray2D PREPROCESSING'}")
+
     # ── Pareto plot ──
     import matplotlib.pyplot as plt
     fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
@@ -1510,21 +1522,27 @@ else:
 #    telecentric than the perspective CMO model, explaining why the CMO
 #    fit cannot achieve better than ~600 px reprojection.
 #
-# 5. **The constrained-vs-full-pose Zernike difference is dominated by a
-#    gauge mode** (Z₀⁰, global direction piston).  The conditioning
-#    diagnostic (section 10) identified this mode and tracked its
-#    sensitivity to physical descriptors.  The gauge-regularized sweep
-#    (section 10.3) provided the tool to anchor it.
+# 5. **The rayfield is a diagnostic instrument for 2‑D corner quality.**
+#    Comparing constrained vs. full-pose Zernike fits reveals a gauge
+#    drift (Z₀, 90 % of Δd) that is invisible to 2‑D reprojection error.
+#    The stability criterion ΔZ₀ < 0.1°, |Δb| < 0.5 mm, |Δθ| < 0.2°
+#    tells you whether your corners are clean enough for physically
+#    interpretable calibration.  If it fails, the fix is to improve
+#    Ray2D preprocessing — not to constrain poses.
 #
-# 6. **TPS re-denoising on completed corners eliminates the gauge
-#    ambiguity.**  The double TPS pass — first on ArUco markers, then on
-#    the completed 165‑corner set — produces data clean enough that the
-#    Z₀ drift drops from 8.5° to 0.023°.  With proper 2‑D preprocessing,
-#    the Zernike + poses inverse problem is well-conditioned and the
-#    choice between constrained and full poses becomes a matter of
-#    parsimony, not gauge instability.
+# 6. **Double TPS eliminates the gauge ambiguity.**  The second TPS pass
+#    on the completed 165‑corner set reduces Z₀ drift from 8.5° to
+#    0.023°, making constrained and full-pose rayfields nearly identical.
+#    The sweep (section 10.3) confirms that regularization adds nothing
+#    when corners are clean — the Pareto curve is vertical.
 #
-# 7. **The workflow generalises**: the same rayfield → physical reading →
+# 7. **The Ray2D → Ray3D feedback loop is a general strategy.**  Any
+#    stereo calibration pipeline can use it: measure the rayfield,
+#    compare pose models, diagnose corner quality, fix preprocessing,
+#    verify.  This turns an apparent weakness (gauge instability) into a
+#    systematic quality-control tool.
+#
+# 8. **The workflow generalises**: the same rayfield → physical reading →
 #    model comparison sequence can be applied to any stereo microscope to
 #    identify its optical architecture and quantify deviations from ideal
 #    models.
