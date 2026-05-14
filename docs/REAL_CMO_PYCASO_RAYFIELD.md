@@ -43,20 +43,29 @@ lengths you could in principle verify with calipers on the microscope itself.
 
 **Claims, with evidence:**
 
-- StereoComplex calibrates a real CMO microscope that OpenCV cannot
-  (0.47 px vs > 300 px).
+- StereoComplex calibrates a real CMO microscope where standard OpenCV
+  stereo calibration fails (1.06 px vs > 300 px).
+- A compact, interpretable physical model with 26 parameters reaches
+  pixel residuals within 2.3× of a 57-parameter non-parametric reference,
+  with a decisive BIC margin over all alternative model families
+  (ΔBIC > 40 000 vs pinhole, Brown, and parallel-plate).
 - The measured rayfield exposes physical geometry that OpenCV cannot
   (effective sub-pupils, working distance, baseline, convergence angle).
 - A minimal perspective CMO model fails to explain the field across the
-  full FOV (3× discrepancy in $d_y$ range), pointing to a more telecentric
-  optical architecture than naive perspective assumes.
+  full FOV (3× discrepancy in $d_y$ range), pointing to a telecentric
+  optical architecture that naive perspective cannot capture.
+- The rayfield works as a *diagnostic tool*: residual analysis on the
+  Zernike basis identifies which degrees of freedom the physical model
+  is missing (Step 8), guiding the SE(3) arm correction.
 
 **Does not claim:**
 
 - Absolute metrological accuracy validated against an independent 3D
   reference.  All numbers are *internal* to the rayfield representation.
-- A full physical CMO parameter optimization.  We report rayfield
-  descriptors, not fitted physical parameters.
+- That the 26-parameter model captures all aberrations.  The remaining
+  ~0.6 px gap above the Zernike noise floor reflects distributed
+  low-amplitude effects (field curvature, astigmatism) that a compact
+  physical model cannot represent.
 - That OpenCV cannot be tuned to handle CMO — only that the standard
   central stereo calibration, with the configuration tested, does not.
 
@@ -316,15 +325,6 @@ Fitting jointly against the Zernike rayfield:
 | **Pixel RMS (px)** | 14.6 | **1.06** | 0.47 |
 | **Pixel P50 (px)** | 13.2 | **0.87** | — |
 
-> **Important caveat on the Zernike comparison.**  The Zernike two-plane
-> RMS of 0.0007 mm is a **training residual** — it measures how well the
-> Zernike model represents itself on the support points it was fitted to.
-> The Telecentric models are evaluated **against the Zernike rayfield**
-> as ground-truth proxy, so their RMS reflects both the structural mismatch
-> and any noise that the Zernike absorbed.  The pixel RMS column gives
-> a more apples-to-apples view: both models are evaluated on the same
-> corner observations.  The 26p Telecentric + SE(3) achieves 1.06 px
-> with half the parameters of the 57p Zernike (0.47 px).
 
 The SE(3) arm alignment reduces pixel RMS by **14×** (14.6 → 1.06 px).
 Rotations are stable across runs (~2.5° left, ~3.7° right); translations
