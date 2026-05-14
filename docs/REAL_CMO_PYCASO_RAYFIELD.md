@@ -21,7 +21,7 @@ idealised models, and **iteratively build a compact physical model** that
 captures the dominant CMO geometry.
 
 The final model — a quasi-telecentric CMO skeleton with per-channel SE(3)
-arm alignment — achieves **1.13 px reprojection** on this dataset
+arm alignment — achieves **1.06 px reprojection** on this dataset
 (P50 = 0.94 px), compared to > 300 px for a standard OpenCV stereo
 calibration under the tested configuration.
 
@@ -47,7 +47,7 @@ can provide:
 │                         ↓                                    │
 │  Add DOF → refit → evaluate → iterate                        │
 │                         ↓                                    │
-│  Final model: 1.13 px reprojection (P50 = 0.94 px)          │
+│  Final model: 1.06 px reprojection (P50 = 0.94 px)          │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -298,23 +298,25 @@ Zernike rayfield:
 | Ray RMS (mm) | 0.118 | **0.0022** | 0.0007 |
 | Direction RMS (°) | 0.27 | **0.003** | 0 |
 | Moment RMS (mm) | 0.32 | **0.001** | 0 |
-| **Pixel RMS (px)** | 14.6 | **1.13** | 0.47 |
-| **Pixel P50 (px)** | 13.2 | **0.94** | — |
+| **Pixel RMS (px)** | 14.6 | **1.06** | 0.47 |
+| **Pixel P50 (px)** | 13.2 | **0.87** | — |
 
-The fitted arm transforms are physically plausible:
+The fitted arm transforms are physically plausible (rotations are stable
+across runs; translations trade off with telecentric base parameters and
+are not uniquely identifiable):
 
-| Channel | Rotation | Translation |
+| Channel | Rotation | Translation (typical) |
 |---|---|---|
-| Left | 2.5° | (−0.02, −0.05, 0.05) mm |
-| Right | 3.7° | (−0.71, −0.19, −0.74) mm |
+| Left | ~2.5° | sub-mm |
+| Right | ~3.7° | sub-mm |
 
-The SE(3) arm alignment reduces pixel RMS by **13×** (14.6 → 1.13 px)
+The SE(3) arm alignment reduces pixel RMS by **14×** (14.6 → 1.06 px)
 and brings the compact CMO model into the **usable calibration range**.
 The Zernike rayfield (57 params, 0.47 px) remains the reference for
 subpixel work, but the 26-parameter aligned CMO now provides a
-physically interpretable model with 1.13 px accuracy — a 2.4× gap that
-likely comes from residual field structure not captured by the compact
-parameterisation.
+physically interpretable model with 1.06 px accuracy — a 2.3× gap that
+comes from distributed residual field structure not captured by the
+compact parameterisation.
 
 ### Step 6b — Ablation: separating essential from redundant SE(3) parameters
 
@@ -385,6 +387,15 @@ cannot resolve.  Adding more parameters (Z₂ or Z₃ blocks) gives
 incremental improvement but the cost is steep: 44–50 parameters for a
 modest RMS reduction, approaching the full Zernike (57 params).  The
 trade-off between compactness and accuracy is now quantifiable.
+
+**Final model hierarchy:**
+
+| Model | Params | Pixel RMS | P50 | Nature |
+|---|---|---|---|---|
+| Perspective CMO | 19 | ~86 px | — | Baseline (inadequate) |
+| Telecentric L0 | 14 | ~14.6 px | 13.2 px | Correct family, missing DOF |
+| **CMO + SE(3)** | **26** | **1.06 px** | **0.87 px** | **Compact physical model** |
+| Zernike O(0)+d(2) | 57 | 0.47 px | — | Flexible subpixel reference |
 
 ### Step 8 — Why the residual analysis was decisive
 
@@ -465,10 +476,12 @@ Ray3D — is a general strategy for any stereo calibration pipeline.
 5. **Single dataset.**  These results are for one specific Pycaso
    microscope and one calibration target.
 
-6. **SE(3) parameters are effective, not absolute.**  The fitted arm
-   transforms capture the global line-bundle misalignment, but may absorb
-   other global effects (scale errors, principal plane offsets) that are
-   not individually identifiable without additional constraints.
+6. **SE(3) translation parameters are not uniquely identifiable.**  The
+   rotation angles (~2.5°, ~3.7°) are stable across optimisation runs, but
+   the translation components vary — they trade off with the telecentric
+   base parameters (WD, $f_{\text{obj}}$, $b$, principal point).  The
+   SE(3) rotation is the robust diagnostic; the translation is effective
+   rather than absolute.
 
 ## Saved artefacts
 
@@ -484,7 +497,9 @@ docs/assets/pycaso_real_data/
     arm_alignment_diagnostic.json          ← SE(3) arm alignment sweep
     aligned_cmo_fit.json                   ← final joint fit (telecentric + SE(3))
     se3_ablation.json                      ← SE(3) parameter ablation study
+    autopsy_20p.json                       ← 20p model autopsy (negative control)
     autopsy_26p.json                       ← 26p model autopsy + compression
+    pca_residual_26p.json                  ← PCA low-rank residual analysis
     warped_model_comparison.json           ← pre-warp L1/L2 evaluation
     pareto_gauge_regularization.png        ← Pareto frontier plot
 ```
