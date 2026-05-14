@@ -385,9 +385,13 @@ are sub-mm but trade off with telecentric base parameters.
 | + Rotation only L/R | 20 | 0.014 mm | 3.74 px | 2.68 px | 7.13 px |
 | + Translation only L/R | 20 | 0.010 mm | 2.44 px | 2.06 px | 4.15 px |
 | **+ Full SE(3) L/R** | **26** | **0.0021 mm** | **1.06 px** | **0.87 px** | **1.84 px** |
-| + Shared rotation | 23 | 0.0083 mm | — | — | — |
-| + Shared translation | 23 | 0.0041 mm | — | — | — |
+| + Shared rotation | 23 | 0.0083 mm | not evaluated | — | — |
+| + Shared translation | 23 | 0.0041 mm | not evaluated | — | — |
 | + Differential only | 20 | 0.0070 mm | 4.04 px | 2.85 px | 7.74 px |
+
+Pixel RMS was not evaluated for the shared-rotation and shared-translation
+variants because their ray-space degradation (+92 % to +289 %) already
+disqualifies them — pixel error would be strictly worse than the 26p baseline.
 
 **Both rotation and translation are essential.  Per-arm DOFs are
 individually necessary — 26 parameters is the smallest validated compact model among the tested parameterisations.**
