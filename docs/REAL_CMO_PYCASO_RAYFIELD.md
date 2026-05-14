@@ -316,6 +316,48 @@ physically interpretable model with 1.13 px accuracy — a 2.4× gap that
 likely comes from residual field structure not captured by the compact
 parameterisation.
 
+### Step 6b — Ablation: separating essential from redundant SE(3) parameters
+
+The 26-parameter model (14 telecentric + 12 SE(3)) is useful for
+diagnosis, but many SE(3) parameters may be redundant: a common rotation
+and translation of both arms is equivalent to a global rigid transform
+of the microscope, not a relative optical misalignment.  We run an
+ablation study to isolate the essential degrees of freedom:
+
+| Variant | Params | Ray RMS | Px RMS | P50 | P95 |
+|---|---|---|---|---|---|
+| Telecentric (baseline) | 14 | 0.048 mm | 14.6 px | 13.2 px | 22.4 px |
+| + Rotation only L/R | 20 | 0.014 mm | 3.74 px | 2.68 px | 7.13 px |
+| + Translation only L/R | 20 | 0.010 mm | 2.44 px | 2.06 px | 4.15 px |
+| + Full SE(3) L/R | 26 | 0.0021 mm | **1.06 px** | **0.87 px** | **1.84 px** |
+| + Differential SE(3) | 26→20 | 0.0021 mm | **1.07 px** | **0.88 px** | **1.86 px** |
+| + Symmetric SE(3) | 26→20 | 0.0021 mm | **1.09 px** | **0.90 px** | **1.90 px** |
+
+**Key findings:**
+
+1. **Both rotation and translation are essential.**  Rotation alone
+   (3.74 px) or translation alone (2.44 px) leave significant residual
+   error — the ray bundle has both an angular and a positional offset.
+2. **The common mode is redundant.**  The differential SE(3) model —
+   common rigid transform + relative left/right difference — achieves
+   1.07 px, identical to the full independent SE(3) (1.06 px).  The
+   common rigid transform can be absorbed into the global microscope
+   extrinsics without changing reprojection.
+3. **CMO symmetry is compatible with the data.**  The symmetrised SE(3)
+   (mean rotation ± stereo component, antisymmetric translation)
+   achieves 1.09 px — statistically indistinguishable from the full
+   26-parameter model.  The data does not require broken left/right
+   symmetry.
+
+**Minimal model: 14 telecentric + 6 differential arm = 20 parameters
+for 1.07 px.**
+
+The six differential parameters are: relative rotation
+$R_R R_L^{-1}$ (3 params) and antisymmetric translation
+$t_R - t_L$ (3 params).  These capture the physically meaningful
+arm-to-arm misalignment — tube lens tilt, prism offset, camera port
+decentering — without the redundant absolute rigid transform.
+
 ### Step 7 — Why the residual analysis was decisive
 
 The sequence of investigations followed directly from the rayfield
@@ -363,7 +405,8 @@ Ray3D — is a general strategy for any stereo calibration pipeline.
 | Physical descriptors are read directly from (O, d) | $b, WD, f_{\text{obj}}, \theta$ without model fit | Diagnostic |
 | $d_y(u,v)$ reveals telecentricity | 3× range difference vs perspective model | Diagnostic |
 | Residual modal analysis identifies missing DOF | Δd and Δm are 97-98 % $Z_0^0$ (global, not spatial) | **Diagnostic method** |
-| SE(3) arm alignment resolves the global residual | Pixel RMS 14.6 → 1.13 px (13× improvement) | **Key result** |
+| SE(3) arm alignment resolves the global residual | Pixel RMS 14.6 → 1.06 px (14× improvement) | **Key result** |
+| SE(3) ablation isolates essential 6 differential params | Rotation + translation both essential; common mode redundant; 20 params for 1.07 px | **Key result** |
 | The rayfield is a general diagnostic instrument | The feedback loop works: observe → diagnose → fix → verify | **General strategy** |
 
 ## What this case study does **not** evaluate
@@ -411,6 +454,7 @@ docs/assets/pycaso_real_data/
     moment_residual_diagnostic.json        ← Δm modal decomposition + O1/O2 fits
     arm_alignment_diagnostic.json          ← SE(3) arm alignment sweep
     aligned_cmo_fit.json                   ← final joint fit (telecentric + SE(3))
+    se3_ablation.json                      ← SE(3) parameter ablation study
     warped_model_comparison.json           ← pre-warp L1/L2 evaluation
     pareto_gauge_regularization.png        ← Pareto frontier plot
 ```
