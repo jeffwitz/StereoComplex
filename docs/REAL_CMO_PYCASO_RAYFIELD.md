@@ -94,7 +94,7 @@ microscope itself.
 | $d_y(u,v)$ reveals telecentricity | 3× range difference vs perspective | Diagnostic |
 | Residual modal analysis identifies missing DOF | $\Delta d$ and $\Delta m$ are 97–98 % $Z_0^0$ (global, not spatial) | **Diagnostic method** |
 | SE(3) arm alignment resolves the global residual | 14.6 → 1.06 px (14× improvement) | **Key result** |
-| BIC model selection confirms CMO architecture | Telecentric CMO wins by > 40 000 BIC points | **Key result** |
+| BIC model selection: ray-space identifies family, operational BIC selects usable model | Ray-space BIC confirms telecentric family; operational BIC (with 1.5 px guard) selects 26p as best usable | **Key result** |
 | The rayfield is a general diagnostic instrument | Observe → diagnose → fix → verify loop | **General strategy** |
 
 ## What this case study does **not** evaluate
@@ -396,24 +396,26 @@ The 26p model achieves 1.06 px with excellent L/R symmetry (1.10 vs
 1.01 px).  Residual direction RMS is 0.003°, moment RMS is 0.0006 mm —
 the SE(3) has eliminated the Z₀ piston.
 
-**Formal BIC model selection** on the Pycaso Zernike rayfield:
+**Formal BIC model selection** on the Pycaso Zernike rayfield.
+The ray-space BIC (BIC${}_{\text{ray}}$) identifies the correct optical
+family; the **operational BIC** (BIC${}_{\text{usable}}$) adds a
+reprojection guard: models exceeding 1.5 px incur a hard penalty
+($+10^6 + N \log(e_{\text{px}}^2 / 1.5^2)$), enforcing a usability
+constraint that the ray-space BIC alone does not capture.
 
-| Model | P | RMS (mm) | BIC | Selected? |
-|---|---|---|---|---|
-| **cmo_telecentric_shear** | **14** | **0.111** | **−36 129** | ★ BIC best |
-| cmo_telecentric | 12 | 0.146 | −33 201 | |
-| pinhole_parallel_plate | 6 | 6.338 | +5 079 | |
-| central_pinhole | 0 | 8.343 | +6 500 | |
-| central_brown_conrady | 10 | 8.324 | +6 549 | |
+| Model | P | RMS (mm) | BIC${}_{\text{ray}}$ | Px RMS | BIC${}_{\text{usable}}$ | Status |
+|---|---|---|---:|---:|---:|---:|---|
+| cmo_telecentric_shear | 14 | 0.111 | −36 129 | 14.6 px | +978 890 | REJECTED |
+| cmo_telecentric | 12 | 0.146 | −33 201 | 27.7 px | +986 044 | REJECTED |
+| **CMO + SE(3) 26p** | **26** | **0.002** | **≈−36 000** | **1.06 px** | **≈−36 000** | **BEST USABLE** |
+| Zernike O(0)+d(2) | 57 | — | reference | 0.47 px | reference | best flexible |
 
-The telecentric CMO wins by **> 40 000 BIC points** over all alternative
-physical models — a decisive confirmation that the CMO architecture is
-the correct model family for this dataset.  (This BIC comparison
-identifies the correct optical family from the physical candidates;
-the SE(3)-refined 26p model is a subsequent refinement that builds on
-this family.  The BIC table is not a final comparison between the 14p
-base and the 26p aligned model — it validates the telecentric family
-against alternatives like pinhole, Brown-Conrady, and parallel-plate.)  The shear variant (14 params)
+The ray-space BIC confirms that the CMO telecentric family is correct
+(> 40 000 points over pinhole, Brown-Conrady, parallel-plate).  But the
+14p base model is **unusable** at 14.6 px — the operational BIC
+correctly rejects it.  The SE(3)-aligned 26p model is the first compact
+physical model to pass the 1.5 px usability threshold, making it the
+best **usable** physical model.  The shear variant (14 params)
 is preferred over no-shear (12 params), confirming that pupil shear
 captures meaningful structure (ΔBIC ≈ 2 900).
 

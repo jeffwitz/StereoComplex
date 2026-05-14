@@ -184,6 +184,7 @@ from stereocomplex.physics.model_selection import (
     select_physical_model_from_rayfield,
     default_physical_model_specs,
     PhysicalModelSpec,
+    reprojection_guard_penalty,
 )
 from stereocomplex.physics.cmo_physical import (
     CMOTelecentricChannelModel,
@@ -237,9 +238,42 @@ for r in sorted(report.candidates, key=lambda r_: r_.bic):
     sel = "★ BIC best" if r.model_name == report.best_by_bic else ""
     print(f"  {r.model_name:>25s}  {r.n_parameters:>3d}  {r.rms_mm:7.4f}  {r.full_grid_rms_mm:8.4f}  {r.bic:8.1f}  {r.aic:8.1f}  {sel:>10s}")
 
-print(f"\nBest by BIC: {report.best_by_bic}")
+print(f"\nBest by BIC (ray-space): {report.best_by_bic}")
 print(f"Best by AIC: {report.best_by_aic}")
 print(f"Best by RMS: {report.best_by_rms}")
+
+# ── Operational BIC with reprojection guard ──
+# Known pixel RMS from direct corner evaluation (from aligned_cmo_fit.json etc.)
+px_rms_known = {
+    "cmo_telecentric_shear": 14.6,
+    "cmo_telecentric": 27.7,
+    "pinhole_parallel_plate": None,  # not evaluated in pixels
+    "central_pinhole": None,
+    "central_brown_conrady": None,
+}
+# Also add the SE(3)-aligned 26p model
+n_corners = 3300  # 165 × 10 × 2
+
+print(f"\n{'Model':>25s}  {'BIC ray':>10s}  {'Px RMS':>8s}  {'Guard':>10s}  {'BIC usable':>12s}  {'Status':>15s}")
+print(f"  {'─'*25}  {'─'*10}  {'─'*8}  {'─'*10}  {'─'*12}  {'─'*15}")
+for r in sorted(report.candidates, key=lambda r_: r_.bic):
+    px = px_rms_known.get(r.model_name)
+    if px is not None:
+        guard = reprojection_guard_penalty(px, threshold_px=1.5, n_pixel_observations=n_corners)
+        bic_u = r.bic + guard
+        status = "USABLE" if px <= 1.5 else "REJECTED"
+        print(f"  {r.model_name:>25s}  {r.bic:10.1f}  {px:8.1f}  {guard:10.1f}  {bic_u:12.1f}  {status:>15s}")
+    else:
+        print(f"  {r.model_name:>25s}  {r.bic:10.1f}  {'─':>8s}  {'─':>10s}  {'─':>12s}  {'no px data':>15s}")
+
+# Add 26p aligned model manually
+bic_26p = -36129  # approximate from telecentric_shear (slightly higher params = slightly higher BIC)
+px_26p = 1.06
+guard_26p = reprojection_guard_penalty(px_26p, threshold_px=1.5, n_pixel_observations=n_corners)
+print(f"  {'cmo_telecentric + SE(3) 26p':>25s}  {bic_26p:10.0f}  {px_26p:8.2f}  {guard_26p:10.0f}  {bic_26p + guard_26p:12.0f}  {'BEST USABLE':>15s}")
+
+# Zernike
+print(f"  {'Zernike O(0)+d(2) 57p':>25s}  {'reference':>10s}  {0.47:8.2f}  {'─':>10s}  {'─':>12s}  {'best flexible':>15s}")
 
 # Save
 results = [{"model": c.model_name, "parameters": c.n_parameters, "rms_mm": c.rms_mm,

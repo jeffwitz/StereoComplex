@@ -56,6 +56,7 @@ from stereocomplex.physics.model_selection import (
     PhysicalModelSpec,
     default_physical_model_specs,
     fit_physical_model_to_rayfield,
+    reprojection_guard_penalty,
     select_physical_model_from_rayfield,
 )
 from stereocomplex.physics.parallel_plate_fit import (

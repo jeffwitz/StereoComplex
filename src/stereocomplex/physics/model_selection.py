@@ -70,6 +70,31 @@ class OpticalModelSelectionReport:
         ]
 
 
+def reprojection_guard_penalty(
+    px_rms: float,
+    *,
+    threshold_px: float = 1.5,
+    n_pixel_observations: int,
+    hard_penalty: float = 1.0e6,
+    alpha: float = 1.0,
+) -> float:
+    """Penalty term for models exceeding a pixel reprojection threshold.
+
+    Returns 0 if ``px_rms <= threshold_px``.  Otherwise returns a hard
+    barrier plus a log-ratio term that ranks non-usable models among
+    themselves::
+
+        penalty = hard_penalty + alpha * n_obs * log((px_rms / threshold)^2)
+
+    This is designed to be added to a ray-space BIC to produce an
+    operational ``bic_usable`` that enforces a usability constraint.
+    """
+    if px_rms <= threshold_px:
+        return 0.0
+    ratio2 = (float(px_rms) / float(threshold_px)) ** 2
+    return float(hard_penalty) + float(alpha) * float(n_pixel_observations) * np.log(max(ratio2, 1.0 + 1e-10))
+
+
 def _grid_pixels(image_size: tuple[int, int], grid_shape: tuple[int, int]) -> np.ndarray:
     width, height = image_size
     nx, ny = grid_shape
