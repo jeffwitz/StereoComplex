@@ -565,6 +565,31 @@ enough for physically interpretable calibration.
    The two-plane residual metric amplifies angular errors by $\Delta Z$,
    which may penalise models differently than direct corner reprojection.
 
+## Methodology recap: the generalisable workflow
+
+This case study is an instance of a **general method** that can be
+applied to any non-standard optical instrument:
+
+1. **Measure the rayfield first** with a flexible non-parametric basis
+   (Zernike polynomials).  Do not assume a camera model upfront.
+2. **Read physical descriptors directly** from the measured $(O, d)$
+   field — baseline, working distance, convergence angle — before
+   fitting any model.
+3. **Hypothesise a compact physical model** from the observed structure
+   ($d_y$ constancy → telecentric; Z₀-dominated residual → global
+   arm misalignment).
+4. **Validate by BIC** against the rayfield reference.  The ray-space
+   BIC identifies the correct optical family; the operational BIC
+   (with pixel reprojection guard) selects the usable model.
+5. **Iterate via residual analysis.**  Project $\Delta d$ and
+   $\Delta m$ onto Zernike modes — if the residual is $Z_0$-dominated,
+   the missing DOF is global; if higher modes dominate, the missing
+   DOF is a spatial field structure.
+
+This feedback loop — Ray2D preprocessing → Ray3D measurement →
+diagnose residual → improve model → verify — is the core contribution
+of the StereoComplex framework, independent of the CMO architecture.
+
 ## Saved artefacts
 
 ```text
@@ -587,11 +612,19 @@ docs/assets/pycaso_real_data/
     pareto_gauge_regularization.png        ← Pareto frontier plot
 ```
 
-To regenerate:
+To regenerate all results from raw images:
 
 ```bash
 PYTHONPATH=src python examples/notebooks/09_pycaso_real_data.py
 ```
+
+**To reproduce the model fitting, BIC, and SE(3) diagnostics without the
+Pycaso raw images**, restart from `intermediate_state.npz`.  This file
+contains the already-detected, Hessian-completed, TPS-denoised corner
+positions, the fitted Zernike rayfield, and the initial 26p model
+parameters — everything needed to run Steps 4–9 (model fitting, BIC
+selection, SE(3) alignment, ablation, and corner refinement) without
+access to the original TIFF/PNG images.
 
 ## See also
 
