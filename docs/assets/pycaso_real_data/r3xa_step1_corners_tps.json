@@ -12,7 +12,7 @@
       "id": "setting_pycaso_cmo_microscope",
       "kind": "settings/generic",
       "title": "CMO microscope",
-      "description": "Common Main Objective stereo microscope used in the Pycaso open dataset. The StereoComplex case study treats the left and right channels as two effective off-axis CMO sub-apertures. Raw image folders are external and expected under examples/pycaso_data after cloning Pycaso.",
+      "description": "",
       "documentation": "https://github.com/LaboratoireMecaniqueLille/Pycaso",
       "associated_data_sources": [
         "src_left_cmo_channel_camera",
@@ -23,7 +23,7 @@
       "id": "setting_charuco_legacy_target",
       "kind": "settings/specimen",
       "title": "ChArUco target",
-      "description": "Legacy ChArUco calibration board used by the Pycaso data. OpenCV detection requires DICT_6X6_250 and setLegacyPattern(True). The board has 16 x 12 squares, square size 0.3 mm, and 15 x 11 = 165 inner corners.",
+      "description": "",
       "sizes": [
         {
           "kind": "unit",
@@ -81,7 +81,7 @@
       "id": "setting_cmo_stereo_rig",
       "kind": "settings/stereorig",
       "title": "Stereo rig",
-      "description": "Stereo rig defined by the measured rayfield. The stereo angle and baseline are read from the constrained Zernike O(0)+d(2) rayfield. The final compact physical model is a telecentric CMO model with a per-arm SE(3) correction (26 parameters, 1.06 px RMS, P50=0.87 px, P95=1.84 px).",
+      "description": "",
       "stereo_angle": {
         "kind": "unit",
         "title": "convergence_angle",
@@ -145,7 +145,7 @@
       "id": "src_left_cmo_channel_camera",
       "kind": "data_sources/camera",
       "title": "Left camera",
-      "description": "Left camera",
+      "description": "",
       "output_components": 1,
       "output_dimension": "surface",
       "output_units": [
@@ -196,7 +196,7 @@
       "id": "src_right_cmo_channel_camera",
       "kind": "data_sources/camera",
       "title": "Right camera",
-      "description": "Right camera",
+      "description": "",
       "output_components": 1,
       "output_dimension": "surface",
       "output_units": [
@@ -247,7 +247,7 @@
       "id": "src_charuco_legacy_detection",
       "kind": "data_sources/generic",
       "title": "ChArUco detection",
-      "description": "ChArUco detection",
+      "description": "",
       "input_data_sets": [
         "ds_raw_left_images",
         "ds_raw_right_images"
@@ -278,7 +278,7 @@
       "id": "src_hessian_corner_completion",
       "kind": "data_sources/generic",
       "title": "Hessian completion",
-      "description": "Hessian completion",
+      "description": "",
       "input_data_sets": [
         "ds_raw_left_images",
         "ds_raw_right_images",
@@ -310,7 +310,7 @@
       "id": "src_ray2d_double_tps",
       "kind": "data_sources/generic",
       "title": "Double TPS",
-      "description": "Double TPS",
+      "description": "",
       "input_data_sets": [
         "ds_raw_left_images",
         "ds_raw_right_images",
@@ -344,7 +344,7 @@
       "id": "ds_raw_left_images",
       "kind": "data_sets/generic",
       "title": "Left images (PNG)",
-      "description": "External raw image folder. Clone Pycaso under examples/pycaso_data; Notebook 09 reads LEFT_DIR = examples/pycaso_data/Exemple/Images_example/left_calibration11.",
+      "description": "",
       "file_type": "image/*",
       "path": "examples/pycaso_data/Exemple/Images_example/left_calibration11/",
       "data_sources": [
@@ -355,7 +355,7 @@
       "id": "ds_raw_right_images",
       "kind": "data_sets/generic",
       "title": "Right images (PNG)",
-      "description": "External raw image folder. Clone Pycaso under examples/pycaso_data; Notebook 09 reads RIGHT_DIR = examples/pycaso_data/Exemple/Images_example/right_calibration11.",
+      "description": "",
       "file_type": "image/*",
       "path": "examples/pycaso_data/Exemple/Images_example/right_calibration11/",
       "data_sources": [
@@ -366,7 +366,7 @@
       "id": "ds_detection_summary_json",
       "kind": "data_sets/generic",
       "title": "Detection counts",
-      "description": "Per-frame ChArUco detection counts and completion status. Records 10 stereo pairs, 165 expected corners, 165 completed corners.",
+      "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/detection_summary.json",
       "data_sources": [
@@ -378,7 +378,7 @@
       "id": "ds_tps_intermediate_state_npz",
       "kind": "data_sets/generic",
       "title": "Denoised corners (NPZ)",
-      "description": "NPZ state containing already-detected, Hessian-completed and TPS-denoised corner positions, fitted Zernike rayfield and initial 26p model parameters.",
+      "description": "",
       "file_type": "application/x-npz",
       "path": "docs/assets/pycaso_real_data/intermediate_state.npz",
       "data_sources": [

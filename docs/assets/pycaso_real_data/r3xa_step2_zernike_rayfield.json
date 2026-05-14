@@ -12,7 +12,7 @@
       "id": "setting_pycaso_cmo_microscope",
       "kind": "settings/generic",
       "title": "CMO microscope",
-      "description": "Common Main Objective stereo microscope used in the Pycaso open dataset. The StereoComplex case study treats the left and right channels as two effective off-axis CMO sub-apertures. Raw image folders are external and expected under examples/pycaso_data after cloning Pycaso.",
+      "description": "",
       "documentation": "https://github.com/LaboratoireMecaniqueLille/Pycaso",
       "associated_data_sources": []
     },
@@ -20,7 +20,7 @@
       "id": "setting_cmo_stereo_rig",
       "kind": "settings/stereorig",
       "title": "Stereo rig",
-      "description": "Stereo rig defined by the measured rayfield. The stereo angle and baseline are read from the constrained Zernike O(0)+d(2) rayfield. The final compact physical model is a telecentric CMO model with a per-arm SE(3) correction (26 parameters, 1.06 px RMS, P50=0.87 px, P95=1.84 px).",
+      "description": "",
       "stereo_angle": {
         "kind": "unit",
         "title": "convergence_angle",
@@ -81,7 +81,7 @@
       "id": "src_zernike_rayfield_fit",
       "kind": "data_sources/identification",
       "title": "Zernike O(0)+d(2) fit",
-      "description": "Zernike O(0)+d(2) fit",
+      "description": "",
       "input_data_sets": [
         "ds_tps_intermediate_state_npz"
       ],
@@ -139,7 +139,7 @@
       "id": "src_cmo_descriptor_readout",
       "kind": "data_sources/identification",
       "title": "Descriptor readout",
-      "description": "Descriptor readout",
+      "description": "",
       "input_data_sets": [
         "ds_summary_json",
         "ds_zernike_pose_variants_json"
@@ -192,7 +192,7 @@
       "id": "ds_tps_intermediate_state_npz",
       "kind": "data_sets/generic",
       "title": "Denoised corners (NPZ)",
-      "description": "NPZ state containing already-detected, Hessian-completed and TPS-denoised corner positions, fitted Zernike rayfield and initial 26p model parameters.",
+      "description": "",
       "file_type": "application/x-npz",
       "path": "docs/assets/pycaso_real_data/intermediate_state.npz",
       "data_sources": [
@@ -203,7 +203,7 @@
       "id": "ds_summary_json",
       "kind": "data_sets/generic",
       "title": "Calibration summary",
-      "description": "Main numerical summary: dataset, detection, constrained Zernike fit, local pixel-equivalent reprojection RMS and CMO descriptor readout.",
+      "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/summary.json",
       "data_sources": [
@@ -215,7 +215,7 @@
       "id": "ds_zernike_pose_variants_json",
       "kind": "data_sets/generic",
       "title": "Zernike coefficients",
-      "description": "Full Zernike coefficients and diagnostics for constrained and full-pose rayfield variants.",
+      "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/zernike_pose_variants.json",
       "data_sources": [

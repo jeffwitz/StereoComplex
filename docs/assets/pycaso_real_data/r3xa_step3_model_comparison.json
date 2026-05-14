@@ -12,7 +12,7 @@
       "id": "setting_pycaso_cmo_microscope",
       "kind": "settings/generic",
       "title": "CMO microscope",
-      "description": "Common Main Objective stereo microscope used in the Pycaso open dataset. The StereoComplex case study treats the left and right channels as two effective off-axis CMO sub-apertures. Raw image folders are external and expected under examples/pycaso_data after cloning Pycaso.",
+      "description": "",
       "documentation": "https://github.com/LaboratoireMecaniqueLille/Pycaso",
       "associated_data_sources": []
     }
@@ -22,7 +22,7 @@
       "id": "src_physical_model_selection",
       "kind": "data_sources/identification",
       "title": "Model selection",
-      "description": "Model selection",
+      "description": "",
       "input_data_sets": [
         "ds_model_comparison_json",
         "ds_moment_residual_diagnostic_json"
@@ -47,7 +47,7 @@
       "id": "ds_model_comparison_json",
       "kind": "data_sets/generic",
       "title": "Model comparison",
-      "description": "Comparison of Zernike, telecentric and perspective CMO model families.",
+      "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/model_comparison.json",
       "data_sources": [
@@ -58,7 +58,7 @@
       "id": "ds_zernike_conditioning_diagnostic_json",
       "kind": "data_sets/generic",
       "title": "Conditioning diag.",
-      "description": "Design matrix conditioning, modal delta-d and sensitivity diagnostics.",
+      "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/zernike_conditioning_diagnostic.json",
       "data_sources": []
@@ -67,7 +67,7 @@
       "id": "ds_moment_residual_diagnostic_json",
       "kind": "data_sets/generic",
       "title": "Moment residual",
-      "description": "Pluecker moment residual decomposition and O1/O2 origin-field tests.",
+      "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/moment_residual_diagnostic.json",
       "data_sources": [
@@ -78,7 +78,7 @@
       "id": "ds_warped_model_comparison_json",
       "kind": "data_sets/generic",
       "title": "Pre-warp test",
-      "description": "Negative test showing that affine/quadratic pre-warp degrades pixel RMS and is not the missing degree of freedom.",
+      "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/warped_model_comparison.json",
       "data_sources": [
@@ -89,7 +89,7 @@
       "id": "ds_bic_model_selection_json",
       "kind": "data_sets/generic",
       "title": "BIC selection",
-      "description": "Ray-space BIC and operational BIC with 1.5 px guard for physical model selection on the Pycaso CMO rayfield.",
+      "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/bic_model_selection.json",
       "data_sources": [
