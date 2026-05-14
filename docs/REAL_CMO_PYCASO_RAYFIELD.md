@@ -349,16 +349,56 @@ ablation study to isolate the essential degrees of freedom:
    26-parameter model.  The data does not require broken left/right
    symmetry.
 
-**Minimal model: 14 telecentric + 6 differential arm = 20 parameters
-for 1.07 px.**
+**Minimal model: 26 parameters (14 telecentric + 12 SE(3) per-arm).**
 
-The six differential parameters are: relative rotation
-$R_R R_L^{-1}$ (3 params) and antisymmetric translation
-$t_R - t_L$ (3 params).  These capture the physically meaningful
-arm-to-arm misalignment — tube lens tilt, prism offset, camera port
-decentering — without the redundant absolute rigid transform.
+The common mode cannot be dropped: fitting with shared rotation (+289 %
+ray RMS degradation), shared translation (+92 %), or differential-only
+(+226 %) all significantly degrade the fit.  The left and right arms have
+genuinely different misalignments — the per-arm SE(3) degrees of freedom
+are individually necessary.
 
-### Step 7 — Why the residual analysis was decisive
+### Step 7 — Autopsy of the 26p model: what remains?
+
+The 26p aligned CMO achieves 1.06 px (P50 = 0.87 px, P95 = 1.84 px) with
+excellent left/right symmetry (1.10 vs 1.01 px).  To understand the
+remaining 2.3× gap to the Zernike reference (0.47 px), we compute the
+residual after the 26p fit:
+
+| Metric | Value |
+|---|---|
+| Direction RMS | 0.003° (L+R) |
+| Moment RMS | 0.0006 mm (L+R) |
+| Pixel RMS | 1.06 px |
+| Detected vs completed corners | 1.04 vs 1.11 px (negligible difference) |
+| Centre vs edge (r < 300 vs r > 900) | 0.96 vs 1.50 px |
+
+The residual is **spread across Zernike orders 1–3** with no single
+dominant mode — the SE(3) has successfully removed the Z₀ piston, and
+what remains is a low-amplitude mixture of tilt, defocus, astigmatism,
+coma, and trefoil.  No single Zernike block addition brings the 26p
+close to the 57p Zernike:
+
+| Addition | Params | Ray RMS reduction |
+|---|---|---|
+| + direction Z₂ (defocus+astigmatism) | +18 | −52 % |
+| + direction Z₃ (coma+trefoil) | +24 | −22 % |
+| + moment Z₁ (affine origin) | +12 | −22 % |
+
+The compression study confirms that **all 12 SE(3) parameters are
+individually necessary** — any attempt to share rotation, share
+translation, or reduce to differential-only significantly degrades the
+fit (+92 % to +289 % ray RMS increase).
+
+**Interpretation.**  The 26p model captures all the dominant physics
+(skeleton + alignment).  The remaining residual is a low-amplitude
+distributed field structure — likely real optical aberrations of the
+tube lens, zoom body, or objective — that a 26-parameter compact model
+cannot resolve.  Adding more parameters (Z₂ or Z₃ blocks) gives
+incremental improvement but the cost is steep: 44–50 parameters for a
+modest RMS reduction, approaching the full Zernike (57 params).  The
+trade-off between compactness and accuracy is now quantifiable.
+
+### Step 8 — Why the residual analysis was decisive
 
 The sequence of investigations followed directly from the rayfield
 diagnostic:
@@ -406,7 +446,8 @@ Ray3D — is a general strategy for any stereo calibration pipeline.
 | $d_y(u,v)$ reveals telecentricity | 3× range difference vs perspective model | Diagnostic |
 | Residual modal analysis identifies missing DOF | Δd and Δm are 97-98 % $Z_0^0$ (global, not spatial) | **Diagnostic method** |
 | SE(3) arm alignment resolves the global residual | Pixel RMS 14.6 → 1.06 px (14× improvement) | **Key result** |
-| SE(3) ablation isolates essential 6 differential params | Rotation + translation both essential; common mode redundant; 20 params for 1.07 px | **Key result** |
+| SE(3) ablation: per-arm DOFs are individually necessary | Compression degrades fit (+92% to +289%); 26p is the true minimum model | **Key result** |
+| 26p autopsy: residual is distributed, not single-block | Z₁–Z₃ spread; no single Zernike block bridges the gap to 0.47 px | Diagnostic |
 | The rayfield is a general diagnostic instrument | The feedback loop works: observe → diagnose → fix → verify | **General strategy** |
 
 ## What this case study does **not** evaluate
@@ -455,6 +496,7 @@ docs/assets/pycaso_real_data/
     arm_alignment_diagnostic.json          ← SE(3) arm alignment sweep
     aligned_cmo_fit.json                   ← final joint fit (telecentric + SE(3))
     se3_ablation.json                      ← SE(3) parameter ablation study
+    autopsy_26p.json                       ← 26p model autopsy + compression
     warped_model_comparison.json           ← pre-warp L1/L2 evaluation
     pareto_gauge_regularization.png        ← Pareto frontier plot
 ```
