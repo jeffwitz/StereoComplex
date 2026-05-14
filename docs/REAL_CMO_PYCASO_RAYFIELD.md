@@ -1,46 +1,69 @@
 # Real CMO microscope calibration on Pycaso data
 
-## Calibrating a non-central microscope when OpenCV fails
+## A rayfield-based case study with legacy ChArUco images
 
-> **First real-data validation of the StereoComplex non-central pipeline.**
-> This page is the stable, readable reference.  The executable protocol is
+### What this page is about, in one paragraph
+
+Most cameras have **one optical center** — a single point through which all
+light rays appear to pass.  Stereo microscopes of the **Common Main Objective**
+(CMO) family do not.  They use a single large lens shared between two
+off-axis sub-apertures, so each channel's chief rays appear to originate from a
+**different point**, a few millimetres apart.  OpenCV's standard stereo
+calibration assumes one optical center per camera; it fails on this
+architecture.  This page documents a complete calibration of a real CMO
+microscope using a different approach: **measure the rays first, identify the
+optics afterwards**.
+
+![CMO architecture diagram](assets/diagrams/cmo_physical.png)
+
+*The CMO architecture: two off-axis sub-pupils share one main objective.
+The chief rays from each channel converge toward the object plane through
+different effective origins — not through a single common center.*
+
+### What we measured
+
+On 10 stereo pairs of ChArUco images from the
+[Pycaso](https://github.com/LaboratoireMecaniqueLille/Pycaso) open dataset, the
+StereoComplex pipeline produces:
+
+| Quantity | Value | What it tells us |
+|---|---|---|
+| Calibration residual (Zernike rayfield) | **0.47 px** | Subpixel accuracy on a 2048×2048 sensor |
+| Calibration residual (OpenCV standard) | **> 300 px** | Standard pinhole stereo fails on this microscope |
+| Stereo baseline $b$ | **24.9 mm** | Distance between the two effective sub-pupils |
+| Working distance $WD$ | **64.7 mm** | Object plane distance |
+| Objective focal length $f_{\text{obj}}$ | **62.2 mm** | Read from the rayfield geometry |
+| Stereo convergence angle $\theta$ | **22.6°** | Inter-channel angular separation |
+
+These descriptors are not the output of fitting a physical model.  They are
+**directly read** from the measured rayfield at the centre pixel — physical
+lengths you could in principle verify with calipers on the microscope itself.
+
+### What this case study claims, and what it does not
+
+**Claims, with evidence:**
+
+- StereoComplex calibrates a real CMO microscope that OpenCV cannot
+  (0.47 px vs > 300 px).
+- The measured rayfield exposes physical geometry that OpenCV cannot
+  (effective sub-pupils, working distance, baseline, convergence angle).
+- A minimal perspective CMO model fails to explain the field across the
+  full FOV (3× discrepancy in $d_y$ range), pointing to a more telecentric
+  optical architecture than naive perspective assumes.
+
+**Does not claim:**
+
+- Absolute metrological accuracy validated against an independent 3D
+  reference.  All numbers are *internal* to the rayfield representation.
+- A full physical CMO parameter optimization.  We report rayfield
+  descriptors, not fitted physical parameters.
+- That OpenCV cannot be tuned to handle CMO — only that the standard
+  central stereo calibration, with the configuration tested, does not.
+
+> **The executable protocol** is
 > [Notebook 09](../examples/notebooks/09_pycaso_real_data.py).
-
-## Why this page exists
-
-Standard cameras have **one optical centre**: all chief rays pass through
-a single point.  OpenCV's stereo calibration (`cv2.stereoCalibrate`)
-assumes this pinhole model.  Most stereo microscopes **do not** work this
-way.
-
-A Common Main Objective (CMO) stereo microscope uses a single large
-objective shared between two off-axis sub-apertures.  The two channels'
-chief rays appear to originate from **two different points** — the
-effective sub-pupils — separated by the stereo baseline.  OpenCV's
-central projection model cannot represent this architecture and produces
-unusable results (> 300 px reprojection error under the tested
-configuration).
-
-![CMO stereo microscope optical layout](../docs/assets/diagrams/cmo_physical.png)
-
-**StereoComplex solves this by measuring first and modelling second.**
-Instead of imposing a camera model upfront, we measure a per-pixel
-rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$ — a 3‑D line for every
-pixel — using a flexible Zernike polynomial basis.  From this *measured*
-rayfield we read physical descriptors, diagnose structural mismatches,
-and iteratively build a compact physical model that captures the
-dominant CMO geometry.
-
-## Executive summary
-
-| What we did | What we found |
-|---|---|
-| Calibrated a real CMO microscope with legacy ChArUco images | OpenCV fails (> 300 px); Zernike rayfield succeeds (0.47 px) |
-| Read physical descriptors directly from the measured rays | $b = 24.9$ mm, $WD = 64.7$ mm, $f_{\text{obj}} = 62.2$ mm, $\theta = 22.6°$ |
-| Diagnosed telecentricity from the $d_y(u,v)$ field | 3× range difference vs perspective model → built telecentric CMO |
-| Used residual modal analysis to identify missing physics | $\Delta d$ and $\Delta m$ are 97–98 % $Z_0^0$ → global arm misalignment |
-| Added per-channel SE(3) arm alignment | **1.06 px** reprojection (P50 = 0.87 px, P95 = 1.84 px) — 14× better |
-| Formal BIC model selection | Telecentric CMO wins by > 40 000 BIC points over all alternatives |
+> Run it with `python examples/notebooks/09_pycaso_real_data.py` to
+> reproduce all numerical values in this page.
 
 ## Claims and evidence
 
@@ -306,6 +329,43 @@ Fitting jointly against the Zernike rayfield:
 The SE(3) arm alignment reduces pixel RMS by **14×** (14.6 → 1.06 px).
 Rotations are stable across runs (~2.5° left, ~3.7° right); translations
 are sub-mm but trade off with telecentric base parameters.
+
+> **Important caveat — what the 0.0007 mm Zernike RMS really means.**
+>
+> The Zernike model's two-plane RMS of 0.0007 mm is a **self-evaluation
+> residual**: it measures how accurately a 57-parameter Zernike model
+> reconstructs its own ray-field on the support points it was fitted to.
+> It is not an absolute physical accuracy.  By construction, a model with
+> enough degrees of freedom will reproduce itself nearly perfectly.
+>
+> The Telecentric models (14 to 26 parameters) are evaluated **against the
+> Zernike rayfield**, using it as a reference.  Their two-plane RMS of
+> 0.002–0.118 mm therefore reflects two things: (i) the structural
+> mismatch between a compact physical model and the flexible Zernike
+> representation, and (ii) the noise that Zernike absorbed but that no
+> physical model should reproduce.
+>
+> For an apples-to-apples comparison, the **pixel RMS column** is the right
+> reference: it measures each model against the same observable — the
+> ChArUco corner detections.  There:
+>
+> - Zernike (57 params, fitted to corners) achieves 0.47 px RMS,
+>   approximately the noise floor of ChArUco corner detection.
+> - The Telecentric model with 14 parameters, fitted to the Zernike
+>   rayfield and evaluated on the same corners, achieves ~14.6 px RMS.
+> - The SE(3)-aligned Telecentric model (26 params) achieves 1.06 px RMS
+>   — a 14× improvement over the base telecentric, and within 2.3× of
+>   the Zernike reference.
+> - The perspective CMO (19 params) achieves 86 px RMS — structurally
+>   inadequate for this microscope architecture.
+>
+> The Telecentric + SE(3) model is therefore not a *replacement* for
+> Zernike when minimal pixel residual is the goal.  It is a *compact
+> physical explanation* of the dominant CMO geometry, designed using the
+> Zernike rayfield as a diagnostic tool.  The remaining pixel gap (1.06 px
+> vs 0.47 px) reflects distributed low-amplitude aberrations that a
+> 26-parameter physical model cannot capture — field curvature,
+> astigmatism, and other real microscope optics.
 
 ### Step 6b — Ablation: which SE(3) parameters are essential?
 
