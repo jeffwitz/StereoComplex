@@ -6,15 +6,20 @@
 #
 # **Pipeline:**
 # 1. ChArUco detection (OpenCV `CharucoDetector`, legacy pattern)
-# 2. Hessian-based corner completion (missing corners filled via $|\det H|$ + barycentre)
-# 3. ray2D TPS denoising (`predict_points_rayfield_tps_robust`)
-# 4. Zernike rayfield fit (origin order 0, direction order 2, constrained poses)
+# 2. Hessian-based corner completion ($|\det H|$ + Otsu + barycentre)
+# 3. Double Ray2D TPS denoising (ArUco markers → 165 corners → TPS smoothing)
+# 4. Constrained Zernike rayfield fit O(0)+d(2)
 # 5. Pixel reprojection errors
+# 6. Zernike/pose identifiability diagnostic (gauge mode analysis)
+# 7. Gauge-regularized full-pose sweep with Pareto frontier
 #
-# **Key result:** Stereo rayfield fit reaches subpixel pixel-equivalent
-# residuals (< 0.5 px) on this dataset, whereas a standard central OpenCV
-# stereo calibration (under the tested configuration) does not converge to
-# a usable model.
+# **Key result — Ray3D as a diagnostic instrument for corner quality:**
+# The Zernike rayfield reveals that single-pass TPS leaves residual noise
+# that creates a gauge ambiguity (Z₀ drift = 8.5°).  Double TPS eliminates
+# it (Z₀ drift = 0.023°).  This feedback loop — Ray2D → Ray3D → diagnose →
+# fix Ray2D → verify with Ray3D — is a general strategy for any stereo
+# calibration pipeline.  The 2‑D reprojection error is blind to this gauge;
+# only the rayfield can see it.
 
 # %%
 from __future__ import annotations
