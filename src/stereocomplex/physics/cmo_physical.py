@@ -782,8 +782,8 @@ def fit_cmo_telecentric_model_to_rayfields(
 ) -> CMOPhysicalStereoFitResult:
     """Fit the telecentric CMO model to left/right measured rayfields."""
     x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
-    if x0.size != 10:
-        raise ValueError("initial_parameters must contain exactly 10 values")
+    if x0.size not in {10, 12, 14, 16}:
+        raise ValueError(f"initial_parameters must contain 10, 12, 14, or 16 values, got {x0.size}")
 
     full = _grid_pixels(image_size, grid_shape)
     support_l = full
@@ -809,9 +809,18 @@ def fit_cmo_telecentric_model_to_rayfields(
             ])
         return np.concatenate(blocks)
 
-    # Bounds: physically reasonable ranges
+    # Bounds: physically reasonable ranges, extended for larger parameter vectors
     lower = np.array([1.0, 1.0, 0.0, -np.inf, -np.inf, 1.0, 0.0, -0.3, -10.0, -10.0], dtype=np.float64)
     upper = np.array([500.0, 1000.0, 200.0, np.inf, np.inf, 500.0, 0.5, 0.3, 10.0, 10.0], dtype=np.float64)
+    if x0.size >= 12:
+        lower = np.concatenate([lower, [-10.0, -10.0]])
+        upper = np.concatenate([upper, [10.0, 10.0]])
+    if x0.size >= 14:
+        lower = np.concatenate([lower, [-10.0, -10.0]])
+        upper = np.concatenate([upper, [10.0, 10.0]])
+    if x0.size >= 16:
+        lower = np.concatenate([lower, [-10.0, -10.0]])
+        upper = np.concatenate([upper, [10.0, 10.0]])
 
     sol = least_squares(residuals, x0=x0, bounds=(lower, upper),
                          loss="huber", f_scale=1.0, max_nfev=int(max_nfev),
