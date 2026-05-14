@@ -109,7 +109,9 @@
       "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/arm_alignment_diagnostic.json",
-      "data_sources": []
+      "data_sources": [
+        "src_se3_aligned_cmo_fit"
+      ]
     },
     {
       "id": "ds_aligned_cmo_fit_json",
@@ -140,7 +142,9 @@
       "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/autopsy_20p.json",
-      "data_sources": []
+      "data_sources": [
+        "src_se3_aligned_cmo_fit"
+      ]
     },
     {
       "id": "ds_autopsy_26p_json",

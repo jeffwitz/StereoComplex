@@ -61,7 +61,9 @@
       "description": "",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/zernike_conditioning_diagnostic.json",
-      "data_sources": []
+      "data_sources": [
+        "src_physical_model_selection"
+      ]
     },
     {
       "id": "ds_moment_residual_diagnostic_json",
