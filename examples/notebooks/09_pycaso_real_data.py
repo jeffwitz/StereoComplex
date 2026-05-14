@@ -1429,6 +1429,53 @@ if RUN_SWEEP:
         }, f, indent=2)
     print(f"\nSaved to {SWEEP_DIR / 'zernike_gauge_regularization_sweep.json'}")
 
+    # ── Pareto plot ──
+    import matplotlib.pyplot as plt
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
+
+    # 1) RMS vs Z0 drift (Pareto frontier)
+    ax = axes[0]
+    all_rms = [r["ray_rms_mm"] for r in sweep_results]
+    all_z0 = [r["drift_z0_deg"] for r in sweep_results]
+    pareto_rms = [r["ray_rms_mm"] for r in pareto]
+    pareto_z0 = [r["drift_z0_deg"] for r in pareto]
+    ax.scatter(all_rms, all_z0, c="steelblue", s=60, zorder=3, label="all runs")
+    ax.scatter(pareto_rms, pareto_z0, c="darkorange", s=100, zorder=4, label="Pareto-optimal")
+    # Annotate Pareto points
+    for r in pareto:
+        ax.annotate(r["label"], (r["ray_rms_mm"], r["drift_z0_deg"]),
+                    textcoords="offset points", xytext=(8, 6), fontsize=7, alpha=0.8)
+    ax.axvline(x=zd.ray_rms_mm, color="gray", ls="--", alpha=0.5, label="constrained ref")
+    ax.set_xlabel("Ray RMS (mm)")
+    ax.set_ylabel("Z₀ drift (°)")
+    ax.set_title("Pareto: RMS vs gauge drift")
+    ax.legend(fontsize=7)
+
+    # 2) Baseline stability
+    ax = axes[1]
+    for r in sweep_results:
+        sigma_label = f"σ₀={r['sigma_z0_deg']:.2f}" if r["sigma_z1_deg"] > 50 else f"σ₀={r['sigma_z0_deg']:.2f},σ₁={r['sigma_z1_deg']:.1f}"
+        ax.plot(r["drift_z0_deg"], r["baseline_mm"], "o", ms=8, alpha=0.7)
+    ax.set_xlabel("Z₀ drift (°)")
+    ax.set_ylabel("Baseline (mm)")
+    ax.set_title("Baseline vs Z₀ drift")
+
+    # 3) Convergence angle stability
+    ax = axes[2]
+    for r in sweep_results:
+        ax.plot(r["drift_z0_deg"], r["convergence_angle_deg"], "o", ms=8, alpha=0.7)
+    ax.set_xlabel("Z₀ drift (°)")
+    ax.set_ylabel("Convergence angle (°)")
+    ax.set_title("Convergence angle vs Z₀ drift")
+
+    for ax in axes:
+        ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(SWEEP_DIR / "pareto_gauge_regularization.png", dpi=150,
+                bbox_inches="tight")
+    print(f"Pareto plot saved to {SWEEP_DIR / 'pareto_gauge_regularization.png'}")
+    plt.show()
+
 else:
     print("RUN_SWEEP = False — skipping regularization sweep. "
           "Set to True to run (takes ~10-15 min).")
