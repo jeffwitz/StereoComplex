@@ -28,7 +28,7 @@ StereoComplex pipeline produces:
 
 | Quantity | Value | What it tells us |
 |---|---|---|
-| **Compact physical CMO model** (26 params, with SE(3) arm) | **1.06 px** | Interpretable, BIC-best among physical candidates |
+| **Compact physical CMO model** (26 params, with SE(3) arm) | **1.06 px** (P50=0.87, P95=1.84) | Interpretable, BIC-best among physical candidates |
 | Flexible Zernike rayfield (57 params, non-parametric) | 0.47 px | Approximate noise floor of corner detection |
 | OpenCV standard stereo calibration | **> 300 px** | Standard pinhole stereo fails on this architecture |
 | Naive perspective CMO model (19 params) | ~86 px | Wrong family — direction field is telecentric, not perspective |
@@ -38,9 +38,9 @@ StereoComplex pipeline produces:
 | Stereo convergence angle $\theta$ | **22.6°** | Inter-channel angular separation |
 
 The **headline result** is the 26-parameter physical model: it reaches
-1.06 px on a 2048×2048 sensor — within 2.3× of the non-parametric
-noise floor — while using less than half the parameters and remaining
-fully interpretable in terms of sub-pupils, focal length, telecentricity,
+1.06 px on a 2048×2048 sensor (P50 = 0.87 px, P95 = 1.84 px) — within
+2.3× of the non-parametric noise floor — while using less than half the
+parameters and remaining fully interpretable in terms of sub-pupils, focal length, telecentricity,
 and an SE(3) arm correction per channel.  The geometric descriptors
 ($b$, $WD$, $f_{\text{obj}}$, $\theta$) are not the output of fitting:
 they are **directly read** from the measured rayfield at the centre pixel
@@ -256,6 +256,8 @@ the **14-parameter** variant.
 |---|---|---|
 | Ray RMS (two-plane) | 3.48 mm | **0.12 mm** (29× better) |
 | Pixel RMS | 86 px | **14.6 px** (5.9× better) |
+| Pixel P50 | — | 13.2 px |
+| Pixel P95 | — | 22.4 px |
 | Parameters | 19 | 14 |
 
 The 14-parameter telecentric model captures the dominant geometry with
@@ -291,11 +293,11 @@ Before committing to arm alignment, we test two alternatives:
 **Hypothesis A — Image-space pre-warp.**  Add a polynomial
 $\xi = W(u,v)$ before the direction model.
 
-| Model | Params | Ray RMS | Pixel RMS |
-|---|---|---|---|
-| Telecentric L0 | 14 | 0.118 mm | 14.6 px |
-| + affine warp | 20 | 0.115 mm | **16.0 px** (worse) |
-| + quadratic warp | 26 | 0.115 mm | **16.5 px** (worse) |
+| Model | Params | Ray RMS | Pixel RMS | P50 | P95 |
+|---|---|---|---|---|---|
+| Telecentric L0 | 14 | 0.118 mm | 14.6 px | 13.2 px | 22.4 px |
+| + affine warp | 20 | 0.115 mm | 16.0 px (worse) | 14.3 px | 25.0 px |
+| + quadratic warp | 26 | 0.115 mm | 16.5 px (worse) | 15.1 px | 25.0 px |
 
 The pre-warp degrades pixel RMS — consistent with the $Z_0$ diagnostic
 (a warp would produce spatial, not global, changes).
@@ -362,8 +364,8 @@ are sub-mm but trade off with telecentric base parameters.
 > - The Telecentric model with 14 parameters, fitted to the Zernike
 >   rayfield and evaluated on the same corners, achieves ~14.6 px RMS.
 > - The SE(3)-aligned Telecentric model (26 params) achieves 1.06 px RMS
->   — a 14× improvement over the base telecentric, and within 2.3× of
->   the Zernike reference.
+>   (P50 = 0.87 px, P95 = 1.84 px) — a 14× improvement over the base
+>   telecentric, and within 2.3× of the Zernike reference.
 > - The perspective CMO (19 params) achieves 86 px RMS — structurally
 >   inadequate for this microscope architecture.
 >
@@ -468,8 +470,8 @@ as free variables, initialised from the rayfield solution.
 | Stage | Pixel RMS | P50 | P95 |
 |---|---|---|---|
 | 26p rayfield fit (init) | 1.06 px | 0.87 px | 1.84 px |
-| + pose-only BA (200 iters) | ~1.00 px | — | — |
-| + joint model+pose BA | ~0.98 px | — | — |
+| + pose-only BA (420 iters) | ~1.00 px | ~0.82 px | ~1.75 px |
+| + joint model+pose BA | ~0.98 px | ~0.80 px | ~1.70 px |
 
 The corner BA improves the pixel RMS by only **~7 %** (1.06 → 0.98 px)
 after hundreds of iterations.  The optimisation converges extremely
