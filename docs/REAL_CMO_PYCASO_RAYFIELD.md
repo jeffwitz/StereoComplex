@@ -397,13 +397,13 @@ The 26p model achieves 1.06 px with excellent L/R symmetry (1.10 vs
 the SE(3) has eliminated the Z₀ piston.
 
 **Formal BIC model selection** on the Pycaso Zernike rayfield.
-The ray-space BIC (BIC${}_{\text{ray}}$) identifies the correct optical
-family; the **operational BIC** (BIC${}_{\text{usable}}$) adds a
+The ray-space BIC identifies the correct optical
+family; the **operational BIC** (with reprojection guard) adds a
 reprojection guard: models exceeding 1.5 px incur a hard penalty
 ($+10^6 + N \log(e_{\text{px}}^2 / 1.5^2)$), enforcing a usability
 constraint that the ray-space BIC alone does not capture.
 
-| Model | P | RMS (mm) | BIC${}_{\text{ray}}$ | Px RMS | BIC${}_{\text{usable}}$ | Status |
+| Model | P | RMS (mm) | BIC ray | Px RMS | BIC usable | Status |
 |---|---|---|---:|---:|---:|---:|---|
 | cmo_telecentric_shear | 14 | 0.111 | −36 129 | 14.6 px | +978 890 | REJECTED |
 | cmo_telecentric | 12 | 0.146 | −33 201 | 27.7 px | +986 044 | REJECTED |
@@ -501,22 +501,20 @@ This feedback loop — Ray2D → Ray3D → diagnose → fix Ray2D → verify wit
 Ray3D — is a **general strategy** for any stereo calibration pipeline:
 
 ```text
-┌──────────────────────────────────────────────────────────────┐
-│  Ray2D: corner detection + completion + TPS denoising        │
-│                         ↓                                    │
-│  Ray3D: Zernike rayfield — the experimental oracle           │
-│                         ↓                                    │
-│  Read descriptors from (O, d) — baseline, WD, f_obj, θ      │
-│                         ↓                                    │
-│  Propose physical model → residual vs Zernike                │
-│                         ↓                                    │
-│  Residual is Z0 (global)? → missing global DOF               │
-│  Residual is spatial?     → missing field structure          │
-│                         ↓                                    │
-│  Add DOF → refit → evaluate → iterate                        │
-│                         ↓                                    │
-│  Final model: 1.06 px reprojection (P50 = 0.87 px)          │
-└──────────────────────────────────────────────────────────────┘
+   Ray2D: corner detection + completion + TPS denoising
+                          ↓
+   Ray3D: Zernike rayfield — the experimental oracle
+                          ↓
+   Read descriptors from (O, d) — baseline, WD, f_obj, θ
+                          ↓
+   Propose physical model → residual vs Zernike
+                          ↓
+   Z0-dominated residual? → missing global DOF (SE(3) arms)
+   Spatial residual?      → missing field structure (Zernike)
+                          ↓
+   Add DOF → refit → evaluate → iterate
+                          ↓
+   Final model: 1.06 px reprojection (P50 = 0.87 px)
 ```
 
 **Why this is not possible with standard calibration.**  The 2‑D
