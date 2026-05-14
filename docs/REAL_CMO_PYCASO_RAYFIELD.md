@@ -92,6 +92,8 @@ Hessian corner completion (|det H| + Otsu + barycentre)  →  165/165 corners
        ↓
 Ray2D TPS denoising (predict_points_rayfield_tps_robust)
        ↓
+TPS re-denoising on completed 165 corners (smoothing pass)
+       ↓
 Constrained Zernike rayfield O(0)+d(2), shared R+XY, per-pose Z
        ↓
 CMO-consistent geometric descriptors read from (O, d)
@@ -133,6 +135,14 @@ Ray2D TPS is a **2‑D preprocessing stage**, not a 3‑D correction.  It maps
 known ArUco marker coordinates to image positions using a homography + TPS
 residual field, predicting the full 165‑corner ChArUco grid.  This reduces
 local detection noise before the 3‑D rayfield fit.
+
+After Hessian completion fills all 165 corners, a **second TPS pass** uses
+the completed corners themselves as control points (object positions
+$\to$ image positions) with a tighter smoothing parameter ($\lambda=3$,
+Huber $c=1.5$).  This acts as a definitive denoising step: the homography
+captures the global perspective, and the TPS smooths the residual field
+across all 165 points, removing the last detection jitter while preserving
+the grid structure.
 
 ### Step 4 — Constrained Zernike rayfield
 
@@ -524,6 +534,29 @@ wobble present in the data.
 
 Artefacts: `zernike_conditioning_diagnostic.json`,
 `zernike_conditioning_summary.json`.
+
+### Gauge-regularized full-pose sweep
+
+Following the conditioning diagnostic, we tested a **regularized full-pose**
+Zernike fit that anchors the gauge-sensitive direction modes (\(Z_0^0\),
+\(Z_1^1\)) to the constrained-pose solution:
+
+$$\mathcal{L} = \mathcal{L}_{\text{repr}} + \sum_{m \in \{Z_0,Z_1\}} \sum_c
+  \left(\frac{a^f_{m,c} - a^c_{m,c}}{\sigma_m}\right)^2$$
+
+where \(\sigma_m\) is an interpretable angular tolerance (degrees).
+A small \(\sigma\) strongly anchors the gauge mode; a large \(\sigma\)
+recovers the unregularized fit.
+
+The sweep over \(\sigma_{Z_0} \in [0.05°, 2.0°]\) and \(\sigma_{Z_1} \in
+[0.5°, 2.0°]\) is implemented as notebook section 10.3 (controlled by
+``RUN_SWEEP`` flag, takes ~10–15 min).  Results are saved to
+`zernike_gauge_regularization_sweep.json`.
+
+The regularization strategy is **preferable to removing modes** because
+\(Z_0^0\) and \(Z_1^1\) carry essential physical information (mean
+direction, convergence angle, first-order telecentricity).  Penalizing
+their drift preserves them while preventing gauge-driven overfitting.
 Which interpretation is correct depends on independent validation of
 the microscope geometry.
 
@@ -557,6 +590,7 @@ docs/assets/pycaso_real_data/
     zernike_pose_variants.json          ← full Zernike coeffs for both pose models
     zernike_conditioning_diagnostic.json ← design matrix, modal Δd, sensitivity, stability
     zernike_conditioning_summary.json   ← condensed conditioning conclusions
+    zernike_gauge_regularization_sweep.json ← Pareto sweep over σ_Z0, σ_Z1
 ```
 
 All numerical values reported in this page are produced by the notebook

@@ -329,9 +329,9 @@ for z_str in paired_z:
     )
 
     # ray2D TPS denoising (fit on marker corners, predict all 165)
-    for mk_c, mk_ids, out in [
-        (mk_c_L, mk_ids_L, denoised_L),
-        (mk_c_R, mk_ids_R, denoised_R),
+    for mk_c, mk_ids, comp, out in [
+        (mk_c_L, mk_ids_L, comp_L, denoised_L),
+        (mk_c_R, mk_ids_R, comp_R, denoised_R),
     ]:
         obj_xy_list, img_uv_list = [], []
         if mk_ids is not None:
@@ -351,9 +351,19 @@ for z_str in paired_z:
                 obj_xy, img_uv, chess3[:, :2].astype(np.float64),
                 lam=10.0, huber_c=3.0, iters=3, ransac_reproj_px=3.0,
             )
-            out.append(pred)
         else:
-            out.append(comp_L if out is denoised_L else comp_R)
+            pred = comp
+        # ── TPS re-denoising on the completed 165 corners ──
+        # The Hessian completion gives 165 corners; TPS smoothing on the
+        # full set removes residual detection noise while preserving the
+        # grid structure (homography base + thin-plate spline residuals).
+        re_denoised = predict_points_rayfield_tps_robust(
+            chess3[:, :2].astype(np.float64),  # known object positions
+            pred.astype(np.float64),            # completed image positions
+            chess3[:, :2].astype(np.float64),  # same query = denoising
+            lam=3.0, huber_c=1.5, iters=2, ransac_reproj_px=2.0,
+        )
+        out.append(re_denoised)
 
     print(f"  {z_str}: L {nL}→165  R {nR}→165")
     det_counts_L.append(nL)
@@ -1130,6 +1140,298 @@ print(f"  subpupil_depth:    {ind_deltas['subpupil_depth_mm']:+.2f} mm")
 # are physically justified.  If lower pixel error is needed, add mild
 # Tikhonov regularization on direction coefficients proportional to
 # their pose sensitivity rather than freeing all poses.
+
+# %% [markdown]
+# ### 10.3 — Gauge-regularized full-pose sweep
+#
+# We test the regularization strategy: allow free per-frame poses but
+# anchor Z₀ and Z₁ direction coefficients to the constrained-pose solution
+# with a quadratic penalty.  The regularization weight is expressed as an
+# interpretable angular tolerance $\sigma$ (in degrees):
+#
+# $$\mathcal{L} = \mathcal{L}_{\text{repr}} + \sum_{m \in \{Z_0,Z_1\}} \sum_c
+#   \left(\frac{a^f_{m,c} - a^c_{m,c}}{\sigma_m}\right)^2$$
+#
+# A small $\sigma$ strongly anchors the gauge mode; a large $\sigma$
+# recovers the unregularized full-pose fit.
+#
+# We sweep $\sigma_{Z_0} \in [0.05°, 2.0°]$ and $\sigma_{Z_1} \in
+# [0.5°, 2.0°]$ to find the Pareto frontier between reprojection accuracy
+# and gauge-mode stability.
+#
+# Set `RUN_SWEEP = True` to execute (takes ~10–15 min on 10 frames).
+
+# %%
+RUN_SWEEP = False  # Set to True to run the regularization sweep
+
+if RUN_SWEEP:
+    import time
+    from scipy.optimize import least_squares
+    from stereocomplex.benchmarks.rayfield_from_observations import (
+        estimate_initial_poses_from_central_pinhole,
+        ZernikeFitDiagnostics,
+    )
+    from stereocomplex.rayfields.zernike_origin_field import (
+        ZernikeOriginFieldConfig, ZernikeRayField, ZernikeRayFieldCoefficients,
+    )
+    from stereocomplex.core.model_compact.zernike import eval_real_zernike, zernike_modes
+
+    # ── Prior: constrained-fit direction coefficients ──
+    prior_L_d = lf.direction_coeffs.copy()  # (6, 3)
+    prior_R_d = rf.direction_coeffs.copy()
+
+    # ── Build full-pose fit with gauge priors ──
+    W_img, H_img = IMG_SIZE
+    config2 = ZernikeOriginFieldConfig(image_size=IMG_SIZE, max_order=2)
+    modes2 = config2.modes()
+    n_modes2 = len(modes2)
+    n_zernike = n_modes2 * 6  # 3 origin + 3 direction per mode
+
+    # Pre-group observations (reuse the existing obs, denoised_L/R from earlier cells)
+    uL_all, vL_all, idxL_all, poseL_all = [], [], [], []
+    uR_all, vR_all, idxR_all, poseR_all = [], [], [], []
+    for pi in range(len(obs.left_pixels)):
+        lp = obs.left_pixels[pi]; rp = obs.right_pixels[pi]
+        idx = obs.point_indices[pi]
+        nL = lp.shape[0]; nR = rp.shape[0]
+        if nL > 0:
+            uL_all.append(lp[:, 0]); vL_all.append(lp[:, 1]); idxL_all.append(idx[:nL])
+            poseL_all.append(np.full(nL, pi, dtype=int))
+        if nR > 0:
+            uR_all.append(rp[:, 0]); vR_all.append(rp[:, 1]); idxR_all.append(idx[:nR])
+            poseR_all.append(np.full(nR, pi, dtype=int))
+
+    uL = np.concatenate(uL_all); vL = np.concatenate(vL_all)
+    idxL_arr = np.concatenate(idxL_all); poseL = np.concatenate(poseL_all)
+    uR = np.concatenate(uR_all); vR = np.concatenate(vR_all)
+    idxR_arr = np.concatenate(idxR_all); poseR = np.concatenate(poseR_all)
+    obj_pts = obs.object_points_mm
+    n_poses = len(obs.left_pixels)
+
+    def _precompute(u_arr, v_arr, K):
+        xi = 2.0 * np.asarray(u_arr, dtype=np.float64) / float(W_img - 1) - 1.0
+        zeta = 2.0 * np.asarray(v_arr, dtype=np.float64) / float(H_img - 1) - 1.0
+        rho = np.sqrt(xi*xi + zeta*zeta) / np.sqrt(2.0)
+        theta = np.arctan2(zeta, xi)
+        A = np.empty((rho.size, n_modes2), dtype=np.float64)
+        for j, mode in enumerate(modes2):
+            A[:, j] = eval_real_zernike(mode, rho, theta)
+        Kk = np.asarray(K, dtype=np.float64).reshape(3, 3)
+        fx_inv = 1.0/Kk[0,0]; fy_inv = 1.0/Kk[1,1]
+        cx, cy = Kk[0,2], Kk[1,2]
+        dx = (u_arr-cx)*fx_inv; dy = (v_arr-cy)*fy_inv
+        dz = np.ones_like(dx)
+        inv = 1.0/np.sqrt(dx*dx + dy*dy + dz*dz)
+        d0 = np.column_stack([dx*inv, dy*inv, dz*inv])
+        return A, d0
+
+    class _G:
+        __slots__ = ("pose_idx", "A", "d0", "X_local")
+
+    groups_L, groups_R = [], []
+    for pi in range(n_poses):
+        mL = poseL == pi; mR = poseR == pi
+        if mL.any():
+            g = _G(); g.pose_idx = pi
+            g.A, g.d0 = _precompute(uL[mL], vL[mL], K)
+            g.X_local = obj_pts[idxL_arr[mL]]; groups_L.append(g)
+        if mR.any():
+            g = _G(); g.pose_idx = pi
+            g.A, g.d0 = _precompute(uR[mR], vR[mR], K.copy())
+            g.X_local = obj_pts[idxR_arr[mR]]; groups_R.append(g)
+
+    # Initial poses from constrained solution
+    R_est = [opt_R[pi] for pi in range(n_poses)]
+    t_est = [opt_t[pi] for pi in range(n_poses)]
+    x0_poses = []
+    for pi in range(n_poses):
+        rv = Rotation.from_matrix(R_est[pi]).as_rotvec()
+        x0_poses.append(rv)
+        x0_poses.append(np.asarray(t_est[pi], dtype=np.float64).reshape(3))
+    x0_poses_arr = np.concatenate(x0_poses)
+
+    def _chan_residuals(origin_c, dir_c, pose_params, groups_):
+        blocks = []
+        for g in groups_:
+            pi = g.pose_idx
+            rv = pose_params[6*pi:6*pi+3]; tv = pose_params[6*pi+3:6*pi+6]
+            R_mat = Rotation.from_rotvec(rv).as_matrix()
+            t = np.asarray(tv, dtype=np.float64).reshape(3)
+            X_world = (R_mat @ g.X_local.T).T + t[None, :]
+            d_delta_raw = g.A @ dir_c
+            d_delta = d_delta_raw - np.sum(d_delta_raw*g.d0, axis=1, keepdims=True)*g.d0
+            d = (g.d0 + d_delta)
+            d = d / np.linalg.norm(d, axis=1, keepdims=True)
+            O_raw = g.A @ origin_c
+            O = O_raw - np.sum(O_raw*d, axis=1, keepdims=True)*d
+            delta = X_world - O
+            proj = np.sum(delta*d, axis=1, keepdims=True)*d
+            blocks.append((delta - proj).reshape(-1))
+        return np.concatenate(blocks) if blocks else np.zeros(0, dtype=np.float64)
+
+    def fit_one(sigma_z0_deg, sigma_z1_deg, max_nfev=400):
+        deg_to_rad = np.pi / 180.0
+        sz0 = max(sigma_z0_deg, 1e-6) * deg_to_rad
+        sz1 = max(sigma_z1_deg, 1e-6) * deg_to_rad
+
+        prior_mask = np.zeros(n_modes2, dtype=bool)
+        prior_sigmas = np.zeros(n_modes2, dtype=np.float64)
+        prior_mask[0] = True; prior_sigmas[0] = sz0
+        prior_mask[1] = True; prior_sigmas[1] = sz1
+        prior_mask[2] = True; prior_sigmas[2] = sz1
+
+        def residuals_reg(x):
+            cL = x[:n_zernike]; cR = x[n_zernike:2*n_zernike]
+            oL = cL[:n_zernike//2].reshape(n_modes2, 3)
+            dL = cL[n_zernike//2:].reshape(n_modes2, 3)
+            oR = cR[:n_zernike//2].reshape(n_modes2, 3)
+            dR = cR[n_zernike//2:].reshape(n_modes2, 3)
+            pp = x[2*n_zernike:]
+            rL = _chan_residuals(oL, dL, pp, groups_L)
+            rR = _chan_residuals(oR, dR, pp, groups_R)
+            reg = [rL, rR]
+            # Origin Z regularization
+            reg.append(np.sqrt(1e-3) * oL[:, 2])
+            reg.append(np.sqrt(1e-3) * oR[:, 2])
+            # Gauge prior
+            for m in range(n_modes2):
+                if not prior_mask[m]: continue
+                s = prior_sigmas[m]
+                for c in range(3):
+                    reg.append(np.array([(dL[m, c] - prior_L_d[m, c]) / s]))
+                    reg.append(np.array([(dR[m, c] - prior_R_d[m, c]) / s]))
+            return np.concatenate(reg)
+
+        n_half = n_zernike // 2
+        o_lo = np.full(n_half, -np.inf); o_hi = np.full(n_half, np.inf)
+        for j in range(2, n_half, 3):
+            o_lo[j] = -20.0; o_hi[j] = 20.0
+        d_lo = np.full(n_half, -0.5); d_hi = np.full(n_half, 0.5)
+        c_lo = np.concatenate([o_lo, d_lo]); c_hi = np.concatenate([o_hi, d_hi])
+        bounds = (
+            np.concatenate([c_lo, c_lo, x0_poses_arr - 0.3]),
+            np.concatenate([c_hi, c_hi, x0_poses_arr + 0.3]),
+        )
+        x0 = np.concatenate([
+            np.zeros(n_zernike, dtype=np.float64),
+            np.zeros(n_zernike, dtype=np.float64),
+            x0_poses_arr,
+        ])
+        sol = least_squares(
+            residuals_reg, x0=x0, bounds=bounds, method="trf",
+            loss="linear", max_nfev=int(max_nfev),
+            xtol=1e-8, ftol=1e-8, gtol=1e-8,
+        )
+        # Build fields
+        def _field(cfs, Kk):
+            a = np.asarray(cfs, dtype=np.float64).reshape(-1)
+            return ZernikeRayField(K=Kk, config=config2,
+                coefficients=ZernikeRayFieldCoefficients(
+                    origin_coeffs=a[:n_modes2*3].reshape(n_modes2, 3),
+                    direction_coeffs=a[n_modes2*3:].reshape(n_modes2, 3)))
+        lf_out = _field(sol.x[:n_zernike], K)
+        rf_out = _field(sol.x[n_zernike:2*n_zernike], K.copy())
+        return lf_out, rf_out, sol
+
+    # ── Sweep ──
+    sweep_runs = [
+        ("full_pose_baseline", 100.0, 100.0),
+        ("z0_0.05deg",         0.05, 100.0),
+        ("z0_0.1deg",          0.1,  100.0),
+        ("z0_0.2deg",          0.2,  100.0),
+        ("z0_0.5deg",          0.5,  100.0),
+        ("z0_1.0deg",          1.0,  100.0),
+        ("z0z1_0.1_0.5",       0.1,  0.5),
+        ("z0z1_0.2_0.5",       0.2,  0.5),
+        ("z0z1_0.2_1.0",       0.2,  1.0),
+        ("z0z1_0.5_1.0",       0.5,  1.0),
+    ]
+
+    print(f"\n{'Run':>22s}  {'RMSmm':>9s}  {'Z0△°':>7s}  {'Z1△°':>7s}  "
+          f"{'b_mm':>7s}  {'θ°':>6s}  {'dy_ranL':>8s}  {'NFEV':>5s}  {'s':>4s}")
+    print("-" * 100)
+
+    sweep_results = []
+    for label, sz0, sz1 in sweep_runs:
+        t0 = time.time()
+        lf_s, rf_s, sol = fit_one(sz0, sz1, max_nfev=400)
+        elapsed = time.time() - t0
+
+        dL_s = lf_s.direction_coeffs; dR_s = rf_s.direction_coeffs
+        dz0_L = np.linalg.norm(dL_s[0] - prior_L_d[0])
+        dz0_R = np.linalg.norm(dR_s[0] - prior_R_d[0])
+        dz1_L = 0.5*(np.linalg.norm(dL_s[1] - prior_L_d[1]) + np.linalg.norm(dL_s[2] - prior_L_d[2]))
+        dz1_R = 0.5*(np.linalg.norm(dR_s[1] - prior_R_d[1]) + np.linalg.norm(dR_s[2] - prior_R_d[2]))
+        drift_z0 = float(np.degrees(0.5*(dz0_L + dz0_R)))
+        drift_z1 = float(np.degrees(0.5*(dz1_L + dz1_R)))
+
+        # Physical indicators on 41×41 grid
+        u_g, v_g = np.meshgrid(np.linspace(0, W_img-1, 41), np.linspace(0, H_img-1, 41))
+        O_L, d_L = lf_s.ray(u_g.ravel(), v_g.ravel())
+        O_R, d_R = rf_s.ray(u_g.ravel(), v_g.ravel())
+        uc, vc = np.array([1024.]), np.array([1024.])
+        _, dL_c = lf_s.ray(uc, vc); _, dR_c = rf_s.ray(uc, vc)
+        b_val = float(np.linalg.norm(np.mean(O_R, axis=0) - np.mean(O_L, axis=0)))
+        theta_val = float(np.degrees(np.arccos(np.clip(np.dot(dL_c[0], dR_c[0]), -1.0, 1.0))))
+        dy_range_L = float(np.max(d_L[:, 1]) - np.min(d_L[:, 1]))
+
+        # RMS from final residuals
+        def geo_rms(x):
+            cL = x[:n_zernike]; cR = x[n_zernike:2*n_zernike]
+            oL = cL[:n_zernike//2].reshape(n_modes2, 3)
+            dLc = cL[n_zernike//2:].reshape(n_modes2, 3)
+            oR = cR[:n_zernike//2].reshape(n_modes2, 3)
+            dRc = cR[n_zernike//2:].reshape(n_modes2, 3)
+            pp = x[2*n_zernike:]
+            rL = _chan_residuals(oL, dLc, pp, groups_L)
+            rR = _chan_residuals(oR, dRc, pp, groups_R)
+            return np.concatenate([rL, rR])
+        r_geo = geo_rms(sol.x)
+        rms_val = float(np.sqrt(np.mean(r_geo**2)))
+
+        result = {
+            "label": label, "sigma_z0_deg": sz0, "sigma_z1_deg": sz1,
+            "ray_rms_mm": rms_val, "converged": bool(sol.success), "nfev": int(sol.nfev),
+            "drift_z0_deg": drift_z0, "drift_z1_deg": drift_z1,
+            "baseline_mm": b_val, "convergence_angle_deg": theta_val,
+            "dy_range_L": dy_range_L, "time_s": elapsed,
+        }
+        sweep_results.append(result)
+        print(f"  {label:22s}  {rms_val:9.6f}  {drift_z0:7.3f}  {drift_z1:7.3f}  "
+              f"{b_val:7.1f}  {theta_val:6.1f}  {dy_range_L:8.4f}  {sol.nfev:5d}  {elapsed:4.0f}")
+
+    print(f"\n  {'constrained (ref)':22s}  {zd.ray_rms_mm:9.6f}  {0.0:7.3f}  {0.0:7.3f}")
+
+    # Pareto frontier
+    pareto = []
+    for i, r in enumerate(sweep_results):
+        dominated = any(
+            r2["ray_rms_mm"] <= r["ray_rms_mm"] and r2["drift_z0_deg"] <= r["drift_z0_deg"]
+            and (r2["ray_rms_mm"] < r["ray_rms_mm"] or r2["drift_z0_deg"] < r["drift_z0_deg"])
+            for j, r2 in enumerate(sweep_results) if i != j)
+        if not dominated:
+            pareto.append(r)
+
+    print(f"\nPareto-optimal ({len(pareto)}):")
+    for r in sorted(pareto, key=lambda x: x["ray_rms_mm"]):
+        print(f"  {r['label']:22s}  RMS={r['ray_rms_mm']:.6f}mm  "
+              f"Z0△={r['drift_z0_deg']:.3f}°  "
+              f"b={r['baseline_mm']:.1f}mm  θ={r['convergence_angle_deg']:.1f}°")
+
+    # Save
+    import json
+    with open(SWEEP_DIR / "zernike_gauge_regularization_sweep.json", "w") as f:
+        json.dump({
+            "description": "Gauge-regularized full-pose Zernike sweep — Z0/Z1 direction anchor",
+            "constrained_rms_mm": zd.ray_rms_mm,
+            "sweep": sweep_results,
+            "pareto_optimal": [r["label"] for r in pareto],
+        }, f, indent=2)
+    print(f"\nSaved to {SWEEP_DIR / 'zernike_gauge_regularization_sweep.json'}")
+
+else:
+    print("RUN_SWEEP = False — skipping regularization sweep. "
+          "Set to True to run (takes ~10-15 min).")
 
 # %% [markdown]
 # ## 11 — Conclusions
