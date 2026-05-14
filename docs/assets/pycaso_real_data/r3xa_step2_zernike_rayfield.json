@@ -1,0 +1,226 @@
+{
+  "title": "Pycaso CMO \u2014 Step 2: Zernike rayfield & CMO descriptors",
+  "description": "Constrained Zernike O(0)+d(2) fit, geometric descriptor readout from (O,d).",
+  "version": "2024.7.1",
+  "authors": "Jean-Fran\u00e7ois Witz; StereoComplex contributors",
+  "date": "2026-05-15",
+  "repository": "https://github.com/jeffwitz/StereoComplex",
+  "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md",
+  "license": "See StereoComplex and Pycaso repository licenses.",
+  "settings": [
+    {
+      "id": "setting_pycaso_cmo_microscope",
+      "kind": "settings/generic",
+      "title": "CMO microscope",
+      "description": "Common Main Objective stereo microscope used in the Pycaso open dataset. The StereoComplex case study treats the left and right channels as two effective off-axis CMO sub-apertures. Raw image folders are external and expected under examples/pycaso_data after cloning Pycaso.",
+      "documentation": "https://github.com/LaboratoireMecaniqueLille/Pycaso",
+      "associated_data_sources": []
+    },
+    {
+      "id": "setting_cmo_stereo_rig",
+      "kind": "settings/stereorig",
+      "title": "Stereo rig",
+      "description": "Stereo rig defined by the measured rayfield. The stereo angle and baseline are read from the constrained Zernike O(0)+d(2) rayfield. The final compact physical model is a telecentric CMO model with a per-arm SE(3) correction (26 parameters, 1.06 px RMS, P50=0.87 px, P95=1.84 px).",
+      "stereo_angle": {
+        "kind": "unit",
+        "title": "convergence_angle",
+        "unit": "deg",
+        "scale": 1.0,
+        "value": 22.551396758555008
+      },
+      "calibration_target_type": "Legacy ChArUco DICT_6X6_250, setLegacyPattern(True)",
+      "calibration_target_size": [
+        {
+          "kind": "unit",
+          "title": "squares_x",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 16
+        },
+        {
+          "kind": "unit",
+          "title": "squares_y",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 12
+        },
+        {
+          "kind": "unit",
+          "title": "square_size",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 0.3
+        },
+        {
+          "kind": "unit",
+          "title": "expected_inner_corners",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 165
+        },
+        {
+          "kind": "unit",
+          "title": "z_range_min",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 2.65
+        },
+        {
+          "kind": "unit",
+          "title": "z_range_max",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 3.35
+        }
+      ],
+      "associated_data_sources": []
+    }
+  ],
+  "data_sources": [
+    {
+      "id": "src_zernike_rayfield_fit",
+      "kind": "data_sources/identification",
+      "title": "Zernike O(0)+d(2) fit",
+      "description": "Zernike O(0)+d(2) fit",
+      "input_data_sets": [
+        "ds_tps_intermediate_state_npz"
+      ],
+      "output_components": 6,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "Ox",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "Oy",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "Oz",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "dx",
+          "unit": "1",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "dy",
+          "unit": "1",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "dz",
+          "unit": "1",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "Zernike O(0)+d(2), constrained poses",
+      "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md"
+    },
+    {
+      "id": "src_cmo_descriptor_readout",
+      "kind": "data_sources/identification",
+      "title": "Descriptor readout",
+      "description": "Descriptor readout",
+      "input_data_sets": [
+        "ds_summary_json",
+        "ds_zernike_pose_variants_json"
+      ],
+      "output_components": 5,
+      "output_dimension": "point",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "baseline",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "subpupil_depth",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "working_distance",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "objective_focal_length",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "convergence_angle",
+          "unit": "deg",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "CMO descriptor readout from O,d"
+    }
+  ],
+  "data_sets": [
+    {
+      "id": "ds_tps_intermediate_state_npz",
+      "kind": "data_sets/generic",
+      "title": "Denoised corners (NPZ)",
+      "description": "NPZ state containing already-detected, Hessian-completed and TPS-denoised corner positions, fitted Zernike rayfield and initial 26p model parameters.",
+      "file_type": "application/x-npz",
+      "path": "docs/assets/pycaso_real_data/intermediate_state.npz",
+      "data_sources": [
+        "src_zernike_rayfield_fit"
+      ]
+    },
+    {
+      "id": "ds_summary_json",
+      "kind": "data_sets/generic",
+      "title": "Calibration summary",
+      "description": "Main numerical summary: dataset, detection, constrained Zernike fit, local pixel-equivalent reprojection RMS and CMO descriptor readout.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/summary.json",
+      "data_sources": [
+        "src_zernike_rayfield_fit",
+        "src_cmo_descriptor_readout"
+      ]
+    },
+    {
+      "id": "ds_zernike_pose_variants_json",
+      "kind": "data_sets/generic",
+      "title": "Zernike coefficients",
+      "description": "Full Zernike coefficients and diagnostics for constrained and full-pose rayfield variants.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/zernike_pose_variants.json",
+      "data_sources": [
+        "src_zernike_rayfield_fit"
+      ]
+    }
+  ]
+}

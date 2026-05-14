@@ -1,0 +1,168 @@
+{
+  "title": "Pycaso CMO \u2014 Step 4: SE(3) arm alignment & final 26p model",
+  "description": "Telecentric + SE(3) fitting, ablation, autopsy, PCA, corner BA refinement.",
+  "version": "2024.7.1",
+  "authors": "Jean-Fran\u00e7ois Witz; StereoComplex contributors",
+  "date": "2026-05-15",
+  "repository": "https://github.com/jeffwitz/StereoComplex",
+  "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md",
+  "license": "See StereoComplex and Pycaso repository licenses.",
+  "settings": [
+    {
+      "id": "setting_pycaso_cmo_microscope",
+      "kind": "settings/generic",
+      "title": "CMO microscope",
+      "description": "Common Main Objective stereo microscope used in the Pycaso open dataset. The StereoComplex case study treats the left and right channels as two effective off-axis CMO sub-apertures. Raw image folders are external and expected under examples/pycaso_data after cloning Pycaso.",
+      "documentation": "https://github.com/LaboratoireMecaniqueLille/Pycaso",
+      "associated_data_sources": []
+    },
+    {
+      "id": "setting_cmo_stereo_rig",
+      "kind": "settings/stereorig",
+      "title": "Stereo rig",
+      "description": "Stereo rig defined by the measured rayfield. The stereo angle and baseline are read from the constrained Zernike O(0)+d(2) rayfield. The final compact physical model is a telecentric CMO model with a per-arm SE(3) correction (26 parameters, 1.06 px RMS, P50=0.87 px, P95=1.84 px).",
+      "stereo_angle": {
+        "kind": "unit",
+        "title": "convergence_angle",
+        "unit": "deg",
+        "scale": 1.0,
+        "value": 22.551396758555008
+      },
+      "calibration_target_type": "Legacy ChArUco DICT_6X6_250, setLegacyPattern(True)",
+      "calibration_target_size": [
+        {
+          "kind": "unit",
+          "title": "squares_x",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 16
+        },
+        {
+          "kind": "unit",
+          "title": "squares_y",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 12
+        },
+        {
+          "kind": "unit",
+          "title": "square_size",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 0.3
+        },
+        {
+          "kind": "unit",
+          "title": "expected_inner_corners",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 165
+        },
+        {
+          "kind": "unit",
+          "title": "z_range_min",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 2.65
+        },
+        {
+          "kind": "unit",
+          "title": "z_range_max",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 3.35
+        }
+      ],
+      "associated_data_sources": []
+    }
+  ],
+  "data_sources": [
+    {
+      "id": "src_se3_aligned_cmo_fit",
+      "kind": "data_sources/identification",
+      "title": "SE(3) aligned CMO fit",
+      "description": "SE(3) aligned CMO fit",
+      "input_data_sets": [
+        "ds_aligned_cmo_fit_json"
+      ],
+      "output_components": 1,
+      "output_dimension": "point",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "pixel_rms",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "CMO telecentric + SE(3) per arm, 26 parameters",
+      "documentation": "docs/CMO_PHYSICAL_MODEL.md"
+    }
+  ],
+  "data_sets": [
+    {
+      "id": "ds_arm_alignment_diagnostic_json",
+      "kind": "data_sets/generic",
+      "title": "Arm alignment",
+      "description": "Global line-bundle alignment sweep showing the 14x improvement from telecentric L0 to SE(3)-aligned CMO.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/arm_alignment_diagnostic.json",
+      "data_sources": []
+    },
+    {
+      "id": "ds_aligned_cmo_fit_json",
+      "kind": "data_sets/generic",
+      "title": "26p fit result",
+      "description": "Final joint fit parameters for the telecentric CMO + per-arm SE(3) 26-parameter model.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/aligned_cmo_fit.json",
+      "data_sources": [
+        "src_se3_aligned_cmo_fit"
+      ]
+    },
+    {
+      "id": "ds_se3_ablation_json",
+      "kind": "data_sets/generic",
+      "title": "SE(3) ablation",
+      "description": "Ablation of rotation-only, translation-only, full per-arm SE(3), shared rotation, shared translation and differential-only variants.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/se3_ablation.json",
+      "data_sources": [
+        "src_se3_aligned_cmo_fit"
+      ]
+    },
+    {
+      "id": "ds_autopsy_20p_json",
+      "kind": "data_sets/generic",
+      "title": "20p autopsy",
+      "description": "Negative control showing that the differential-only 20p model is too constrained.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/autopsy_20p.json",
+      "data_sources": []
+    },
+    {
+      "id": "ds_autopsy_26p_json",
+      "kind": "data_sets/generic",
+      "title": "26p autopsy",
+      "description": "Residual analysis and compression tests for the final 26p compact physical model.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/autopsy_26p.json",
+      "data_sources": [
+        "src_se3_aligned_cmo_fit"
+      ]
+    },
+    {
+      "id": "ds_pca_residual_26p_json",
+      "kind": "data_sets/generic",
+      "title": "PCA residual",
+      "description": "PCA analysis showing that remaining residuals are spatially varying and require flexible rayfield parameterisation.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/pca_residual_26p.json",
+      "data_sources": [
+        "src_se3_aligned_cmo_fit"
+      ]
+    }
+  ]
+}
