@@ -40,7 +40,9 @@ rayfield readouts under a constrained Zernike gauge.
 | A minimal perspective CMO model is insufficient across the FOV | Zernike-vs-CMO field comparison shows structured mismatch (3× d_y range) | Diagnostic |
 | Higher Zernike orders improve RMS modestly | Sweep O(0..2)+d(2..4): 0.47 → 0.41 px (−13 %) | Supported |
 | Baseline $b$ is less stable than $WD$ | $b$ varies 20–25 mm under higher O-orders; $WD$ spread < 0.5 mm | Supported, gauge-sensitive |
-| Full-pose vs constrained Zernike difference is dominated by a gauge mode | Modal decomposition: 90 % of Δd is \(Z_0^0\) (global direction piston), not wobble | Supported |
+| Full-pose vs constrained Zernike difference is dominated by a gauge mode | Modal decomposition: 90 % of Δd is \(Z_0^0\) (global direction piston), not wobble | Supported (pre-TPS re-denoising) |
+| TPS re-denoising on completed corners eliminates the gauge ambiguity | After double TPS pass, Z₀ drift drops from 8.5° to 0.023° — full-pose and constrained rayfields nearly identical | Supported |
+| Gauge-regularized full-pose fit confirms preprocessing solves the problem | Sweep over σ_Z₀, σ_Z₁: even unregularized full-pose has negligible drift; Pareto curve is nearly vertical | Supported |
 
 ## What this case study evaluates
 
@@ -438,43 +440,42 @@ are physically plausible:
 ### Zernike pose model: constrained vs full
 
 The Zernike rayfield can be fitted with constrained poses (shared R+XY,
-per-pose Z, 15 params) or full per-frame poses (60 params).  The choice
-affects how well the compact telecentric model can match the rayfield:
+per-pose Z, 15 pose params) or full per-frame poses (60 pose params).
 
-| Rayfield target | Pix RMS | Telecentric fit |
-|---|---|---|
-| Zernike constrained | 0.41 px | 0.13 mm, 0.3° dir (good match) |
-| Zernike full poses | 0.17 px | 0.69 mm, 5.0° dir (harder target) |
+| Variant | Pose params | Total params | Ray RMS (mm) | b (mm) | θ (°) | d_y range |
+|---|---|---|---|---|---|---|
+| Constrained | 15 | 87 | 0.000653 | 24.9 | 22.3 | 0.080 |
+| Full-pose | 60 | 132 | 0.000228 | 24.8 | 22.3 | 0.080 |
+| Full-pose + gauge reg. | 60 | 132 | 0.000228 | 24.9 | 22.3 | 0.080 |
 
-The full-pose Zernike achieves lower corner error (0.17 px vs 0.41 px)
-by using more parameters (132 vs 87).  However, this flexibility comes at
-a cost: the inferred rayfield geometry changes substantially — baseline
-(27.8 vs 16.8 mm), convergence angle (25.3° vs 15.0°), $d_y$ range
-(0.19 vs 0.055), and origin asymmetry (5.0 vs 1.0 mm).  This is a
-**pose/rayfield identifiability issue**: without external ground truth,
-neither variant can be proven physically correct.
+With the **double TPS preprocessing** (ArUco markers → completed 165
+corners → TPS smoothing pass, see §3), the constrained and full-pose
+rayfields are nearly identical.  The Z₀ direction piston drift is only
+0.023° (down from 8.5° without TPS re-denoising).  Physical descriptors
+are stable across all variants.  The constrained model's slightly higher
+RMS comes from having fewer pose parameters (15 vs 60), not from gauge
+ambiguity.
 
-The constrained-pose Zernike is the more **conservative** intermediate
-for CMO-like interpretation — it is more symmetric, more telecentric,
-and more compatible with the quasi-telecentric compact model.  The
-full-pose Zernike may reveal real asymmetries or may simply overfit.
+The constrained-pose Zernike is the recommended intermediate: it is more
+parsimonious (87 vs 132 params) and physically motivated (Z-only stage),
+while achieving effectively the same rayfield geometry.
 
-### Conditioning diagnostic: why constrained and full Zernike differ
+### Conditioning diagnostic: historical analysis (pre-TPS re-denoising)
 
-We conducted a Zernike/pose identifiability analysis to determine whether the
-difference between constrained and full-pose Zernike rayfields is caused by
-poorly constrained Zernike modes trading off with pose parameters.
+Before the TPS re-denoising step was added, the constrained and full-pose
+Zernike fits produced significantly different rayfields:
+Δd ≈ 8.5°, Δm ≈ 9.7 mm, baseline jumping from 17 mm to 28 mm.  We
+conducted a Zernike/pose identifiability analysis that identified the
+cause as a gauge mode.
 
 **Design matrix conditioning.** The Zernike basis on the full 41×41 square
 sensor grid is well-conditioned: cond(\(B_2\)) = 4.8, cond(\(B_4\)) = 14.5.
 However, \(Z_0^0\) and \(Z_2^0\) are not orthogonal on the square sensor
 (off-diagonal Gram correlation 0.56).  On sparse ChArUco-like sampling,
-conditioning degrades significantly: cond(\(B_4\)) = 71, with
-\(Z_2^2(\cos)\) loading 78 % onto the last singular vector.
+conditioning degrades significantly: cond(\(B_4\)) = 71.
 
-**Modal decomposition of Δd.**  We projected the direction difference
-\(\Delta d = d_{\text{full}} - d_{\text{constrained}}\) onto Zernike modes
-up to order 4:
+**Modal decomposition of Δd.**  Projecting \(\Delta d = d_{\text{full}} -
+d_{\text{constrained}}\) onto Zernike modes up to order 4:
 
 | Mode | Left Δd | Right Δd | Interpretation |
 |---|---:|---:|---|
@@ -483,80 +484,62 @@ up to order 4:
 | \(Z_1^1(\cos)\) — x‑tilt | 4.4 % (1.8°) | 9.5 % (1.7°) | Tilt ↔ \(R_x\) coupling |
 | All higher modes (\(n \ge 2\)) | < 0.1 % | < 0.5 % | Negligible |
 
-**90 % of Δd is Z₀⁰ — a global direction piston.**  This mode shifts all
-ray directions by a constant offset, which is equivalent to changing the
-effective focal length of the pinhole reference.  It is a **gauge freedom**
-of the Zernike + poses inverse problem: changing the global direction scale
-can be absorbed by pose translations without changing the corner
-reprojection residuals.  Only ~10 % of Δd comes from tilt modes
-(\(Z_1^1\)) that represent the actual 0.31° mechanical wobble.
+**90 % of Δd was Z₀⁰ — a global direction piston.**  This is a gauge
+freedom of the Zernike + poses inverse problem: changing the global
+direction scale can be absorbed by pose translations.
 
-**Physical indicator sensitivity.**  We computed the sensitivity of CMO
-descriptors (baseline, convergence angle, \(d_y\) range, sub-pupil depth)
-to each Zernike coefficient via finite-difference perturbation:
+### TPS re-denoising resolves the gauge ambiguity
 
-| Mode | Most sensitive indicator | Sensitivity |
+The **double TPS pass** (§3) — first on ArUco markers to predict all 165
+corners, then on the completed set as a smoothing pass — produces data
+clean enough that the gauge ambiguity disappears:
+
+| Metric | Before TPS re-denoising | After TPS re-denoising |
 |---|---|---|
-| \(Z_0^0(m_0)\) d-coeff | subpupil depth | 2.36 mm / 0.01 coeff |
-| \(Z_1^1(\cos)\) d-coeff | \(d_y\) range (telecentricity) | 1.40 / 0.01 coeff |
-| \(Z_1^1(\sin)\) d-coeff | \(d_y\) range | 1.40 / 0.01 coeff |
-| \(Z_2^0(m_0)\) d-coeff | \(d_x\) antisymmetry | 1.95 / 0.01 coeff |
-| \(Z_2^2(\sin)\) d-coeff | \(d_y\) range | 1.75 / 0.01 coeff |
+| Constrained RMS (ray mm) | 0.000577 | 0.000653 |
+| Full-pose RMS (ray mm) | 0.000231 | 0.000228 |
+| Z₀ drift (full − constrained) | **8.5°** | **0.023°** |
+| Baseline shift | 17 → 28 mm | 24.8 ↔ 24.9 mm |
+| Convergence shift | 15° → 25° | 22.3° (stable) |
 
-**Coefficient stability.**  We compared Zernike coefficients between the
-constrained and full-pose solutions:
-
-| Mode | ΔO_L (mm) | Δd_L | Δd_R | Stability |
-|---|---:|---:|---:|---|
-| \(Z_0^0(m_0)\) | 9.77 | 0.149 | 0.089 | **UNSTABLE** (gauge) |
-| \(Z_1^1(\cos)\) | 5.08 | 0.078 | 0.075 | **UNSTABLE** (tilt) |
-| \(Z_1^1(\sin)\) | 6.22 | 0.093 | 0.086 | **UNSTABLE** (tilt) |
-| \(Z_2^0(m_0)\) | 0.05 | 0.001 | 0.002 | MODERATE |
-| \(Z_2^2(\cos)\) | 0.17 | 0.002 | 0.002 | UNSTABLE (weak) |
-| \(Z_2^2(\sin)\) | 0.25 | 0.003 | 0.005 | UNSTABLE (shear) |
-
-4 of 6 direction modes are unstable between the two fits.  However, only
-\(Z_0^0\) and \(Z_1^1\) have large absolute coefficient changes; the
-higher-order instabilities reflect small norms rather than large shifts.
-
-**Conclusion.**  The full-pose Zernike's lower pixel RMS (0.17 vs 0.41 px)
-comes primarily from a **gauge mode** (\(Z_0^0\) direction piston) that is
-nearly unobservable from corner data — it changes the global direction
-scale, which poses can absorb.  Only ~10 % of the improvement comes from
-actual geometric modelling of the 0.31° wobble.
-
-**Recommendation.**  Keep constrained poses as the conservative
-intermediate.  For applications needing lower pixel error, add mild
-Tikhonov regularization on the direction coefficients proportional to
-their pose sensitivity, rather than freeing all poses.  This preserves
-physical interpretability while capturing the small amount of real
-wobble present in the data.
-
-Artefacts: `zernike_conditioning_diagnostic.json`,
-`zernike_conditioning_summary.json`.
+The full-pose fit no longer drifts into the gauge mode because the
+improved 2‑D corner positions leave less residual noise for the
+pose/Zernike trade-off to exploit.
 
 ### Gauge-regularized full-pose sweep
 
-Following the conditioning diagnostic, we tested a **regularized full-pose**
-Zernike fit that anchors the gauge-sensitive direction modes (\(Z_0^0\),
-\(Z_1^1\)) to the constrained-pose solution:
+We tested a **regularized full-pose** Zernike fit that anchors the
+gauge-sensitive direction modes (\(Z_0^0\), \(Z_1^1\)) to the
+constrained-pose solution with angular tolerance \(\sigma_m\):
 
 $$\mathcal{L} = \mathcal{L}_{\text{repr}} + \sum_{m \in \{Z_0,Z_1\}} \sum_c
   \left(\frac{a^f_{m,c} - a^c_{m,c}}{\sigma_m}\right)^2$$
 
-where \(\sigma_m\) is an interpretable angular tolerance (degrees).
-A small \(\sigma\) strongly anchors the gauge mode; a large \(\sigma\)
-recovers the unregularized fit.
-
 The sweep over \(\sigma_{Z_0} \in [0.05°, 2.0°]\) and \(\sigma_{Z_1} \in
-[0.5°, 2.0°]\) is implemented as notebook section 10.3 (controlled by
-``RUN_SWEEP`` flag, takes ~10–15 min).  Results are saved to
-`zernike_gauge_regularization_sweep.json`.
+[0.5°, 2.0°]\) (12 runs) confirms that **regularization is unnecessary**
+with the improved preprocessing: even the unregularized full-pose fit
+has negligible Z₀ drift (0.023°).
 
-The regularization strategy is **preferable to removing modes** because
-\(Z_0^0\) and \(Z_1^1\) carry essential physical information (mean
-direction, convergence angle, first-order telecentricity).  Penalizing
-their drift preserves them while preventing gauge-driven overfitting.
+![Pareto frontier: RMS vs gauge drift](../docs/assets/pycaso_real_data/pareto_gauge_regularization.png)
+
+**The Pareto curve is nearly vertical** — all regularization strengths
+produce identical RMS (~0.000228 mm).  Baseline (24.8–24.9 mm) and
+convergence angle (22.3°) are stable across all runs.  The constrained
+fit has slightly higher RMS (0.000653 mm) due to having fewer pose
+parameters (15 vs 60), not due to gauge ambiguity.
+
+**Conclusion.** The conditioning diagnostic correctly identified \(Z_0^0\)
+as the gauge mode, and the gauge-regularized sweep provided the tool to
+test it.  The real fix, however, came from **better data preprocessing**
+(TPS re-denoising) rather than from regularization.  With clean enough
+2‑D corner positions, the Zernike + poses inverse problem is
+well-conditioned and the choice between constrained and full poses
+becomes a matter of parsimony — not gauge instability.
+
+Artefacts: `zernike_conditioning_diagnostic.json`,
+`zernike_conditioning_summary.json`,
+`zernike_gauge_regularization_sweep.json`,
+`pareto_gauge_regularization.png`.
 Which interpretation is correct depends on independent validation of
 the microscope geometry.
 

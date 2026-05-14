@@ -1134,12 +1134,13 @@ print(f"  subpupil_depth:    {ind_deltas['subpupil_depth_mm']:+.2f} mm")
 # | Z₂²(cos)  | 0.002 | UNSTABLE   | d_y range (weak)    | Astigmatism (poorly excited)  |
 # | Z₂²(sin)  | 0.003 | UNSTABLE   | d_y range           | Astigmatism ↔ shear          |
 #
-# **Recommendation:** Keep constrained poses as the conservative
-# intermediate.  Z₀⁰ direction is a gauge mode — regularize it rather
-# than freeing it.  The 0.31° true wobble confirms constrained poses
-# are physically justified.  If lower pixel error is needed, add mild
-# Tikhonov regularization on direction coefficients proportional to
-# their pose sensitivity rather than freeing all poses.
+# **Recommendation:** The gauge mode diagnosis was correct, but the
+# solution turned out to be **better data preprocessing** rather than
+# regularization.  The double TPS pass (ArUco markers → 165 corners →
+# TPS smoothing) eliminates the noise that the gauge mode was absorbing.
+# With clean 2‑D data, constrained poses are both physically justified
+# and sufficient — the full-pose fit adds 45 parameters for negligible
+# rayfield change (Z₀ drift < 0.03°).
 
 # %% [markdown]
 # ### 10.3 — Gauge-regularized full-pose sweep
@@ -1505,13 +1506,20 @@ else:
 #    fit cannot achieve better than ~600 px reprojection.
 #
 # 5. **The constrained-vs-full-pose Zernike difference is dominated by a
-#    gauge mode**: 90 % of Δd is Z₀⁰ (global direction piston), which
-#    changes the effective focal length and is absorbed by poses.  The
-#    actual geometric wobble is only 0.31° RMS.  Constrained poses are
-#    the physically justified intermediate; regularization is preferable
-#    to freeing all poses.
+#    gauge mode** (Z₀⁰, global direction piston).  The conditioning
+#    diagnostic (section 10) identified this mode and tracked its
+#    sensitivity to physical descriptors.  The gauge-regularized sweep
+#    (section 10.3) provided the tool to anchor it.
 #
-# 6. **The workflow generalises**: the same rayfield → physical reading →
+# 6. **TPS re-denoising on completed corners eliminates the gauge
+#    ambiguity.**  The double TPS pass — first on ArUco markers, then on
+#    the completed 165‑corner set — produces data clean enough that the
+#    Z₀ drift drops from 8.5° to 0.023°.  With proper 2‑D preprocessing,
+#    the Zernike + poses inverse problem is well-conditioned and the
+#    choice between constrained and full poses becomes a matter of
+#    parsimony, not gauge instability.
+#
+# 7. **The workflow generalises**: the same rayfield → physical reading →
 #    model comparison sequence can be applied to any stereo microscope to
 #    identify its optical architecture and quantify deviations from ideal
 #    models.
