@@ -80,7 +80,7 @@ def reprojection_guard_penalty(
 ) -> float:
     """Penalty term for models exceeding a pixel reprojection threshold.
 
-    Returns 0 if ``px_rms <= threshold_px``.  Otherwise returns a hard
+    Returns 0 if ``px_rms <= threshold_px``. Otherwise returns a hard
     barrier plus a log-ratio term that ranks non-usable models among
     themselves::
 
@@ -88,11 +88,54 @@ def reprojection_guard_penalty(
 
     This is designed to be added to a ray-space BIC to produce an
     operational ``bic_usable`` that enforces a usability constraint.
+
+    Notes
+    -----
+    This penalty is not a statistical likelihood term. It is an
+    operational guard: a model whose direct pixel reprojection RMS is above
+    ``threshold_px`` is considered non-usable for calibration, even if it
+    explains the rayfield compactly.
     """
-    if px_rms <= threshold_px:
+    px = float(px_rms)
+    if not np.isfinite(px):
+        return float(hard_penalty)
+
+    if px <= threshold_px:
         return 0.0
-    ratio2 = (float(px_rms) / float(threshold_px)) ** 2
-    return float(hard_penalty) + float(alpha) * float(n_pixel_observations) * np.log(max(ratio2, 1.0 + 1e-10))
+
+    ratio2 = (px / float(threshold_px)) ** 2
+    return float(hard_penalty) + float(alpha) * float(n_pixel_observations) * np.log(
+        max(ratio2, 1.0 + 1e-10)
+    )
+
+
+def usable_bic(
+    bic_ray: float,
+    px_rms: float,
+    *,
+    threshold_px: float = 1.5,
+    n_pixel_observations: int,
+    hard_penalty: float = 1.0e6,
+    alpha: float = 1.0,
+) -> float:
+    """Return ray-space BIC plus an operational pixel-RMS usability guard.
+
+    ``bic_ray`` remains the Gaussian BIC computed from ray-space residuals.
+    ``usable_bic`` adds a hard penalty when the same model is not usable in
+    direct reprojection, according to ``threshold_px``.
+
+    This deliberately separates two questions:
+
+    - ray-space BIC: which optical family explains the measured rayfield?
+    - usable BIC: which model is accurate enough for calibration use?
+    """
+    return float(bic_ray) + reprojection_guard_penalty(
+        px_rms,
+        threshold_px=threshold_px,
+        n_pixel_observations=n_pixel_observations,
+        hard_penalty=hard_penalty,
+        alpha=alpha,
+    )
 
 
 def _grid_pixels(image_size: tuple[int, int], grid_shape: tuple[int, int]) -> np.ndarray:
@@ -513,5 +556,7 @@ __all__ = [
     "PhysicalModelSpec",
     "default_physical_model_specs",
     "fit_physical_model_to_rayfield",
+    "reprojection_guard_penalty",
     "select_physical_model_from_rayfield",
+    "usable_bic",
 ]
