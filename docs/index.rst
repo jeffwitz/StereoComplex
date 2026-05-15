@@ -4,15 +4,19 @@ StereoComplex
 Robust ChArUco calibration and ray-based stereo reconstruction
 ----------------------------------------------------------------
 
-From robust ChArUco observations to central and non-central ray-based stereo calibration.
+StereoComplex is a lightweight Python toolkit for robust stereo calibration,
+Ray2D ChArUco refinement, ray-based 3D reconstruction, and non-central optical
+model diagnostics.
 
-StereoComplex is a lightweight Python toolkit for robust stereo calibration and ray-based 3D reconstruction.
-It starts from practical ChArUco workflows: detect corners, run a robust Ray2D planar refinement,
-compare raw OpenCV against refined observations, and export OpenCV-ready data.
+If you already know OpenCV calibration, start with the onboarding notebook:
 
-It also includes validated 3D ray-based calibration backends: a central ray-field stereo model and
-a non-central Zernike rayfield model where each pixel maps to a 3D line rather than to a ray emitted
-from a fixed pinhole center — validated on real CMO microscope data (Pycaso, 0.47 px RMS).
+.. code-block:: text
+
+   examples/notebooks/00_getting_started.ipynb
+
+It shows the shortest path: define a ChArUco board, compare raw OpenCV against
+Ray2D-refined calibration, assess calibration quality, and export back to
+OpenCV format.
 
 .. rubric:: Video 1 (overview)
 
@@ -26,99 +30,132 @@ from a fixed pinhole center — validated on real CMO microscope data (Pycaso, 0
      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
      allowfullscreen></iframe>
 
-Motivation: in many practical stereo systems, calibration accuracy is limited by **2D localization quality** (blur, compression, noise), and in some optical systems the pinhole/central-camera assumption itself is too restrictive.
-
-.. rubric:: Key contributions
-
-1. **Robust ChArUco refinement without requiring a camera model.** Ray2D / ``rayfield_tps_robust`` uses a homography plus a smooth residual field on the board plane.
-2. **OpenCV-compatible stereo calibration diagnostics.** StereoComplex compares raw and refined ChArUco points and reports stereo/reconstruction metrics.
-3. **Central 3D ray-field reconstruction.** The central backend learns a compact pixel-to-ray direction model and triangulates from rays.
-4. **Validated non-central stereo calibration.** The non-central backend fits a Zernike rayfield ``(O(u,v), d(u,v))``, so each pixel defines a 3D line instead of sharing one optical center. Validated on real CMO microscope data (Pycaso, 0.47 px RMS).
-5. **Synthetic non-central oracle benchmark.** An inclined parallel-plate model generates physically plausible non-central stereo data without fitting plate parameters.
-6. **Practical non-central image workflow.** A public API fits a Zernike rayfield model directly from two image folders (validated on real CMO hardware).
-7. **Ray-space optical model selection.** A measured Zernike rayfield can be used to compare compact physical hypotheses such as central Brown-Conrady, inclined plate, physical CMO shared-rig, and generic non-central polynomial / Zernike fallback models.
-
-.. rubric:: Ray-field terminology
+.. rubric:: What StereoComplex does
 
 .. list-table::
    :header-rows: 1
 
-   * - Term
+   * - Layer
      - Meaning
-     - Dimension
      - Status
    * - Ray2D / planar ray-field
-     - Homography + smooth residual field on the calibration board plane
-     - 2D
+     - Homography plus smooth residual field on the calibration board plane
      - stable practical preprocessing
    * - Central 3D ray-field
-     - Pixel → 3D direction, shared camera center
-     - 3D central
-     - validated
+     - Pixel → 3D direction with a shared camera center
+     - research prototype
    * - Non-central 3D rayfield
      - Pixel → 3D line ``(O(u,v), d(u,v))``
-     - 3D non-central
-     - validated (real CMO)
+     - research-grade, validated on synthetic oracles and one real CMO case study
 
-The 2D Ray2D refinement is not itself a 3D non-central camera model. It improves the image observations fed to calibration. The non-central backend is a separate 3D line-based model.
+The 2D Ray2D refinement is not itself a 3D non-central camera model. It improves
+the image observations fed to calibration. The non-central backend is a separate
+3D line-based model.
 
-Engineering footprint: no ROS, no Docker requirement, no C++ toolchain; the core is a Python package using standard scientific libraries.
+Engineering footprint: no ROS, no Docker requirement, no C++ toolchain; the core
+is a Python package using standard scientific libraries.
+
+.. rubric:: Recommended path
+
+1. **First use / OpenCV migration** → :doc:`FROM_OPENCV_TO_STEREOCOMPLEX` and
+   ``examples/notebooks/00_getting_started.ipynb``.
+2. **Fix ChArUco / OpenCV calibration** → :doc:`FIX_MY_CALIBRATION`,
+   :doc:`BRING_YOUR_OWN_DATA`, and ``examples/notebooks/01_ray2d_vs_opencv.ipynb``.
+3. **Ray-based 3D reconstruction** → :doc:`RAYFIELD3D_RECONSTRUCTION` and
+   ``examples/notebooks/02_ray3d.ipynb``.
+4. **Non-central calibration** → :doc:`NONCENTRAL_FROM_IMAGES` and
+   ``examples/notebooks/04_parallel_plate_origin_field.ipynb``.
+5. **Optics identification / CMO case study** → :doc:`REAL_CMO_PYCASO_RAYFIELD`,
+   :doc:`CMO_PHYSICAL_MODEL`, and ``examples/notebooks/09_pycaso_real_data.ipynb``.
+
+.. rubric:: Key contributions
+
+1. **Robust ChArUco refinement without requiring a camera model.** Ray2D /
+   ``rayfield_tps_robust`` uses a homography plus a smooth residual field on the
+   board plane.
+2. **OpenCV-compatible stereo calibration diagnostics.** StereoComplex compares
+   raw and refined ChArUco points and reports stereo/reconstruction metrics.
+3. **Central 3D ray-field reconstruction.** The central backend learns a compact
+   pixel-to-ray direction model and triangulates from rays.
+4. **Non-central Zernike rayfield calibration.** Each pixel can define a 3D line
+   instead of sharing one optical center.
+5. **Ray-space optical model identification.** A measured Zernike rayfield can be
+   used to compare compact physical hypotheses such as Brown-Conrady, inclined
+   plate, CMO-like, and generic fallback rayfields.
 
 .. figure:: assets/rayfield_worked_example/zoom_overlays/left_best_ideal_vs_realistic_frame000000.png
    :alt: Ideal (no blur) vs realistic (dataset) corner overlays, raw vs ray-field
    :width: 85%
 
-   Same GT (with geometric distortion) on a strict ideal render (top: no blur/no noise, nearest texture sampling) vs realistic (bottom), raw vs ray-field.
-
-.. rubric:: Key result: 3D ray-field robustness to compression
-
-StereoComplex includes an experimental **3D ray-based stereo reconstruction** prototype. On the provided compression sweep, the **3D ray-field** remains stable under lossy compression, while pinhole-based pipelines remain sensitive to codec artifacts through the 2D localization stage.
-
-.. figure:: assets/compression_sweep/tri_rms_rel_depth_percent.png
-   :alt: Compression sweep: triangulation RMS vs codec quality (pinhole vs 3D ray-field)
-   :width: 92%
-
-   Compression sweep: triangulation RMS (relative depth error) vs codec quality, comparing pinhole-based pipelines to the 3D ray-field.
+   Same GT (with geometric distortion) on a strict ideal render (top: no blur/no
+   noise, nearest texture sampling) vs realistic (bottom), raw vs ray-field.
 
 .. rubric:: Key result: non-central rendered-image benchmark
 
-On the inclined-plate benchmark, raw OpenCV ChArUco detections impose a high reconstruction floor.
-With Ray2D-refined observations, the same non-central BA reaches sub-millimetric reconstruction accuracy:
+On the inclined-plate benchmark, raw OpenCV ChArUco detections impose a high
+reconstruction floor. With Ray2D-refined observations, the same non-central
+bundle adjustment reaches sub-millimetric reconstruction accuracy:
 
 - OpenCV raw: central RMS ≈ 4.21 mm, oracle-detected RMS ≈ 3.44 mm, non-central BA RMS ≈ 3.36 mm.
 - Ray2D refined: central RMS ≈ 2.50 mm, oracle-detected RMS ≈ 0.76 mm, non-central BA RMS ≈ 0.66 mm.
 
-Interpretation: the non-central model works when the 2D observations are good enough; front-end quality is the limiting factor on rendered or real images.
+Interpretation: the non-central model works when the 2D observations are good
+enough; front-end quality is the limiting factor on rendered or real images.
 
 .. rubric:: Key result: real CMO microscope data
 
-On real Pycaso CMO microscope images, StereoComplex detects legacy ChArUco
-corners, completes missing points with a Hessian/barycentre refinement,
-denoises observations with Ray2D TPS, and fits a constrained Zernike rayfield.
-The resulting rayfield reaches subpixel local pixel-equivalent residuals
-(0.47 px RMS) and yields CMO-consistent geometric descriptors read from the
-measured rayfield: baseline ≈ 24.9 mm, working distance ≈ 64.7 mm, effective
-objective focal length ≈ 62.2 mm, and chief-ray convergence ≈ 22.6°.
+The Pycaso CMO microscope case study is the main real-data validation of the
+non-central workflow. It separates a flexible measured rayfield from a compact
+physical interpretation:
 
-These descriptors are read from the measured rayfield under a Zernike gauge;
-they are not fitted CMO parameters. The mismatch with a simplified perspective
-CMO model is used as a diagnostic of the real optics.
+.. list-table::
+   :header-rows: 1
 
-See :doc:`REAL_CMO_PYCASO_RAYFIELD` and :doc:`Notebook 09 <../examples/notebooks/09_pycaso_real_data>`.
+   * - Model / method
+     - Role
+     - RMS
+   * - Standard OpenCV stereo on the tested setup
+     - central baseline
+     - >300 px
+   * - Perspective CMO physical model
+     - wrong optical family
+     - ~86 px
+   * - Telecentric CMO 14p
+     - correct family but not usable
+     - ~14.6 px
+   * - Telecentric CMO + per-arm SE(3), 26p
+     - compact usable physical model
+     - 1.06 px
+   * - Zernike O(0)+d(2), 57p
+     - flexible rayfield reference
+     - 0.47 px
 
-.. rubric:: Status of the non-central backend
+The key methodological point is that the rayfield is not only a calibration
+model; it is also a diagnostic instrument used to build and falsify compact
+physical optical models.
 
-The non-central Zernike rayfield backend is validated on real CMO microscope
-data (Pycaso, 0.47 px RMS). It is useful for controlled benchmarks, for testing
-systems where the central-camera assumption is visibly biased, and for
-identifying physical optical architectures from measured rayfields.
+See :doc:`REAL_CMO_PYCASO_RAYFIELD`, :doc:`CMO_PHYSICAL_MODEL`, and
+``examples/notebooks/09_pycaso_real_data.ipynb``.
 
-The practical API exposes the origin-field model first; the full ``O(u,v)``,
-``d(u,v)``, poses, rig BA is documented as an advanced benchmark path.
+.. rubric:: Notebook walkthroughs
 
-.. rubric:: Quickstart (what most users want)
+If you want a guided, visual introduction before reading the code or the
+advanced case studies, start with the notebook series:
 
-0) If you already have your own stereo folders and want a central ray-based model, use:
+- **``00_getting_started.ipynb``**: first OpenCV-to-StereoComplex onboarding.
+- ``01_ray2d_vs_opencv.ipynb``: raw OpenCV detections vs Ray2D refinement.
+- ``02_ray3d.ipynb``: compact central 3D ray-field and compression sweeps.
+- ``03_rayfield_virtual_rectification.ipynb``: virtual rectification maps for dense stereo.
+- ``04_parallel_plate_origin_field.ipynb``: inclined-plate non-central oracle.
+- ``05_noncentral_calibration_from_images.ipynb``: practical non-central image-folder workflow.
+- ``06_cmo_model_selection.ipynb``: CMO-like rayfield measurement and model selection.
+- ``09_pycaso_real_data.ipynb``: real Pycaso CMO microscope case study.
+
+Companion ``.py`` exports are stored next to the notebooks for quick inspection
+in any text editor. See :doc:`NOTEBOOKS` for the complete sequence, including
+scripts 07 and 08.
+
+.. rubric:: Quickstart from OpenCV
 
 .. code-block:: python
 
@@ -128,103 +165,19 @@ The practical API exposes the origin-field model first; the full ``O(u,v)``,
    board = sc.CharucoBoardSpec(
        squares_x=11,
        squares_y=7,
-       square_size_mm=39.0713,
-       marker_size_mm=27.3499,
+       square_size_mm=39.07,
+       marker_size_mm=27.35,
        aruco_dictionary="DICT_4X4_1000",
    )
 
-   result = sc.fit_stereo_central_rayfield_from_image_dirs(
+   report = sc.compare_opencv_stereo_calibration(
        left_dir=Path("my_data/left"),
        right_dir=Path("my_data/right"),
        board=board,
-       method2d="rayfield_tps_robust",
-       export_model_dir=Path("models/my_calibration"),
    )
 
-For a non-central origin-field model from image folders, use:
-
-.. code-block:: python
-
-   from pathlib import Path
-   import stereocomplex as sc
-
-   board = sc.CharucoBoardSpec(
-       squares_x=9,
-       squares_y=6,
-       square_size_mm=20.0,
-       marker_size_mm=15.0,
-       aruco_dictionary="DICT_4X4_50",
-   )
-
-   fit = sc.fit_stereo_zernike_origin_field_from_image_dirs(
-       left_dir=Path("my_data/left"),
-       right_dir=Path("my_data/right"),
-       board=board,
-       max_order=4,
-       method2d="rayfield_tps_robust",
-   )
-
-1) Refine corners (exports JSON + an OpenCV-ready NPZ):
-
-.. code-block:: bash
-
-   .venv/bin/python -m stereocomplex.cli refine-corners dataset/v0_png \
-     --split train --scene scene_0000 \
-     --method rayfield_tps_robust \
-     --out-json paper/tables/refined_corners_scene0000.json \
-     --out-npz paper/tables/refined_corners_scene0000_opencv.npz
-
-2) Run the reproducible OpenCV evaluation (raw vs ray-field) on the same scene:
-
-.. code-block:: bash
-
-   .venv/bin/python paper/experiments/compare_opencv_calibration_rayfield.py dataset/v0_png \
-     --split train --scene scene_0000 \
-     --out paper/tables/opencv_calibration_rayfield.json
-
-.. rubric:: Notebook walkthroughs
-
-If you want a guided, visual introduction before reading the code or the paper,
-start with the notebook series:
-
-- `01_ray2d_vs_opencv.ipynb` compares raw OpenCV detections against the 2D
-  planar refinement (`rayfield_tps_robust`) on the synthetic benchmark.
-- `02_ray3d.ipynb` explains the compact central 3D ray-field, the Pycaso-style
-  sweeps, and the compression robustness experiments.
-- `03_rayfield_virtual_rectification.ipynb` shows how to reuse a calibrated
-  ray-field inside a classical dense stereo pipeline via virtual rectification.
-- `04_parallel_plate_origin_field.ipynb` demonstrates the inclined-plate
-  non-central oracle, rendered ChArUco images with vignetting/blur/noise, and
-  the complete non-central bundle adjustment over ``O(u,v)``, ``d(u,v)``,
-  poses, and the stereo rig.
-- `05_noncentral_calibration_from_images.ipynb` shows the practical image-folder
-  workflow: left/right images plus a ChArUco board definition to a fitted
-  non-central Zernike origin-field model.
-- `06_cmo_model_selection.ipynb` demonstrates CMO rayfield measurement and
-  optical model selection: ChArUco CMO generation, generic Zernike ``O,d``
-  fields, then BIC selection among pinhole, Brown, plate, and CMO candidates.
-- **`09_pycaso_real_data.ipynb`** applies the full pipeline to **real Pycaso
-  CMO microscope images**: legacy ChArUco detection, Hessian completion,
-  Ray2D TPS, constrained Zernike rayfield (0.47 px RMS), CMO-consistent
-  descriptors, telecentricity diagnosis, and Zernike order sweep.
-
-Companion `.py` exports are stored next to the notebooks for quick inspection in
-any text editor.
-
-.. rubric:: Also: 3D reconstruction without a pinhole model (prototype)
-
-StereoComplex also includes a **ray-based stereo reconstruction** prototype: it calibrates a compact mapping
-pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment over multiple planar poses
-(**no solvePnP, no known** ``K``), then triangulates from the two rays.
-
-.. code-block:: bash
-
-   .venv/bin/python paper/experiments/calibrate_central_rayfield3d_from_images.py dataset/v0_png \
-     --split train --scene scene_0000 --max-frames 5 \
-     --method2d rayfield_tps_robust \
-     --nmax 10 --lam-coeff 1e-3 --outer-iters 3 \
-   --out paper/tables/rayfield3d_ba_scene0000.json \
-   --export-model models/scene0000_rayfield3d
+   assessment = sc.assess_calibration(report["refined_result"])
+   K1, d1, K2, d2, R, T = report["refined_result"].to_opencv()
 
 .. rubric:: Documentation map
 
@@ -232,7 +185,6 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
   :doc:`START_HERE`,
   :doc:`FROM_OPENCV_TO_STEREOCOMPLEX`,
   :doc:`BRING_YOUR_OWN_DATA`,
-  :doc:`NONCENTRAL_FROM_IMAGES`,
   :doc:`FIX_MY_CALIBRATION`,
   :doc:`NOTEBOOKS`.
 - ChArUco and 2D refinement:
@@ -243,16 +195,16 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
   :doc:`RECONSTRUCTION_API`,
   :doc:`RAYFIELD3D_RECONSTRUCTION`,
   :doc:`RAYFIELD_VIRTUAL_RECTIFY`.
-- Real-data validation and optical model identification:
-  :doc:`REAL_CMO_PYCASO_RAYFIELD`,
+- Non-central and optical model identification:
+  :doc:`NONCENTRAL_FROM_IMAGES`,
   :doc:`IDENTIFY_MY_OPTICS`,
-  :doc:`CMO_PHYSICAL_MODEL`,
   :doc:`CMO_MODEL_SELECTION`,
   :doc:`DIRECT_VS_RAYFIELD_INVERSION`,
-  :doc:`PARALLEL_PLATE_ORIGIN_FIELD`,
-  :doc:`PYCASO_Z_SWEEP`,
-  :doc:`COMPRESSION_RECONSTRUCTION`,
-  :doc:`ROBUSTNESS_SWEEP`.
+  :doc:`PARALLEL_PLATE_ORIGIN_FIELD`.
+- Real-data CMO validation:
+  :doc:`REAL_CMO_PYCASO_RAYFIELD`,
+  :doc:`CMO_PHYSICAL_MODEL`,
+  :doc:`PYCASO_Z_SWEEP`.
 - Project status:
   :doc:`VALIDATION_STATUS`,
   :doc:`ROADMAP`.
@@ -270,10 +222,8 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
    :hidden:
 
    START_HERE
-   REAL_CMO_PYCASO_RAYFIELD
    FROM_OPENCV_TO_STEREOCOMPLEX
    BRING_YOUR_OWN_DATA
-   NONCENTRAL_FROM_IMAGES
    FIX_MY_CALIBRATION
    NOTEBOOKS
 
@@ -297,18 +247,25 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 
 .. toctree::
    :maxdepth: 2
-   :caption: Optical models / benchmarks
+   :caption: Non-central / optical models
    :hidden:
 
-   REAL_CMO_PYCASO_RAYFIELD
+   NONCENTRAL_FROM_IMAGES
    IDENTIFY_MY_OPTICS
-   CMO_PHYSICAL_MODEL
    CMO_MODEL_SELECTION
    DIRECT_VS_RAYFIELD_INVERSION
    PARALLEL_PLATE_ORIGIN_FIELD
-   PYCASO_Z_SWEEP
    COMPRESSION_RECONSTRUCTION
    ROBUSTNESS_SWEEP
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Real-data CMO case study
+   :hidden:
+
+   REAL_CMO_PYCASO_RAYFIELD
+   CMO_PHYSICAL_MODEL
+   PYCASO_Z_SWEEP
 
 .. toctree::
    :maxdepth: 2
