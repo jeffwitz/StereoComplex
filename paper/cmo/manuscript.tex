@@ -81,6 +81,47 @@ The contributions are:
 \section{Method}
 % ======================================================================
 
+\subsection{Zernike Order Selection by BIC}
+
+The Zernike rayfield has two hyperparameters: the origin polynomial order $o$ and the direction polynomial order $d$.
+Increasing either adds Zernike modes, reducing pixel RMS at the cost of more parameters.
+We sweep $o \in \{0,1,2\}$ and $d \in \{2,3,4\}$ (7 combinations) and select the optimal order by BIC \cite{schwarz1978}:
+
+\begin{equation}
+\text{BIC}_{\text{px}} = k \log(N_{\text{obs}}) + N_{\text{obs}} \log(\text{RSS}_{\text{px}} / N_{\text{obs}}),
+\end{equation}
+where $k$ is the total number of parameters (Zernike coefficients + poses), $N_{\text{obs}} = 3300$ corner observations, and $\text{RSS}_{\text{px}}$ is the sum of squared pixel-equivalent residuals.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/BIC_vs_order.png}
+\caption{Zernike order selection by BIC. Pixel RMS decreases monotonically with more parameters (from \SI{0.47}{px} at 57~params to \SI{0.41}{px} at 141~params), but BIC penalises complexity. The BIC minimum is at O(1)+d(3) (93~params, BIC~= $-5093$, RMS~= \SI{0.41}{px}), though O(0)+d(2) (57~params, BIC~= $-4522$) is within $\sim$10\,\% in RMS at 40\,\% fewer parameters. The physical interpretability of O(0)+d(2)---rigid sub-pupil per channel---favours it over higher O-orders, which mix the stereo baseline into the spatially-varying origin field (a known gauge freedom).}
+\label{fig:bic_order}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Zernike order sweep: pixel RMS and BIC.}
+\label{tab:order_sweep}
+\begin{tabular}{lrrrr}
+\toprule
+Model & $k$ & RMS (px) & BIC$_{\text{px}}$ \\
+\midrule
+O(0)+d(2) & 57  & 0.470 & $-$4522 \\
+O(1)+d(2) & 69  & 0.444 & $-$4803 \\
+O(0)+d(3) & 81  & 0.419 & $-$5080 \\
+\textbf{O(1)+d(3)} & \textbf{93}  & \textbf{0.412} & \textbf{$-$5093} \\
+O(2)+d(3) & 111 & 0.409 & $-$4995 \\
+O(1)+d(4) & 123 & 0.412 & $-$4858 \\
+O(2)+d(4) & 141 & 0.410 & $-$4743 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The BIC minimum at O(1)+d(3) achieves \SI{0.41}{px} RMS with 93~parameters.
+However, the improvement over O(0)+d(2) (\SI{0.47}{px} at 57~params) is modest (\SI{13}{\percent} RMS reduction for 63\,\% more parameters), and the higher O-order absorbs part of the stereo baseline into spatially-varying origin variations---a gauge degeneracy that erodes physical interpretability.
+We therefore select O(0)+d(2) as the preferred rayfield configuration for physical model construction: it keeps the rigid sub-pupil interpretation while achieving \SI{90}{\percent} of the noise-floor accuracy.
+
 \subsection{The Zernike Rayfield as Observable}
 
 The Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$ maps each pixel $(u,v)$ to a 3D origin $O$ and direction $d$.
