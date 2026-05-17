@@ -42,17 +42,25 @@ The Zernike rayfield serves not merely as a calibration model but as a diagnosti
 % ======================================================================
 
 Stereo calibration is a mature technology when the camera obeys the pinhole model: all chief rays pass through a single optical centre, and mature toolchains (OpenCV, MATLAB, Bouguet) produce reliable results.
-This assumption breaks down for Common Main Objective (CMO) stereo microscopes, which use a single large objective shared between two off-axis sub-apertures \cite{cmos}.
-Each channel's chief rays appear to originate from a different effective sub-pupil, separated by the stereo baseline.
-OpenCV's \texttt{stereoCalibrate} assumes one optical centre per camera; on the CMO architecture it produces unusable results ($>300$~px reprojection error under the tested configuration).
+This assumption breaks down for Common Main Objective (CMO) stereo microscopes, which use a single large objective shared between two off-axis sub-apertures \cite{cmo_astm}.
+Each channel's chief rays appear to originate from a different effective sub-pupil, separated by the stereo baseline (Figure~\ref{fig:cmo}).
+OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per camera; on the CMO architecture it produces unusable results ($>300$~px reprojection error under the tested configuration).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/cmo_physical.png}
+\caption{CMO stereo microscope optical layout. Two off-axis sub-pupils share a single main objective. Chief rays converge toward the object plane through different effective origins---not through a single common centre.}
+\label{fig:cmo}
+\end{figure}
 
 The broader problem is that many optical instruments---CMO and Greenough stereo microscopes, endoscopes, Scheimpflug cameras, multi-camera arrays---depart from the central projection model.
-Calibrating them requires either an instrument-specific physical model (which may not be known \emph{a priori}) or a generic non-parametric approach that fits a flexible pixel-to-ray mapping without imposing a camera model.
+Calibrating them requires either an instrument-specific physical model (which may not be known \emph{a priori}) or a generic non-parametric approach that fits a flexible pixel-to-ray mapping without imposing a camera model \cite{grossberg2001,sturm2004,ramalingam2006}.
 
-StereoComplex \cite{witz2025compression} adopts the second approach: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis.
+StereoComplex \cite{stereocomplex} adopts the second approach: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934}.
 From this \emph{measured} rayfield, physical descriptors can be read directly, structural mismatches diagnosed, and compact physical models constructed iteratively.
 
-This paper presents the first real-data validation of this workflow on a CMO stereo microscope using legacy ChArUco images from the open Pycaso dataset \cite{pycaso}.
+This paper presents the first real-data validation of this workflow on a CMO stereo microscope using legacy ChArUco \cite{garrido2014,romero2018} images from the open Pycaso dataset \cite{pycaso2023}.
+Recent work has shown that highly parameterised generic models can outperform classical parametric ones for non-standard optics \cite{schops2020}.
 The contributions are:
 
 \begin{enumerate}
@@ -70,7 +78,7 @@ The contributions are:
 
 The Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$ maps each pixel $(u,v)$ to a 3D origin $O$ and direction $d$.
 We fit a constrained model O(0)+d(2): rigid sub-pupil per channel (origin order~0), spatially-varying direction correction (direction order~2), with shared rotation and XY translation plus per-pose Z (15 pose parameters, 57 total).
-The fit minimises the perpendicular distance from each 3D board point to the ray at the observed pixel.
+The fit minimises the perpendicular distance from each 3D board point to the ray at the observed pixel---a ray-space bundle adjustment analogous to classical reprojection minimisation \cite{zhang2000} but operating on 3D lines rather than 2D pixels.
 
 From the centre-pixel ray, physical descriptors are read directly---no model fit required:
 $b = \|O_R - O_L\| = \SI{24.9}{mm}$ (stereo baseline),
@@ -87,8 +95,15 @@ The core methodology is iterative: propose a candidate physical model, compute i
 
 The simplest CMO model places a perspective camera behind each decentred sub-pupil $S_c = (\pm b/2, 0, WD - f_{\text{obj}})$.
 This predicts $d_y(u,v) \propto (v - c_y)$---a strong linear gradient.
-The measured $d_y$ field is nearly constant across the sensor (range $0.079$, mean $+0.059$), while the perspective model predicts a range of $0.232$---a $3\times$ discrepancy.
+The measured $d_y$ field is nearly constant across the sensor (range $0.079$, mean $+0.059$), while the perspective model predicts a range of $0.232$---a $3\times$ discrepancy (Figure~\ref{fig:dy}).
 The real system is \textbf{object-space telecentric}, not perspective.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/dy_profile_comparison.png}
+\caption{Comparison of $d_y(u,v)$ profiles across the sensor. The Zernike rayfield (measured) shows a nearly constant $d_y$ (range $0.079$), while the perspective CMO model predicts a $3\times$ larger linear gradient (range $0.232$). The telecentric model reproduces the measured profile almost exactly.}
+\label{fig:dy}
+\end{figure}
 
 \subsubsection{Telecentric CMO}
 
@@ -108,7 +123,7 @@ The dominant geometry is captured, but \SI{14.6}{px} is far from the Zernike ref
 The residual between the telecentric model and the Zernike rayfield is computed on a $41\times41$ grid:
 $\Delta d = d_{\text{Zernike}} - d_{\text{CMO}}$,
 $\Delta m = m_{\text{Zernike}} - m_{\text{CMO}}$,
-where $m = O \times d$ is the Pl\"ucker moment.
+where $m = O \times d$ is the Pl\"ucker moment \cite{plucker1865}.
 
 Projecting on Zernike modes up to order~4 reveals that \textbf{both $\Delta d$ and $\Delta m$ are 97--98\,\% $Z_0^0$ (global piston)}.
 This is the crucial diagnostic: the residual is not a spatial field distortion (which would appear in higher Zernike modes) but a \textbf{global line-bundle offset}---the entire set of rays from each channel is slightly rotated or translated relative to the Zernike reference.
@@ -136,7 +151,7 @@ The fitted arm transforms are physically plausible: rotations $\sim$\SI{2.5}{\de
 
 \subsection{Model Selection}
 
-Ray-space BIC identifies the correct optical family among five candidates (pinhole, Brown-Conrady, parallel-plate, telecentric CMO with/without shear).
+Ray-space BIC \cite{schwarz1978} identifies the correct optical family among five candidates (pinhole, Brown-Conrady, parallel-plate, telecentric CMO with/without shear).
 The telecentric CMO+shear model wins by $>40\,000$ BIC points over all alternatives.
 
 However, this 14-parameter model produces \SI{14.6}{px} reprojection---it is the correct \emph{family} but not a \emph{usable} model.
@@ -145,6 +160,13 @@ We introduce an \textbf{operational BIC} that adds a hard reprojection guard:
 \text{BIC}_{\text{usable}} = \text{BIC}_{\text{ray}} + \mathbf{1}_{e_{\text{px}} > \SI{1.5}{px}} \left[10^6 + N_{\text{px}} \log\left(\frac{e_{\text{px}}^2}{1.5^2}\right)\right].
 \end{equation}
 The 14p telecentric model is rejected ($\text{BIC}_{\text{usable}} \approx +978\,890$); the 26p SE(3)-aligned model is selected as best usable ($\text{BIC}_{\text{usable}} \approx -32\,433$).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/pareto_gauge_regularization.png}
+\caption{Pareto frontier of the gauge-regularized Zernike sweep. Pixel RMS vs.\ $Z_0$ direction drift for varying regularization strengths $\sigma_{Z_0},\sigma_{Z_1}$. The near-vertical Pareto curve confirms that after double TPS preprocessing, even the unregularized full-pose fit has negligible gauge drift ($0.023^\circ$). Regularization is unnecessary when 2D corners are sufficiently clean.}
+\label{fig:pareto}
+\end{figure}
 
 \subsection{Corner Bundle Adjustment}
 
@@ -157,10 +179,10 @@ The improvement is only \SI{7}{\percent} (\SI{1.06}{px} $\to$ \SI{0.98}{px}), co
 
 \subsection{Dataset and Pipeline}
 
-Ten stereo pairs of $2048\times2048$~px ChArUco images (16$\times$12 squares, \SI{0.3}{mm}, DICT\_6X6\_250, \texttt{setLegacyPattern(True)}) from the Pycaso open dataset \cite{pycaso} are used.
+Ten stereo pairs of $2048\times2048$~px ChArUco \cite{garrido2014,romero2018} images (16$\times$12 squares, \SI{0.3}{mm}, DICT\_6X6\_250, \texttt{setLegacyPattern(True)}) from the Pycaso open dataset \cite{pycaso2023} are used.
 The Z-range is \SI{2.65}{mm}--\SI{3.35}{mm} ($\Delta = \SI{0.70}{mm}$).
 Corner detection yields 61--161 corners per frame; Hessian-based completion ($|\det H|$ + Otsu + barycentre) fills all 165.
-A double Ray2D TPS denoising pass (ArUco markers at $\lambda=10$, then completed 165 corners at $\lambda=3$, Huber $c=1.5$) produces gauge-stable 2D corners.
+A double Ray2D TPS denoising pass \cite{bookstein1989} (ArUco markers at $\lambda=10$, then completed 165 corners at $\lambda=3$, Huber $c=1.5$) produces gauge-stable 2D corners.
 
 \subsection{Model Performance}
 
@@ -295,42 +317,8 @@ The CMO Pycaso case study validates a generalisable methodology: measure first, 
 Code, data, and documentation are publicly available at \url{https://github.com/jeffwitz/StereoComplex}.
 
 % ======================================================================
-% References
-% ======================================================================
-\begin{thebibliography}{9}
-
-\bibitem{cmos}
-  Standard Practice for Basic Stereomicroscope Calibration and Performance Verification,
-  \emph{ASTM E3263-22}, ASTM International, 2022.
-
-\bibitem{pycaso}
-  Pycaso: Python Calibration Software,
-  \url{https://github.com/LaboratoireMecaniqueLille/Pycaso}, 2024.
-
-\bibitem{witz2025compression}
-  J.-F.\ Witz,
-  Compression-Robust Stereo Calibration via Planar Geometric Refinement of Fiducial Corners,
-  \emph{in preparation}, 2025.
-
-\bibitem{opencv}
-  OpenCV: Open Source Computer Vision Library,
-  \url{https://opencv.org}.
-
-\bibitem{zernike}
-  F.\ Zernike,
-  Diffraction theory of the knife-edge test and its improved form, the phase-contrast method,
-  \emph{Monthly Notices of the Royal Astronomical Society}, 94:377--384, 1934.
-
-\bibitem{plucker}
-  J.\ Pl\"ucker,
-  On a New Geometry of Space,
-  \emph{Philosophical Transactions of the Royal Society of London}, 155:725--791, 1865.
-
-\bibitem{bic}
-  G.\ Schwarz,
-  Estimating the Dimension of a Model,
-  \emph{Annals of Statistics}, 6(2):461--464, 1978.
-
-\end{thebibliography}
+\newpage
+\bibliographystyle{plain}
+\bibliography{references}
 
 \end{document}
