@@ -57,6 +57,13 @@ OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per c
 \label{fig:cmo}
 \end{figure}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/pipeline.png}
+\caption{Pipeline overview. The two-stage decomposition separates rayfield measurement (Ray2D preprocessing + Zernike BA) from physical model identification (ray-space BIC selection). The Ray2D stage is purely 2D and does not impose a 3D camera model.}
+\label{fig:pipeline}
+\end{figure}
+
 The broader problem is that many optical instruments---CMO and Greenough stereo microscopes, endoscopes, Scheimpflug cameras, multi-camera arrays---depart from the central projection model.
 Generic camera models \cite{grossberg2001,sturm2004,schops2020} and recent stereo microscope calibration studies \cite{liu2023,pan2024} highlight the need for non-central approaches, but do not provide a systematic method for identifying the correct physical model family from observations (see Section~2 for a detailed review).
 
@@ -234,6 +241,13 @@ $z_p = (|O_{L,z}| + |O_{R,z}|)/2 = \SI{2.5}{mm}$ (sub-pupil depth),
 $WD = \SI{64.7}{mm}$ (working distance, from mean pose Z),
 $f_{\text{obj}} = WD - z_p = \SI{62.2}{mm}$ (objective focal length),
 $\theta = \arccos(d_L \cdot d_R) = \SI{22.6}{\degree}$ (convergence angle).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/subpupil_3d.png}
+\caption{3D reconstruction of the effective sub-pupils from the Zernike rayfield. $O_L$ and $O_R$ are read from the centre-pixel rayfield. The chief rays converge at the working plane ($WD = \SI{64.7}{mm}$). The baseline $b = \|O_R - O_L\| = \SI{24.9}{mm}$ is a physical length.}
+\label{fig:subpupil}
+\end{figure}
 
 \subsection{Physical Model Construction by Residual Analysis}
 
@@ -525,6 +539,13 @@ Zernike O(0)+d(2)       & 57   & 0.0007      & 0.47      & 0.34  & 0.86 \\
 
 The 26-parameter CMO+SE(3) model achieves \SI{1.06}{px} reprojection with less than half the parameters of the Zernike reference.
 It is fully interpretable: sub-pupils, focal length, telecentric slopes, and SE(3) arm corrections.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/bic_bars.png}
+\caption{BIC bar chart across model families. The CMO telecentric family (14p and 26p) achieves BIC values \SI{>40000}{points} below all non-CMO alternatives (pinhole, Brown-Conrady, parallel-plate). The 26p SE(3)-aligned model is marked as BEST USABLE under the operational BIC guard.}
+\label{fig:bicbars}
+\end{figure}
 
 \subsection{BIC Model Selection}
 
