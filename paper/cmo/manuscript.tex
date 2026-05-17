@@ -542,13 +542,15 @@ Fold~1 shows slightly higher RMS (\SI{1.09}{px}) and a lower baseline estimate (
 The working distance is the most stable descriptor ($\sigma < \SI{0.2}{mm}$), while the baseline and convergence angle show \SI{0.4}{mm} and \SI{0.4}{\degree} variation respectively---consistent with the gauge sensitivity of the Zernike origin field noted in Section~\ref{sec:limitations}.
 
 \textbf{Sensitivity to fixed focal length $f_x$.}
-Varying the fixed pinhole focal length $f_x$ by $\pm$\SI{10}{\percent} (5 values: 23040, 24320, 25600, 26880, 28160~px) produces:
+Varying the fixed pinhole focal length $f_x$ by $\pm 10\%$ (5 values: 23040, 24320, 25600, 26880, 28160~px) produces:
 \begin{itemize}
-  \item Pixel RMS variation: \SI{0.02}{px} (stable)
-  \item Baseline variation: \SI{0.3}{mm} (stable)
-  \item Working distance variation: \SI{0.1}{mm} (stable)
+  \item Pixel RMS: $1.21 \to 0.95$~px---remains near the one-pixel range, confirming that the rayfield is stable as a calibration object.
+  \item Working distance: $58.3 \to 71.3$~mm---linearly proportional to the initial fx ($\pm 10\%$ fx $\to$ $\pm 10\%$ WD). WD is directly scaled by the pinhole reference and is \emph{not} independently identifiable.
+  \item Convergence angle: $24.1^\circ \to 20.5^\circ$---varies inversely with WD.
+  \item Baseline: $23.9 \to 25.1$~mm ($\pm 2.5\%$)---moderately stable.
 \end{itemize}
-The calibration is robust to the choice of fixed $f_x$, confirming that the Zernike rayfield fit is not sensitive to the initial pinhole reference scale.
+The absolute physical descriptors, especially $WD$ and $\theta$, remain sensitive to the chosen pinhole reference scale.
+Descriptor readout therefore requires either an independently known optical scale (pixel pitch, magnification) or external metrological validation---a known limitation of all single-view calibration methods without a known reference object.
 
 \subsection{Model Performance}
 
