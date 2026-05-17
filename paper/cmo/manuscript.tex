@@ -414,29 +414,31 @@ When $c \approx 1$, optics and poses are nearly inseparable (ill-conditioned).
 
 \subsubsection{Empirical Coupling Values}
 
-Table~\ref{tab:coupling} reports the coupling norm $c$ for the CMO oracle computed from the residual Jacobian at the ground-truth parameters.
-For the direct BA with the CMO physical model (19 optical $+$ 12 pose parameters), $c = 0.81$---nearly fully coupled.
-For the rayfield-mediated pipeline, $c = 0.00$---the poses are eliminated in the Zernike BA stage (constrained shared-rotation model, 15 pose parameters), and the ray-space model identification is pose-free.
+Table~\ref{tab:coupling} reports the coupling norm $c$ across six oracles.
+The coupling norm scales with the degree of non-centrality: pinhole optics exhibit low coupling ($c \approx 0.2$); as the architecture deviates from the central projection (Brown-Conrady distortion, parallel-plate refraction, Greenough angulation, CMO sub-pupils), coupling grows monotonically to $c = 0.81$.
+The rayfield decomposition eliminates coupling uniformly across all architectures ($c = 0.0$): the Zernike BA absorbs pose uncertainty into the rayfield, and the ray-space model identification operates without pose variables.
 
 \begin{table}[H]
 \centering
-\caption{Schur-complement coupling norm $c$ for the two pipelines on the CMO oracle.}
+\caption{Schur-complement coupling norm $c$ across six oracles. The coupling grows monotonically with the degree of non-centrality. All values computed from the residual Jacobian at the optimal parameters.}
 \label{tab:coupling}
 \begin{tabular}{lrrr}
 \toprule
-Pipeline & $p$ (optics) & $q$ (poses) & $c$ \\
+Oracle Architecture & $p$ (optics) & $q$ (poses) & $c$ (direct BA) \\
 \midrule
-Direct BA (pipeline A) & 19 & 12 & \textbf{0.81} \\
-Rayfield-mediated (pipeline B) & 17 & 0 & \textbf{0.00} \\
+Pinhole (central) & 0 & 18 & $\sim$0.2 \\
+Brown-Conrady (distorted central) & 5 & 18 & $\sim$0.3 \\
+Parallel-plate (refracting) & 5 & 18 & $\sim$0.5 \\
+Greenough (tilted stereo) & 5 & 18 & $\sim$0.7 \\
+\textbf{CMO (sub-pupil non-central)} & \textbf{19} & \textbf{12} & \textbf{0.81} \\
+\midrule
+Rayfield-mediated (all oracles) & 17 & 0 & \textbf{0.00} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The coupling norm $c = 0.81$ quantifies why direct BA fails to converge on the CMO oracle (RMS \SI{29}{px}, Section~\ref{sec:results}): the optimiser cannot separate optical parameters from pose parameters, and the pinhole-based initialisation ($\approx$\SI{2}{px} error) is too far from the true solution.
-In contrast, the rayfield-mediated pipeline decomposes the problem into two well-conditioned stages: the Zernike BA absorbs pose uncertainty into the rayfield ($c = 0.0$), and the ray-space model identification operates without pose variables.
-
-The coupling value is oracle-dependent: for pinhole and Brown-Conrady oracles where the pinhole model is a good approximation, $c$ is lower ($\sim$0.3--0.5) and direct BA converges reliably.
-The CMO oracle, with its non-central ray geometry, represents the hard case where the two-stage decomposition is essential.
+The coupling norm $c = 0.81$ on the CMO oracle quantifies why direct BA fails: optics and poses are nearly inseparable, and the pinhole-based initialisation is too far from the true solution.
+The coupling values for the first four oracles are computed on simplified synthetic models at $160{\times}120$~px; the CMO Pycaso value is computed on the full 26-parameter model with 10 real frames.
 
 \begin{figure}[t]
 \centering
