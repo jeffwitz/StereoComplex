@@ -106,7 +106,7 @@
       "id": "ds_arm_alignment_diagnostic_json",
       "kind": "data_sets/generic",
       "title": "Arm alignment",
-      "description": "",
+      "description": "Global Plucker SE(3) arm alignment sweep results",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/arm_alignment_diagnostic.json",
       "data_sources": [
@@ -117,7 +117,7 @@
       "id": "ds_aligned_cmo_fit_json",
       "kind": "data_sets/generic",
       "title": "26p fit result",
-      "description": "",
+      "description": "Joint telecentric + SE(3) fit: 1.06 px, P50=0.87 px",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/aligned_cmo_fit.json",
       "data_sources": [
@@ -128,7 +128,7 @@
       "id": "ds_se3_ablation_json",
       "kind": "data_sets/generic",
       "title": "SE(3) ablation",
-      "description": "",
+      "description": "SE(3) parameter ablation (rotation only, translation only, shared, diff)",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/se3_ablation.json",
       "data_sources": [

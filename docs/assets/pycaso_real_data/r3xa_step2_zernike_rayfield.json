@@ -192,7 +192,7 @@
       "id": "ds_tps_intermediate_state_npz",
       "kind": "data_sets/generic",
       "title": "Denoised corners (NPZ)",
-      "description": "",
+      "description": "TPS-denoised 165-corners + Zernike fit + 26p model (NPZ archive)",
       "file_type": "application/x-npz",
       "path": "docs/assets/pycaso_real_data/intermediate_state.npz",
       "data_sources": [
@@ -203,7 +203,7 @@
       "id": "ds_summary_json",
       "kind": "data_sets/generic",
       "title": "Calibration summary",
-      "description": "",
+      "description": "Calibration RMS, CMO descriptors, Zernike order sweep best",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/summary.json",
       "data_sources": [
@@ -215,7 +215,7 @@
       "id": "ds_zernike_pose_variants_json",
       "kind": "data_sets/generic",
       "title": "Zernike coefficients",
-      "description": "",
+      "description": "Zernike coefficients for constrained and full-pose fits",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/zernike_pose_variants.json",
       "data_sources": [

@@ -344,7 +344,7 @@
       "id": "ds_raw_left_images",
       "kind": "data_sets/generic",
       "title": "Left images (PNG)",
-      "description": "",
+      "description": "Raw left channel PNG images from Pycaso (10 frames, 2048x2048 px)",
       "file_type": "image/*",
       "path": "examples/pycaso_data/Exemple/Images_example/left_calibration11/",
       "data_sources": [
@@ -355,7 +355,7 @@
       "id": "ds_raw_right_images",
       "kind": "data_sets/generic",
       "title": "Right images (PNG)",
-      "description": "",
+      "description": "Raw right channel PNG images from Pycaso (10 frames, 2048x2048 px)",
       "file_type": "image/*",
       "path": "examples/pycaso_data/Exemple/Images_example/right_calibration11/",
       "data_sources": [
@@ -366,7 +366,7 @@
       "id": "ds_detection_summary_json",
       "kind": "data_sets/generic",
       "title": "Detection counts",
-      "description": "",
+      "description": "Per-frame ChArUco detection counts (L/R channels)",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/detection_summary.json",
       "data_sources": [
@@ -378,7 +378,7 @@
       "id": "ds_tps_intermediate_state_npz",
       "kind": "data_sets/generic",
       "title": "Denoised corners (NPZ)",
-      "description": "",
+      "description": "TPS-denoised 165-corners + Zernike fit + 26p model (NPZ archive)",
       "file_type": "application/x-npz",
       "path": "docs/assets/pycaso_real_data/intermediate_state.npz",
       "data_sources": [

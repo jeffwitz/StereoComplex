@@ -47,7 +47,7 @@
       "id": "ds_model_comparison_json",
       "kind": "data_sets/generic",
       "title": "Model comparison",
-      "description": "",
+      "description": "Zernike vs telecentric vs perspective rayfield comparison",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/model_comparison.json",
       "data_sources": [
@@ -58,7 +58,7 @@
       "id": "ds_zernike_conditioning_diagnostic_json",
       "kind": "data_sets/generic",
       "title": "Conditioning diag.",
-      "description": "",
+      "description": "Zernike design matrix, modal residual, sensitivity analysis",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/zernike_conditioning_diagnostic.json",
       "data_sources": [
@@ -69,7 +69,7 @@
       "id": "ds_moment_residual_diagnostic_json",
       "kind": "data_sets/generic",
       "title": "Moment residual",
-      "description": "",
+      "description": "Moment residual decomposition + O1/O2 origin fits",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/moment_residual_diagnostic.json",
       "data_sources": [
