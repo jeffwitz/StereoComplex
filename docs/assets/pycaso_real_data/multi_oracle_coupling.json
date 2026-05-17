@@ -1,0 +1,38 @@
+[
+  {
+    "oracle": "Pinhole",
+    "p": 0,
+    "q": 18,
+    "c": "diag error"
+  },
+  {
+    "oracle": "Brown-Conrady",
+    "p": 5,
+    "q": 18,
+    "c": "diag error"
+  },
+  {
+    "oracle": "Greenough",
+    "p": 5,
+    "q": 18,
+    "c": "diag error"
+  },
+  {
+    "oracle": "CMO (perspective)",
+    "p": 19,
+    "q": 18,
+    "c": "diag error"
+  },
+  {
+    "oracle": "CMO Pycaso (direct BA)",
+    "p": 19,
+    "q": 12,
+    "c": 0.81
+  },
+  {
+    "oracle": "CMO Pycaso (rayfield)",
+    "p": 17,
+    "q": 0,
+    "c": 0.0
+  }
+]
