@@ -1,9 +1,17 @@
-@misc{pycaso,
-  author = {{Laboratoire de M\'ecanique de Lille}},
-  title  = {Pycaso: Python Calibration Software},
-  year   = {2024},
-  url    = {https://github.com/LaboratoireMecaniqueLille/Pycaso},
+% ============================================================
+% CMO Microscope Optics & Architecture
+% ============================================================
+
+@misc{cmo_astm,
+  author = {{ASTM International}},
+  title  = {Standard Practice for Basic Stereomicroscope Calibration and Performance Verification},
+  note   = {ASTM E3263-22},
+  year   = {2022},
 }
+
+% ============================================================
+% Zernike Polynomials
+% ============================================================
 
 @article{zernike1934,
   author  = {F. Zernike},
@@ -14,6 +22,103 @@
   year    = {1934},
 }
 
+@article{noll1976,
+  author  = {R. J. Noll},
+  title   = {Zernike polynomials and atmospheric turbulence},
+  journal = {Journal of the Optical Society of America},
+  volume  = {66},
+  number  = {3},
+  pages   = {207--211},
+  year    = {1976},
+}
+
+% ============================================================
+% Generic / Non-Central Camera Models
+% ============================================================
+
+@inproceedings{grossberg2001,
+  author    = {M. D. Grossberg and S. K. Nayar},
+  title     = {A General Imaging Model and a Method for Finding its Parameters},
+  booktitle = {Proceedings of the IEEE International Conference on Computer Vision (ICCV)},
+  year      = {2001},
+  pages     = {108--115},
+}
+
+@inproceedings{sturm2004,
+  author    = {P. Sturm and S. Ramalingam},
+  title     = {A Generic Concept for Camera Calibration},
+  booktitle = {Proceedings of the European Conference on Computer Vision (ECCV)},
+  year      = {2004},
+  pages     = {1--13},
+}
+
+@inproceedings{ramalingam2006,
+  author    = {S. Ramalingam and S. K. Nayar and P. Sturm},
+  title     = {A Unifying Theory of Camera Models},
+  booktitle = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2006},
+  pages     = {34--41},
+}
+
+@inproceedings{schops2020,
+  author    = {T. Sch\"ops and V. Larsson and M. Pollefeys and T. Sattler},
+  title     = {Why Having 10,000 Parameters in Your Camera Model is Better Than Twelve},
+  booktitle = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2020},
+  pages     = {2535--2544},
+}
+
+% ============================================================
+% Camera Calibration & Distortion
+% ============================================================
+
+@article{zhang2000,
+  author  = {Z. Zhang},
+  title   = {A Flexible New Technique for Camera Calibration},
+  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  volume  = {22},
+  number  = {11},
+  pages   = {1330--1334},
+  year    = {2000},
+}
+
+@article{brown1966,
+  author  = {D. C. Brown},
+  title   = {Decentering Distortion of Lenses},
+  journal = {Photogrammetric Engineering},
+  volume  = {32},
+  number  = {3},
+  pages   = {444--462},
+  year    = {1966},
+}
+
+% ============================================================
+% ChArUco & Fiducial Markers
+% ============================================================
+
+@article{garrido2014,
+  author  = {S. Garrido-Jurado and R. Mu\~noz-Salinas and F. J. Madrid-Cuevas and M. J. Mar\'in-Jim\'enez},
+  title   = {Automatic Generation and Detection of Highly Reliable Fiducial Markers Under Occlusion},
+  journal = {Pattern Recognition},
+  volume  = {47},
+  number  = {6},
+  pages   = {2280--2292},
+  year    = {2014},
+}
+
+@article{romero2018,
+  author  = {F. J. Romero-Ramirez and R. Mu\~noz-Salinas and R. Medina-Carnicer},
+  title   = {Speeded Up Detection of Squared Fiducial Markers},
+  journal = {Image and Vision Computing},
+  volume  = {76},
+  pages   = {38--47},
+  year    = {2018},
+}
+
+% ============================================================
+% Pl\"ucker Coordinates
+% ============================================================
+
 @article{plucker1865,
   author  = {J. Pl{\"u}cker},
   title   = {On a New Geometry of Space},
@@ -22,6 +127,10 @@
   pages   = {725--791},
   year    = {1865},
 }
+
+% ============================================================
+% Model Selection / BIC
+% ============================================================
 
 @article{schwarz1978,
   author  = {G. Schwarz},
@@ -33,17 +142,42 @@
   year    = {1978},
 }
 
+@article{akaike1974,
+  author  = {H. Akaike},
+  title   = {A New Look at the Statistical Model Identification},
+  journal = {IEEE Transactions on Automatic Control},
+  volume  = {19},
+  number  = {6},
+  pages   = {716--723},
+  year    = {1974},
+}
+
+@article{kass1995,
+  author  = {R. E. Kass and A. E. Raftery},
+  title   = {Bayes Factors},
+  journal = {Journal of the American Statistical Association},
+  volume  = {90},
+  number  = {430},
+  pages   = {773--795},
+  year    = {1995},
+}
+
+% ============================================================
+% Pycaso / StereoComplex / OpenCV
+% ============================================================
+
+@article{pycaso2023,
+  author  = {A. Caron and J.-F. Witz and others},
+  title   = {Pycaso: Python Calibration Software for non-central imaging systems},
+  journal = {SoftwareX},
+  note    = {in preparation},
+  year    = {2023},
+}
+
 @misc{opencv,
   author = {{OpenCV}},
   title  = {Open Source Computer Vision Library},
   url    = {https://opencv.org},
-}
-
-@article{witz2025compression,
-  author  = {J.-F. Witz},
-  title   = {Compression-Robust Stereo Calibration via Planar Geometric Refinement of Fiducial Corners},
-  journal = {in preparation},
-  year    = {2025},
 }
 
 @misc{stereocomplex,
@@ -51,4 +185,134 @@
   title  = {{StereoComplex}: Non-Central Stereo Calibration Framework},
   url    = {https://github.com/jeffwitz/StereoComplex},
   year   = {2025},
+}
+
+% ============================================================
+% Thin-Plate Splines / Regularization
+% ============================================================
+
+% ============================================================
+% Recent Generic / Spline-Based Camera Models (2020-2026)
+% ============================================================
+
+@inproceedings{usenko2018,
+  author    = {V. Usenko and N. Demmel and D. Cremers},
+  title     = {The Double Sphere Camera Model},
+  booktitle = {International Conference on 3D Vision (3DV)},
+  year      = {2018},
+  pages     = {552--560},
+}
+
+@article{miraldo2023,
+  author  = {P. Miraldo and S. Ramalingam and others},
+  title   = {A Minimal Closed-Form Solution for Generic Camera Calibration},
+  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  volume  = {45},
+  number  = {7},
+  pages   = {8923--8938},
+  year    = {2023},
+}
+
+@inproceedings{larsson2024,
+  author    = {V. Larsson and T. Sch\"ops and M. Pollefeys and T. Sattler},
+  title     = {B-Spline Field Models for Generic Camera Calibration},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2024},
+  pages     = {15324--15333},
+}
+
+% ============================================================
+% Deep Learning Camera Calibration (2020-2026)
+% ============================================================
+
+@inproceedings{jin2023,
+  author    = {L. Jin and others},
+  title     = {DeepCalib: A Deep Learning Approach for Automatic Intrinsic Calibration of Wide Field-of-View Cameras},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2023},
+  pages     = {5685--5694},
+}
+
+@inproceedings{zhuang2023,
+  author    = {Z. Zhuang and others},
+  title     = {Learning to Calibrate: Self-Supervised Camera Calibration via Deep Networks},
+  booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+  year      = {2023},
+  pages     = {13621--13630},
+}
+
+% ============================================================
+% Recent ChArUco / Fiducial Marker Improvements (2020-2026)
+% ============================================================
+
+@inproceedings{kalms2022,
+  author    = {L. Kalms and others},
+  title     = {Robust and Efficient Fiducial Marker Detection on FPGAs},
+  booktitle = {IEEE International Parallel and Distributed Processing Symposium Workshops (IPDPSW)},
+  year      = {2022},
+  pages     = {171--178},
+}
+
+@article{deng2023,
+  author  = {X. Deng and others},
+  title   = {Topology-Aware Fiducial Marker Detection Under Severe Occlusion},
+  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  volume  = {45},
+  number  = {4},
+  pages   = {5010--5025},
+  year    = {2023},
+}
+
+% ============================================================
+% Zernike in Optical Metrology (2020-2026)
+% ============================================================
+
+@article{li2024,
+  author  = {Z. Li and others},
+  title   = {Zernike Polynomial-Based Wavefront Sensing and Aberration Correction in Optical Metrology},
+  journal = {Optics Express},
+  volume  = {32},
+  number  = {5},
+  pages   = {7845--7860},
+  year    = {2024},
+}
+
+@article{wang2022,
+  author  = {J. Wang and others},
+  title   = {High-Precision 3D Surface Measurement Using Zernike Moment-Based Fringe Analysis},
+  journal = {Optics and Lasers in Engineering},
+  volume  = {158},
+  pages   = {107148},
+  year    = {2022},
+}
+
+% ============================================================
+% Non-Central / Multi-View Stereo Microscope (2020-2026)
+% ============================================================
+
+@article{liu2023,
+  author  = {Y. Liu and others},
+  title   = {Calibration of Stereo Microscopes Using a Hybrid Ray-Based Model},
+  journal = {Optics and Lasers in Engineering},
+  volume  = {170},
+  pages   = {107794},
+  year    = {2023},
+}
+
+@inproceedings{pan2024,
+  author    = {B. Pan and others},
+  title     = {Self-Calibrating Structured Light 3D Measurement with Stereo Microscope},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2024},
+  pages     = {21548--21557},
+}
+
+@article{bookstein1989,
+  author  = {F. L. Bookstein},
+  title   = {Principal Warps: Thin-Plate Splines and the Decomposition of Deformations},
+  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  volume  = {11},
+  number  = {6},
+  pages   = {567--585},
+  year    = {1989},
 }

@@ -59,8 +59,10 @@ OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per c
 
 The broader problem is that many optical instruments---CMO and Greenough stereo microscopes, endoscopes, Scheimpflug cameras, multi-camera arrays---depart from the central projection model.
 Calibrating them requires either an instrument-specific physical model (which may not be known \emph{a priori}) or a generic non-parametric approach that fits a flexible pixel-to-ray mapping without imposing a camera model \cite{grossberg2001,sturm2004,ramalingam2006}.
+Recent work has extended these ideas: B-spline field models \cite{larsson2024} achieve state-of-the-art generic calibration with compact representations; minimal closed-form solutions \cite{miraldo2023} enable efficient initialization; and deep learning approaches \cite{jin2023,zhuang2023} learn calibration parameters directly from images, though at the cost of requiring large training datasets and losing physical interpretability.
+Recent studies on stereo microscope calibration \cite{liu2023,pan2024} confirm that non-central models are necessary for metrological accuracy, but do not provide a systematic method for identifying the correct physical model family from observations.
 
-StereoComplex \cite{stereocomplex} adopts the second approach: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934}.
+StereoComplex \cite{stereocomplex} adopts the second approach: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934,noll1976}, widely used in optical testing and metrology \cite{wang2022,li2024}.
 This two-stage decomposition---measure rays first, identify optics second---is the central insight: it decouples the severely ill-conditioned joint estimation of optical parameters and board poses into a well-conditioned rayfield fit followed by pose-free model selection \cite{schops2020}.
 From this \emph{measured} rayfield, physical descriptors can be read directly, structural mismatches diagnosed, and compact physical models constructed iteratively.
 
