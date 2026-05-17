@@ -41,7 +41,7 @@ The Zernike rayfield serves not merely as a calibration model but as a diagnosti
 % ======================================================================
 
 Stereo calibration is a mature technology when the camera obeys the pinhole model: all chief rays pass through a single optical centre, and mature toolchains (OpenCV, MATLAB, Bouguet) produce reliable results.
-This assumption breaks down for Common Main Objective (CMO) stereo microscopes, which use a single large objective shared between two off-axis sub-apertures \cite{cmo_astm}.
+This assumption breaks down for Common Main Objective (CMO) stereo microscopes, which use a single large objective shared between two off-axis sub-apertures \cite{inoue1997}.
 Each channel's chief rays appear to originate from a different effective sub-pupil, separated by the stereo baseline (Figure~\ref{fig:cmo}).
 OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per camera; on the CMO architecture it produces unusable results ($>300$~px reprojection error under the tested configuration).
 
@@ -693,7 +693,16 @@ The key results are:
 \end{itemize}
 
 The CMO Pycaso case study validates a generalisable methodology: measure first, model second, diagnose by residual, refine by hypothesis testing.
-Code, data, and documentation are publicly available at \url{https://github.com/jeffwitz/StereoComplex}.
+Code, data, and documentation are publicly available at \url{https://github.com/jeffwitz/StereoComplex} (Zenodo DOI: \texttt{10.5281/zenodo.XXXXXXX}, to be updated upon acceptance).
+
+\subsection*{Prospective}
+
+Several directions extend this work.
+First, the methodology should be validated on additional CMO microscope designs and manufacturers to confirm generalisability beyond the single Pycaso instrument.
+Second, the Greenough stereo microscope family---with tilted optical axes rather than parallel sub-pupils---presents a harder identification problem where the telecentric model does not apply; the residual-guided construction method would need to discover a different geometric skeleton.
+Third, quantitative uncertainty propagation from ChArUco corner noise to physical descriptor estimates (baseline, working distance) would strengthen the metrological claim.
+Fourth, deep learning-based corner detection could replace the hand-tuned Hessian+TPS pipeline, potentially improving the raw 2D input quality and further reducing the gauge instability.
+Finally, extending the Zernike rayfield to time-varying deformations (e.g., vibration, thermal drift) would enable \emph{in-situ} calibration monitoring without dedicated targets.
 
 % ======================================================================
 \section*{Reproducibility Statement}
