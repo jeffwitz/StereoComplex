@@ -7,6 +7,7 @@ import numpy as np
 sys.path.insert(0, 'src')
 
 import cv2
+import matplotlib.patches as mpatches
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -237,8 +238,14 @@ print(f"\nMetrics: CMO Z_MAD={roughness_cmo:.4f} mm, Zernike Z_MAD={roughness_ze
 print("\nGenerating figure...")
 fig, axes = plt.subplots(2, 3, figsize=(16, 10))
 
-# Row 0: left image, disparity, valid mask
-axes[0,0].imshow(imgL, cmap='gray'); axes[0,0].set_title('Left image (coin specimen)')
+# Row 0: left image with ROI rectangle, disparity, valid mask
+roi_img = cv2.imread(str(PYCASO / 'left_identification' / 'coin.tif'), cv2.IMREAD_GRAYSCALE)
+axes[0,0].imshow(roi_img, cmap='gray')
+import matplotlib.patches as patches
+rect = patches.Rectangle((roi_x0, roi_y0), roi_x1-roi_x0, roi_y1-roi_y0,
+                          linewidth=2, edgecolor='red', facecolor='none')
+axes[0,0].add_patch(rect)
+axes[0,0].set_title('Left image with ROI')
 axes[0,0].set_xlabel('u (px)'); axes[0,0].set_ylabel('v (px)')
 
 disp_map = np.full((h_roi, w_roi), np.nan)
