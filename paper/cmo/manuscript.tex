@@ -30,6 +30,10 @@
 Standard stereo calibration assumes a single optical centre per camera and fails on Common Main Objective (CMO) stereo microscopes, where two off-axis sub-apertures share a single objective lens.
 We present a complete calibration workflow based on the StereoComplex framework: a per-pixel Zernike rayfield is fitted to ChArUco corner observations, physical descriptors (baseline, working distance, focal length, convergence angle) are read directly from the measured rays, and a compact 26-parameter physical model---a quasi-telecentric CMO skeleton with per-channel SE(3) arm alignment---is constructed by iterative residual analysis.
 On 10 stereo pairs from the open Pycaso dataset, the compact model achieves \SI{1.06}{px} reprojection error (P50=\SI{0.87}{px}, P95=\SI{1.84}{px}) on a $2048\times 2048$ sensor, compared to $>300$~px for standard OpenCV stereo calibration.
+Three insights emerge.
+First, a \textbf{two-phase Ray2D pre-processing} (homography + thin-plate spline corner refinement followed by TPS smoothing on completed corners) is critical: without it, raw ChArUco detections carry structured biases from compression, blur, and defocus that cause the rayfield fit to become gauge-unstable ($Z_0$ drift $\sim$\SI{8.5}{\degree}).
+Second, \textbf{direct bundle adjustment is near-impossible} for non-central optics: the coupled estimation of optical parameters and board poses is severely ill-conditioned (Schur-complement coupling norm $0.81$, nearly fully coupled), whereas the rayfield approach decomposes the problem into measurement (Zernike fit, coupling norm $0.0$) and identification (ray-space model selection), decoupling the two stages.
+Third, \textbf{rayfield initialization is near-optimal}: corner BA initialized from the Zernike-identified parameters improves pixel RMS by only \SI{7}{\percent} (\SI{1.06}{px} $\to$ \SI{0.98}{px}), proving that the Zernike rayfield captures almost all information available in the corners.
 A ray-space BIC comparison with operational reprojection guard selects the 26-parameter model as the best usable physical model ($\Delta\text{BIC}>40\,000$ over pinhole, Brown-Conrady, and parallel-plate alternatives).
 The residual analysis---Zernike modal decomposition of direction and moment differences---is the key diagnostic: it reveals that the remaining error after telecentric CMO fitting is dominated by $Z_0^0$ (global line-bundle offset, 97--98\,\%), pointing directly to the missing SE(3) arm degrees of freedom.
 The Zernike rayfield serves not merely as a calibration model but as a diagnostic instrument that tells the user \emph{which} physical degree of freedom is missing.
@@ -57,6 +61,7 @@ The broader problem is that many optical instruments---CMO and Greenough stereo 
 Calibrating them requires either an instrument-specific physical model (which may not be known \emph{a priori}) or a generic non-parametric approach that fits a flexible pixel-to-ray mapping without imposing a camera model \cite{grossberg2001,sturm2004,ramalingam2006}.
 
 StereoComplex \cite{stereocomplex} adopts the second approach: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934}.
+This two-stage decomposition---measure rays first, identify optics second---is the central insight: it decouples the severely ill-conditioned joint estimation of optical parameters and board poses into a well-conditioned rayfield fit followed by pose-free model selection \cite{schops2020}.
 From this \emph{measured} rayfield, physical descriptors can be read directly, structural mismatches diagnosed, and compact physical models constructed iteratively.
 
 This paper presents the first real-data validation of this workflow on a CMO stereo microscope using legacy ChArUco \cite{garrido2014,romero2018} images from the open Pycaso dataset \cite{pycaso2023}.
@@ -172,6 +177,8 @@ The 14p telecentric model is rejected ($\text{BIC}_{\text{usable}} \approx +978\
 
 The 26p model, fitted to the rayfield, is refined by direct corner bundle adjustment (joint optimisation of model parameters and per-frame poses on 3300 corner observations).
 The improvement is only \SI{7}{\percent} (\SI{1.06}{px} $\to$ \SI{0.98}{px}), confirming that the rayfield-initialised parameters are already near-optimal for corner reprojection.
+This is a strong validation of the two-stage decomposition strategy: the rayfield fit, which never directly minimises corner error, produces parameters so close to the corner optimum that the dedicated BA can barely improve them.
+In contrast, the direct approach---jointly estimating optics and poses from corners---is severely ill-conditioned for this non-central system (Schur-complement coupling norm $0.81$), failing to converge with a pinhole initialisation (RMS \SI{29}{px}).
 
 % ======================================================================
 \section{Results}
@@ -183,6 +190,8 @@ Ten stereo pairs of $2048\times2048$~px ChArUco \cite{garrido2014,romero2018} im
 The Z-range is \SI{2.65}{mm}--\SI{3.35}{mm} ($\Delta = \SI{0.70}{mm}$).
 Corner detection yields 61--161 corners per frame; Hessian-based completion ($|\det H|$ + Otsu + barycentre) fills all 165.
 A double Ray2D TPS denoising pass \cite{bookstein1989} (ArUco markers at $\lambda=10$, then completed 165 corners at $\lambda=3$, Huber $c=1.5$) produces gauge-stable 2D corners.
+The two-phase TPS is not cosmetic: without it, raw ChArUco detections carry structured biases from compression artifacts, blur, and defocus that cause the Zernike rayfield fit to become gauge-unstable---the direction piston $Z_0$ drifts by \SI{8.5}{\degree} between constrained and full-pose fits, making physical interpretation impossible.
+After double TPS, the gauge drift drops to \SI{0.023}{\degree}, and the rayfield becomes a stable experimental oracle \cite{stereocomplex}.
 
 \subsection{Model Performance}
 
@@ -298,6 +307,14 @@ In this case study, the $Z_0^0$-dominated residual correctly guided us to the SE
 
 The methodology---measure with a flexible non-parametric basis, read physical descriptors, diagnose residual structure, build compact physical model, validate by BIC---is transferable to any non-standard optical instrument (endoscopes, Scheimpflug cameras, multi-camera arrays).
 The SE(3) arm alignment is specific to CMO microscopes, but the residual analysis that identified it is general.
+
+\subsection{Why the Two-Stage Decomposition Works}
+
+The central insight of this work is not a specific model architecture but a problem decomposition strategy.
+Direct bundle adjustment jointly estimates optical parameters $\theta$ and board poses $\eta$ from 2D corners; for non-central optics, the Schur complement of the reduced camera system \cite{stereocomplex} reveals a coupling norm of $0.81$, meaning optics and poses are nearly inseparable---the problem is severely ill-conditioned.
+By inserting the Zernike rayfield as an intermediate variable, the estimation splits into two well-conditioned sub-problems: (1) fit a flexible rayfield to corners (Zernike BA, coupling norm $0.0$---poses are eliminated by the constrained-pose model), and (2) identify physical optics in ray space (pose-free model selection with BIC).
+
+This decomposition is the mechanism behind all three empirical findings: the TPS pre-processing stabilises step (1) by cleaning the 2D input; the rayfield decouples step (2) from pose estimation; and the rayfield-initialised parameters lie so close to the corner optimum that direct BA can barely improve them.
 
 % ======================================================================
 \section{Conclusion}
