@@ -123,7 +123,7 @@ We nevertheless select O(0)+d(2) (57~params, \SI{0.47}{px}) as the preferred ray
 
 \begin{enumerate}
   \item \textbf{Simplicity:} 57~params vs.\ 93 --- nearly half the parameters for a penalty of only \SI{0.06}{px} in RMS ($\sim$0.1~px in practice).
-  \item \textbf{Marginal improvement:} the residual gain from d(2) to d(3) (\SI{0.47} $\to$ \SI{0.41}{px}) is well within the typical subpixel noise of ChArUco corner detection; the additional BIC improvement does not justify the extra model complexity.
+  \item \textbf{Marginal improvement:} the residual gain from d(2) to d(3) (\SI{0.47}{px} $\to$ \SI{0.41}{px}) is well within typical subpixel noise of ChArUco detection; the additional BIC improvement does not justify the extra model complexity.
   \item \textbf{Consistency with the physical model:} the CMO physical model assumes rigid sub-pupils ($o=0$). Using the same origin order in the Zernike rayfield makes the two representations internally consistent and comparable: the Zernike field measures what the physical model can represent.
 \end{enumerate}
 
