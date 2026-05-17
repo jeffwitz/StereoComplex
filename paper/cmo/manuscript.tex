@@ -530,22 +530,7 @@ Descriptor readout therefore requires either an independently known optical scal
 
 \subsection{Model Performance}
 
-\begin{table}[H]
-\centering
-\caption{Model comparison on Pycaso CMO data.}
-\label{tab:models}
-\begin{tabular}{lrrrrr}
-\toprule
-Model & Params & Ray RMS (mm) & Pixel RMS (px) & P50 (px) & P95 (px) \\
-\midrule
-OpenCV stereo           & --   & --          & $>300$    & --    & -- \\
-Perspective CMO         & 19   & 3.48        & $\sim$86  & --    & -- \\
-Telecentric CMO + shear & 14   & 0.12        & 14.6      & 13.2  & 22.4 \\
-\textbf{CMO + SE(3)}   & \textbf{26} & \textbf{0.0021} & \textbf{1.06} & \textbf{0.87} & \textbf{1.84} \\
-Zernike O(0)+d(2)       & 57   & 0.0007      & 0.47      & 0.34  & 0.86 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\input{tables/model_comparison.tex}
 
 The 26-parameter CMO+SE(3) model achieves \SI{1.06}{px} reprojection with less than half the parameters of the Zernike reference.
 It is fully interpretable: sub-pupils, focal length, telecentric slopes, and SE(3) arm corrections.
@@ -559,23 +544,7 @@ It is fully interpretable: sub-pupils, focal length, telecentric slopes, and SE(
 
 \subsection{BIC Model Selection}
 
-\begin{table}[H]
-\centering
-\caption{BIC model selection on the Zernike rayfield.}
-\label{tab:bic}
-\begin{tabular}{lrrrrr}
-\toprule
-Model & $p$ & RMS (mm) & BIC$_{\text{ray}}$ & BIC$_{\text{usable}}$ & Status \\
-\midrule
-cmo\_telecentric\_shear & 14 & 0.111  & $-$36\,129 & +978\,890 & REJECTED \\
-cmo\_telecentric        & 12 & 0.146  & $-$33\,201 & +986\,044 & REJECTED \\
-pinhole\_parallel\_plate & 6 & 6.338  & +5\,079    & --        & -- \\
-central\_pinhole         & 0 & 8.343  & +6\,500    & --        & -- \\
-central\_brown\_conrady   & 10& 8.324  & +6\,549    & --        & -- \\
-\textbf{CMO + SE(3) 26p} & \textbf{26} & \textbf{0.002} & \textbf{$-$32\,433} & \textbf{$-$32\,433} & \textbf{BEST USABLE} \\
-\bottomrule
-\end{tabular}
-\end{table}
+\input{tables/bic_model_selection.tex}
 
 The ray-space BIC decisively selects the CMO telecentric family ($\Delta\text{BIC} > 40\,000$ over all non-CMO alternatives).
 The operational BIC correctly rejects the 14p base model as unusable and selects the 26p aligned model.
