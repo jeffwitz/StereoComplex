@@ -66,7 +66,7 @@ StereoComplex \cite{stereocomplex} addresses this gap: it fits a Zernike rayfiel
 This two-stage decomposition---measure rays first, identify optics second---is the central insight: it decouples the severely ill-conditioned joint estimation of optical parameters and board poses into a well-conditioned rayfield fit followed by pose-free model selection \cite{schops2020}.
 From this \emph{measured} rayfield, physical descriptors can be read directly (Section~3), structural mismatches diagnosed by residual modal analysis (Section~3.3), and compact physical models constructed iteratively (Section~3.4--3.5).
 
-This paper presents the first real-data validation of this workflow on a CMO stereo microscope using legacy ChArUco \cite{garrido2014,romero2018} images from the open Pycaso dataset \cite{pycaso2023}.
+This paper presents the first real-data validation of the StereoComplex rayfield-mediated non-central calibration workflow on a CMO stereo microscope using legacy ChArUco \cite{garrido2014,romero2018} images from the open Pycaso dataset \cite{pycaso2023}.
 The contributions are:
 
 \begin{enumerate}
@@ -409,7 +409,7 @@ When $c \approx 1$, optics and poses are nearly inseparable (ill-conditioned).
 
 \subsubsection{Empirical Coupling Values}
 
-For the Pycaso CMO direct bundle adjustment (19 optical $+$ 12 pose parameters), the Schur-complement coupling norm is $c = 0.81$, computed from the finite-difference Jacobian at the converged optimum.
+In the StereoComplex direct-BA diagnostic implementation, the CMO configuration yields a Schur-complement coupling norm $c = 0.81$, computed from the finite-difference Jacobian. This value should be interpreted as a conditioning diagnostic for the CMO inverse problem, not as an independent measurement on the Pycaso dataset.
 This means that 81\,\% of the apparent information about optical parameters is absorbed by pose coupling---the two parameter blocks are nearly inseparable.
 By contrast, the rayfield-mediated pipeline operates with $c = 0.0$: the Zernike BA absorbs pose uncertainty into the rayfield through its constrained shared-rotation model (15 pose parameters), and the ray-space model identification stage is entirely pose-free.
 
@@ -669,7 +669,7 @@ The key results are:
 \begin{itemize}
   \item A compact 26-parameter physical model (quasi-telecentric CMO skeleton + per-channel SE(3) arm alignment) achieves \SI{1.06}{px} reprojection (P50=\SI{0.87}{px}, P95=\SI{1.84}{px}) where standard OpenCV stereo calibration fails ($>300$~px).
   \item The Zernike rayfield serves as a diagnostic instrument: residual modal analysis identifies missing degrees of freedom, and the operational BIC with reprojection guard correctly selects the usable model.
-  \item Physical descriptors---baseline, working distance, focal length, convergence angle---are read directly from the measured rays, without fitting a physical model.
+  \item Physical descriptors---baseline, working distance, focal length, convergence angle---are read directly from the measured rays (within the chosen rayfield gauge and reference scale), without fitting a physical model.
   \item The rayfield-initialised parameters are near-optimal for direct corner bundle adjustment (only \SI{7}{\percent} improvement).
 \end{itemize}
 
