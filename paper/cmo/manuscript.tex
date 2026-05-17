@@ -129,11 +129,51 @@ We nevertheless select O(0)+d(2) (57~params, \SI{0.47}{px}) as the preferred ray
 
 Selecting O(0)+d(2) achieves \SI{90}{\percent} of the noise-floor accuracy with a representation that is internally consistent with the physical model it validates.
 
+\subsection{Per-Pixel Ray-Field and Transverse Gauge}
+
+For each pixel $(u,v)$ on the sensor, the imaging system defines a 3D line in space.
+We represent this line $\mathcal{L}_c(u,v)$ by an origin point $O_c(u,v) \in \mathbb{R}^3$ and a unit direction vector $d_c(u,v) \in \mathbb{S}^2$, where $c \in \{L,R\}$ denotes the left or right channel.
+Points on the line are parameterised as $O_c + t\,d_c$ for $t \in \mathbb{R}$.
+
+The origin $O_c(u,v)$ is not unique: any point along the ray would represent the same line.
+We fix this gauge freedom by enforcing the \textbf{transverse gauge} $O_c \cdot d_c = 0$, which selects the point on the ray closest to the coordinate origin.
+This eliminates one redundant degree of freedom per ray and stabilises the parameterisation.
+
+The origin and direction fields are expanded on a Zernike polynomial basis \cite{zernike1934,noll1976}:
+\begin{equation}
+O_c(u,v) = \sum_{m} a_{c,m}^O \, Z_m(\tilde{u},\tilde{v}), \qquad
+d_c(u,v) = \operatorname{normalize}\!\left(d_c^{\text{pinhole}}(u,v) + \sum_{m \le d_{\text{max}}} a_{c,m}^d \, Z_m(\tilde{u},\tilde{v})\right),
+\end{equation}
+where $Z_m$ are the real-valued Zernike polynomials on the unit disk, $\tilde{u},\tilde{v}$ are normalised pixel coordinates mapping the sensor to $[-1,1]^2$, $d_c^{\text{pinhole}}$ is the initial pinhole direction from a fixed central projection matrix $K$, and the direction perturbation is projected transverse to $d_c^{\text{pinhole}}$ before renormalisation.
+The expansion order for the origin field is $o_{\text{max}}$ and for the direction field is $d_{\text{max}}$; selecting $o_{\text{max}}=0$ and $d_{\text{max}}=2$ (see Section~2.1) gives 3 origin coefficients and 18 direction coefficients per channel.
+
+\subsection{Ray-Space Bundle Adjustment}
+
+The rayfield coefficients $a_{c,m}^O, a_{c,m}^d$ and the board poses $\{\eta_p\}_{p=1}^{P}$ are estimated jointly from $N$ ChArUco corner observations.
+Each observation $k$ links a pixel $(u_k, v_k)$ on channel $c_k$ to a known 3D board point $X_k$ expressed in the board frame.
+The board pose $\eta_p = (R_p, t_p) \in \text{SE}(3)$ transforms $X_k$ to the camera frame: $X_k^{\text{cam}} = R_p X_k + t_p$.
+
+The \textbf{ray-space residual} measures the perpendicular distance from the transformed board point to the ray $\mathcal{L}_{c_k}(u_k,v_k)$:
+\begin{equation}
+r_k = \| (X_k^{\text{cam}} - O_{c_k}) - ((X_k^{\text{cam}} - O_{c_k})\cdot d_{c_k})\, d_{c_k} \|.
+\end{equation}
+This is the norm of the component of $X_k^{\text{cam}} - O_{c_k}$ orthogonal to the ray direction $d_{c_k}$.
+The objective is the sum of squared residuals:
+\begin{equation}
+\min_{\{a_{c,m}\}, \{\eta_p\}} \sum_k r_k^2,
+\end{equation}
+solved by Levenberg-Marquardt with analytical Jacobians.
+
+For the CMO microscope, we impose the physically-motivated constraint that the board is mounted on a Z-only translation stage: all $P$ frames share a common rotation $R$ and XY translation $(t_x, t_y)$, with only the Z component varying per frame.
+This reduces the pose parameters from $6P$ to $3 + 2 + P = 15$ (for $P=10$ frames: 60 $\to$ 15), making the 57-parameter Zernike BA well-conditioned.
+
+The ray-space BA differs from classical reprojection minimisation \cite{zhang2000} in a fundamental way: it optimises the 3D geometric consistency of rays rather than the 2D reprojection error.
+This is the measurement stage of the two-stage decomposition (see Section~4.2).
+
 \subsection{The Zernike Rayfield as Observable}
 
-The Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$ maps each pixel $(u,v)$ to a 3D origin $O$ and direction $d$.
-We fit a constrained model O(0)+d(2): rigid sub-pupil per channel (origin order~0), spatially-varying direction correction (direction order~2), with shared rotation and XY translation plus per-pose Z (15 pose parameters, 57 total).
-The fit minimises the perpendicular distance from each 3D board point to the ray at the observed pixel---a ray-space bundle adjustment analogous to classical reprojection minimisation \cite{zhang2000} but operating on 3D lines rather than 2D pixels.
+The fitted rayfield $\mathcal{R}_c(u,v) = (O_c(u,v), d_c(u,v))$ is the experimental observable.
+From the centre-pixel ray, physical descriptors are read directly---no model fit required:
 
 From the centre-pixel ray, physical descriptors are read directly---no model fit required:
 $b = \|O_R - O_L\| = \SI{24.9}{mm}$ (stereo baseline),
@@ -162,14 +202,26 @@ The real system is \textbf{object-space telecentric}, not perspective.
 
 \subsubsection{Telecentric CMO}
 
-The telecentric model directly parameterises the direction field as an affine function of pixel position:
+The perspective model fails because the real microscope is object-space telecentric: chief rays are nearly parallel rather than diverging from a point.
+The telecentric model directly parameterises the ray-field without deriving it from a point projection.
+For each channel $c \in \{L,R\}$, the origin is a rigid sub-pupil:
 \begin{equation}
-d_c(u,v) = \operatorname{normalize}\left(d_{c,0} + s_x \tilde{u}\, e_x + s_y \tilde{v}\, e_y\right)
+O_c = S_c = (\pm b/2,\; 0,\; WD - f_{\text{obj}}),
 \end{equation}
-where $\tilde{u}, \tilde{v}$ are normalised angular coordinates.
-The origin remains a rigid sub-pupil $O_c = S_c$.
-Adding pupil shear $\rho_x, \rho_y$---an affine transverse origin variation---gives the 14-parameter variant.
+where the sign is $+$ for right and $-$ for left.
+The direction field is an affine function of normalised angular coordinates $\tilde{u} = (u - c_x)p/f_{\text{ang}}$, $\tilde{v} = (v - c_y)p/f_{\text{ang}}$, where $p$ is the pixel pitch, $f_{\text{ang}}$ is the angular focal length, and $(c_x, c_y)$ is the principal point:
+\begin{equation}
+d_c(u,v) = \operatorname{normalize}\!\left(d_{c,0} + s_{x,c}\,\tilde{u}\,e_x + s_{y,c}\,\tilde{v}\,e_y + s_{xy,c}\,\tilde{u}\,\tilde{v}\,e_x + s_{yx,c}\,\tilde{v}\,\tilde{u}\,e_y\right),
+\end{equation}
+where $d_{c,0} = (\pm\sin\theta,\; d_y^{\text{com}},\; \cos\theta)$ is the chief-ray direction, with $\theta$ the convergence half-angle and $d_y^{\text{com}}$ a shared vertical component.
 
+Adding pupil shear---an affine transverse variation of the origin---completes the model:
+\begin{equation}
+O_c(u,v) = S_c + P_{d_c}^\perp(\rho_{x,c}\,\tilde{u}\,e_x + \rho_{y,c}\,\tilde{v}\,e_y),
+\end{equation}
+where $P_{d}^\perp v = v - (v\cdot d)\,d$ projects onto the plane orthogonal to $d$, ensuring $O_c \cdot d_c = 0$.
+
+The 14 parameters are: $f_{\text{obj}}$, $WD$, $b$ (skeleton), $c_x$, $c_y$ (principal point), $f_{\text{ang}}$ (angular scale), $\theta$, $d_y^{\text{com}}$ (chief-ray direction), $s_{x,L}$, $s_{y,L}$, $s_{x,R}$, $s_{y,R}$ (per-channel slopes), $\rho_x$, $\rho_y$ (shared pupil shear).
 This model achieves \SI{0.12}{mm} ray-space RMS (down from \SI{3.48}{mm} for perspective) and \SI{14.6}{px} reprojection (down from \SI{86}{px}).
 The dominant geometry is captured, but \SI{14.6}{px} is far from the Zernike reference (\SI{0.47}{px}).
 
@@ -227,13 +279,22 @@ The heatmap pattern at each stage dictates the next hypothesis: perspective $\to
 
 \subsubsection{SE(3) Arm Alignment}
 
-The $Z_0^0$-dominated residual points to a global misalignment.
-A per-channel rigid transform (SE(3)) is added to the telecentric model's Pl\"ucker lines:
-$d' = R_c \, d_{\text{tel}}$, $O' = R_c \, O_{\text{tel}} + t_c$,
-where $(R_c, t_c)$ is a small rotation and translation per channel (12 additional parameters, 26 total).
+The $Z_0^0$-dominated residual points to a global misalignment of each optical arm.
 
-Jointly fitting telecentric parameters and arm transforms against the Zernike rayfield reduces pixel RMS from \SI{14.6}{px} to \textbf{\SI{1.06}{px}} (P50=\SI{0.87}{px}, P95=\SI{1.84}{px})---a $14\times$ improvement.
-The fitted arm transforms are physically plausible: rotations $\sim$\SI{2.5}{\degree} (left) and $\sim$\SI{3.7}{\degree} (right), translations sub-mm.
+\subsubsection{Per-Channel SE(3) Arm Alignment}
+
+A rigid transform $(R_c, t_c) \in \text{SE}(3)$ is applied to each channel's ray bundle, representing a small rotation and translation of the entire optical arm relative to the ideal CMO skeleton.
+For each pixel $(u,v)$ on channel $c$, the telecentric ray $(O_c^{\text{tel}}, d_c^{\text{tel}})$ is transformed:
+\begin{equation}
+d_c(u,v) = R_c \, d_c^{\text{tel}}(u,v), \qquad
+O_c(u,v) = R_c \, O_c^{\text{tel}}(u,v) + t_c.
+\end{equation}
+Each $R_c \in \text{SO}(3)$ is parameterised by a 3-element rotation vector $r_c \in \mathbb{R}^3$ ($\theta_c = \|r_c\|$, axis $r_c/\|r_c\|$).
+The 12 additional parameters ($r_L, t_L, r_R, t_R$) bring the total to 26.
+
+Jointly fitting the 14 telecentric parameters and the 12 SE(3) parameters against the Zernike rayfield reduces pixel RMS from \SI{14.6}{px} to \textbf{\SI{1.06}{px}} (P50=\SI{0.87}{px}, P95=\SI{1.84}{px})---a $14\times$ improvement.
+The fitted rotations are $\sim$\SI{2.5}{\degree} (left) and $\sim$\SI{3.7}{\degree} (right); translations are sub-mm.
+The rotation angles are stable across optimisation runs; the translation components trade off with the telecentric base parameters (a known identifiability limitation).
 
 \subsection{Model Selection}
 
