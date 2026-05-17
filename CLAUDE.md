@@ -10,10 +10,10 @@ BIC-based model selection on the fitted rayfield.
 
 ## Active tasks
 
-### 11_compare_zernike_cmo_rigid_removed.py
-Compare Zernike 57p vs CMO 26p specimen reconstructions after rigid-body removal.
-Goal: determine if the Zernike ramp is a global frame effect, a per-arm alignment difference, or a genuine non-rigid rayfield component.
-8 phases — see CDC in session.
+### 11_compare_zernike_cmo_rigid_removed.py ✅
+Result: Case A — Zernike and CMO differ by rigid frame change, not non-rigid error.
+Kabsch SE(3): 179.5° rotation, 127mm translation. Residual: 3.82→0.056mm (98.5% reduction).
+Affine plane R²=0.995. See zernike_cmo_rigid_comparison.json.
 
 ## Key files and directories
 
