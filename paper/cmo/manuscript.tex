@@ -27,16 +27,11 @@
 \maketitle
 
 \begin{abstract}
-Standard stereo calibration assumes a single optical centre per camera and fails on Common Main Objective (CMO) stereo microscopes, where two off-axis sub-apertures share a single objective lens.
-We present a complete calibration workflow based on the StereoComplex framework: a per-pixel Zernike rayfield is fitted to ChArUco corner observations, physical descriptors (baseline, working distance, focal length, convergence angle) are read directly from the measured rays, and a compact 26-parameter physical model---a quasi-telecentric CMO skeleton with per-channel SE(3) arm alignment---is constructed by iterative residual analysis.
-On 10 stereo pairs from the open Pycaso dataset, the compact model achieves \SI{1.06}{px} reprojection error (P50=\SI{0.87}{px}, P95=\SI{1.84}{px}) on a $2048\times 2048$ sensor, compared to $>300$~px for standard OpenCV stereo calibration.
-Three insights emerge.
-First, a \textbf{two-phase Ray2D pre-processing} (homography + thin-plate spline corner refinement followed by TPS smoothing on completed corners) is critical: without it, raw ChArUco detections carry structured biases from compression, blur, and defocus that cause the rayfield fit to become gauge-unstable ($Z_0$ drift $\sim$\SI{8.5}{\degree}).
-Second, \textbf{direct bundle adjustment is near-impossible} for non-central optics: the coupled estimation of optical parameters and board poses is severely ill-conditioned (Schur-complement coupling norm $0.81$, nearly fully coupled), whereas the rayfield approach decomposes the problem into measurement (Zernike fit, coupling norm $0.0$) and identification (ray-space model selection), decoupling the two stages.
-Third, \textbf{rayfield initialization is near-optimal}: corner BA initialized from the Zernike-identified parameters improves pixel RMS by only \SI{7}{\percent} (\SI{1.06}{px} $\to$ \SI{0.98}{px}), proving that the Zernike rayfield captures almost all information available in the corners.
-A ray-space BIC comparison with operational reprojection guard selects the 26-parameter model as the best usable physical model ($\Delta\text{BIC}>40\,000$ over pinhole, Brown-Conrady, and parallel-plate alternatives).
-The residual analysis---Zernike modal decomposition of direction and moment differences---is the key diagnostic: it reveals that the remaining error after telecentric CMO fitting is dominated by $Z_0^0$ (global line-bundle offset, 97--98\,\%), pointing directly to the missing SE(3) arm degrees of freedom.
-The Zernike rayfield serves not merely as a calibration model but as a diagnostic instrument that tells the user \emph{which} physical degree of freedom is missing.
+Common Main Objective (CMO) stereo microscopes violate the single-optical-centre assumption of standard camera calibration, making joint estimation of optical parameters and board poses severely ill-conditioned (Schur-complement coupling norm $0.81$).
+We present a two-stage approach: first, a Zernike rayfield---a per-pixel 3D line---is fitted to ChArUco corner observations, decoupling measurement from model identification (coupling norm $0.0$); second, a compact physical model is constructed by iterative residual analysis, where the Zernike decomposition of the residual between candidate model and measured rayfield reveals which physical degree of freedom is missing.
+On 10 stereo pairs from the open Pycaso dataset, the final 26-parameter model---a quasi-telecentric CMO skeleton with per-channel SE(3) arm alignment---achieves \SI{1.06}{px} reprojection error (P50=\SI{0.87}{px}, P95=\SI{1.84}{px}), compared to $>300$~px for standard OpenCV stereo calibration.
+A ray-space BIC comparison with operational reprojection guard selects this model as the best usable physical model ($\Delta\text{BIC}>40\,000$ over pinhole, Brown-Conrady, and parallel-plate alternatives).
+The Zernike rayfield serves not merely as a calibration model but as a diagnostic instrument: it tells the user \emph{which} physical degree of freedom is missing, guiding hypothesis refinement through residual structure rather than blind fitting.
 \end{abstract}
 
 \textbf{Keywords:} stereo microscope; CMO; non-central calibration; Zernike rayfield; BIC model selection; telecentricity
@@ -669,6 +664,31 @@ The key results are:
 
 The CMO Pycaso case study validates a generalisable methodology: measure first, model second, diagnose by residual, refine by hypothesis testing.
 Code, data, and documentation are publicly available at \url{https://github.com/jeffwitz/StereoComplex}.
+
+% ======================================================================
+\section*{Reproducibility Statement}
+
+The StereoComplex codebase (commit \texttt{049fb64}, branch \texttt{develop}) and all artefacts required to reproduce these results are available at \url{https://github.com/jeffwitz/StereoComplex}.
+The raw Pycaso calibration images are available from \url{https://github.com/LaboratoireMecaniqueLille/Pycaso}.
+To reproduce the numerical results without access to the raw images, restart from the pre-computed intermediate state (\texttt{intermediate\_state.npz}) which contains the already-detected, Hessian-completed, and TPS-denoised corner positions, the fitted Zernike rayfield, and the initial 26p model parameters.
+The Zenodo DOI for this version is \texttt{10.5281/zenodo.XXXXXXX} (placeholder---will be archived upon acceptance).
+
+\section*{Author Contributions}
+
+J.-F. Witz conceived the study, developed the StereoComplex framework, implemented all methods, conducted the experiments, and wrote the manuscript.
+
+\section*{Acknowledgments}
+
+The author thanks Claude (Anthropic) and ChatGPT (OpenAI) for assistance with code generation, manuscript drafting, and critical review of the documentation.
+
+\section*{Code and Data Availability}
+
+\begin{itemize}
+  \item StereoComplex: \url{https://github.com/jeffwitz/StereoComplex} (MIT License)
+  \item Pycaso dataset: \url{https://github.com/LaboratoireMecaniqueLille/Pycaso}
+  \item All generated artefacts: \texttt{docs/assets/pycaso\_real\_data/}
+  \item Intermediate state (restart without raw images): \texttt{docs/assets/pycaso\_real\_data/intermediate\_state.npz}
+\end{itemize}
 
 % ======================================================================
 \newpage
