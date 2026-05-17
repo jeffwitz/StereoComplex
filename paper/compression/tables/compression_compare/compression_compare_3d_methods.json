@@ -1,0 +1,85 @@
+{
+  "png": {
+    "dataset_root": "dataset/compression_sweep/png_lossless",
+    "raw_report": "paper/tables/compression_compare/png_lossless.raw.json",
+    "rayfield2d_report": "paper/tables/compression_compare/png_lossless.rayfield2d.json",
+    "methods": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.3256769021742769,
+        "mono_rms_right_px": 0.30702647651338877,
+        "stereo_rms_px": 0.5286755323444348,
+        "baseline_abs_error_mm": 1.8492658615354287,
+        "baseline_abs_error_px_at_mean_depth": 1.6927456164825705,
+        "tri_rms_mm": 13.041802105826873,
+        "tri_rms_rel_depth_percent": 0.9713168858898532
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.08681466775426919,
+        "mono_rms_right_px": 0.07053110341407966,
+        "stereo_rms_px": 0.12310907547291783,
+        "baseline_abs_error_mm": 0.3199480949129736,
+        "baseline_abs_error_px_at_mean_depth": 0.287202785395918,
+        "tri_rms_mm": 14.48161215094838,
+        "tri_rms_rel_depth_percent": 1.078549904605535
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.22073061870466404,
+        "baseline_abs_error_px_at_mean_depth": 0.2000204264434975,
+        "tri_rms_mm": 16.683951794510506,
+        "tri_rms_rel_depth_percent": 1.2425739916832548
+      }
+    }
+  },
+  "webp": {
+    "dataset_root": "dataset/compression_sweep/webp_q70",
+    "raw_report": "paper/tables/compression_compare/webp_lossy.raw.json",
+    "rayfield2d_report": "paper/tables/compression_compare/webp_lossy.rayfield2d.json",
+    "methods": {
+      "opencv_pinhole_raw": {
+        "mono_rms_left_px": 0.32602220740999605,
+        "mono_rms_right_px": 0.3105509960600477,
+        "stereo_rms_px": 0.4989531612103873,
+        "baseline_abs_error_mm": 1.3223220122868042,
+        "baseline_abs_error_px_at_mean_depth": 1.2083385355471408,
+        "tri_rms_mm": 11.732913128158497,
+        "tri_rms_rel_depth_percent": 0.8738345015193387
+      },
+      "opencv_pinhole_rayfield2d": {
+        "mono_rms_left_px": 0.08600723174887757,
+        "mono_rms_right_px": 0.07049547646977576,
+        "stereo_rms_px": 0.11688519297070037,
+        "baseline_abs_error_mm": 0.12229769149251979,
+        "baseline_abs_error_px_at_mean_depth": 0.10992531012548394,
+        "tri_rms_mm": 13.565075632376315,
+        "tri_rms_rel_depth_percent": 1.0102888322629333
+      },
+      "rayfield3d_ba_rayfield2d": {
+        "mono_rms_left_px": null,
+        "mono_rms_right_px": null,
+        "stereo_rms_px": null,
+        "baseline_abs_error_mm": 0.24020635167292426,
+        "baseline_abs_error_px_at_mean_depth": 0.21766883624034267,
+        "tri_rms_mm": 9.325127997562529,
+        "tri_rms_rel_depth_percent": 0.6945094100967766
+      }
+    }
+  },
+  "settings": {
+    "split": "train",
+    "scene": "scene_0000",
+    "max_frames": 5,
+    "rayfield3d": {
+      "outer_iters": 3,
+      "nmax": 10,
+      "max_points_per_frame": 200
+    },
+    "tps": {
+      "lam": 10.0,
+      "huber": 3.0,
+      "iters": 3
+    }
+  }
+}
