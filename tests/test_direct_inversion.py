@@ -69,7 +69,7 @@ def test_pose_initialization_close_to_truth_on_pinhole_oracle():
     obs = simulate_charuco_observations_from_rayfield(
         oracle.left_field, oracle.right_field,
         image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
-        min_corners_per_frame=0,
+        min_corners_per_frame=0, pose_jitter_deg=0.0,
     )
     R_list, t_list = estimate_initial_poses_from_central_pinhole(obs, K)
     assert len(R_list) == len(t_list) > 0

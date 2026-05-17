@@ -117,3 +117,37 @@ def test_simulator_returns_zero_poses_when_min_unsatisfiable():
     assert obs.diagnostics is not None
     assert obs.diagnostics.n_poses_accepted == 0
     assert len(obs.left_pixels) == 0
+
+
+def test_pose_jitter_changes_corner_positions():
+    """pose_jitter_deg > 0 rotates the board around its normal, moving corners."""
+    oracle = build_pinhole_oracle(image_size=(160, 120))
+    # With zero jitter, results are reproducible across runs with the same seed
+    obs_ref = simulate_charuco_observations_from_rayfield(
+        oracle.left_field, oracle.right_field,
+        image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
+        min_corners_per_frame=0, pose_jitter_deg=0.0,
+    )
+    obs_same = simulate_charuco_observations_from_rayfield(
+        oracle.left_field, oracle.right_field,
+        image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
+        min_corners_per_frame=0, pose_jitter_deg=0.0,
+    )
+    for Lr, Ls in zip(obs_ref.left_pixels, obs_same.left_pixels, strict=True):
+        assert np.allclose(Lr, Ls), "zero jitter should be deterministic"
+
+    # With large jitter, corners shift noticeably
+    obs_jit = simulate_charuco_observations_from_rayfield(
+        oracle.left_field, oracle.right_field,
+        image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
+        min_corners_per_frame=0, pose_jitter_deg=30.0,
+    )
+    max_shift = 0.0
+    for Lr, Lj in zip(obs_ref.left_pixels, obs_jit.left_pixels, strict=True):
+        min_len = min(Lr.shape[0], Lj.shape[0])
+        if min_len > 0:
+            shift = np.max(np.abs(Lr[:min_len] - Lj[:min_len]))
+            max_shift = max(max_shift, shift)
+    assert max_shift > 0.5, (
+        f"pose_jitter_deg=30 expected to shift corners by >0.5 px, got {max_shift:.3f}"
+    )

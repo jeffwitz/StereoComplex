@@ -131,6 +131,7 @@ def simulate_charuco_observations_from_rayfield(
     seed: int = 42,
     min_corners_per_frame: int = 30,
     max_pose_attempts: int = 200,
+    pose_jitter_deg: float = 5.0,
 ) -> CharucoObservationSet:
     """Simulate ChArUco corner observations from a stereo rayfield oracle.
 
@@ -154,6 +155,12 @@ def simulate_charuco_observations_from_rayfield(
         Fraction of corners to randomly drop (0.0 = none, 1.0 = all).
     seed : int
         Random seed for reproducibility.
+    min_corners_per_frame : int
+        Minimum visible corners required to accept a pose.
+    max_pose_attempts : int
+        Maximum number of pose samples before giving up.
+    pose_jitter_deg : float
+        Max random rotation (degrees) of the board around its own normal axis.
 
     Returns
     -------
@@ -183,6 +190,11 @@ def simulate_charuco_observations_from_rayfield(
         rv_single, tv_single = rvecs_one[0], tvecs_one[0]
 
         R = Rotation.from_rotvec(rv_single).as_matrix()
+        if pose_jitter_deg > 0:
+            jitter_rad = np.deg2rad(rng.uniform(-pose_jitter_deg, pose_jitter_deg))
+            c, s = np.cos(jitter_rad), np.sin(jitter_rad)
+            Rz = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+            R = R @ Rz
         t = np.asarray(tv_single, dtype=np.float64).reshape(3)
         world_pts = (R @ obj_pts.T).T + t[None, :]
 
