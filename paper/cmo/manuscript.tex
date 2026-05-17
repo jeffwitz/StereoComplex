@@ -146,6 +146,38 @@ Two alternative hypotheses are tested and rejected:
 
 Both negative results are consistent with the $Z_0^0$ diagnostic (they would produce spatial, not global, changes).
 
+\subsubsection{Residual-Guided Hypothesis Construction}
+
+The central methodological contribution is that physical model construction is guided by \emph{residual structure}, not blind fitting.
+At each stage, the direction residual $\Delta d = d_{\text{Zernike}} - d_{\text{model}}$ is computed on a $31\times31$ grid and displayed as a heatmap (Figure~\ref{fig:residuals}).
+The pattern of the residual directly reveals which physical degree of freedom is missing.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/residual_evolution.png}
+\caption{Residual evolution across model stages. Direction error $\Delta d$ (degrees) between the Zernike rayfield (reference) and each candidate model, evaluated on a $31\times31$ pixel grid.
+\textbf{Left:} Perspective CMO --- large structured error (RMS \SI{23.6}{\degree}, max \SI{27.7}{\degree}), dominated by a strong $d_y$ gradient.
+\textbf{Centre-left:} Telecentric CMO --- RMS drops to \SI{0.27}{\degree} (two orders of magnitude), but the residual is still $Z_0^0$-dominated (global piston), revealing the missing SE(3) arm alignment.
+\textbf{Centre-right:} CMO + SE(3) --- RMS drops to \SI{0.003}{\degree}, near the noise floor.
+\textbf{Right:} Zernike self-reference (zero by construction).
+The residual heatmap at each stage directly tells the user \emph{what} is wrong and \emph{where} to look next.}
+\label{fig:residuals}
+\end{figure}
+
+Stage~1 (Perspective CMO): the residual is large and structured, with RMS \SI{23.6}{\degree} (max \SI{27.7}{\degree}).
+The $d_y$ component shows a strong linear gradient trace---perspective projection from a point sub-pupil---that the Zernike field does not have.
+This \textbf{rejects} the perspective family and points to object-space telecentricity.
+
+Stage~2 (Telecentric CMO): the residual drops to \SI{0.27}{\degree} RMS (two orders of magnitude), confirming that the telecentric model family is correct.
+However, the residual is $Z_0^0$-dominated (97--98\,\% global piston in both $\Delta d$ and $\Delta m$)---a constant offset across the entire field.
+This \textbf{reveals} that the missing degree of freedom is a global line-bundle misalignment, not a spatial field distortion.
+
+Stage~3 (CMO + SE(3)): the residual drops further to \SI{0.003}{\degree} RMS, near the noise floor.
+The remaining gap to the Zernike reference (\SI{0.47}{px} vs \SI{1.06}{px}) comes from distributed low-amplitude aberrations (field curvature, astigmatism) that require the flexibility of the 57-parameter Zernike model.
+
+The critical point is that \textbf{at no stage was a model added blindly}.
+The heatmap pattern at each stage dictates the next hypothesis: perspective $\to$ telecentric (because the $d_y$ gradient is wrong), telecentric $\to$ SE(3) (because the residual is $Z_0^0$ piston, not spatial).
+
 \subsubsection{SE(3) Arm Alignment}
 
 The $Z_0^0$-dominated residual points to a global misalignment.
@@ -292,6 +324,10 @@ Per-arm DOFs are individually necessary---any compression degrades the fit ($+92
 The key methodological contribution is the feedback loop: Ray2D preprocessing $\to$ Ray3D measurement $\to$ residual modal analysis $\to$ hypothesis $\to$ model refinement $\to$ verification.
 Without the rayfield, the 2D reprojection error tells you \emph{that} the model is wrong but not \emph{how}.
 The Zernike projection of $\Delta d$ and $\Delta m$ directly identifies whether the missing DOF is global (low-order Zernike modes) or spatial (high-order modes).
+
+Figure~\ref{fig:residuals} illustrates this diagnostic value concretely.
+The residual heatmap at each model stage is a \textbf{visual hypothesis generator}: the perspective CMO's structured $d_y$ error (\SI{23.6}{\degree} RMS) sends the user to telecentric models; the telecentric model's uniform $Z_0^0$ piston (\SI{0.27}{\degree} RMS) sends the user to global arm alignment; and the SE(3)-refined model's near-zero residual (\SI{0.003}{\degree} RMS) confirms convergence.
+At no point does the user need to guess---the residual pattern at each stage dictates the next hypothesis.
 
 In this case study, the $Z_0^0$-dominated residual correctly guided us to the SE(3) arm alignment, while alternative hypotheses (pre-warp, variable origin) were correctly rejected by the same diagnostic.
 
