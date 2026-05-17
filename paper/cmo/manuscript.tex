@@ -435,6 +435,31 @@ In contrast, the direct approach---jointly estimating optics and poses from corn
 \label{sec:results}
 % ======================================================================
 
+\subsection{Data Sources}
+
+Table~\ref{tab:data_sources} clarifies which results come from real Pycaso calibration data, which from synthetic oracles, and which are methodological diagnostics.
+
+\begin{table}[H]
+\centering
+\caption{Data sources for results reported in this paper. Real data: 10 Pycaso stereo pairs. Synthetic oracles: StereoComplex \texttt{model\_selection\_oracles.py}. Method: analytical and numerical diagnostics independent of data source.}
+\label{tab:data_sources}
+\begin{tabular}{lll}
+\toprule
+Result category & Source & Examples \\
+\midrule
+\textbf{Real data} & Pycaso CMO images & Zernike rayfield fit (0.47~px), CMO+SE(3) model (1.06~px), \\
+& (10 stereo pairs) & geometric descriptors ($b$, $WD$, $\theta$), pose sweep, \\
+& & cross-validation, bootstrap, fx sensitivity \\
+\midrule
+\textbf{Synthetic oracles} & StereoComplex simulator & Direct vs.\ rayfield inversion (coupling $c=0.81$), \\
+& (noiseless) & ray-space BIC model selection, oracle parameter recovery \\
+\midrule
+\textbf{Methodological} & Analytical / numerical & BIC formula, Pl\"ucker residual decomposition, \\
+& diagnostics & SE(3) ablation, Schur complement derivation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Dataset and Pipeline}
 
 Ten stereo pairs of $2048\times2048$~px ChArUco \cite{garrido2014,romero2018} images (16$\times$12 squares, \SI{0.3}{mm}, DICT\_6X6\_250, \texttt{setLegacyPattern(True)}) from the Pycaso open dataset \cite{pycaso2023} are used.
