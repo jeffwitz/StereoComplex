@@ -9,9 +9,9 @@
     300,
     1748
   ],
-  "n_correspondences": 2020800,
-  "pct_valid": 96.37984188516835,
-  "median_dx_px": -0.21939200162887573,
-  "median_dy_px": 8.784692764282227,
+  "n_correspondences": 1943070,
+  "pct_valid": 92.67259470101645,
+  "median_dx_px": -66.96830749511719,
+  "median_dy_px": 45.80776596069336,
   "flow_method": "DIS"
 }

@@ -557,13 +557,13 @@ Descriptor readout therefore requires either an independently known optical scal
 
 A non-metrological sanity check validates the calibrated rayfields on an independent speckled coin specimen imaged with the same Pycaso microscope (single stereo pair, no ChArUco pattern).
 This is \textbf{not} absolute metrological validation---no ground-truth 3D data exists for the coin---but it confirms that the rayfields produce coherent dense reconstruction on data unseen during calibration.
-Dense left-to-right pixel correspondences are computed with DIS optical flow over a $1448{\times}1448$~px ROI (96.4\,\% of pixels produce valid correspondences).
+Dense left-to-right pixel correspondences are computed with DIS optical flow over a $1448{\times}1448$~px ROI (92.7\,\% of pixels produce valid correspondences).
 For each correspondence, the two rays from the calibrated model are intersected at their closest point (ray-gap triangulation).
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/specimen_reconstruction.png}
-\caption{Dense specimen reconstruction. Top row: left image, horizontal disparity field, valid mask (96.4\,\% coverage).
+\caption{Dense specimen reconstruction. Top row: left image, horizontal disparity field, valid mask (92.7\,\% coverage).
 Bottom row: reconstructed Z (depth) maps from the CMO 26p and Zernike 57p rayfields, and the ray-gap histogram.
 Both models produce nearly identical ray gaps (median 0.107~mm), confirming rayfield coherence.
 The CMO 26p surface is smoother (Z roughness 0.072~mm) than the Zernike (0.176~mm) because the compact model imposes implicit smoothness via its parameterisation.}
@@ -572,6 +572,27 @@ The CMO 26p surface is smoother (Z roughness 0.072~mm) than the Zernike (0.176~m
 
 The median ray gap is 0.107~mm for both models---excellent coherence, confirming that the two channels' rays intersect each other at the sub-millimetre level, despite never having been jointly optimised on this specimen.
 The CMO 26p produces a smoother reconstructed surface (Z roughness, measured as median absolute deviation, of 0.072~mm vs.\ 0.176~mm for the Zernike), because the compact 26-parameter model imposes implicit spatial smoothness via its rigid-sub-pupil and affine-direction parameterisation, whereas the 57-parameter Zernike model has the flexibility to absorb detection noise into high-frequency surface variations.
+OpenCV stereo reconstruction was not available because the standard OpenCV calibration failed to converge on this microscope's calibration data.
+
+\subsection{Application Sanity Check: Specimen Reconstruction}
+
+A non-metrological sanity check validates the calibrated rayfields on an independent speckled coin specimen imaged with the same Pycaso microscope (single stereo pair: \texttt{left\_identification/coin.tif}, \texttt{right\_identification/coin.tif}, no ChArUco pattern).
+This is \textbf{not} absolute metrological validation---no ground-truth 3D data exists for the coin---but it confirms that the rayfields produce coherent dense reconstruction on data unseen during calibration.
+Dense left-to-right pixel correspondences are computed with DIS optical flow (ULTRAFAST preset, 20 iterations, no variational refinement, exactly matching Pycaso DIC parameters) over a $1448{\times}1448$~px ROI (92.7\,\% of pixels produce valid correspondences).
+For each correspondence, the two rays from the calibrated model are intersected at their closest point (ray-gap triangulation).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/specimen_reconstruction.png}
+\caption{Dense specimen reconstruction. Top row: left image, horizontal disparity field, valid mask (92.7\,\% coverage).
+Bottom row: reconstructed Z (depth) maps from the CMO 26p and Zernike 57p rayfields, and the ray-gap histogram.
+Both models produce nearly identical ray gaps (median 0.0011~mm), confirming rayfield coherence.
+The CMO 26p surface is smoother (Z roughness 0.073~mm) than the Zernike (0.194~mm) because the compact model imposes implicit smoothness via its parameterisation.}
+\label{fig:specimen}
+\end{figure}
+
+The median ray gap is 0.0011~mm for both models---near-perfect coherence, confirming that the two channels' rays intersect each other at the sub-micrometre level, despite never having been jointly optimised on this specimen.
+The CMO 26p produces a smoother reconstructed surface (Z roughness, measured as median absolute deviation, of 0.073~mm vs.\ 0.194~mm for the Zernike), because the compact 26-parameter model imposes implicit spatial smoothness via its rigid-sub-pupil and affine-direction parameterisation, whereas the 57-parameter Zernike model has the flexibility to absorb detection noise into high-frequency surface variations.
 OpenCV stereo reconstruction was not available because the standard OpenCV calibration failed to converge on this microscope's calibration data.
 
 \subsection{Model Performance}

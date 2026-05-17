@@ -49,9 +49,9 @@ for ld in all_left:
 # Coin specimen: left_identification/coin.tif, right_identification2/coin_1.tif
 selected = {
     "left_dir": "left_identification",
-    "right_dir": "right_identification2",
+    "right_dir": "right_identification",
     "left_file": "coin.tif",
-    "right_file": "coin_1.tif",
+    "right_file": "coin.tif",
     "note": "Speckled coin specimen for 3D reconstruction. Single stereo pair, no ChArUco pattern."
 }
 
