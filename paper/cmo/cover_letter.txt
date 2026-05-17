@@ -1,0 +1,36 @@
+Dear Editor,
+
+We submit the manuscript "Rayfield-Based Calibration and Physical Model
+Identification of a Common Main Objective Stereo Microscope" for
+consideration in Optics Express.
+
+This paper presents the first real-data validation of a non-central
+stereo calibration pipeline on a Common Main Objective (CMO) stereo
+microscope. The key contribution is methodological: we show that a
+per-pixel Zernike rayfield, fitted to ChArUco corner observations,
+serves as a diagnostic instrument that reveals which physical degree
+of freedom a candidate model is missing. Residual-guided hypothesis
+construction leads from a naive perspective model (86 px RMS) through
+a telecentric CMO skeleton (14.6 px) to a 26-parameter CMO+SE(3)
+model achieving 1.06 px RMS on real Pycaso calibration images, where
+OpenCV stereo calibration fails (>300 px).
+
+The work is supported by:
+- Extensive residual analysis (Zernike modal decomposition of direction
+  and moment differences),
+- Formal BIC model selection with an operational reprojection guard,
+- Internal validation (cross-validation, bootstrap, fx sensitivity),
+- Full reproducibility (code, data, and intermediate state artefacts).
+
+We believe this work will interest the Optics Express readership because
+it demonstrates a generalisable strategy---measure first, model second,
+diagnose by residual---applicable to any non-standard optical instrument.
+
+All authors have approved the manuscript. It is not under consideration
+elsewhere.
+
+Sincerely,
+Jean-Francois Witz
+CNRS, Univ. Lille, Centrale Lille, LaMcube, F-59000 Lille, France
+jean-francois.witz@centralelille.fr
+ORCID: 0000-0002-7240-9476
