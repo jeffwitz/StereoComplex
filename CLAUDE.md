@@ -8,6 +8,13 @@ the single-pinhole abstraction with a per-pixel line model. It identifies optica
 architectures (pinhole, Brown-Conrady, inclined plate, CMO, Greenough) through
 BIC-based model selection on the fitted rayfield.
 
+## Active tasks
+
+### 11_compare_zernike_cmo_rigid_removed.py
+Compare Zernike 57p vs CMO 26p specimen reconstructions after rigid-body removal.
+Goal: determine if the Zernike ramp is a global frame effect, a per-arm alignment difference, or a genuine non-rigid rayfield component.
+8 phases — see CDC in session.
+
 ## Key files and directories
 
 | Path | Role |
