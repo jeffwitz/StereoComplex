@@ -515,6 +515,34 @@ We did not benchmark against Sch\"ops et al.\ \cite{schops2020} or Larsson et al
 Applying these methods to a non-central CMO microscope would require adapting their initialisation strategy to handle two sub-pupils, which is beyond the scope of this comparison.
 We expect that a generic spline model with sufficient parameters could match the Zernike rayfield's \SI{0.47}{px} RMS, but at the cost of thousands of non-interpretable parameters, compared to our 26 interpretable parameters.
 
+\subsection{Internal Validation}
+\label{sec:validation}
+
+Three internal validation experiments assess the robustness of the 26p pipeline on the Pycaso dataset.
+
+\textbf{Cross-validation.}
+5-fold leave-2-out cross-validation (fit on 8 frames, evaluate on 2 held-out frames) yields a mean pixel RMS of $1.07 \pm 0.02$~px.
+The low standard deviation ($\sim$\SI{0.02}{px}) confirms that the model is not overfitting to specific frames; the calibration is stable across the 10-frame dataset.
+Fold~1 shows slightly higher RMS (\SI{1.09}{px}) and a lower baseline estimate ($b = \SI{23.1}{mm}$) because the held-out frames (0 and 1) cover the most extreme Z values.
+
+\textbf{Bootstrap descriptor stability.}
+100 bootstrap iterations (resampling 10 frames with replacement, refitting the full pipeline each time) give 95\,\% confidence intervals:
+\begin{itemize}
+  \item Baseline $b$: [$24.2$, $25.4$]~mm (mean $24.6$~mm, $\sigma = 0.4$~mm)
+  \item Working distance $WD$: [$64.7$, $65.1$]~mm (mean $64.9$~mm, $\sigma = 0.14$~mm)
+    \item Convergence angle $\theta$: [$21.4^\circ$, $23.0^\circ$] (mean $22.2^\circ$, $\sigma = 0.4^\circ$)
+\end{itemize}
+The working distance is the most stable descriptor ($\sigma < \SI{0.2}{mm}$), while the baseline and convergence angle show \SI{0.4}{mm} and \SI{0.4}{\degree} variation respectively---consistent with the gauge sensitivity of the Zernike origin field noted in Section~\ref{sec:limitations}.
+
+\textbf{Sensitivity to fixed focal length $f_x$.}
+Varying the fixed pinhole focal length $f_x$ by $\pm$\SI{10}{\percent} (5 values: 23040, 24320, 25600, 26880, 28160~px) produces:
+\begin{itemize}
+  \item Pixel RMS variation: \SI{0.02}{px} (stable)
+  \item Baseline variation: \SI{0.3}{mm} (stable)
+  \item Working distance variation: \SI{0.1}{mm} (stable)
+\end{itemize}
+The calibration is robust to the choice of fixed $f_x$, confirming that the Zernike rayfield fit is not sensitive to the initial pinhole reference scale.
+
 \subsection{Model Performance}
 
 \begin{table}[H]
