@@ -557,13 +557,13 @@ Descriptor readout therefore requires either an independently known optical scal
 
 A non-metrological sanity check validates the calibrated rayfields on an independent speckled coin specimen imaged with the same Pycaso microscope (single stereo pair, no ChArUco pattern).
 This is \textbf{not} absolute metrological validation---no ground-truth 3D data exists for the coin---but it confirms that the rayfields produce coherent dense reconstruction on data unseen during calibration.
-Dense left-to-right pixel correspondences are computed with DIS optical flow over a $1448{\times}1448$~px ROI (95.4\,\% of pixels produce valid correspondences).
+Dense left-to-right pixel correspondences are computed with DIS optical flow over a $1448{\times}1448$~px ROI (96.4\,\% of pixels produce valid correspondences).
 For each correspondence, the two rays from the calibrated model are intersected at their closest point (ray-gap triangulation).
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/specimen_reconstruction.png}
-\caption{Dense specimen reconstruction. Top row: left image, horizontal disparity field, valid mask (95.4\,\% coverage).
+\caption{Dense specimen reconstruction. Top row: left image, horizontal disparity field, valid mask (96.4\,\% coverage).
 Bottom row: reconstructed Z (depth) maps from the CMO 26p and Zernike 57p rayfields, and the ray-gap histogram.
 Both models produce nearly identical ray gaps (median 0.107~mm), confirming rayfield coherence.
 The CMO 26p surface is smoother (Z roughness 0.072~mm) than the Zernike (0.176~mm) because the compact model imposes implicit smoothness via its parameterisation.}

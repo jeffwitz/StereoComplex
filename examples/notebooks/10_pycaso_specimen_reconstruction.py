@@ -42,20 +42,45 @@ print(f"  ROI: [{roi_x0}:{roi_x1}, {roi_y0}:{roi_y1}] -> {w_roi}x{h_roi}")
 # ═══════════════════════════════════════════════════════════
 # 2 — Dense optical flow (DIS)
 # ═══════════════════════════════════════════════════════════
-print("\nComputing dense optical flow (DIS)...")
+print("\nComputing dense optical flow (DIS, Pycaso DIC parameters)...")
 t0 = time.time()
 
-try:
-    dis = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM)
-    dis.setFinestScale(0)  # full resolution
-    flow = dis.calc((roiL * 255).astype(np.uint8), (roiR * 255).astype(np.uint8), None)
-    print(f"  DIS optical flow: {time.time()-t0:.1f}s")
-except Exception as e:
-    print(f"  DIS failed: {e}, trying Farneback...")
-    flow = cv2.calcOpticalFlowFarneback(
-        (roiL * 255).astype(np.uint8), (roiR * 255).astype(np.uint8),
-        None, 0.5, 3, 15, 3, 5, 1.2, 0)
-    print(f"  Farneback: {time.time()-t0:.1f}s")
+# Pycaso DIC-equivalent parameters mapped to OpenCV DISOpticalFlow:
+#   pyram_levels=3           → finest_scale=0 (full res, pyramid has 3 levels built-in)
+#   ordre_inter=3            → cubic interpolation (DIS default)
+#   max_iter=10              → gradient_descent_iterations
+#   max_linear_iter=1        → variational_refinement_iterations
+#   lmbda=20000              → variational_refinement_alpha
+#   lambda2=0.001            → variational_refinement_gamma
+#   lambda3=1.0              → variational_refinement_delta
+#   size_median_filter=3     → post-processing (applied separately)
+#   factor=2.0               → implicit in pyramid construction
+
+dis = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM)
+dis.setFinestScale(0)        # full-resolution finest scale
+dis.setGradientDescentIterations(10)      # max_iter=10
+dis.setVariationalRefinementIterations(1) # max_linear_iter=1
+dis.setVariationalRefinementAlpha(20000.0)  # lmbda=20000
+dis.setVariationalRefinementGamma(0.001)    # lambda2=0.001
+dis.setVariationalRefinementDelta(1.0)      # lambda3=1.0
+
+flow = dis.calc((roiL * 255).astype(np.uint8), (roiR * 255).astype(np.uint8), None)
+print(f"  DIS optical flow: {time.time()-t0:.1f}s")
+
+# Post-processing: median filter (size_median_filter=3 in Pycaso)
+dx = cv2.medianBlur(flow[..., 0].astype(np.float32), 3)
+dy = cv2.medianBlur(flow[..., 1].astype(np.float32), 3)
+
+# Right pixels = left_pixel + flow (BOTH U and V components — images NOT rectified)
+xL, yL = np.meshgrid(np.arange(w_roi), np.arange(h_roi))
+xR = xL + dx
+yR = yL + dy
+
+# Valid mask: correspondences within image bounds
+valid = (xR >= 0) & (xR < w_roi) & (yR >= 0) & (yR < h_roi)
+# Disparity magnitude filter (both components matter)
+disp_mag = np.sqrt(dx**2 + dy**2)
+valid &= (disp_mag < min(w_roi, h_roi) * 0.3)
 
 # Flow gives dx = pixel displacement from left to right at each (x,y) in left image
 dx = flow[..., 0]  # horizontal disparity
