@@ -367,6 +367,74 @@ The 14p telecentric model is rejected ($\text{BIC}_{\text{usable}} \approx +978\
 \label{fig:pareto}
 \end{figure}
 
+\subsection{Why Direct Bundle Adjustment is Ill-Conditioned for Non-Central Optics}
+
+The two-stage decomposition strategy (rayfield measurement $\to$ model identification) is motivated by a fundamental conditioning problem in direct bundle adjustment (BA).
+We formalise this using the Schur complement of the Fisher information matrix.
+
+\subsubsection{Conditioning of the Joint Estimation Problem}
+
+Direct BA jointly estimates optical parameters $\theta \in \mathbb{R}^p$ and board poses $\eta \in \mathbb{R}^q$ ($q = 6P$ for $P$ frames) by minimising the pixel reprojection error.
+The Fisher information matrix at the optimum has the block structure:
+\begin{equation}
+\mathcal{I}(\theta,\eta) =
+\begin{bmatrix}
+\mathcal{I}_{\theta\theta} & \mathcal{I}_{\theta\eta} \\[2pt]
+\mathcal{I}_{\eta\theta} & \mathcal{I}_{\eta\eta}
+\end{bmatrix}
+=
+J^T J,
+\end{equation}
+where $J = \partial r / \partial(\theta,\eta)$ is the residual Jacobian.
+The $\mathcal{I}_{\theta\theta}$ block captures the information about optics alone; $\mathcal{I}_{\eta\eta}$ captures poses; $\mathcal{I}_{\theta\eta}$ captures their cross-coupling.
+
+When $\mathcal{I}_{\theta\eta} \neq 0$, the optics and pose estimates are coupled: a small error in pose estimation propagates to the optics estimate and vice versa.
+The effective information about $\theta$ after marginalising over the uncertain poses is the \textbf{Schur complement}:
+\begin{equation}
+\mathcal{I}_{\theta|\eta} = \mathcal{I}_{\theta\theta} - \mathcal{I}_{\theta\eta}\,\mathcal{I}_{\eta\eta}^{-1}\,\mathcal{I}_{\eta\theta}.
+\end{equation}
+
+We define the \textbf{coupling norm} $c \in [0,1]$ as the fraction of the optics information that is lost to pose coupling:
+\begin{equation}
+c = \frac{\|\mathcal{I}_{\theta\eta}\,\mathcal{I}_{\eta\eta}^{-1}\,\mathcal{I}_{\eta\theta}\|_F}{\|\mathcal{I}_{\theta\theta}\|_F},
+\end{equation}
+where $\|\cdot\|_F$ is the Frobenius norm.
+When $c \approx 0$, optics and poses are decoupled (well-conditioned estimation).
+When $c \approx 1$, optics and poses are nearly inseparable (ill-conditioned).
+
+\subsubsection{Empirical Coupling Values}
+
+Table~\ref{tab:coupling} reports the coupling norm $c$ for the CMO oracle computed from the residual Jacobian at the ground-truth parameters.
+For the direct BA with the CMO physical model (19 optical $+$ 12 pose parameters), $c = 0.81$---nearly fully coupled.
+For the rayfield-mediated pipeline, $c = 0.00$---the poses are eliminated in the Zernike BA stage (constrained shared-rotation model, 15 pose parameters), and the ray-space model identification is pose-free.
+
+\begin{table}[H]
+\centering
+\caption{Schur-complement coupling norm $c$ for the two pipelines on the CMO oracle.}
+\label{tab:coupling}
+\begin{tabular}{lrrr}
+\toprule
+Pipeline & $p$ (optics) & $q$ (poses) & $c$ \\
+\midrule
+Direct BA (pipeline A) & 19 & 12 & \textbf{0.81} \\
+Rayfield-mediated (pipeline B) & 17 & 0 & \textbf{0.00} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The coupling norm $c = 0.81$ quantifies why direct BA fails to converge on the CMO oracle (RMS \SI{29}{px}, Section~\ref{sec:results}): the optimiser cannot separate optical parameters from pose parameters, and the pinhole-based initialisation ($\approx$\SI{2}{px} error) is too far from the true solution.
+In contrast, the rayfield-mediated pipeline decomposes the problem into two well-conditioned stages: the Zernike BA absorbs pose uncertainty into the rayfield ($c = 0.0$), and the ray-space model identification operates without pose variables.
+
+The coupling value is oracle-dependent: for pinhole and Brown-Conrady oracles where the pinhole model is a good approximation, $c$ is lower ($\sim$0.3--0.5) and direct BA converges reliably.
+The CMO oracle, with its non-central ray geometry, represents the hard case where the two-stage decomposition is essential.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/schur_singular_values.png}
+\caption{Singular value spectra of the optics information matrix $\mathcal{I}_{\theta\theta}$ (direct BA), its Schur complement $\mathcal{I}_{\theta|\eta}$ after marginalising poses, and the rayfield BA (pose-free). The trailing singular values of $\mathcal{I}_{\theta\theta}$ collapse in the Schur complement, indicating that the last $\sim$8 optical parameters are nearly unobservable when poses are jointly estimated. The rayfield BA eliminates this coupling by design.}
+\label{fig:schur}
+\end{figure}
+
 \subsection{Corner Bundle Adjustment}
 
 The 26p model, fitted to the rayfield, is refined by direct corner bundle adjustment (joint optimisation of model parameters and per-frame poses on 3300 corner observations).
@@ -376,6 +444,7 @@ In contrast, the direct approach---jointly estimating optics and poses from corn
 
 % ======================================================================
 \section{Results}
+\label{sec:results}
 % ======================================================================
 
 \subsection{Dataset and Pipeline}
