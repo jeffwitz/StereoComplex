@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0] - 2026-05-17
+
+### Added
+
+- **Pycaso specimen reconstruction sanity check** (Phase 4-6 of CMO paper):
+  - Dense stereo reconstruction on independent speckled coin specimen (no ChArUco)
+  - DIS optical flow: 2M correspondences over 1448×1448 ROI (95.4% valid)
+  - Triangulation with CMO 26p and Zernike 57p models: median ray gap 0.107 mm
+  - CMO 26p surface roughness (Z MAD) = 0.072 mm; Zernike = 0.176 mm
+  - Honest caveat: internal consistency check, not absolute metrological validation
+  - Saved: `specimen_correspondences.npz`, `specimen_reconstruction_cmo26.npz`,
+    `specimen_reconstruction_zernike.npz`, `specimen_reconstruction_metrics.json`
+  - New notebook: `10_pycaso_specimen_reconstruction.py`
+  - New paper figure: `specimen_reconstruction.png` (2×3 panel)
+
 ## [0.5.3] - 2026-05-17
 
 ### Added

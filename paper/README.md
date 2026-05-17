@@ -38,3 +38,18 @@ No external LaTeX template is required — all papers use standard
 
 - `compression/`: Experimental Mechanics
 - `cmo/`: Experimental Mechanics or Optics Express
+
+## CMO paper status (2026-05-17)
+
+24 pages, 43 references, 9 figures, 7 tables. Phases 1-6 complete.
+
+The CMO paper now includes:
+- Full methodological pipeline (Ray2D preprocessing → Zernike rayfield BA → BIC model selection)
+- 26-parameter CMO+SE(3) physical model achieving 1.06 px on real Pycaso data
+- Operational BIC with 1.5 px reprojection guard
+- Internal validation (cross-val, bootstrap, fx sensitivity)
+- **Specimen reconstruction sanity check**: dense stereo on independent speckled
+  coin specimen (DIS optical flow, 2M correspondences, 0.107 mm median ray gap).
+  Not absolute metrology — confirms rayfield coherence on unseen data.
+
+Tags: `v0.6.0-cmo-paper`, `v1.0-submission-ready`
