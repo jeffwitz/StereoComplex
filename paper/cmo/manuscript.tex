@@ -503,11 +503,18 @@ This confirms that the failure is structural (central projection assumption), no
 
 \subsection{Geometric Descriptor Validation}
 
-The geometric descriptors read from the Zernike rayfield are internally consistent:
-$b = \SI{24.9}{mm}$ (baseline), $WD = \SI{64.7}{mm}$ (working distance), $f_{\text{obj}} = \SI{62.2}{mm}$ (objective focal length), $\theta = \SI{22.6}{\degree}$ (convergence angle).
-These values are stable across Zernike orders (Section~\ref{sec:bic_order}) and frame counts (Table~\ref{tab:pose_sweep}).
-The working distance of \SI{64.7}{mm} and the $\sim$\SI{2.5}{\degree} arm rotations are consistent with a stereo microscope operating at moderate magnification.
-Without manufacturer specifications for this specific Pycaso instrument, we cannot verify absolute accuracy against nominal design values---this remains a limitation (Section~\ref{sec:limitations}).
+The Pycaso software publication \cite{pycaso2023} documents a Leica M205A stereo microscope with nominal baseline $\sim$\SI{32.5}{mm}, working distance $\sim$\SI{20}{mm}, and objective focal length $\sim$\SI{20}{mm}.
+Our rayfield-derived descriptors---$b = \SI{24.9}{mm}$, $WD = \SI{64.7}{mm}$, $f_{\text{obj}} = \SI{62.2}{mm}$---are substantially different.
+This indicates that the open Pycaso calibration dataset was produced with a different microscope or optical configuration than the one documented in the Pycaso paper.
+
+While we cannot validate against the nominal specifications of the actual microscope used (unknown manufacturer, unknown model), the StereoComplex-derived descriptors are \textbf{internally consistent} by three independent tests:
+(1)~cross-validation stability: $1.07 \pm 0.02$~px RMS across 5 folds, with descriptor spread $\pm 0.4$~mm (baseline), $\pm 0.15$~mm (WD);
+(2)~bootstrap 95\,\% confidence intervals: $b \in [23.48, 25.04]$~mm, $WD \in [64.64, 65.13]$~mm, $\theta \in [21.04^\circ, 22.72^\circ]$;
+(3)~frame-count stability: descriptors vary by $< 0.2$~mm (baseline) and $< 0.1$~mm (WD) from 3 to 10 frames (Table~\ref{tab:pose_sweep}).
+
+External validation remains open.
+Confirming the absolute accuracy of the geometric descriptors requires either (a)~manufacturer specifications for the specific microscope and optical configuration used to collect the Pycaso calibration images, or (b)~an independent 3D measurement of the sub-pupil positions and working distance.
+Both are beyond the scope of this study and remain a limitation (Section~\ref{sec:limitations}).
 
 \subsection{Comparison with Generic Methods}
 
