@@ -59,7 +59,7 @@ OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per c
 
 The broader problem is that many optical instruments---CMO and Greenough stereo microscopes, endoscopes, Scheimpflug cameras, multi-camera arrays---depart from the central projection model.
 Calibrating them requires either an instrument-specific physical model (which may not be known \emph{a priori}) or a generic non-parametric approach that fits a flexible pixel-to-ray mapping without imposing a camera model \cite{grossberg2001,sturm2004,ramalingam2006}.
-Recent work has extended these ideas: B-spline field models \cite{larsson2024} achieve state-of-the-art generic calibration with compact representations; minimal closed-form solutions \cite{miraldo2023} enable efficient initialization; and deep learning approaches \cite{jin2023,zhuang2023} learn calibration parameters directly from images, though at the cost of requiring large training datasets and losing physical interpretability.
+Recent work has extended these ideas: B-spline field models \cite{larsson2024} achieve state-of-the-art generic calibration with compact representations; minimal closed-form solutions \cite{miraldo2023} enable efficient initialization; and deep learning approaches \cite{jin2023,zhuang2023} learn calibration parameters directly from images, though at the cost of requiring large training datasets and losing consistency with the CMO physical model (rigid sub-pupils).
 Recent studies on stereo microscope calibration \cite{liu2023,pan2024} confirm that non-central models are necessary for metrological accuracy, but do not provide a systematic method for identifying the correct physical model family from observations.
 
 StereoComplex \cite{stereocomplex} adopts the second approach: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934,noll1976}, widely used in optical testing and metrology \cite{wang2022,li2024}.
@@ -95,7 +95,7 @@ where $k$ is the total number of parameters (Zernike coefficients + poses), $N_{
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/BIC_vs_order.png}
-\caption{Zernike order selection by BIC. Pixel RMS decreases monotonically with more parameters (from \SI{0.47}{px} at 57~params to \SI{0.41}{px} at 141~params), but BIC penalises complexity. The BIC minimum is at O(1)+d(3) (93~params, BIC~= $-5093$, RMS~= \SI{0.41}{px}), though O(0)+d(2) (57~params, BIC~= $-4522$) is within $\sim$10\,\% in RMS at 40\,\% fewer parameters. The physical interpretability of O(0)+d(2)---rigid sub-pupil per channel---favours it over higher O-orders, which mix the stereo baseline into the spatially-varying origin field (a known gauge freedom).}
+\caption{Zernike order selection by BIC. Pixel RMS decreases monotonically with more parameters (from \SI{0.47}{px} at 57~params to \SI{0.41}{px} at 141~params), but BIC penalises complexity. The BIC minimum is at O(1)+d(3) (93~params, BIC~= $-5093$, RMS~= \SI{0.41}{px}), though O(0)+d(2) (57~params, BIC~= $-4522$) is within $\sim$10\,\% in RMS at 40\,\% fewer parameters. The O(0)+d(2) model (57~params, \SI{0.47}{px}) is selected for physical model construction because it is internally consistent with the rigid-sub-pupil CMO assumption, achieves \SI{90}{\percent} of the noise-floor accuracy at nearly half the parameters of the BIC minimum, and the marginal improvement above d(2) falls within corner detection noise.}
 \label{fig:bic_order}
 \end{figure}
 
@@ -119,8 +119,15 @@ O(2)+d(4) & 141 & 0.410 & $-$4743 \\
 \end{table}
 
 The BIC minimum at O(1)+d(3) achieves \SI{0.41}{px} RMS with 93~parameters.
-However, the improvement over O(0)+d(2) (\SI{0.47}{px} at 57~params) is modest (\SI{13}{\percent} RMS reduction for 63\,\% more parameters), and the higher O-order absorbs part of the stereo baseline into spatially-varying origin variations---a gauge degeneracy that erodes physical interpretability.
-We therefore select O(0)+d(2) as the preferred rayfield configuration for physical model construction: it keeps the rigid sub-pupil interpretation while achieving \SI{90}{\percent} of the noise-floor accuracy.
+We nevertheless select O(0)+d(2) (57~params, \SI{0.47}{px}) as the preferred rayfield configuration, for three reasons:
+
+\begin{enumerate}
+  \item \textbf{Simplicity:} 57~params vs.\ 93 --- nearly half the parameters for a penalty of only \SI{0.06}{px} in RMS ($\sim$0.1~px in practice).
+  \item \textbf{Marginal improvement:} the residual gain from d(2) to d(3) (\SI{0.47} $\to$ \SI{0.41}{px}) is well within the typical subpixel noise of ChArUco corner detection; the additional BIC improvement does not justify the extra model complexity.
+  \item \textbf{Consistency with the physical model:} the CMO physical model assumes rigid sub-pupils ($o=0$). Using the same origin order in the Zernike rayfield makes the two representations internally consistent and comparable: the Zernike field measures what the physical model can represent.
+\end{enumerate}
+
+Selecting O(0)+d(2) achieves \SI{90}{\percent} of the noise-floor accuracy with a representation that is internally consistent with the physical model it validates.
 
 \subsection{The Zernike Rayfield as Observable}
 

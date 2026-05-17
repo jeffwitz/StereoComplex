@@ -1,21 +1,21 @@
 {
   "oracle": "CMO shared-rig",
   "n_poses": 2,
-  "n_corners": 89,
+  "n_corners": 92,
   "noise_std_px": 0.0,
   "pipeline_A": {
-    "rms_px": 46.10135152847676,
-    "bic_px": 2857.73014875033,
+    "rms_px": 29.115768715529875,
+    "bic_px": 2621.4374579351966,
     "converged": false,
-    "elapsed_s": 7.660540819168091,
-    "coupling_norm": 0.6856084355231299,
-    "n_params_optics": 17,
+    "elapsed_s": 8.110724210739136,
+    "coupling_norm": 0.8108234887944079,
+    "n_params_optics": 19,
     "n_params_poses": 12
   },
   "pipeline_B": {
-    "zernike_rms_mm": 0.00034938421595575556,
+    "zernike_rms_mm": 0.0009129613024774696,
     "zernike_converged": false,
-    "zernike_elapsed_s": 49.807270765304565,
+    "zernike_elapsed_s": 0.4281163215637207,
     "rayfield_winner": "cmo_physical_shared",
     "n_params_poses": 0
   },
