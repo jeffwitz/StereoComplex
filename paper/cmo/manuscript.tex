@@ -217,7 +217,7 @@ The objective is the sum of squared residuals:
 \begin{equation}
 \min_{\{a_{c,m}\}, \{\eta_p\}} \sum_k r_k^2,
 \end{equation}
-solved by Levenberg-Marquardt with analytical Jacobians.
+solved by nonlinear least-squares (Levenberg-Marquardt).
 
 For the CMO microscope, we impose the physically-motivated constraint that the board is mounted on a Z-only translation stage: all $P$ frames share a common rotation $R$ and XY translation $(t_x, t_y)$, with only the Z component varying per frame.
 This reduces the pose parameters from $6P$ to $3 + 2 + P = 15$ (for $P=10$ frames: 60 $\to$ 15), making the 57-parameter Zernike BA well-conditioned.
@@ -228,9 +228,7 @@ This is the measurement stage of the two-stage decomposition (see Section~4.2).
 \subsection{The Zernike Rayfield as Observable}
 
 The fitted rayfield $\mathcal{R}_c(u,v) = (O_c(u,v), d_c(u,v))$ is the experimental observable.
-From the centre-pixel ray, physical descriptors are read directly---no model fit required:
-
-From the centre-pixel ray, physical descriptors are read directly---no model fit required:
+From the centre-pixel ray, four rayfield-internal geometric descriptors are read directly---no physical model fit required:
 $b = \|O_R - O_L\| = \SI{24.9}{mm}$ (stereo baseline),
 $z_p = (|O_{L,z}| + |O_{R,z}|)/2 = \SI{2.5}{mm}$ (sub-pupil depth),
 $WD = \SI{64.7}{mm}$ (working distance, from mean pose Z),
@@ -339,12 +337,9 @@ The remaining gap to the Zernike reference (\SI{0.47}{px} vs \SI{1.06}{px}) come
 The critical point is that \textbf{at no stage was a model added blindly}.
 The heatmap pattern at each stage dictates the next hypothesis: perspective $\to$ telecentric (because the $d_y$ gradient is wrong), telecentric $\to$ SE(3) (because the residual is $Z_0^0$ piston, not spatial).
 
-\subsubsection{SE(3) Arm Alignment}
-
-The $Z_0^0$-dominated residual points to a global misalignment of each optical arm.
-
 \subsubsection{Per-Channel SE(3) Arm Alignment}
 
+The $Z_0^0$-dominated residual points to a global misalignment of each optical arm.
 A rigid transform $(R_c, t_c) \in \text{SE}(3)$ is applied to each channel's ray bundle, representing a small rotation and translation of the entire optical arm relative to the ideal CMO skeleton.
 For each pixel $(u,v)$ on channel $c$, the telecentric ray $(O_c^{\text{tel}}, d_c^{\text{tel}})$ is transformed:
 \begin{equation}
@@ -713,7 +708,7 @@ The author thanks Claude (Anthropic) and ChatGPT (OpenAI) for assistance with co
 \section*{Code and Data Availability}
 
 \begin{itemize}
-  \item StereoComplex: \url{https://github.com/jeffwitz/StereoComplex} (MIT License)
+  \item StereoComplex: \url{https://github.com/jeffwitz/StereoComplex} (Code: GPL-2.0-or-later. Documentation: CC BY-SA 4.0.)
   \item Pycaso dataset: \url{https://github.com/LaboratoireMecaniqueLille/Pycaso}
   \item All generated artefacts: \texttt{docs/assets/pycaso\_real\_data/}
   \item Intermediate state (restart without raw images): \texttt{docs/assets/pycaso\_real\_data/intermediate\_state.npz}
