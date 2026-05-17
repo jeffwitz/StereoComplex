@@ -1,6 +1,15 @@
 # %% [markdown]
 # # 09 — StereoComplex on real CMO microscope data (Pycaso)
 #
+# ## Validation : cas réel microscope CMO Pycaso
+#
+# | | Notebook 08 | Notebook 09 |
+# |---|---|---|
+# | **Données** | Synthétiques (6 oracles) | Réelles (Pycaso) |
+# | **Objectif** | Comparer pipeline A vs B | Valider B sur cas réel |
+# | **Question** | Le rayfield est-il meilleur ? | Est-ce que ça marche en vrai ? |
+# | **Voir aussi** | [Notebook 08](08_direct_vs_rayfield_inversion.py) | — |
+#
 # This notebook runs the full StereoComplex pipeline on real calibration
 # images from a **Pycaso CMO stereo microscope**.
 #

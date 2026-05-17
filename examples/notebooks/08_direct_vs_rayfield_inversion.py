@@ -1,9 +1,18 @@
 # %% [markdown]
 # # 08 — Direct model inversion vs rayfield-mediated inversion
 #
+# ## Synthèse : direct vs rayfield sur oracles
+#
 # **Do we identify microscope optics directly from ChArUco coordinates,
 # or first estimate a generic rayfield and only then identify the
 # physical model?**
+#
+# | | Notebook 08 | Notebook 09 |
+# |---|---|---|
+# | **Données** | Synthétiques (6 oracles) | Réelles (Pycaso) |
+# | **Objectif** | Comparer pipeline A vs B | Valider B sur cas réel |
+# | **Question** | Le rayfield est-il meilleur ? | Est-ce que ça marche en vrai ? |
+# | **Voir aussi** | — | [Notebook 09](09_pycaso_real_data.py) |
 #
 # This notebook compares two strategies:
 #
@@ -118,9 +127,9 @@ candidates = [
     ),
     PhysicalModelSpec(
         "cmo_physical_shared", CMOPhysicalStereoModel,
-        np.array([80.0, 120.0, 10.0, 50.0, 79.5, 59.5, 0.0,
-                  0.0, 0.0, 0.0, 0.0, 0.0,
-                  0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float64),
+        np.array([80.0, 120.0, 8.0, 50.0, 79.5, 59.5, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                 dtype=np.float64),
         model_kwargs={"pixel_pitch_mm": oracle.pixel_pitch_mm},
     ),
 ]
@@ -411,3 +420,15 @@ with open(ASSETS / "direct_vs_rayfield_summary.json", "w") as f:
     json.dump(summary, f, indent=2)
 
 print(f"\nAssets saved to {ASSETS}/")
+
+# %% [markdown]
+# ## Où aller ensuite
+#
+# Ce notebook compare deux stratégies sur des **oracles synthétiques**.
+# Pour voir la pipeline B appliquée à un **microscope CMO réel** avec
+# des images de calibration authentiques, ouvre le
+# [Notebook 09 — Validation Pycaso](09_pycaso_real_data.py).
+# Il exécute tout le pipeline de bout en bout sur 10 paires stéréo
+# réelles : détection ChArUco, complétion Hessian, double TPS,
+# Zernike rayfield, identification du modèle physique, et alignement
+# SE(3) des bras optiques.

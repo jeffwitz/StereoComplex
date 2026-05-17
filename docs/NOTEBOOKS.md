@@ -130,17 +130,24 @@ Scientific companion page: [CMO model selection](CMO_MODEL_SELECTION.md).
 
 Scientific companion page: [CMO model selection](CMO_MODEL_SELECTION.md).
 
-### 08 Direct vs rayfield-mediated inversion
+### 08 Direct vs rayfield-mediated inversion (Synthèse)
 
 `08_direct_vs_rayfield_inversion.py` compares fitting optical models directly to
 ChArUco corners (pipeline A) against the rayfield-mediated strategy (pipeline B)
-on a CMO oracle.
+on synthetic oracles (CMO, Brown, pinhole, parallel-plate).
 
 Scientific companion page: [Rayfield mediation](DIRECT_VS_RAYFIELD_INVERSION.md).
 
-### 09 Pycaso real data — from ChArUco to CMO descriptors
+### 09 Pycaso real data — validation on a real CMO microscope
 
-`09_pycaso_real_data.ipynb` is the main real-data demonstration of the complete
+`09_pycaso_real_data.ipynb` is the real-data counterpart of notebook 08: the
+rayfield-mediated pipeline (B) validated on real Pycaso CMO calibration images.
+While notebook 08 asks "is the rayfield better than direct inversion?", notebook 09
+asks "does it work on a real microscope?" — and answers yes (1.06 px with the
+26-parameter CMO+SE(3) physical model).
+
+The two notebooks form a pair: **synthetic validation** (08) followed by
+**real-data demonstration** (09).
 StereoComplex pipeline on a physical CMO stereo microscope (Pycaso):
 
 - **ChArUco detection** with `legacy_pattern=True` for the older Pycaso board
