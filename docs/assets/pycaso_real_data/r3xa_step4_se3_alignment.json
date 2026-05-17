@@ -139,7 +139,7 @@
       "id": "ds_autopsy_20p_json",
       "kind": "data_sets/generic",
       "title": "20p autopsy",
-      "description": "",
+      "description": "20p differential-only model autopsy (negative control)",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/autopsy_20p.json",
       "data_sources": [
@@ -150,7 +150,7 @@
       "id": "ds_autopsy_26p_json",
       "kind": "data_sets/generic",
       "title": "26p autopsy",
-      "description": "",
+      "description": "26p model autopsy: residual modal decomposition",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/autopsy_26p.json",
       "data_sources": [
@@ -161,7 +161,7 @@
       "id": "ds_pca_residual_26p_json",
       "kind": "data_sets/generic",
       "title": "PCA residual",
-      "description": "",
+      "description": "PCA low-rank decomposition of 26p residual",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/pca_residual_26p.json",
       "data_sources": [

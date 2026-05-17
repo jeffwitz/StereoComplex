@@ -80,7 +80,7 @@
       "id": "ds_warped_model_comparison_json",
       "kind": "data_sets/generic",
       "title": "Pre-warp test",
-      "description": "",
+      "description": "Pre-warp affine/quadratic model evaluation (negative result)",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/warped_model_comparison.json",
       "data_sources": [
@@ -91,7 +91,7 @@
       "id": "ds_bic_model_selection_json",
       "kind": "data_sets/generic",
       "title": "BIC selection",
-      "description": "",
+      "description": "BIC model selection: telecentric wins by 40k+ points",
       "file_type": "application/json",
       "path": "docs/assets/pycaso_real_data/bic_model_selection.json",
       "data_sources": [
