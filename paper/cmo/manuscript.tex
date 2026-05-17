@@ -134,6 +134,7 @@ This is distinct from generic non-parametric approaches \cite{schops2020,larsson
 % ======================================================================
 
 \subsection{Zernike Order Selection by BIC}
+\label{sec:bic_order}
 
 The Zernike rayfield has two hyperparameters: the origin polynomial order $o$ and the direction polynomial order $d$.
 Increasing either adds Zernike modes, reducing pixel RMS at the cost of more parameters.
@@ -456,6 +457,53 @@ A double Ray2D TPS denoising pass \cite{bookstein1989} (ArUco markers at $\lambd
 The two-phase TPS is not cosmetic: without it, raw ChArUco detections carry structured biases from compression artifacts, blur, and defocus that cause the Zernike rayfield fit to become gauge-unstable---the direction piston $Z_0$ drifts by \SI{8.5}{\degree} between constrained and full-pose fits, making physical interpretation impossible.
 After double TPS, the gauge drift drops to \SI{0.023}{\degree}, and the rayfield becomes a stable experimental oracle \cite{stereocomplex}.
 
+\subsection{Pose Count Sensitivity}
+
+To assess robustness to the number of calibration frames, we sub-sample $N \in \{3,5,8,10\}$ frames from the 10 available and re-run the full pipeline (Zernike fit + 26p model) for each.
+Table~\ref{tab:pose_sweep} reports pixel RMS and geometric descriptors.
+
+\begin{table}[H]
+\centering
+\caption{Pose sweep: pixel RMS and CMO descriptor stability vs.\ number of frames.}
+\label{tab:pose_sweep}
+\begin{tabular}{lrrrrr}
+\toprule
+$N$ frames & RMS (px) & P50 (px) & $b$ (mm) & $WD$ (mm) & $\theta$ (\si{\degree}) \\
+\midrule
+3  & 1.02 & 0.84 & 24.7 & 64.6 & 22.4 \\
+5  & 1.03 & 0.84 & 24.8 & 64.6 & 22.5 \\
+8  & 1.06 & 0.87 & 24.9 & 64.7 & 22.6 \\
+10 & 1.07 & 0.88 & 24.8 & 64.7 & 22.4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The pixel RMS is stable within \SI{0.05}{px} across frame counts---even 3 frames suffice for \SI{1.02}{px} calibration.
+Geometric descriptors vary by less than \SI{0.2}{mm} (baseline) and \SI{0.1}{mm} (working distance), confirming that the pipeline is robust to the number of calibration images.
+The convergence angle $\theta \approx \SI{22.5}{\degree}$ (standard deviation \SI{0.1}{\degree}).
+
+\subsection{OpenCV Tuning Does Not Recover}
+
+We tested the full OpenCV stereo calibration flag space: \texttt{CALIB\_RATIONAL\_MODEL} (8 distortion coefficients), \texttt{CALIB\_THIN\_PRISM}, and \texttt{CALIB\_TILTED\_MODEL}.
+None of these configurations produced a usable calibration on the CMO data.
+The rational model, with the most parameters (14 intrinsics per camera), still fails because the distortion model remains radial and centred---it cannot represent a non-central projection where rays originate from two different sub-pupils.
+The best OpenCV configuration achieves $>$\SI{300}{px} RMS, compared to \SI{1.06}{px} for our 26-parameter CMO+SE(3) model.
+This confirms that the failure is structural (central projection assumption), not a matter of under-parameterised distortion.
+
+\subsection{Geometric Descriptor Validation}
+
+The geometric descriptors read from the Zernike rayfield are internally consistent:
+$b = \SI{24.9}{mm}$ (baseline), $WD = \SI{64.7}{mm}$ (working distance), $f_{\text{obj}} = \SI{62.2}{mm}$ (objective focal length), $\theta = \SI{22.6}{\degree}$ (convergence angle).
+These values are stable across Zernike orders (Section~\ref{sec:bic_order}) and frame counts (Table~\ref{tab:pose_sweep}).
+The working distance of \SI{64.7}{mm} and the $\sim$\SI{2.5}{\degree} arm rotations are consistent with a stereo microscope operating at moderate magnification.
+Without manufacturer specifications for this specific Pycaso instrument, we cannot verify absolute accuracy against nominal design values---this remains a limitation (Section~\ref{sec:limitations}).
+
+\subsection{Comparison with Generic Methods}
+
+We did not benchmark against Sch\"ops et al.\ \cite{schops2020} or Larsson et al.\ \cite{larsson2024} on this dataset because their code targets pinhole-based initialisation and central projection with high-parameter-count spline corrections.
+Applying these methods to a non-central CMO microscope would require adapting their initialisation strategy to handle two sub-pupils, which is beyond the scope of this comparison.
+We expect that a generic spline model with sufficient parameters could match the Zernike rayfield's \SI{0.47}{px} RMS, but at the cost of thousands of non-interpretable parameters, compared to our 26 interpretable parameters.
+
 \subsection{Model Performance}
 
 \begin{table}[H]
@@ -561,6 +609,7 @@ At no point does the user need to guess---the residual pattern at each stage dic
 In this case study, the $Z_0^0$-dominated residual correctly guided us to the SE(3) arm alignment, while alternative hypotheses (pre-warp, variable origin) were correctly rejected by the same diagnostic.
 
 \subsection{Limitations}
+\label{sec:limitations}
 
 \begin{enumerate}
   \item \textbf{Single dataset.} Results are for one specific microscope and calibration target. Generalisation requires additional validation.
