@@ -157,9 +157,8 @@ The pattern of the residual directly reveals which physical degree of freedom is
 \includegraphics[width=\textwidth]{figures/residual_evolution.png}
 \caption{Residual evolution across model stages. Direction error $\Delta d$ (degrees) between the Zernike rayfield (reference) and each candidate model, evaluated on a $31\times31$ pixel grid.
 \textbf{Left:} Perspective CMO --- large structured error (RMS \SI{23.6}{\degree}, max \SI{27.7}{\degree}), dominated by a strong $d_y$ gradient.
-\textbf{Centre-left:} Telecentric CMO --- RMS drops to \SI{0.27}{\degree} (two orders of magnitude), but the residual is still $Z_0^0$-dominated (global piston), revealing the missing SE(3) arm alignment.
-\textbf{Centre-right:} CMO + SE(3) --- RMS drops to \SI{0.003}{\degree}, near the noise floor.
-\textbf{Right:} Zernike self-reference (zero by construction).
+\textbf{Centre:} Telecentric CMO --- RMS drops to \SI{0.27}{\degree} (two orders of magnitude), but the residual is still $Z_0^0$-dominated (global piston), revealing the missing SE(3) arm alignment.
+\textbf{Right:} CMO + SE(3) --- RMS drops to \SI{0.003}{\degree}, near the noise floor.
 The residual heatmap at each stage directly tells the user \emph{what} is wrong and \emph{where} to look next.}
 \label{fig:residuals}
 \end{figure}
