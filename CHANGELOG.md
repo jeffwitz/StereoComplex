@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.3] - 2026-05-17
+
+### Added
+
+- **Phase 8 — Direct vs Rayfield Inversion infrastructure**:
+  - Phase 1: ChArUco simulator densification (`min_corners_per_frame`, `max_pose_attempts`, `pose_jitter_deg`, `SamplingDiagnostics`) - 8 tests
+  - Phase 2: Pipeline A direct inversion on CMO oracle (`estimate_initial_poses_from_central_pinhole`, `fit_direct_model_from_observations`) - 2 new tests
+  - Phase 3: Zernike rayfield from ChArUco observations (`fit_zernike_rayfield_from_charuco_observations`) - 3 tests
+  - Phase 4: Schur-complement diagnostics (`compute_inverse_problem_diagnostics`) - 5 tests
+- **Notebook 08**: direct vs rayfield comparison pipeline, FAST mode support
+- **CLAUDE.md**: Phase 8 status and deep-claude session reference
+
 ## [0.6.0] - 2026-05-11
 
 ### Added
