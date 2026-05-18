@@ -577,9 +577,20 @@ OpenCV stereo reconstruction was not available because the standard OpenCV calib
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/zernike_cmo_rigid_removed.png}
-\caption{Rigid-gauge removal: Zernike vs CMO surface comparison. Top row: CMO and Zernike surfaces after plane-normalization (relief only). $\Delta Z$ raw and plane-normalized residuals. Bottom row: $\Delta Z$ before SE(3) alignment (dominated by an affine ramp, $R^2=0.995$),, the fitted affine plane, and the residual histogram. After SE(3)+plane removal, the median 3D residual drops from \SI{3.8}{mm} to \SI{0.06}{mm} — a \SI{98.5}{\percent} reduction. The interpretation is Case~A: the Zernike and CMO reconstructions differ primarily by a global reference-frame gauge, not by a genuine non-rigid rayfield discrepancy.}
+\caption{Rigid-gauge removal: Zernike vs CMO surface comparison. Top row: CMO and Zernike surfaces after plane-normalization (relief only). $\\Delta Z$ raw and plane-normalized residuals. Bottom row: $\\Delta Z$ before SE(3) alignment (dominated by an affine ramp, $R^2=0.995$), the fitted affine plane, and the residual histogram. After SE(3)+plane removal, the median 3D residual drops from \SI{3.8}{mm} to \SI{0.06}{mm} — a \SI{98.5}{\percent} reduction. The interpretation is Case~A: the Zernike and CMO reconstructions differ primarily by a global reference-frame gauge, not by a genuine non-rigid rayfield discrepancy.}
 \label{fig:rigid_removal}
 \end{figure}
+
+While the SE(3) alignment shows that both models reconstruct the same surface up to a rigid frame change, a residual depth-scale discrepancy remains: the Zernike reconstruction exhibits approximately \SI{40}{\percent} larger relief amplitude than the CMO 26p model (standard deviation ratio $1.40\\times$, Figure~\\ref{fig:rigid_removal}).
+To diagnose whether this represents a true scale difference or a depth-only effect, we fit three nested transformations from Zernike to CMO points on the matched specimen correspondences (\num{50000} subsampled points).
+An SE(3)-only fit (no scale) yields a median residual of \SI{0.009}{mm}, already confirming excellent geometric agreement.
+Adding a global isotropic scale (Sim(3)) produces an optimal scale factor $s = 1.00$, ruling out a uniform 3D magnification---the difference is not a simple focal-length or pixel-scale error.
+However, an anisotropic scale model with independent $(s_x, s_y, s_z)$ recovers $s_x \\approx s_y \\approx 1.00$ but $s_z = 0.67$, indicating a \textbf{depth-only scale difference} of approximately \SI{33}{\percent}.
+The lateral dimensions $(x, y)$ are identical between the two reconstructions; only the reconstructed depth range differs.
+
+This depth-only scale discrepancy is consistent with a difference in effective stereo convergence or baseline between the flexible 57-parameter Zernike rayfield and the compact 26-parameter CMO model.
+The CMO model's rigid sub-pupil and telecentric direction parameterisation impose a specific stereo geometry that the Zernike model, being a free rayfield, is not obligated to reproduce exactly.
+Since no independent 3D ground truth is available for the coin specimen, we interpret the depth-scale difference as a gauge-mode ambiguity inherent to uncalibrated stereo reconstruction, not as a failure of either model.
 
 \subsection{Model Performance}
 
