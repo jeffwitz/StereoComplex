@@ -581,7 +581,7 @@ OpenCV stereo reconstruction was not available because the standard OpenCV calib
 \label{fig:rigid_removal}
 \end{figure}
 
-While the SE(3) alignment shows that both models reconstruct the same surface up to a rigid frame change, a residual depth-scale discrepancy remains: the Zernike reconstruction exhibits approximately \SI{40}{\percent} larger relief amplitude than the CMO 26p model (standard deviation ratio $1.40\\times$, Figure~\\ref{fig:rigid_removal}).
+While the SE(3) alignment shows that both models reconstruct the same surface up to a rigid frame change, a residual depth-scale discrepancy remains: the Zernike reconstruction exhibits approximately \SI{40}{\percent} larger relief amplitude than the CMO 26p model (standard deviation ratio $1.40\times$, Figure~\ref{fig:rigid_removal}).
 To diagnose whether this represents a true scale difference or a depth-only effect, we fit three nested transformations from Zernike to CMO points on the matched specimen correspondences (\num{50000} subsampled points).
 An SE(3)-only fit (no scale) yields a median residual of \SI{0.009}{mm}, already confirming excellent geometric agreement.
 Adding a global isotropic scale (Sim(3)) produces an optimal scale factor $s = 1.00$, ruling out a uniform 3D magnification---the difference is not a simple focal-length or pixel-scale error.
