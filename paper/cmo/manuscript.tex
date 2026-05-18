@@ -34,7 +34,8 @@
 \title{Rayfield-Based Calibration and Physical Model Identification of a Common Main Objective Stereo Microscope}
 
 \author{Jean-Fran\c{c}ois Witz\thanks{ORCID: \href{https://orcid.org/0000-0002-7240-9476}{0000-0002-7240-9476}. Corresponding author: \href{mailto:jean-francois.witz@centralelille.fr}{jean-francois.witz@centralelille.fr}}\\
-Univ.\ Lille, CNRS, Centrale Lille, UMR 9013 -- LaMcube -- Laboratoire de M\'ecanique, Multiphysique, Multi\'echelle, F-59000 Lille, France}
+Univ.\ Lille, CNRS, Centrale Lille, UMR 9013 -- LaMcube\\
+Laboratoire de M\'ecanique, Multiphysique, Multi\'echelle, F-59000 Lille, France}
 \date{\today}
 
 \begin{document}
@@ -376,9 +377,9 @@ The telecentric CMO+shear model wins by $>40\,000$ BIC points over all alternati
 However, this 14-parameter model produces \SI{14.6}{px} reprojection---it is the correct \emph{family} but not a \emph{usable} model.
 We introduce an \textbf{operational BIC} that adds a hard reprojection guard:
 \begin{equation}
-\text{BIC}_{\text{usable}} = \text{BIC}_{\text{ray}} + \mathbf{1}_{e_{\text{px}} > \SI{1.5}{px}} \left[10^6 + N_{\text{px}} \log\left(\frac{e_{\text{px}}^2}{1.5^2}\right)\right].
+S_{\mathrm{usable}} = \text{BIC}_{\text{ray}} + \mathbf{1}_{e_{\text{px}} > \SI{1.5}{px}} \left[10^6 + N_{\text{px}} \log\left(\frac{e_{\text{px}}^2}{1.5^2}\right)\right].
 \end{equation}
-Figure~\ref{fig:pareto} shows the gauge-regularisation sweep. The 14p telecentric model is rejected ($\text{BIC}_{\text{usable}} \approx +978\,890$); the 26p SE(3)-aligned model is selected as best usable ($\text{BIC}_{\text{usable}} \approx -32\,433$).
+Figure~\ref{fig:pareto} shows the gauge-regularisation sweep. The 14p telecentric model is rejected ($S_{\mathrm{usable}} \approx +978\,890$); the 26p SE(3)-aligned model is selected as best usable ($S_{\mathrm{usable}} \approx -32\,433$).
 
 \begin{figure}[t]
 \centering
@@ -727,11 +728,11 @@ The key results are:
   \item A compact 26-parameter physical model (quasi-telecentric CMO skeleton + per-channel SE(3) arm alignment) achieves \SI{1.06}{px} reprojection (P50=\SI{0.87}{px}, P95=\SI{1.84}{px}) where standard OpenCV stereo calibration fails ($>300$~px).
   \item The Zernike rayfield serves as a diagnostic instrument: residual modal analysis identifies missing degrees of freedom, and the operational BIC with reprojection guard correctly selects the usable model.
   \item Physical descriptors---baseline, working distance, focal length, convergence angle---are read directly from the measured rays (within the chosen rayfield gauge and reference scale), without fitting a physical model.
-  \item The rayfield-initialised parameters are near-optimal for direct corner bundle adjustment (only \SI{7}{\percent} improvement).
+  \item The rayfield-initialised parameters are near-optimal for direct corner bundle adjustment (\SI{17}{\percent} improvement).
 \end{itemize}
 
 The CMO Pycaso case study validates a generalisable methodology: measure first, model second, diagnose by residual, refine by hypothesis testing.
-Code, data, and documentation are publicly available at \url{https://github.com/jeffwitz/StereoComplex} (Zenodo DOI: \texttt{10.5281/zenodo.XXXXXXX}, to be updated upon acceptance).
+Code, data, and documentation are publicly available at \url{https://github.com/jeffwitz/StereoComplex} (Zenodo DOI: \texttt{A Zenodo archive will be deposited before submission.}, to be updated upon acceptance).
 
 \subsection*{Prospective}
 
@@ -748,7 +749,7 @@ Finally, extending the Zernike rayfield to time-varying deformations (e.g., vibr
 The StereoComplex codebase (commit \texttt{60272b7}, branch \texttt{develop}) and all artefacts required to reproduce these results are available at \url{https://github.com/jeffwitz/StereoComplex}.
 The raw Pycaso calibration images are available from \url{https://github.com/LaboratoireMecaniqueLille/Pycaso}.
 To reproduce the numerical results without access to the raw images, restart from the pre-computed intermediate state (\texttt{intermediate\_state.npz}) which contains the already-detected, Hessian-completed, and TPS-denoised corner positions, the fitted Zernike rayfield, and the initial 26p model parameters.
-The Zenodo DOI for this version is \texttt{10.5281/zenodo.XXXXXXX} (placeholder---will be archived upon acceptance).
+The Zenodo DOI for this version is \texttt{A Zenodo archive will be deposited before submission.} (placeholder---will be archived upon acceptance).
 
 \section*{Author Contributions}
 
