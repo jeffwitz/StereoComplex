@@ -591,7 +591,9 @@ The lateral dimensions $(x, y)$ are identical between the two reconstructions; o
 This depth-only scale discrepancy is consistent with a difference in effective stereo convergence or baseline between the flexible 57-parameter Zernike rayfield and the compact 26-parameter CMO model.
 The CMO model's rigid sub-pupil and telecentric direction parameterisation impose a specific stereo geometry that the Zernike model, being a free rayfield, is not obligated to reproduce exactly.
 Since no independent 3D ground truth is available for the coin specimen, we interpret the depth-scale difference as a convergence-depth ambiguity inherent to uncalibrated stereo reconstruction, not as a failure of either model.
-Both models achieve identical median ray gaps (\SI{0.001}{mm}) on the specimen correspondences, confirming that the ray intersection quality is equivalent; the depth-scale discrepancy reflects a difference in effective stereo convergence without degrading the geometric coherence of the reconstruction.
+Both models achieve identical median ray gaps (\SI{0.001}{mm}) on the specimen correspondences, confirming that the ray intersection quality is equivalent.
+The anisotropic depth scale $s_z = 0.67$ is mechanically consistent with a difference in effective stereo convergence: the CMO model imposes a convergence angle of \SI{22.6}{\degree}, while the Zernike rayfield, being a free per-pixel line field, admits an effective convergence of approximately \SI{15}{\degree} on the same correspondences.
+This $\\sim$\SI{8}{\degree} convergence discrepancy fully accounts for the observed depth-scale difference without requiring any pixel-scale or focal-length error.
 
 \subsection{Model Performance}
 
