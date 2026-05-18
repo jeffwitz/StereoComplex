@@ -1,20 +1,34 @@
 % Rayfield-Based Calibration and Physical Model Identification
 % of a Common Main Objective Stereo Microscope
-\documentclass[11pt]{article}
+\documentclass[11pt,a4paper]{article}
 
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}
-
+\usepackage{newtxtext}
 \usepackage[margin=1in]{geometry}
+
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{siunitx}
 \usepackage{float}
-\usepackage{hyperref}
 \usepackage{microtype}
 \usepackage{url}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage[labelfont=bf,labelsep=period,font=small]{caption}
+\usepackage[colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black]{hyperref}
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+\titlespacing{\section}{0pt}{12pt}{6pt}
+\titlespacing{\subsection}{0pt}{8pt}{4pt}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textsl{Rayfield-based CMO calibration}}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
 \hyphenation{homography planar correspondences checkerboard Charuco CharucoDetector}
 
 \title{Rayfield-Based Calibration and Physical Model Identification of a Common Main Objective Stereo Microscope}
@@ -587,7 +601,7 @@ While the SE(3) alignment shows that both models reconstruct the same surface up
 To diagnose whether this represents a true scale difference or a depth-only effect, we fit three nested transformations from Zernike to CMO points on the matched specimen correspondences (\num{50000} subsampled points).
 An SE(3)-only fit (no scale) yields a median residual of \SI{0.009}{mm}, already confirming excellent geometric agreement.
 Adding a global isotropic scale (Sim(3)) produces an optimal scale factor $s = 1.00$, ruling out a uniform 3D magnification---the difference is not a simple focal-length or pixel-scale error.
-However, an anisotropic scale model with independent $(s_x, s_y, s_z)$ recovers $s_x \\approx s_y \\approx 1.00$ but $s_z = 0.67$, indicating a \textbf{depth-only scale difference} of approximately \SI{33}{\percent}.
+However, an anisotropic scale model with independent $(s_x, s_y, s_z)$ recovers $s_x \approx s_y \approx 1.00$ but $s_z = 0.67$, indicating a \textbf{depth-only scale difference} of approximately \SI{33}{\percent}.
 The lateral dimensions $(x, y)$ are identical between the two reconstructions; only the reconstructed depth range differs.
 
 This depth-only scale discrepancy is consistent with a difference in effective stereo convergence or baseline between the flexible 57-parameter Zernike rayfield and the compact 26-parameter CMO model.
@@ -595,7 +609,7 @@ The CMO model's rigid sub-pupil and telecentric direction parameterisation impos
 Since no independent 3D ground truth is available for the coin specimen, we interpret the depth-scale difference as a convergence-depth ambiguity inherent to uncalibrated stereo reconstruction, not as a failure of either model.
 Both models achieve identical median ray gaps (\SI{0.001}{mm}) on the specimen correspondences, confirming that the ray intersection quality is equivalent.
 The anisotropic depth scale $s_z = 0.67$ is mechanically consistent with a difference in effective stereo convergence: the CMO model imposes a convergence angle of \SI{22.6}{\degree}, while the Zernike rayfield, being a free per-pixel line field, admits an effective convergence of approximately \SI{15}{\degree} on the same correspondences.
-This $\\sim$\SI{8}{\degree} convergence discrepancy fully accounts for the observed depth-scale difference without requiring any pixel-scale or focal-length error.
+This $\sim$\SI{8}{\degree} convergence discrepancy fully accounts for the observed depth-scale difference without requiring any pixel-scale or focal-length error.
 
 \subsection{Model Performance}
 
