@@ -10,10 +10,15 @@ BIC-based model selection on the fitted rayfield.
 
 ## Active tasks
 
-### 11_compare_zernike_cmo_rigid_removed.py ✅
-Result: Case A — Zernike and CMO differ by rigid frame change, not non-rigid error.
-Kabsch SE(3): 179.5° rotation, 127mm translation. Residual: 3.82→0.056mm (98.5% reduction).
-Affine plane R²=0.995. See zernike_cmo_rigid_comparison.json.
+### Reviewer response (2026-05-19)
+Score: 7/10 (originality 9, rigor 6, clarity 6, reproducibility 8). Major revision requested.
+5 points addressed:
+1. Metrological claim → convergence-depth ambiguity (already fixed)
+2. Known-size object → added to limitations, discussed impossibility
+3. Generic spline comparison → Zernike 57p as reference, 0.6 px trade-off explained
+4. SE(3) identifiability → expanded with 180° rotation context
+5. Coupling norm c=0.81 → added computation details (FD, step 1e-6)
+Remaining: Figure 11 present (bic_bars.png), no Pycaco typo found.
 
 ## Key files and directories
 
