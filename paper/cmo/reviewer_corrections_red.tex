@@ -1,0 +1,91 @@
+% Reviewer-oriented redline corrections for paper/cmo/manuscript.tex
+% -------------------------------------------------------------------
+% This file is intentionally not a standalone paper.  It contains the
+% replacement snippets to paste into manuscript.tex.  All substantive
+% proposed changes are marked in red with \rev{...}.
+%
+% Suggested preamble addition in manuscript.tex:
+%   \usepackage{xcolor}
+%   \newcommand{\rev}[1]{\textcolor{red}{#1}}
+%
+% The changes below follow the OLE-style review: clarify scope, avoid
+% overclaiming, separate internal diagnostics from external metrology,
+% and keep the specimen reconstruction as a sanity check unless a
+% profilometry ground truth is added.
+
+\providecommand{\rev}[1]{\textcolor{red}{#1}}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 1 — Abstract opening}
+% Replace the first abstract sentence with:
+\rev{Common Main Objective (CMO) stereo microscopes violate the single-optical-centre assumption of standard camera calibration, making direct joint estimation of optical parameters and board poses poorly conditioned.  A CMO-like direct bundle-adjustment diagnostic gives a Schur-complement coupling norm of $0.81$, which is used here as a conditioning indicator rather than as an independent metrological measurement.}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 2 — Abstract BIC sentence}
+% Replace the BIC sentence in the abstract with:
+\rev{A ray-space BIC comparison followed by an operational reprojection guard selects this model as the best usable physical model; the guard is an engineering usability criterion, not a likelihood-derived BIC term.}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 3 — Contribution list}
+% Replace the model-selection contribution item with:
+\rev{A two-level model-selection framework: ray-space BIC is used to identify the optical family, while a separate operational reprojection guard rejects models whose pixel RMS is not usable for calibration.}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 4 — Zernike order-selection logic}
+% Add after the order-sweep table / before the three reasons:
+\rev{The BIC minimum is therefore interpreted as a diagnostic of the best flexible rayfield accuracy available in this data regime.  The O(0)+d(2) rayfield is not claimed to be the statistical BIC optimum; it is deliberately retained as the physically consistent reference for CMO model construction because it enforces rigid effective sub-pupils while remaining within 0.06 px of the BIC-minimum RMS.}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 5 — Nonlinear least-squares wording}
+% Replace “solved by nonlinear least-squares (Levenberg-Marquardt)” with:
+\rev{solved by nonlinear least-squares.}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 6 — Rayfield descriptors}
+% Replace the first paragraph of “The Zernike Rayfield as Observable” with:
+\rev{The fitted rayfield $\mathcal{R}_c(u,v)=(O_c(u,v),d_c(u,v))$ is used as an experimental observable.  Within the chosen transverse gauge and fixed reference scale, effective rayfield descriptors can be read from the centre-pixel rays---no physical model fit is required.  These descriptors are internally consistent quantities of the calibrated rayfield; they are not claimed to be externally validated absolute microscope specifications without an independent metrological reference.}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 7 — Subpupil figure caption}
+% Replace the last sentence of the subpupil caption with:
+\rev{The baseline $b=\|O_R-O_L\|=\SI{24.9}{mm}$ is an effective rayfield descriptor in the selected gauge and reference scale.}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 8 — Operational score}
+% Replace the operational BIC paragraph with:
+\rev{However, this 14-parameter model produces \SI{14.6}{px} reprojection---it is the correct optical family but not a usable calibration model.  We therefore define an operational score
+\[
+S_{\mathrm{usable}} = \mathrm{BIC}_{\mathrm{ray}} + P_{\mathrm{px}},
+\]
+where $P_{\mathrm{px}}$ is a hard reprojection guard.  This score should not be interpreted as a pure statistical BIC; it combines ray-space model evidence with the practical requirement that the calibration remain below a prescribed pixel-RMS threshold.}
+
+% If the original equation is retained, replace its left-hand side by:
+%   S_{\mathrm{usable}} = \text{BIC}_{\text{ray}} + ...
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 9 — Schur diagnostic}
+% Replace the first paragraph of “Empirical Coupling Values” with:
+\rev{In the StereoComplex direct-BA diagnostic implementation, a CMO-like configuration yields a Schur-complement coupling norm $c=0.81$, computed from a finite-difference Jacobian.  This value is reported as a conditioning diagnostic of the inverse problem, not as an independent physical measurement on the Pycaso dataset.  Because such block norms can depend on parameter scaling, the value should be interpreted qualitatively: it indicates strong optics--pose coupling, not a universal dimensionless property of all CMO microscopes.}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 10 — Specimen sanity check}
+% Replace the opening of “Application Sanity Check” with:
+\rev{A non-metrological application sanity check was performed on an independent speckled coin specimen imaged with the same Pycaso microscope.  This experiment is not an absolute 3D validation: no certified ground-truth shape is available, and dense optical-flow correspondences may introduce their own bias.  The goal is only to test whether the calibrated rayfields produce coherent ray intersections and plausible dense surfaces on images not used for calibration.}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 11 — Specimen interpretation}
+% Replace the conclusion of the specimen section with:
+\rev{The depth-only scale discrepancy is therefore reported as an unresolved convergence-depth ambiguity between the flexible Zernike rayfield and the compact physical model.  It does not by itself establish which reconstruction is metrically closer to the real coin surface.  Resolving this point would require an independent 3D reference, for example profilometry of the same specimen.}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 12 — Conclusion bullets}
+% Replace the descriptor and BA bullets with:
+\begin{itemize}
+  \item \rev{Effective rayfield descriptors---baseline, working distance, focal length, convergence angle---can be read from the measured rays within the chosen gauge and reference scale, but their absolute metrological validity requires an external scale or 3D reference.}
+  \item \rev{The rayfield-initialised parameters are near-optimal for direct corner bundle adjustment: a dedicated corner BA improves pixel RMS from \SI{1.06}{px} to \SI{0.88}{px} (\SI{+17}{\percent}) while leaving the 26 physical parameters essentially unchanged.}
+\end{itemize}
+
+% -------------------------------------------------------------------
+\section*{Redline replacement 13 — Final reproducibility note}
+% Replace the Zenodo placeholder sentences with:
+\rev{A Zenodo archive of the exact submitted version will be deposited before external submission; until then, the GitHub commit hash should be used as the reproducibility identifier.}
