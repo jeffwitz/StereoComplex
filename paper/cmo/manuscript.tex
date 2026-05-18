@@ -57,7 +57,7 @@ The Zernike rayfield serves not merely as a calibration model but as a diagnosti
 
 Stereo calibration is a mature technology when the camera obeys the pinhole model: all chief rays pass through a single optical centre, and mature toolchains (OpenCV, MATLAB, Bouguet) produce reliable results.
 This assumption breaks down for Common Main Objective (CMO) stereo microscopes, which use a single large objective shared between two off-axis sub-apertures \cite{inoue1997}.
-Each channel's chief rays appear to originate from a different effective sub-pupil, separated by the stereo baseline (Figure~\ref{fig:cmo}).
+Each channel's chief rays appear to originate from a different effective sub-pupil, separated by the stereo baseline.
 OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per camera; on the CMO architecture it produces unusable results ($>300$~px reprojection error under the tested configuration).
 
 \begin{figure}[t]
@@ -70,7 +70,7 @@ OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per c
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/pipeline.png}
-\caption{Pipeline overview (Figure~\ref{fig:pipeline}). The two-stage decomposition separates rayfield measurement (Ray2D preprocessing + Zernike BA) from physical model identification (ray-space BIC selection). The Ray2D stage is purely 2D and does not impose a 3D camera model.}
+\caption{Pipeline overview. The two-stage decomposition separates rayfield measurement (Ray2D preprocessing + Zernike BA) from physical model identification (ray-space BIC selection). The Ray2D stage is purely 2D and does not impose a 3D camera model.}
 \label{fig:pipeline}
 \end{figure}
 
@@ -165,7 +165,7 @@ where $k$ is the total number of parameters (Zernike coefficients + poses), $N_{
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/BIC_vs_order.png}
-\caption{Zernike order selection by BIC (Figure~\ref{fig:bic_order}). Pixel RMS decreases monotonically with more parameters (from \SI{0.47}{px} at 57~params to \SI{0.41}{px} at 141~params), but BIC penalises complexity. The BIC minimum is at O(1)+d(3) (93~params, BIC~= $-5093$, RMS~= \SI{0.41}{px}), though O(0)+d(2) (57~params, BIC~= $-4522$) is within $\sim$10\,\% in RMS at 40\,\% fewer parameters. The O(0)+d(2) model (57~params, \SI{0.47}{px}) is selected for physical model construction because it is internally consistent with the rigid-sub-pupil CMO assumption, achieves \SI{90}{\percent} of the noise-floor accuracy at nearly half the parameters of the BIC minimum, and the marginal improvement above d(2) falls within corner detection noise.}
+\caption{Zernike order selection by BIC. Pixel RMS decreases monotonically with more parameters (from \SI{0.47}{px} at 57~params to \SI{0.41}{px} at 141~params), but BIC penalises complexity. The BIC minimum is at O(1)+d(3) (93~params, BIC~= $-5093$, RMS~= \SI{0.41}{px}), though O(0)+d(2) (57~params, BIC~= $-4522$) is within $\sim$10\,\% in RMS at 40\,\% fewer parameters. The O(0)+d(2) model (57~params, \SI{0.47}{px}) is selected for physical model construction because it is internally consistent with the rigid-sub-pupil CMO assumption, achieves \SI{90}{\percent} of the noise-floor accuracy at nearly half the parameters of the BIC minimum, and the marginal improvement above d(2) falls within corner detection noise.}
 \label{fig:bic_order}
 \end{figure}
 
@@ -254,7 +254,7 @@ $\theta = \arccos(d_L \cdot d_R) = \SI{22.6}{\degree}$ (convergence angle).
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{figures/subpupil_3d.png}
-\caption{3D reconstruction of the effective sub-pupils (Figure~\ref{fig:subpupil}) from the Zernike rayfield. $O_L$ and $O_R$ are read from the centre-pixel rayfield. The chief rays converge at the working plane ($WD = \SI{64.7}{mm}$). The baseline $b=\|O_R-O_L\|=\SI{24.9}{mm}$ is an effective rayfield descriptor in the selected gauge and reference scale.}
+\caption{3D reconstruction of the effective sub-pupils from the Zernike rayfield. $O_L$ and $O_R$ are read from the centre-pixel rayfield. The chief rays converge at the working plane ($WD = \SI{64.7}{mm}$). The baseline $b=\|O_R-O_L\|=\SI{24.9}{mm}$ is an effective rayfield descriptor in the selected gauge and reference scale.}
 \label{fig:subpupil}
 \end{figure}
 
@@ -266,7 +266,7 @@ The core methodology is iterative: propose a candidate physical model, compute i
 
 The simplest CMO model places a perspective camera behind each decentred sub-pupil $S_c = (\pm b/2, 0, WD - f_{\text{obj}})$.
 This predicts $d_y(u,v) \propto (v - c_y)$---a strong linear gradient.
-The measured $d_y$ field is nearly constant across the sensor (range $0.079$, mean $+0.059$), while the perspective model predicts a range of $0.232$---a $3\times$ discrepancy (Figure~\ref{fig:dy}).
+The measured $d_y$ field is nearly constant across the sensor (range $0.079$, mean $+0.059$), while the perspective model predicts a range of $0.232$---a $3\times$ discrepancy.
 The real system is \textbf{object-space telecentric}, not perspective.
 
 \begin{figure}[t]
@@ -325,7 +325,7 @@ Both negative results are consistent with the $Z_0^0$ diagnostic (they would pro
 \subsubsection{Residual-Guided Hypothesis Construction}
 
 The central methodological contribution is that physical model construction is guided by \emph{residual structure}, not blind fitting.
-At each stage, the direction residual $\Delta d = d_{\text{Zernike}} - d_{\text{model}}$ is computed on a $31\times31$ grid and displayed as a heatmap (Figure~\ref{fig:residuals}).
+At each stage, the direction residual $\Delta d = d_{\text{Zernike}} - d_{\text{model}}$ is computed on a $31\times31$ grid and displayed as a heatmap.
 The pattern of the residual directly reveals which physical degree of freedom is missing.
 
 \begin{figure}[t]
@@ -581,7 +581,7 @@ For each correspondence, the two rays from the calibrated model are intersected 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/specimen_reconstruction.png}
-\caption{Dense specimen reconstruction (Figure~\ref{fig:specimen}). Top row: left image, horizontal disparity field, valid mask (92.7\,\% coverage).
+\caption{Dense specimen reconstruction. Top row: left image, horizontal disparity field, valid mask (92.7\,\% coverage).
 Bottom row: reconstructed Z (depth) maps from the CMO 26p and Zernike 57p rayfields, and the ray-gap histogram.
 Both models produce nearly identical ray gaps (median \SI{0.001}{mm}), confirming rayfield coherence.
 The CMO 26p surface is smoother (Z roughness 0.072~mm) than the Zernike (0.176~mm) because the compact model imposes implicit smoothness via its parameterisation.}
@@ -621,7 +621,7 @@ It is fully interpretable: sub-pupils, focal length, telecentric slopes, and SE(
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/bic_bars.png}
-\caption{Two-panel BIC bar chart (Figure~\ref{fig:bicbars}). (a) Ray-space BIC: the CMO telecentric family achieves the lowest BIC by a decisive margin ($>\num{40000}$~points). (b) Operational usability score with a \SI{1.5}{px} reprojection guard: models exceeding the threshold are marked as REJECTED (shown in grey/orange); only the 26p SE(3)-aligned model passes the guard (shown in green).}
+\caption{Two-panel BIC bar chart. (a) Ray-space BIC: the CMO telecentric family achieves the lowest BIC by a decisive margin ($>\num{40000}$~points). (b) Operational usability score with a \SI{1.5}{px} reprojection guard: models exceeding the threshold are marked as REJECTED (shown in grey/orange); only the 26p SE(3)-aligned model passes the guard (shown in green).}
 \label{fig:bicbars}
 \end{figure}
 
