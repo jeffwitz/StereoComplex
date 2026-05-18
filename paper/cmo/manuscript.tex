@@ -41,10 +41,10 @@ Univ.\ Lille, CNRS, Centrale Lille, UMR 9013 -- LaMcube -- Laboratoire de M\'eca
 \maketitle
 
 \begin{abstract}
-Common Main Objective (CMO) stereo microscopes violate the single-optical-centre assumption of standard camera calibration, making joint estimation of optical parameters and board poses severely ill-conditioned (Schur-complement coupling norm $0.81$).
+Common Main Objective (CMO) stereo microscopes violate the single-optical-centre assumption of standard camera calibration, making direct joint estimation of optical parameters and board poses poorly conditioned. A CMO-like direct bundle-adjustment diagnostic gives a Schur-complement coupling norm of $0.81$, which is used here as a conditioning indicator rather than as an independent metrological measurement.
 We present a two-stage approach: first, a Zernike rayfield---a per-pixel 3D line---is fitted to ChArUco corner observations, decoupling measurement from model identification (coupling norm $0.0$); second, a compact physical model is constructed by iterative residual analysis, where the Zernike decomposition of the residual between candidate model and measured rayfield reveals which physical degree of freedom is missing.
 On 10 stereo pairs from the open Pycaso dataset, the final 26-parameter model---a quasi-telecentric CMO skeleton with per-channel SE(3) arm alignment---achieves \SI{1.06}{px} reprojection error (P50=\SI{0.87}{px}, P95=\SI{1.84}{px}), compared to $>300$~px for standard OpenCV stereo calibration.
-A ray-space BIC comparison with operational reprojection guard selects this model as the best usable physical model ($\Delta\text{BIC}>40\,000$ over pinhole, Brown-Conrady, and parallel-plate alternatives).
+A ray-space BIC comparison followed by an operational reprojection guard selects this model as the best usable physical model; the guard is an engineering usability criterion, not a likelihood-derived BIC term.
 The Zernike rayfield serves not merely as a calibration model but as a diagnostic instrument: it tells the user \emph{which} physical degree of freedom is missing, guiding hypothesis refinement through residual structure rather than blind fitting.
 \end{abstract}
 
@@ -86,7 +86,7 @@ The contributions are:
 \begin{enumerate}
   \item A complete pipeline from raw ChArUco images to a compact 26-parameter physical CMO model, validated on real data.
   \item A residual analysis method---Zernike modal decomposition of direction and moment differences between a candidate physical model and the measured rayfield---that identifies missing degrees of freedom.
-  \item A BIC-based model selection framework with an operational reprojection guard that prevents ray-space-optimal but pixel-unusable models from being selected.
+  \item A two-level model-selection framework: ray-space BIC is used to identify the optical family, while a separate operational reprojection guard rejects models whose pixel RMS is not usable for calibration.
     \item Demonstration that the Zernike rayfield is an excellent initialiser for direct corner bundle adjustment: a joint model+pose refinement (200~nfev, soft-L1 loss) improves pixel RMS from \SI{1.06}{px} to \SI{0.88}{px} (\SI{+17}{\percent}) while leaving all 26 model parameters unchanged to within $10^{-3}$, confirming that the rayfield-initialised parameters are already near-optimal for corner reprojection.
 \end{enumerate}
 
@@ -187,7 +187,9 @@ O(2)+d(4) & 141 & 0.410 & $-$4743 \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:order_sweep} summarises the full sweep. The BIC minimum at O(1)+d(3) achieves \SI{0.41}{px} RMS with 93~parameters.
+Table~\ref{tab:order_sweep} summarises the full sweep. The BIC minimum is therefore interpreted as a diagnostic of the best flexible rayfield accuracy available in this data regime. The O(0)+d(2) rayfield is not claimed to be the statistical BIC optimum; it is deliberately retained as the physically consistent reference for CMO model construction because it enforces rigid effective sub-pupils while remaining within 0.06 px of the BIC-minimum RMS.
+
+The BIC minimum at O(1)+d(3) achieves \SI{0.41}{px} RMS with 93~parameters.
 We nevertheless select O(0)+d(2) (57~params, \SI{0.47}{px}) as the preferred rayfield configuration, for three reasons:
 
 \begin{enumerate}
@@ -231,7 +233,7 @@ The objective is the sum of squared residuals:
 \begin{equation}
 \min_{\{a_{c,m}\}, \{\eta_p\}} \sum_k r_k^2,
 \end{equation}
-solved by nonlinear least-squares (Levenberg-Marquardt).
+solved by nonlinear least-squares.
 
 For the CMO microscope, we impose the physically-motivated constraint that the board is mounted on a Z-only translation stage: all $P$ frames share a common rotation $R$ and XY translation $(t_x, t_y)$, with only the Z component varying per frame.
 This reduces the pose parameters from $6P$ to $3 + 2 + P = 15$ (for $P=10$ frames: 60 $\to$ 15), making the 57-parameter Zernike BA well-conditioned.
@@ -241,8 +243,7 @@ This is the measurement stage of the two-stage decomposition (see Section~4.2).
 
 \subsection{The Zernike Rayfield as Observable}
 
-The fitted rayfield $\mathcal{R}_c(u,v) = (O_c(u,v), d_c(u,v))$ is the experimental observable.
-From the centre-pixel ray, four rayfield-internal geometric descriptors are read directly---no physical model fit required:
+The fitted rayfield $\mathcal{R}_c(u,v)=(O_c(u,v),d_c(u,v))$ is used as an experimental observable. Within the chosen transverse gauge and fixed reference scale, effective rayfield descriptors can be read from the centre-pixel rays---no physical model fit is required. These descriptors are internally consistent quantities of the calibrated rayfield; they are not claimed to be externally validated absolute microscope specifications without an independent metrological reference. The centre-pixel values are:
 $b = \|O_R - O_L\| = \SI{24.9}{mm}$ (stereo baseline),
 $z_p = (|O_{L,z}| + |O_{R,z}|)/2 = \SI{2.5}{mm}$ (sub-pupil depth),
 $WD = \SI{64.7}{mm}$ (working distance, from mean pose Z),
@@ -252,7 +253,7 @@ $\theta = \arccos(d_L \cdot d_R) = \SI{22.6}{\degree}$ (convergence angle).
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{figures/subpupil_3d.png}
-\caption{3D reconstruction of the effective sub-pupils (Figure~\ref{fig:subpupil}) from the Zernike rayfield. $O_L$ and $O_R$ are read from the centre-pixel rayfield. The chief rays converge at the working plane ($WD = \SI{64.7}{mm}$). The baseline $b = \|O_R - O_L\| = \SI{24.9}{mm}$ is a physical length.}
+\caption{3D reconstruction of the effective sub-pupils (Figure~\ref{fig:subpupil}) from the Zernike rayfield. $O_L$ and $O_R$ are read from the centre-pixel rayfield. The chief rays converge at the working plane ($WD = \SI{64.7}{mm}$). The baseline $b=\|O_R-O_L\|=\SI{24.9}{mm}$ is an effective rayfield descriptor in the selected gauge and reference scale.}
 \label{fig:subpupil}
 \end{figure}
 
@@ -423,7 +424,7 @@ When $c \approx 1$, optics and poses are nearly inseparable (ill-conditioned).
 
 \subsubsection{Empirical Coupling Values}
 
-In the StereoComplex direct-BA diagnostic implementation, the CMO configuration yields a Schur-complement coupling norm $c = 0.81$, computed from the finite-difference Jacobian. This value should be interpreted as a conditioning diagnostic for the CMO inverse problem, not as an independent measurement on the Pycaso dataset.
+In the StereoComplex direct-BA diagnostic implementation, a CMO-like configuration yields a Schur-complement coupling norm $c=0.81$, computed from a finite-difference Jacobian. This value is reported as a conditioning diagnostic of the inverse problem, not as an independent physical measurement on the Pycaso dataset. Because such block norms can depend on parameter scaling, the value should be interpreted qualitatively: it indicates strong optics--pose coupling, not a universal dimensionless property of all CMO microscopes.
 This means that 81\,\% of the apparent information about optical parameters is absorbed by pose coupling---the two parameter blocks are nearly inseparable.
 By contrast, the rayfield-mediated pipeline operates with $c = 0.0$: the Zernike BA absorbs pose uncertainty into the rayfield through its constrained shared-rotation model (15 pose parameters), and the ray-space model identification stage is entirely pose-free.
 
@@ -607,9 +608,7 @@ The lateral dimensions $(x, y)$ are identical between the two reconstructions; o
 This depth-only scale discrepancy is consistent with a difference in effective stereo convergence or baseline between the flexible 57-parameter Zernike rayfield and the compact 26-parameter CMO model.
 The CMO model's rigid sub-pupil and telecentric direction parameterisation impose a specific stereo geometry that the Zernike model, being a free rayfield, is not obligated to reproduce exactly.
 Since no independent 3D ground truth is available for the coin specimen, we interpret the depth-scale difference as a convergence-depth ambiguity inherent to uncalibrated stereo reconstruction, not as a failure of either model.
-Both models achieve identical median ray gaps (\SI{0.001}{mm}) on the specimen correspondences, confirming that the ray intersection quality is equivalent.
-The anisotropic depth scale $s_z = 0.67$ is mechanically consistent with a difference in effective stereo convergence: the CMO model imposes a convergence angle of \SI{22.6}{\degree}, while the Zernike rayfield, being a free per-pixel line field, admits an effective convergence of approximately \SI{15}{\degree} on the same correspondences.
-This $\sim$\SI{8}{\degree} convergence discrepancy fully accounts for the observed depth-scale difference without requiring any pixel-scale or focal-length error.
+The depth-only scale discrepancy is therefore reported as an unresolved convergence-depth ambiguity between the flexible Zernike rayfield and the compact physical model. It does not by itself establish which reconstruction is metrically closer to the real coin surface. Resolving this point would require an independent 3D reference, for example profilometry of the same specimen.
 
 \subsection{Model Performance}
 
