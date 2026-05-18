@@ -73,7 +73,7 @@ The contributions are:
   \item A complete pipeline from raw ChArUco images to a compact 26-parameter physical CMO model, validated on real data.
   \item A residual analysis method---Zernike modal decomposition of direction and moment differences between a candidate physical model and the measured rayfield---that identifies missing degrees of freedom.
   \item A BIC-based model selection framework with an operational reprojection guard that prevents ray-space-optimal but pixel-unusable models from being selected.
-  \item Demonstration that the Zernike rayfield is an excellent initialiser for direct corner bundle adjustment (only \SI{7}{\percent} improvement over the rayfield-initialised parameters).
+    \item Demonstration that the Zernike rayfield is an excellent initialiser for direct corner bundle adjustment: a joint model+pose refinement (200~nfev, soft-L1 loss) improves pixel RMS from \SI{1.06}{px} to \SI{0.88}{px} (\SI{+17}{\percent}) while leaving all 26 model parameters unchanged to within $10^{-3}$, confirming that the rayfield-initialised parameters are already near-optimal for corner reprojection.
 \end{enumerate}
 
 % ======================================================================
@@ -425,8 +425,10 @@ Schur-coupling values for the other oracles (pinhole, Brown-Conrady, parallel-pl
 
 \subsection{Corner Bundle Adjustment}
 
-The 26p model, fitted to the rayfield, is refined by direct corner bundle adjustment (joint optimisation of model parameters and per-frame poses on 3300 corner observations).
-The improvement is only \SI{7}{\percent} (\SI{1.06}{px} $\to$ \SI{0.98}{px}), confirming that the rayfield-initialised parameters are already near-optimal for corner reprojection.
+The 26p model, fitted to the rayfield, is refined by direct corner bundle adjustment (joint optimisation of model parameters and per-frame poses on 3300 corner observations, 200~nfev, soft-L1 loss).
+The pixel RMS improves from \SI{1.06}{px} to \SI{0.88}{px} (P50=\SI{0.64}{px}, P95=\SI{1.70}{px}; \SI{+17}{\percent}), while all 26 model parameters remain unchanged to within $10^{-3}$ of their rayfield-fit values.
+The model geometry---baseline, working distance, focal length, convergence angle, SE(3) arm corrections---is essentially identical before and after corner refinement.
+This confirms that the rayfield-initialised parameters are already near-optimal for corner reprojection: the corner BA improves pose estimates but does not alter the physical model.
 This is a strong validation of the two-stage decomposition strategy: the rayfield fit, which never directly minimises corner error, produces parameters so close to the corner optimum that the dedicated BA can barely improve them.
 In contrast, the direct approach---jointly estimating optics and poses from corners---is severely ill-conditioned for this non-central system (Schur-complement coupling norm $0.81$), failing to converge with a pinhole initialisation (RMS \SI{29}{px}).
 
