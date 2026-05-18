@@ -104,24 +104,20 @@ However, these parametric models share a fundamental assumption: all chief rays 
 For cameras that violate this assumption, generic (non-parametric) models assign a per-pixel ray without imposing a central projection constraint.
 Grossberg and Nayar \cite{grossberg2001} introduced the raxel model, treating each pixel as an independent ray.
 Sturm and Ramalingam \cite{sturm2004,ramalingam2017} developed a generic calibration framework from multiple views of a planar target, showing that a flexible pixel-to-ray mapping can be estimated without knowing the camera model \emph{a priori}.
-Miraldo and Araujo \cite{miraldo2018} proposed smooth camera models using B-spline interpolation.
+Miraldo and Araujo \cite{miraldo2013} proposed smooth generic camera models using continuous ray-field interpolation.
 Soloff et al.\ \cite{soloff1997} used a polynomial expansion for 3D particle image velocimetry.
 Camposeco et al.\ \cite{camposeco2016} demonstrated spline-based generic calibration with subpixel accuracy.
 Ramalingam, Sturm, and Nayar \cite{ramalingam2010} unified these approaches in a generic structure-from-motion framework.
 
 Most recently, Sch\"ops et al.\ \cite{schops2020} showed that highly parameterised generic models (10,000+ parameters) can outperform classical 12-parameter models on standard benchmarks, challenging the assumption that parametric models are inherently more robust.
-Larsson et al.\ \cite{larsson2024} extended this with B-spline field models that achieve state-of-the-art generic calibration with compact representations.
-Deep learning approaches \cite{jin2023,zhuang2023} learn calibration from images but require large training datasets and lack physical interpretability.
+More recent work continues to explore high-parameter and non-parametric camera models for calibration and structure-from-motion \cite{schops2020}.
+
 
 Our work differs from these generic approaches in two ways: (1) we use the Zernike rayfield not as a final calibration model but as a \emph{diagnostic instrument} to discover the correct physical model family, and (2) we construct a compact, interpretable physical model guided by residual structure rather than imposing a generic non-parametric fit.
 
 \subsection{Stereo Microscope Calibration}
 
-Stereo microscopes pose a specific calibration challenge: the two optical channels share a common main objective but have separate effective pupils.
-Werner et al.\ \cite{werner2014} calibrated a stereo microscope using a precision 3D target with known features, achieving micrometre accuracy but requiring specialised hardware.
-Liu et al.\ \cite{liu2023} proposed a hybrid ray-based model combining a pinhole backbone with ray corrections, validated on a surgical microscope.
-Wei et al.\ \cite{wei2024} used a portable phase target for flexible stereo microscope calibration.
-Pan et al.\ \cite{pan2024} integrated structured light with a stereo microscope for self-calibrating 3D measurement.
+Stereo microscopes pose a specific calibration challenge: the two optical channels share a common main objective but have separate effective pupils \cite{schreier2004}. Digital image correlation under optical microscopes requires careful distortion correction \cite{zhang2006_microdic,liu2018_generic_microscope}.
 
 These methods calibrate a specific instrument but do not address the generic problem of \emph{identifying} the correct optical model family from observations.
 Our contribution is a systematic framework that measures the ray-field first, then uses residual analysis to construct a physical model that matches the observed structure---here, discovering the telecentric CMO family and the SE(3) arm misalignment.
