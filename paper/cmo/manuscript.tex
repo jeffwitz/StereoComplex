@@ -534,7 +534,7 @@ Both are beyond the scope of this study and remain a limitation (Section~\ref{se
 
 \subsection{Comparison with Generic Methods}
 
-We did not benchmark against Sch\"ops et al.\ \cite{schops2020} or Larsson et al.\  on this dataset because their code targets pinhole-based initialisation and central projection with high-parameter-count spline corrections.
+We did not benchmark against Sch\"ops et al.\ \cite{schops2020} or Larsson et al.\  on this dataset because their code targets pinhole-based initialisation and central projection with high-parameter-count or implicit distortion corrections.
 Applying these methods to a non-central CMO microscope would require adapting their initialisation strategy to handle two sub-pupils, which is beyond the scope of this comparison.
 We expect that a generic spline model with sufficient parameters could match the Zernike rayfield's \SI{0.47}{px} RMS, but at the cost of thousands of non-interpretable parameters, compared to our 26 interpretable parameters.
 
