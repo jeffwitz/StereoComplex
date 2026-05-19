@@ -1,41 +1,67 @@
-# StereoComplex — project summary (2026-05-20)
+# CLAUDE.md — StereoComplex N-camera extension
 
 ## Project purpose
 
 StereoComplex is a Python library for non-central stereo camera calibration via
-Zernike rayfields. Each pixel gets its own 3D ray, replacing the pinhole abstraction.
-It identifies optical architectures through BIC-based model selection.
+Zernike rayfields. Currently supports exactly 2 cameras (left/right). The N-camera
+extension generalises to 1 to N cameras observing a shared calibration target.
 
-## CMO paper status
+## CMO paper status — DONE
 
-**v1.0-submission-ready.** 26 pages, 31 references, 11 figures, 5 tables.
+26 pages, 31 refs, submitted-ready. No further changes to paper/cmo/.
 
-Core: double TPS → Zernike rayfield BA → BIC model selection → CMO+SE(3) 26p at
-1.06 px reprojection (corner BA: 1.06→0.88 px). Specimen sanity check with DIS flow,
-Zernike vs CMO rigid removal (SE3/Sim3/anisotropic convergence diagnosis).
-Bibliography cleaned: 31 verified entries, 0 undefined citations.
+## Active task: N-camera calibration
 
-Remaining human tasks: deposit Zenodo archive, confirm contact email.
+### Phase 1 — Refactor camera model to support N channels
 
-## Key files
+Current state: many functions take `left_pixels, right_pixels` as separate args.
+Goal: accept `cameras: list[CameraObs]` where each camera has its own pixels,
+Zernike coefficients, and optional physical model.
 
-| Path | Role |
-|---|---|
-| `src/stereocomplex/` | Library source |
-| `tests/` | 109 tests pass |
-| `examples/notebooks/` | Notebooks 00-11 |
-| `paper/cmo/manuscript.tex` | 26-page manuscript |
-| `paper/cmo/references.bib` | 31 verified entries |
-| `paper/cmo/figures/` | 11 PNG figures |
-| `paper/cmo/tables/` | 5 LaTeX tables |
-| `docs/assets/pycaso_real_data/` | 45+ artifacts |
+Key refactors:
+- `rayfield_from_observations.py`: `ZernikeFitDiagnostics` → support N cameras
+- `zernike_origin_field.py`: `ZernikeRayField` → accept per-camera configs
+- `physics/cmo_physical.py`: `CMOTelecentricStereoModel` → `CMOTelecentricNModel`
+- API surface: `calibrate(cameras: list[CameraSetup]) -> NCalibrationResult`
 
-## Active conventions
+### Phase 2 — Joint N-rayfield bundle adjustment
 
-- deep-claude: fresh session + CLAUDE.md only (no --resume c7c56802, too large)
+Extend the BA objective from 2 × (origin + direction) to N × (origin + direction).
+Shared constraint: all cameras observe the same board poses with potentially
+different relative transforms.
+
+Constraints:
+- All cameras share the board-to-world transform per frame
+- Each camera has independent Zernike coefficients
+- Optionally: cameras can share a rigid rig transform (fixed relative SE(3))
+
+### Phase 3 — N-channel model selection
+
+Extend BIC comparison to N channels:
+- Each channel can have its own physical model family
+- BIC sums across channels
+- Shared constraints: rig geometry, baseline pairs
+
+### Phase 4 — Notebook: Pinhole × 4 validation
+
+Validate with a synthetic 4-camera pinhole rig:
+- Each camera: pinhole with known calibration
+- Rig: known SE(3) transforms between cameras
+- Verify BA recovers the ground truth within noise
+
+### Phase 5 — Notebook: N-camera Greenough simulation
+
+Simulate a Greenough binocular with 2 additional context cameras.
+Validate that the pipeline correctly identifies:
+- Greenough: independent per-channel optical centres
+- Context cameras: pinhole models
+
+## Conventions (unchanged)
+
+- deep-claude: fresh session + CLAUDE.md only
 - Flags: --pro --dangerously-skip-permissions --allowedTools "Read,Write,Edit,Bash"
-- Figures: matplotlib classic, serif fonts, dpi=150
-- All artefacts saved as JSON
-- Corner BA: refine_26p_corners_fast.py (foreground, 10 min)
+- All artefacts → JSON
+- 109 existing tests must pass
 - User audits CDC via ChatGPT before execution
-- Watcher: persistent wait_telegram.py with watch_patterns TELEGRAM_MSG#
+- Watcher: persistent wait_telegram.py
+- Telegram: send_message to Jeff Witz (dm) for all questions
