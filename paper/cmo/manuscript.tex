@@ -75,9 +75,9 @@ OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per c
 \end{figure}
 
 The broader problem is that many optical instruments---CMO and Greenough stereo microscopes, endoscopes, Scheimpflug cameras, multi-camera arrays---depart from the central projection model.
-Generic camera models \cite{grossberg2001,sturm2004,schops2020} and recent stereo microscope calibration studies \cite{liu2023,pan2024} highlight the need for non-central approaches, but do not provide a systematic method for identifying the correct physical model family from observations (see Section~2 for a detailed review).
+Generic camera models \cite{grossberg2001,sturm2004,schops2020} and recent stereo microscope calibration studies \cite{schreier2004,zhang2006_microdic,liu2018_generic_microscope} highlight the need for non-central approaches, but do not provide a systematic method for identifying the correct physical model family from observations (see Section~2 for a detailed review).
 
-StereoComplex \cite{stereocomplex} addresses this gap: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934,noll1976}, widely used in optical testing and metrology \cite{wang2022,li2024}.
+StereoComplex \cite{stereocomplex} addresses this gap: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934,noll1976}, widely used in optical testing and metrology \cite{zernike1934,noll1976}.
 This two-stage decomposition---measure rays first, identify optics second---is the central insight: it decouples the severely ill-conditioned joint estimation of optical parameters and board poses into a well-conditioned rayfield fit followed by pose-free model selection \cite{schops2020}.
 From this \emph{measured} rayfield, physical descriptors can be read directly (Section~3), structural mismatches diagnosed by residual modal analysis (Section~3.3), and compact physical models constructed iteratively (Section~3.4--3.5).
 
@@ -140,7 +140,7 @@ The $Z_0^0$-dominated residual in both $\Delta d$ and $\Delta m$ is the key diag
 
 The idea of using residuals to guide model refinement has roots in adaptive optics and wavefront sensing \cite{zernike1934,noll1976}, where Zernike decomposition of a distorted wavefront identifies specific aberrations (defocus, astigmatism, coma) that are then corrected by deformable mirrors.
 Our method applies the same principle to camera calibration: the Zernike decomposition of the residual between a candidate physical model and the measured rayfield identifies which physical degree of freedom is missing---a $Z_0^0$-dominated residual points to a global offset (SE(3) arm misalignment); a $Z_2$-dominated residual would point to astigmatism or field curvature.
-This is distinct from generic non-parametric approaches \cite{schops2020,larsson2024} that fit a flexible model without extracting physical meaning from the residual structure.
+This is distinct from generic non-parametric approaches \cite{schops2020} that fit a flexible model without extracting physical meaning from the residual structure.
 
 % ======================================================================
 \section{Method}
@@ -535,7 +535,7 @@ Both are beyond the scope of this study and remain a limitation (Section~\ref{se
 
 \subsection{Comparison with Generic Methods}
 
-We did not benchmark against Sch\"ops et al.\ \cite{schops2020} or Larsson et al.\ \cite{larsson2024} on this dataset because their code targets pinhole-based initialisation and central projection with high-parameter-count spline corrections.
+We did not benchmark against Sch\"ops et al.\ \cite{schops2020} or Larsson et al.\  on this dataset because their code targets pinhole-based initialisation and central projection with high-parameter-count spline corrections.
 Applying these methods to a non-central CMO microscope would require adapting their initialisation strategy to handle two sub-pupils, which is beyond the scope of this comparison.
 We expect that a generic spline model with sufficient parameters could match the Zernike rayfield's \SI{0.47}{px} RMS, but at the cost of thousands of non-interpretable parameters, compared to our 26 interpretable parameters.
 
