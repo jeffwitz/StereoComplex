@@ -56,7 +56,7 @@ The Zernike rayfield serves not merely as a calibration model but as a diagnosti
 % ======================================================================
 
 Stereo calibration is a mature technology when the camera obeys the pinhole model: all chief rays pass through a single optical centre, and mature toolchains (OpenCV, MATLAB, Bouguet) produce reliable results.
-This assumption breaks down for Common Main Objective (CMO) stereo microscopes, which use a single large objective shared between two off-axis sub-apertures \cite{inoue1997}.
+This assumption breaks down for Common Main Objective (CMO) stereo microscopes, which use a single large objective shared between two off-axis sub-apertures \cite{inoue1997,sanderson2019}.
 Each channel's chief rays appear to originate from a different effective sub-pupil, separated by the stereo baseline.
 OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per camera; on the CMO architecture it produces unusable results ($>300$~px reprojection error under the tested configuration).
 
@@ -77,7 +77,7 @@ OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per c
 The broader problem is that many optical instruments---CMO and Greenough stereo microscopes, endoscopes, Scheimpflug cameras, multi-camera arrays---depart from the central projection model.
 Generic camera models \cite{grossberg2001,sturm2004,schops2020} and recent stereo microscope calibration studies \cite{schreier2004,zhang2006_microdic,liu2018_generic_microscope} highlight the need for non-central approaches, but do not provide a systematic method for identifying the correct physical model family from observations (see Section~2 for a detailed review).
 
-StereoComplex \cite{stereocomplex} addresses this gap: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934,noll1976}, widely used in optical testing and metrology \cite{zernike1934,noll1976}.
+StereoComplex \cite{stereocomplex} addresses this gap: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934,noll1976}.
 This two-stage decomposition---measure rays first, identify optics second---is the central insight: it decouples the severely ill-conditioned joint estimation of optical parameters and board poses into a well-conditioned rayfield fit followed by pose-free model selection \cite{schops2020}.
 From this \emph{measured} rayfield, physical descriptors can be read directly (Section~3), structural mismatches diagnosed by residual modal analysis (Section~3.3), and compact physical models constructed iteratively (Section~3.4--3.5).
 
@@ -103,14 +103,13 @@ However, these parametric models share a fundamental assumption: all chief rays 
 
 For cameras that violate this assumption, generic (non-parametric) models assign a per-pixel ray without imposing a central projection constraint.
 Grossberg and Nayar \cite{grossberg2001} introduced the raxel model, treating each pixel as an independent ray.
-Sturm and Ramalingam \cite{sturm2004,ramalingam2017} developed a generic calibration framework from multiple views of a planar target, showing that a flexible pixel-to-ray mapping can be estimated without knowing the camera model \emph{a priori}.
+Sturm and Ramalingam \cite{sturm2004}, later refined by Ramalingam and Sturm \cite{ramalingam2017}, developed a generic calibration framework from multiple views of a planar target, showing that a flexible pixel-to-ray mapping can be estimated without knowing the camera model \emph{a priori}.
 Miraldo and Araujo \cite{miraldo2013} proposed smooth generic camera models using continuous ray-field interpolation.
 Soloff et al.\ \cite{soloff1997} used a polynomial expansion for 3D particle image velocimetry.
 Camposeco et al.\ \cite{camposeco2016} demonstrated spline-based generic calibration with subpixel accuracy.
 Ramalingam, Sturm, and Nayar \cite{ramalingam2010} unified these approaches in a generic structure-from-motion framework.
 
 Most recently, Sch\"ops et al.\ \cite{schops2020} showed that highly parameterised generic models (10,000+ parameters) can outperform classical 12-parameter models on standard benchmarks, challenging the assumption that parametric models are inherently more robust.
-More recent work continues to explore high-parameter and non-parametric camera models for calibration and structure-from-motion \cite{schops2020}.
 
 
 Our work differs from these generic approaches in two ways: (1) we use the Zernike rayfield not as a final calibration model but as a \emph{diagnostic instrument} to discover the correct physical model family, and (2) we construct a compact, interpretable physical model guided by residual structure rather than imposing a generic non-parametric fit.
@@ -126,13 +125,13 @@ Our contribution is a systematic framework that measures the ray-field first, th
 
 Model selection in calibration traditionally relies on reprojection RMS, which penalises underfitting but is insensitive to overfitting.
 The Akaike Information Criterion (AIC) \cite{akaike1974} and Bayesian Information Criterion (BIC) \cite{schwarz1978} add parameter-count penalties, providing a principled trade-off between fit quality and model complexity.
-Strecha et al.\ \cite{strecha2008} applied BIC to benchmark camera calibration and multi-view stereo.
+Strecha et al.\ \cite{strecha2008} established benchmark datasets and evaluation protocols for camera calibration and multi-view stereo.
 Our work extends BIC-based model selection to ray space: we compare optical model families (pinhole, Brown-Conrady, parallel-plate, telecentric CMO) against a measured Zernike rayfield, and add an operational reprojection guard that rejects models whose pixel RMS exceeds a usability threshold---a constraint that the raw ray-space BIC does not capture.
 
 \subsection{Pl\"ucker Coordinates and Line-Based Geometry}
 
 Pl\"ucker coordinates \cite{plucker1865} represent a 3D line as a 6-vector $(d, m)$ where $d$ is the direction and $m = O \times d$ is the moment.
-They are widely used in geometric computer vision for line-based structure from motion and calibration \cite{triggs1999}.
+They are widely used in geometric computer vision for line-based structure from motion and calibration \cite{bartoli2005,triggs1999}.
 Our residual analysis uses Pl\"ucker moments to separate direction errors from origin errors: $\Delta d$ reveals angular misalignment; $\Delta m$ reveals the effective ray origin shift.
 The $Z_0^0$-dominated residual in both $\Delta d$ and $\Delta m$ is the key diagnostic that guides the SE(3) arm alignment.
 
