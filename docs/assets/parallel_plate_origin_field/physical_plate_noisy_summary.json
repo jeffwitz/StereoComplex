@@ -1,0 +1,32 @@
+{
+  "central_rms_3d_mm": 2.7963960369845267,
+  "zernike_rms_3d_mm": 0.6760079221672244,
+  "plate_rms_3d_mm": 0.6792289695228302,
+  "oracle_observed_pixels_rms_3d_mm": 0.6815759473795633,
+  "left_fit": {
+    "alpha_deg": 13.01693218229839,
+    "beta_deg": 5.004015162751779,
+    "thickness_mm": 15.971539141420765,
+    "rayfield_rms_support_mm": 0.013174573141599795,
+    "rayfield_rms_full_mm": 0.05214357451336128,
+    "parameter_error": {
+      "alpha_deg": 0.01693218229839033,
+      "beta_deg": 0.0040151627517790445,
+      "thickness_mm": -0.028460858579235193,
+      "eta": 0.0
+    }
+  },
+  "right_fit": {
+    "alpha_deg": 9.980701002707532,
+    "beta_deg": 6.959911268262249,
+    "thickness_mm": 14.026987852028896,
+    "rayfield_rms_support_mm": 0.01091137801102512,
+    "rayfield_rms_full_mm": 0.061260828502313056,
+    "parameter_error": {
+      "alpha_deg": -0.0192989972924682,
+      "beta_deg": -0.04008873173775118,
+      "thickness_mm": 0.02698785202889553,
+      "eta": 0.0
+    }
+  }
+}

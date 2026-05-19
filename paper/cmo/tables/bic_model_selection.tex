@@ -1,0 +1,17 @@
+\begin{table}[H]
+\centering
+\caption{BIC model selection on the Zernike rayfield. Models above 1.5~px reprojection are REJECTED by the operational guard.}
+\label{tab:bic}
+\begin{tabular}{lrrrrr}
+\toprule
+Model & $p$ & RMS (mm) & BIC$_{\text{ray}}$ & $S_{\mathrm{usable}}$ & Status \\
+\midrule
+cmo telecentric shear & 14 & 0.111 & -36\,128 & +978\,890 & REJECTED \\
+cmo telecentric & 12 & 0.146 & -33\,201 & +986\,044 & REJECTED \\
+pinhole parallel plate & 6 & 6.337 & 5\,079 &  &  \\
+central pinhole & 0 & 8.343 & 6\,500 &  &  \\
+central brown conrady & 10 & 8.324 & 6\,549 &  &  \\
+\textbf{CMO + SE(3) 26p} & 26 & 0.002 & $-32\,433$ & $-32\,433$ & \textbf{BEST USABLE} \\
+\bottomrule
+\end{tabular}
+\end{table}

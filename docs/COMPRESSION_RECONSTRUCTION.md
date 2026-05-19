@@ -95,9 +95,9 @@ This explains the “surprising” observation that raw pinhole metrics can some
 
 ## Quantitative uncertainty comparison (planar-refined pinhole vs ray-field)
 
-To compare the two backends in a unified way we convert pixel/disparity uncertainty into an **equivalent angular uncertainty** \(u_\alpha\) and propagate it into depth uncertainty via \(u_Z \approx \frac{Z^2}{B}\sqrt{u_{\alpha_L}^2+u_{\alpha_R}^2}\). The supporting `paper/experiments/quantitative_uncertainty.py` script computes \(u_{\alpha}\), the doubled interval \(U_Z\), and the relative \(U_Z/Z\) for each codec quality already present in the sweep.
+To compare the two backends in a unified way we convert pixel/disparity uncertainty into an **equivalent angular uncertainty** $u_\alpha$ and propagate it into depth uncertainty via $u_Z \approx \frac{Z^2}{B}\sqrt{u_{\alpha_L}^2+u_{\alpha_R}^2}$. The supporting `paper/experiments/quantitative_uncertainty.py` script computes $u_{\alpha}$, the doubled interval $U_Z$, and the relative $U_Z/Z$ for each codec quality already present in the sweep.
 
-The resulting table (section `tab:uncertainty_comparison` in the manuscript) shows, for example, \(u_{\alpha,\mathrm{pinhole}}\approx 0.97\) mrad vs \(u_{\alpha,\mathrm{ray}}\approx 0.06\) mrad on lossless PNG, yielding relative depth uncertainty \(U_Z/Z\approx 2.16\%\) vs \(0.13\%\). The gain remains >14× on the tested lossy qualities (WebP q70, JPEG q80) because the ray-field's angular representation absorbs structured residuals while the pinhole uncertainty grows with each degradation step.
+The resulting table (section `tab:uncertainty_comparison` in the manuscript) shows, for example, $u_{\alpha,\mathrm{pinhole}}\approx 0.97$ mrad vs $u_{\alpha,\mathrm{ray}}\approx 0.06$ mrad on lossless PNG, yielding relative depth uncertainty $U_Z/Z\approx 2.16\%$ vs $0.13\%$. The gain remains >14× on the tested lossy qualities (WebP q70, JPEG q80) because the ray-field's angular representation absorbs structured residuals while the pinhole uncertainty grows with each degradation step.
 
 To regenerate the table and supporting plots, reuse the sweep metrics and run:
 

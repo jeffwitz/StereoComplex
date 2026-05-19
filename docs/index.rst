@@ -1,13 +1,22 @@
 StereoComplex
 =============
 
-Fix OpenCV calibration plateaus, and reconstruct 3D without a pinhole model
--------------------------------------------------------------------------------
+Robust ChArUco calibration and ray-based stereo reconstruction
+----------------------------------------------------------------
 
-StereoComplex is a practical toolkit to **refine ChArUco corners before calibration** using a geometric prior on the board plane
-(`rayfield_tps_robust`: homography + smooth residual field + robust fitting).
+StereoComplex is a lightweight Python toolkit for robust stereo calibration,
+Ray2D ChArUco refinement, ray-based 3D reconstruction, and non-central optical
+model diagnostics.
 
-This simple “2D cleanup” step is often enough to make classic OpenCV calibration **much more stable** on challenging data.
+If you already know OpenCV calibration, start with the onboarding notebook:
+
+.. code-block:: text
+
+   examples/notebooks/00_getting_started.ipynb
+
+It shows the shortest path: define a ChArUco board, compare raw OpenCV against
+Ray2D-refined calibration, assess calibration quality, and export back to
+OpenCV format.
 
 .. rubric:: Video 1 (overview)
 
@@ -21,92 +30,191 @@ This simple “2D cleanup” step is often enough to make classic OpenCV calibra
      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
      allowfullscreen></iframe>
 
-Motivation: in many practical stereo systems, calibration accuracy is limited by **2D localization quality** (blur, compression, noise) rather than by the camera model itself.
+.. rubric:: What StereoComplex does
 
-Terminology note: here, “ray-field” can refer to either (1) a **2D planar warp** learned on the board plane (homography + smooth residual field) or (2) an experimental **3D ray-based model**. The 2D method is not a per-pixel 3D ray model.
+.. list-table::
+   :header-rows: 1
 
-Engineering footprint: no ROS, no Docker requirement, no C++ toolchain; the core is a Python package using standard scientific libraries.
+   * - Layer
+     - Meaning
+     - Status
+   * - Ray2D / planar ray-field
+     - Homography plus smooth residual field on the calibration board plane
+     - stable practical preprocessing
+   * - Central 3D ray-field
+     - Pixel → 3D direction with a shared camera center
+     - research prototype
+   * - Non-central 3D rayfield
+     - Pixel → 3D line ``(O(u,v), d(u,v))``
+     - research-grade, validated on synthetic oracles and one real CMO case study
+
+The 2D Ray2D refinement is not itself a 3D non-central camera model. It improves
+the image observations fed to calibration. The non-central backend is a separate
+3D line-based model.
+
+Engineering footprint: no ROS, no Docker requirement, no C++ toolchain; the core
+is a Python package using standard scientific libraries.
+
+.. rubric:: Recommended path
+
+1. **First use / OpenCV migration** → :doc:`FROM_OPENCV_TO_STEREOCOMPLEX` and
+   ``examples/notebooks/00_getting_started.ipynb``.
+2. **Fix ChArUco / OpenCV calibration** → :doc:`FIX_MY_CALIBRATION`,
+   :doc:`BRING_YOUR_OWN_DATA`, and ``examples/notebooks/01_ray2d_vs_opencv.ipynb``.
+3. **Ray-based 3D reconstruction** → :doc:`RAYFIELD3D_RECONSTRUCTION` and
+   ``examples/notebooks/02_ray3d.ipynb``.
+4. **Non-central calibration** → :doc:`NONCENTRAL_FROM_IMAGES` and
+   ``examples/notebooks/04_parallel_plate_origin_field.ipynb``.
+5. **Optics identification / CMO case study** → :doc:`REAL_CMO_PYCASO_RAYFIELD`,
+   :doc:`CMO_PHYSICAL_MODEL`, and ``examples/notebooks/09_pycaso_real_data.ipynb``.
+
+.. rubric:: Key contributions
+
+1. **Robust ChArUco refinement without requiring a camera model.** Ray2D /
+   ``rayfield_tps_robust`` uses a homography plus a smooth residual field on the
+   board plane.
+2. **OpenCV-compatible stereo calibration diagnostics.** StereoComplex compares
+   raw and refined ChArUco points and reports stereo/reconstruction metrics.
+3. **Central 3D ray-field reconstruction.** The central backend learns a compact
+   pixel-to-ray direction model and triangulates from rays.
+4. **Non-central Zernike rayfield calibration.** Each pixel can define a 3D line
+   instead of sharing one optical center.
+5. **Ray-space optical model identification.** A measured Zernike rayfield can be
+   used to compare compact physical hypotheses such as Brown-Conrady, inclined
+   plate, CMO-like, and generic fallback rayfields.
 
 .. figure:: assets/rayfield_worked_example/zoom_overlays/left_best_ideal_vs_realistic_frame000000.png
    :alt: Ideal (no blur) vs realistic (dataset) corner overlays, raw vs ray-field
    :width: 85%
 
-   Same GT (with geometric distortion) on a strict ideal render (top: no blur/no noise, nearest texture sampling) vs realistic (bottom), raw vs ray-field.
+   Same GT (with geometric distortion) on a strict ideal render (top: no blur/no
+   noise, nearest texture sampling) vs realistic (bottom), raw vs ray-field.
 
-.. rubric:: Key result: 3D ray-field robustness to compression
+.. rubric:: Key result: non-central rendered-image benchmark
 
-StereoComplex includes an experimental **3D ray-based stereo reconstruction** prototype. On the provided compression sweep, the **3D ray-field** remains stable under lossy compression, while pinhole-based pipelines remain sensitive to codec artifacts through the 2D localization stage.
+On the inclined-plate benchmark, raw OpenCV ChArUco detections impose a high
+reconstruction floor. With Ray2D-refined observations, the same non-central
+bundle adjustment reaches sub-millimetric reconstruction accuracy:
 
-.. figure:: assets/compression_sweep/tri_rms_rel_depth_percent.png
-   :alt: Compression sweep: triangulation RMS vs codec quality (pinhole vs 3D ray-field)
-   :width: 92%
+- OpenCV raw: central RMS ≈ 4.21 mm, oracle-detected RMS ≈ 3.44 mm, non-central BA RMS ≈ 3.36 mm.
+- Ray2D refined: central RMS ≈ 2.50 mm, oracle-detected RMS ≈ 0.76 mm, non-central BA RMS ≈ 0.66 mm.
 
-   Compression sweep: triangulation RMS (relative depth error) vs codec quality, comparing pinhole-based pipelines to the 3D ray-field.
+Interpretation: the non-central model works when the 2D observations are good
+enough; front-end quality is the limiting factor on rendered or real images.
 
-.. rubric:: Quickstart (what most users want)
+.. rubric:: Key result: real CMO microscope data
 
-1) Refine corners (exports JSON + an OpenCV-ready NPZ):
+The Pycaso CMO microscope case study is the main real-data validation of the
+non-central workflow. It separates a flexible measured rayfield from a compact
+physical interpretation:
 
-.. code-block:: bash
+.. list-table::
+   :header-rows: 1
 
-   .venv/bin/python -m stereocomplex.cli refine-corners dataset/v0_png \
-     --split train --scene scene_0000 \
-     --method rayfield_tps_robust \
-     --out-json paper/tables/refined_corners_scene0000.json \
-     --out-npz paper/tables/refined_corners_scene0000_opencv.npz
+   * - Model / method
+     - Role
+     - RMS
+   * - Standard OpenCV stereo on the tested setup
+     - central baseline
+     - >300 px
+   * - Perspective CMO physical model
+     - wrong optical family
+     - ~86 px
+   * - Telecentric CMO 14p
+     - correct family but not usable
+     - ~14.6 px
+   * - Telecentric CMO + per-arm SE(3), 26p
+     - compact usable physical model
+     - 1.06 px
+   * - Zernike O(0)+d(2), 57p
+     - flexible rayfield reference
+     - 0.47 px
 
-2) Run the reproducible OpenCV evaluation (raw vs ray-field) on the same scene:
+The key methodological point is that the rayfield is not only a calibration
+model; it is also a diagnostic instrument used to build and falsify compact
+physical optical models.
 
-.. code-block:: bash
-
-   .venv/bin/python paper/experiments/compare_opencv_calibration_rayfield.py dataset/v0_png \
-     --split train --scene scene_0000 \
-     --out paper/tables/opencv_calibration_rayfield.json
+See :doc:`REAL_CMO_PYCASO_RAYFIELD`, :doc:`CMO_PHYSICAL_MODEL`, and
+``examples/notebooks/09_pycaso_real_data.ipynb``.
 
 .. rubric:: Notebook walkthroughs
 
-If you want a guided, visual introduction before reading the code or the paper,
-start with the notebook series:
+If you want a guided, visual introduction before reading the code or the
+advanced case studies, start with the notebook series:
 
-- `01_ray2d_vs_opencv.ipynb` compares raw OpenCV detections against the 2D
-  planar refinement (`rayfield_tps_robust`) on the synthetic benchmark.
-- `02_ray3d.ipynb` explains the compact central 3D ray-field, the Pycaso-style
-  sweeps, and the compression robustness experiments.
-- `03_rayfield_virtual_rectification.ipynb` shows how to reuse a calibrated
-  ray-field inside a classical dense stereo pipeline via virtual rectification.
+- **``00_getting_started.ipynb``**: first OpenCV-to-StereoComplex onboarding.
+- ``01_ray2d_vs_opencv.ipynb``: raw OpenCV detections vs Ray2D refinement.
+- ``02_ray3d.ipynb``: compact central 3D ray-field and compression sweeps.
+- ``03_rayfield_virtual_rectification.ipynb``: virtual rectification maps for dense stereo.
+- ``04_parallel_plate_origin_field.ipynb``: inclined-plate non-central oracle.
+- ``05_noncentral_calibration_from_images.ipynb``: practical non-central image-folder workflow.
+- ``06_cmo_model_selection.ipynb``: CMO-like rayfield measurement and model selection.
+- ``09_pycaso_real_data.ipynb``: real Pycaso CMO microscope case study.
 
-Companion `.py` exports are stored next to the notebooks for quick inspection in
-any text editor.
+Companion ``.py`` exports are stored next to the notebooks for quick inspection
+in any text editor. See :doc:`NOTEBOOKS` for the complete sequence, including
+scripts 07 and 08.
 
-.. rubric:: Also: 3D reconstruction without a pinhole model (prototype)
+.. rubric:: Quickstart from OpenCV
 
-StereoComplex also includes a **ray-based stereo reconstruction** prototype: it calibrates a compact mapping
-pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment over multiple planar poses
-(**no solvePnP, no known** ``K``), then triangulates from the two rays.
+.. code-block:: python
 
-.. code-block:: bash
+   from pathlib import Path
+   import stereocomplex as sc
 
-   .venv/bin/python paper/experiments/calibrate_central_rayfield3d_from_images.py dataset/v0_png \
-     --split train --scene scene_0000 --max-frames 5 \
-     --method2d rayfield_tps_robust \
-     --nmax 10 --lam-coeff 1e-3 --outer-iters 3 \
-   --out paper/tables/rayfield3d_ba_scene0000.json \
-   --export-model models/scene0000_rayfield3d
+   board = sc.CharucoBoardSpec(
+       squares_x=11,
+       squares_y=7,
+       square_size_mm=39.07,
+       marker_size_mm=27.35,
+       aruco_dictionary="DICT_4X4_1000",
+   )
+
+   report = sc.compare_opencv_stereo_calibration(
+       left_dir=Path("my_data/left"),
+       right_dir=Path("my_data/right"),
+       board=board,
+   )
+
+   assessment = sc.assess_calibration(report["refined_result"])
+   K1, d1, K2, d2, R, T = report["refined_result"].to_opencv()
 
 .. rubric:: Documentation map
 
-- I want a practical guide: :doc:`FIX_MY_CALIBRATION`
-- I want alternatives and scope/positioning: :doc:`ALTERNATIVES_POSITIONING`
-- I want the full worked example (plots + overlays): :doc:`RAYFIELD_WORKED_EXAMPLE`
-- I want the notebook walkthroughs: :doc:`NOTEBOOKS`
-- I want stereo/3D metrics and baseline-in-pixels: :doc:`STEREO_RECONSTRUCTION`
-- I want multi-case robustness results: :doc:`ROBUSTNESS_SWEEP`
-- I want to load/export models and reconstruct via an API: :doc:`RECONSTRUCTION_API`
-- I want the public API contract: :doc:`PUBLIC_API`
-- I want compression robustness for 3D reconstruction: :doc:`COMPRESSION_RECONSTRUCTION`
-- I want the math and ray-based calibration: :doc:`RAYFIELD3D_RECONSTRUCTION`
-- I want dense stereo via virtual rectification (ray-field): :doc:`RAYFIELD_VIRTUAL_RECTIFY`
-- Licensing: :doc:`LICENSE`
+- Getting started:
+  :doc:`START_HERE`,
+  :doc:`FROM_OPENCV_TO_STEREOCOMPLEX`,
+  :doc:`BRING_YOUR_OWN_DATA`,
+  :doc:`FIX_MY_CALIBRATION`,
+  :doc:`NOTEBOOKS`.
+- ChArUco and 2D refinement:
+  :doc:`CHARUCO_IDENTIFICATION`,
+  :doc:`RAYFIELD_WORKED_EXAMPLE`.
+- Ray-based calibration and reconstruction:
+  :doc:`STEREO_RECONSTRUCTION`,
+  :doc:`RECONSTRUCTION_API`,
+  :doc:`RAYFIELD3D_RECONSTRUCTION`,
+  :doc:`RAYFIELD_VIRTUAL_RECTIFY`.
+- Non-central and optical model identification:
+  :doc:`NONCENTRAL_FROM_IMAGES`,
+  :doc:`IDENTIFY_MY_OPTICS`,
+  :doc:`CMO_MODEL_SELECTION`,
+  :doc:`DIRECT_VS_RAYFIELD_INVERSION`,
+  :doc:`PARALLEL_PLATE_ORIGIN_FIELD`.
+- Real-data CMO validation:
+  :doc:`REAL_CMO_PYCASO_RAYFIELD`,
+  :doc:`CMO_PHYSICAL_MODEL`,
+  :doc:`PYCASO_Z_SWEEP`.
+- Project status:
+  :doc:`VALIDATION_STATUS`,
+  :doc:`ROADMAP`.
+- Reference:
+  :doc:`PUBLIC_API`,
+  :doc:`ARCHITECTURE`,
+  :doc:`DATASET_SPEC`,
+  :doc:`CONVENTIONS`,
+  :doc:`ALTERNATIVES_POSITIONING`,
+  :doc:`LICENSE`.
 
 .. toctree::
    :maxdepth: 2
@@ -114,13 +222,10 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
    :hidden:
 
    START_HERE
+   FROM_OPENCV_TO_STEREOCOMPLEX
+   BRING_YOUR_OWN_DATA
    FIX_MY_CALIBRATION
-   ALTERNATIVES_POSITIONING
    NOTEBOOKS
-   LICENSE
-   ARCHITECTURE
-   DATASET_SPEC
-   CONVENTIONS
 
 .. toctree::
    :maxdepth: 2
@@ -132,14 +237,52 @@ pixel → ray direction (Zernike basis) using a point↔ray bundle adjustment ov
 
 .. toctree::
    :maxdepth: 2
-   :caption: Calibration / 3D
+   :caption: Ray-based calibration / 3D
    :hidden:
 
    STEREO_RECONSTRUCTION
-   ROBUSTNESS_SWEEP
-   COMPRESSION_RECONSTRUCTION
    RECONSTRUCTION_API
-   PUBLIC_API
    RAYFIELD3D_RECONSTRUCTION
    RAYFIELD_VIRTUAL_RECTIFY
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Non-central / optical models
+   :hidden:
+
+   NONCENTRAL_FROM_IMAGES
+   IDENTIFY_MY_OPTICS
+   CMO_MODEL_SELECTION
+   DIRECT_VS_RAYFIELD_INVERSION
+   PARALLEL_PLATE_ORIGIN_FIELD
+   COMPRESSION_RECONSTRUCTION
+   ROBUSTNESS_SWEEP
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Real-data CMO case study
+   :hidden:
+
+   REAL_CMO_PYCASO_RAYFIELD
+   CMO_PHYSICAL_MODEL
    PYCASO_Z_SWEEP
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Project status
+   :hidden:
+
+   VALIDATION_STATUS
+   ROADMAP
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference
+   :hidden:
+
+   PUBLIC_API
+   ARCHITECTURE
+   DATASET_SPEC
+   CONVENTIONS
+   ALTERNATIVES_POSITIONING
+   LICENSE

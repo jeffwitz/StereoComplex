@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -78,7 +77,6 @@ def load_stereo_central_rayfield(model_dir: Path) -> StereoCentralRayFieldModel:
     image = meta["image"]
     disk = meta["disk"]
     zern = meta["zernike"]
-    rig = meta["rig"]
     weights = meta["weights"]
 
     weights_path = model_dir / str(weights["path"])
@@ -105,4 +103,3 @@ def load_stereo_central_rayfield(model_dir: Path) -> StereoCentralRayFieldModel:
         R_RL=R_RL,
         t_RL=t_RL,
     )
-

@@ -1,0 +1,78 @@
+{
+  "best_by_bic": "pinhole_parallel_plate",
+  "best_by_rms": "pinhole_parallel_plate",
+  "combined": {
+    "central_pinhole": {
+      "parameters": 0,
+      "left_support_rms_mm": 3.0091696651352695,
+      "right_support_rms_mm": 2.9711624315067704,
+      "support_rms_mean_mm": 2.99016604832102,
+      "left_full_rms_mm": 4.054261997798994,
+      "right_full_rms_mm": 3.3746946400508735,
+      "full_rms_mean_mm": 3.7144783189249337,
+      "aic_sum": 1051.512463431583,
+      "bic_sum": 1051.512463431583,
+      "left_parameters": {},
+      "right_parameters": {}
+    },
+    "central_brown_conrady": {
+      "parameters": 10,
+      "left_support_rms_mm": 2.223184985733678,
+      "right_support_rms_mm": 2.0622289874322175,
+      "support_rms_mean_mm": 2.142706986582948,
+      "left_full_rms_mm": 2.848589145394982,
+      "right_full_rms_mm": 2.4502074192505394,
+      "full_rms_mean_mm": 2.6493982823227604,
+      "aic_sum": -10824.829204146485,
+      "bic_sum": -10771.786222737388,
+      "left_parameters": {
+        "k1": 0.1184948496190243,
+        "k2": -0.6261576976861288,
+        "p1": -0.002221182139346819,
+        "p2": -0.00444473879192919,
+        "k3": 0.9999999999999988
+      },
+      "right_parameters": {
+        "k1": 0.1094658654418974,
+        "k2": -0.6316288278591107,
+        "p1": -0.0026650409631338444,
+        "p2": -0.003209573217706484,
+        "k3": 0.9999999999999725
+      }
+    },
+    "pinhole_parallel_plate": {
+      "parameters": 6,
+      "left_support_rms_mm": 0.00020343453458543856,
+      "right_support_rms_mm": 0.0003117889883271815,
+      "support_rms_mean_mm": 0.00025761176145631004,
+      "left_full_rms_mm": 0.0016178157378716636,
+      "right_full_rms_mm": 0.005071900067916286,
+      "full_rms_mean_mm": 0.003344857902893975,
+      "aic_sum": -306431.1174239918,
+      "bic_sum": -306399.29163514636,
+      "left_parameters": {
+        "alpha_deg": 13.00032167337423,
+        "beta_deg": 5.0001292969838405,
+        "thickness_mm": 15.999545309707639,
+        "eta": 1.5,
+        "d1_mm": 80.0
+      },
+      "right_parameters": {
+        "alpha_deg": 10.002077139892648,
+        "beta_deg": 7.000677752094454,
+        "thickness_mm": 13.998461107961955,
+        "eta": 1.5,
+        "d1_mm": 80.0
+      }
+    }
+  },
+  "reconstruction": {
+    "central_rms_3d_mm": 2.731324202841452,
+    "brown_rms_3d_mm": 3.888150502351835,
+    "zernike_rms_3d_mm": 0.0010733077195617946,
+    "plate_rms_3d_mm": 0.0006024181197729138,
+    "oracle_rms_3d_mm": 1.1262304388128574e-11,
+    "brown_ray_gap_rms_mm": 0.20438403130625557,
+    "plate_ray_gap_rms_mm": 5.7634500658597666e-05
+  }
+}

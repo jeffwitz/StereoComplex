@@ -1,0 +1,694 @@
+{
+  "title": "StereoComplex CMO microscope calibration on Pycaso data",
+  "description": "Traceable R3XA description of the StereoComplex rayfield-based calibration case study on the Pycaso Common Main Objective (CMO) stereo microscope data. The file records the raw image folders, calibration target, processing data sources, generated datasets, and final model-selection outcomes. It follows the R3XA 2024.7.1 schema and intentionally stores detailed metrics inside descriptions and linked JSON/NPZ artifacts rather than as non-schema custom fields.",
+  "version": "2024.7.1",
+  "authors": "Jean-François Witz; StereoComplex contributors",
+  "date": "2026-05-15",
+  "repository": "https://github.com/jeffwitz/StereoComplex",
+  "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md",
+  "license": "See StereoComplex and Pycaso repository licenses.",
+  "settings": [
+    {
+      "id": "setting_pycaso_cmo_microscope",
+      "kind": "settings/generic",
+      "title": "Pycaso CMO stereo microscope",
+      "description": "Common Main Objective stereo microscope used in the Pycaso open dataset. The StereoComplex case study treats the left and right channels as two effective off-axis CMO sub-apertures. Raw image folders are external and expected under examples/pycaso_data after cloning Pycaso.",
+      "documentation": "https://github.com/LaboratoireMecaniqueLille/Pycaso",
+      "associated_data_sources": [
+        "src_left_cmo_channel_camera",
+        "src_right_cmo_channel_camera"
+      ]
+    },
+    {
+      "id": "setting_charuco_legacy_target",
+      "kind": "settings/specimen",
+      "title": "Legacy ChArUco calibration target",
+      "description": "Legacy ChArUco calibration board used by the Pycaso data. OpenCV detection requires DICT_6X6_250 and setLegacyPattern(True). The board has 16 x 12 squares, square size 0.3 mm, and 15 x 11 = 165 inner corners.",
+      "sizes": [
+        {
+          "kind": "unit",
+          "title": "squares_x",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 16
+        },
+        {
+          "kind": "unit",
+          "title": "squares_y",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 12
+        },
+        {
+          "kind": "unit",
+          "title": "inner_corners_x",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 15
+        },
+        {
+          "kind": "unit",
+          "title": "inner_corners_y",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 11
+        },
+        {
+          "kind": "unit",
+          "title": "inner_corners_total",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 165
+        },
+        {
+          "kind": "unit",
+          "title": "square_size",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 0.3
+        }
+      ],
+      "patterning_technique": "Legacy ChArUco board, DICT_6X6_250",
+      "patterning_feature_size": {
+        "kind": "unit",
+        "title": "square_size",
+        "unit": "mm",
+        "scale": 1.0,
+        "value": 0.3
+      }
+    },
+    {
+      "id": "setting_cmo_stereo_rig",
+      "kind": "settings/stereorig",
+      "title": "Effective CMO stereo rig",
+      "description": "Stereo rig defined by the measured rayfield. The stereo angle and baseline are read from the constrained Zernike O(0)+d(2) rayfield. The final compact physical model is a telecentric CMO model with a per-arm SE(3) correction (26 parameters, 1.06 px RMS, P50=0.87 px, P95=1.84 px).",
+      "stereo_angle": {
+        "kind": "unit",
+        "title": "convergence_angle",
+        "unit": "deg",
+        "scale": 1.0,
+        "value": 22.551396758555008
+      },
+      "calibration_target_type": "Legacy ChArUco DICT_6X6_250, setLegacyPattern(True)",
+      "calibration_target_size": [
+        {
+          "kind": "unit",
+          "title": "squares_x",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 16
+        },
+        {
+          "kind": "unit",
+          "title": "squares_y",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 12
+        },
+        {
+          "kind": "unit",
+          "title": "square_size",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 0.3
+        },
+        {
+          "kind": "unit",
+          "title": "expected_inner_corners",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 165
+        },
+        {
+          "kind": "unit",
+          "title": "z_range_min",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 2.65
+        },
+        {
+          "kind": "unit",
+          "title": "z_range_max",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 3.35
+        }
+      ],
+      "associated_data_sources": [
+        "src_left_cmo_channel_camera",
+        "src_right_cmo_channel_camera"
+      ]
+    }
+  ],
+  "data_sources": [
+    {
+      "id": "src_left_cmo_channel_camera",
+      "kind": "data_sources/camera",
+      "title": "Left CMO channel images",
+      "description": "Left visible-channel image source from the Pycaso CMO microscope dataset. Images are 2048 x 2048 px. Manufacturer/model are recorded at the effective instrument level because the exact sensor model is not specified in the case study.",
+      "output_components": 1,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "graylevel",
+          "unit": "graylevel",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "Leica Microsystems / Pycaso dataset",
+      "model": "Leica M125 C effective left channel",
+      "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md",
+      "image_size": [
+        {
+          "kind": "unit",
+          "title": "width",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 2048
+        },
+        {
+          "kind": "unit",
+          "title": "height",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 2048
+        }
+      ],
+      "focal_length": {
+        "kind": "unit",
+        "title": "objective_focal_length_from_rayfield",
+        "unit": "mm",
+        "scale": 1.0,
+        "value": 62.208914898071626
+      },
+      "lens": "Common Main Objective stereo microscope optics",
+      "standoff_distance": {
+        "kind": "unit",
+        "title": "working_distance_from_rayfield",
+        "unit": "mm",
+        "scale": 1.0,
+        "value": 64.70220034514719
+      }
+    },
+    {
+      "id": "src_right_cmo_channel_camera",
+      "kind": "data_sources/camera",
+      "title": "Right CMO channel images",
+      "description": "Right visible-channel image source from the Pycaso CMO microscope dataset. Images are 2048 x 2048 px. Manufacturer/model are recorded at the effective instrument level because the exact sensor model is not specified in the case study.",
+      "output_components": 1,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "graylevel",
+          "unit": "graylevel",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "Leica Microsystems / Pycaso dataset",
+      "model": "Leica M125 C effective right channel",
+      "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md",
+      "image_size": [
+        {
+          "kind": "unit",
+          "title": "width",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 2048
+        },
+        {
+          "kind": "unit",
+          "title": "height",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 2048
+        }
+      ],
+      "focal_length": {
+        "kind": "unit",
+        "title": "objective_focal_length_from_rayfield",
+        "unit": "mm",
+        "scale": 1.0,
+        "value": 62.208914898071626
+      },
+      "lens": "Common Main Objective stereo microscope optics",
+      "standoff_distance": {
+        "kind": "unit",
+        "title": "working_distance_from_rayfield",
+        "unit": "mm",
+        "scale": 1.0,
+        "value": 64.70220034514719
+      }
+    },
+    {
+      "id": "src_charuco_legacy_detection",
+      "kind": "data_sources/generic",
+      "title": "Legacy ChArUco detection",
+      "description": "OpenCV CharucoDetector configured with DICT_6X6_250 and setLegacyPattern(True). Produces initial corner detections before Hessian completion. Detection counts are recorded in detection_summary.json.",
+      "input_data_sets": [
+        "ds_raw_left_images",
+        "ds_raw_right_images"
+      ],
+      "output_components": 2,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "u",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "v",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex / OpenCV",
+      "model": "CharucoDetector legacy DICT_6X6_250",
+      "documentation": "examples/notebooks/09_pycaso_real_data.py"
+    },
+    {
+      "id": "src_hessian_corner_completion",
+      "kind": "data_sources/generic",
+      "title": "Hessian corner completion",
+      "description": "Completion of missing ChArUco corners using |det(Hessian)|, Otsu thresholding, connected components and barycentre from cv2.moments. The step completes all 165 expected corners per frame.",
+      "input_data_sets": [
+        "ds_raw_left_images",
+        "ds_raw_right_images",
+        "ds_detection_summary_json"
+      ],
+      "output_components": 2,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "u",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "v",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "Hessian completion, abs(det H)+Otsu+barycentre",
+      "documentation": "examples/notebooks/09_pycaso_real_data.py"
+    },
+    {
+      "id": "src_ray2d_double_tps",
+      "kind": "data_sources/generic",
+      "title": "Double Ray2D TPS denoising",
+      "description": "Two-pass Ray2D TPS denoising. First pass predicts all ChArUco grid corners from ArUco marker corners. Second pass re-denoises the completed 165 corners with lambda=3 and Huber c=1.5. The diagnostic Z0 drift decreases from 8.5 deg to 0.023 deg.",
+      "input_data_sets": [
+        "ds_raw_left_images",
+        "ds_raw_right_images",
+        "ds_detection_summary_json"
+      ],
+      "output_components": 2,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "u",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "v",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "Ray2D TPS robust double pass",
+      "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md"
+    },
+    {
+      "id": "src_zernike_rayfield_fit",
+      "kind": "data_sources/identification",
+      "title": "Constrained Zernike rayfield identification",
+      "description": "Rayfield bundle adjustment with O(0)+d(2), constrained poses (shared rotation + XY, per-pose Z). It identifies a stable experimental rayfield oracle with 57 parameters and 0.47 px local pixel-equivalent RMS.",
+      "input_data_sets": [
+        "ds_tps_intermediate_state_npz"
+      ],
+      "output_components": 6,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "Ox",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "Oy",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "Oz",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "dx",
+          "unit": "1",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "dy",
+          "unit": "1",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "dz",
+          "unit": "1",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "Zernike O(0)+d(2), constrained poses",
+      "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md"
+    },
+    {
+      "id": "src_cmo_descriptor_readout",
+      "kind": "data_sources/identification",
+      "title": "CMO descriptor readout from rayfield",
+      "description": "Direct readout of physical CMO descriptors from the centre-pixel Zernike rayfield: baseline 24.8846 mm, sub-pupil depth 2.4933 mm, working distance 64.7022 mm, objective focal length 62.2089 mm, convergence angle 22.5514 deg.",
+      "input_data_sets": [
+        "ds_summary_json",
+        "ds_zernike_pose_variants_json"
+      ],
+      "output_components": 5,
+      "output_dimension": "point",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "baseline",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "subpupil_depth",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "working_distance",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "objective_focal_length",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "convergence_angle",
+          "unit": "deg",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "CMO descriptor readout from O,d"
+    },
+    {
+      "id": "src_physical_model_selection",
+      "kind": "data_sources/identification",
+      "title": "Physical CMO model selection",
+      "description": "Fits physical model candidates against the Zernike rayfield and compares BIC_ray with BIC_usable. BIC_ray identifies the telecentric CMO family; BIC_usable with a 1.5 px guard selects the 26-parameter CMO+SE(3) model as the best usable compact physical model.",
+      "input_data_sets": [
+        "ds_tps_intermediate_state_npz",
+        "ds_summary_json",
+        "ds_model_comparison_json",
+        "ds_moment_residual_diagnostic_json",
+        "ds_arm_alignment_diagnostic_json"
+      ],
+      "output_components": 1,
+      "output_dimension": "point",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "bic_score",
+          "unit": "score",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "BIC_ray + BIC_usable model selection"
+    },
+    {
+      "id": "src_se3_aligned_cmo_fit",
+      "kind": "data_sources/identification",
+      "title": "Telecentric CMO + per-arm SE(3) fit",
+      "description": "Final compact physical model. A telecentric CMO model is augmented with one effective SE(3) rigid transform per optical arm, 26 parameters total. It reaches 1.06 px RMS, P50=0.87 px, P95=1.84 px; direct corner BA only improves it weakly to about 0.98 px.",
+      "input_data_sets": [
+        "ds_tps_intermediate_state_npz",
+        "ds_bic_model_selection_json",
+        "ds_aligned_cmo_fit_json"
+      ],
+      "output_components": 1,
+      "output_dimension": "point",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "pixel_rms",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "CMO telecentric + SE(3) per arm, 26 parameters",
+      "documentation": "docs/CMO_PHYSICAL_MODEL.md"
+    }
+  ],
+  "data_sets": [
+    {
+      "id": "ds_raw_left_images",
+      "kind": "data_sets/generic",
+      "title": "Pycaso left calibration images",
+      "description": "External raw image folder. Clone Pycaso under examples/pycaso_data; Notebook 09 reads LEFT_DIR = examples/pycaso_data/Exemple/Images_example/left_calibration11.",
+      "file_type": "image/*",
+      "path": "examples/pycaso_data/Exemple/Images_example/left_calibration11/",
+      "data_sources": [
+        "src_left_cmo_channel_camera"
+      ]
+    },
+    {
+      "id": "ds_raw_right_images",
+      "kind": "data_sets/generic",
+      "title": "Pycaso right calibration images",
+      "description": "External raw image folder. Clone Pycaso under examples/pycaso_data; Notebook 09 reads RIGHT_DIR = examples/pycaso_data/Exemple/Images_example/right_calibration11.",
+      "file_type": "image/*",
+      "path": "examples/pycaso_data/Exemple/Images_example/right_calibration11/",
+      "data_sources": [
+        "src_right_cmo_channel_camera"
+      ]
+    },
+    {
+      "id": "ds_detection_summary_json",
+      "kind": "data_sets/generic",
+      "title": "Detection and Hessian completion summary",
+      "description": "Per-frame ChArUco detection counts and completion status. Records 10 stereo pairs, 165 expected corners, 165 completed corners.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/detection_summary.json",
+      "data_sources": [
+        "src_charuco_legacy_detection",
+        "src_hessian_corner_completion"
+      ]
+    },
+    {
+      "id": "ds_tps_intermediate_state_npz",
+      "kind": "data_sets/generic",
+      "title": "Intermediate denoised corners and rayfield state",
+      "description": "NPZ state containing already-detected, Hessian-completed and TPS-denoised corner positions, fitted Zernike rayfield and initial 26p model parameters.",
+      "file_type": "application/x-npz",
+      "path": "docs/assets/pycaso_real_data/intermediate_state.npz",
+      "data_sources": [
+        "src_ray2d_double_tps",
+        "src_zernike_rayfield_fit"
+      ]
+    },
+    {
+      "id": "ds_summary_json",
+      "kind": "data_sets/generic",
+      "title": "Main CMO calibration summary",
+      "description": "Main numerical summary: dataset, detection, constrained Zernike fit, local pixel-equivalent reprojection RMS and CMO descriptor readout.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/summary.json",
+      "data_sources": [
+        "src_zernike_rayfield_fit",
+        "src_cmo_descriptor_readout"
+      ]
+    },
+    {
+      "id": "ds_model_comparison_json",
+      "kind": "data_sets/generic",
+      "title": "Physical model comparison",
+      "description": "Comparison of Zernike, telecentric and perspective CMO model families.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/model_comparison.json",
+      "data_sources": [
+        "src_physical_model_selection"
+      ]
+    },
+    {
+      "id": "ds_zernike_pose_variants_json",
+      "kind": "data_sets/generic",
+      "title": "Zernike pose variants",
+      "description": "Full Zernike coefficients and diagnostics for constrained and full-pose rayfield variants.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/zernike_pose_variants.json",
+      "data_sources": [
+        "src_zernike_rayfield_fit"
+      ]
+    },
+    {
+      "id": "ds_zernike_conditioning_diagnostic_json",
+      "kind": "data_sets/generic",
+      "title": "Zernike conditioning diagnostic",
+      "description": "Design matrix conditioning, modal delta-d and sensitivity diagnostics.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/zernike_conditioning_diagnostic.json",
+      "data_sources": [
+        "src_zernike_rayfield_fit"
+      ]
+    },
+    {
+      "id": "ds_moment_residual_diagnostic_json",
+      "kind": "data_sets/generic",
+      "title": "Moment residual diagnostic",
+      "description": "Pluecker moment residual decomposition and O1/O2 origin-field tests.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/moment_residual_diagnostic.json",
+      "data_sources": [
+        "src_physical_model_selection"
+      ]
+    },
+    {
+      "id": "ds_arm_alignment_diagnostic_json",
+      "kind": "data_sets/generic",
+      "title": "SE(3) arm alignment diagnostic",
+      "description": "Global line-bundle alignment sweep showing the 14x improvement from telecentric L0 to SE(3)-aligned CMO.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/arm_alignment_diagnostic.json",
+      "data_sources": [
+        "src_physical_model_selection"
+      ]
+    },
+    {
+      "id": "ds_aligned_cmo_fit_json",
+      "kind": "data_sets/generic",
+      "title": "Final aligned CMO fit",
+      "description": "Final joint fit parameters for the telecentric CMO + per-arm SE(3) 26-parameter model.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/aligned_cmo_fit.json",
+      "data_sources": [
+        "src_se3_aligned_cmo_fit"
+      ]
+    },
+    {
+      "id": "ds_se3_ablation_json",
+      "kind": "data_sets/generic",
+      "title": "SE(3) ablation study",
+      "description": "Ablation of rotation-only, translation-only, full per-arm SE(3), shared rotation, shared translation and differential-only variants.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/se3_ablation.json",
+      "data_sources": [
+        "src_se3_aligned_cmo_fit"
+      ]
+    },
+    {
+      "id": "ds_autopsy_20p_json",
+      "kind": "data_sets/generic",
+      "title": "20-parameter model autopsy",
+      "description": "Negative control showing that the differential-only 20p model is too constrained.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/autopsy_20p.json",
+      "data_sources": [
+        "src_physical_model_selection"
+      ]
+    },
+    {
+      "id": "ds_autopsy_26p_json",
+      "kind": "data_sets/generic",
+      "title": "26-parameter model autopsy",
+      "description": "Residual analysis and compression tests for the final 26p compact physical model.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/autopsy_26p.json",
+      "data_sources": [
+        "src_se3_aligned_cmo_fit"
+      ]
+    },
+    {
+      "id": "ds_pca_residual_26p_json",
+      "kind": "data_sets/generic",
+      "title": "Low-rank PCA residual analysis after 26p",
+      "description": "PCA analysis showing that remaining residuals are spatially varying and require flexible rayfield parameterisation.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/pca_residual_26p.json",
+      "data_sources": [
+        "src_se3_aligned_cmo_fit"
+      ]
+    },
+    {
+      "id": "ds_warped_model_comparison_json",
+      "kind": "data_sets/generic",
+      "title": "Image-space pre-warp comparison",
+      "description": "Negative test showing that affine/quadratic pre-warp degrades pixel RMS and is not the missing degree of freedom.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/warped_model_comparison.json",
+      "data_sources": [
+        "src_physical_model_selection"
+      ]
+    },
+    {
+      "id": "ds_bic_model_selection_json",
+      "kind": "data_sets/generic",
+      "title": "BIC model selection",
+      "description": "Ray-space BIC and operational BIC with 1.5 px guard for physical model selection on the Pycaso CMO rayfield.",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/bic_model_selection.json",
+      "data_sources": [
+        "src_physical_model_selection"
+      ]
+    }
+  ]
+}

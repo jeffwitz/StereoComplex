@@ -1,0 +1,226 @@
+{
+  "title": "Pycaso CMO \u2014 Step 2: Zernike rayfield & CMO descriptors",
+  "description": "Constrained Zernike O(0)+d(2) fit, geometric descriptor readout from (O,d).",
+  "version": "2024.7.1",
+  "authors": "Jean-Fran\u00e7ois Witz; StereoComplex contributors",
+  "date": "2026-05-15",
+  "repository": "https://github.com/jeffwitz/StereoComplex",
+  "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md",
+  "license": "See StereoComplex and Pycaso repository licenses.",
+  "settings": [
+    {
+      "id": "setting_pycaso_cmo_microscope",
+      "kind": "settings/generic",
+      "title": "CMO microscope",
+      "description": "",
+      "documentation": "https://github.com/LaboratoireMecaniqueLille/Pycaso",
+      "associated_data_sources": []
+    },
+    {
+      "id": "setting_cmo_stereo_rig",
+      "kind": "settings/stereorig",
+      "title": "Stereo rig",
+      "description": "",
+      "stereo_angle": {
+        "kind": "unit",
+        "title": "convergence_angle",
+        "unit": "deg",
+        "scale": 1.0,
+        "value": 22.551396758555008
+      },
+      "calibration_target_type": "Legacy ChArUco DICT_6X6_250, setLegacyPattern(True)",
+      "calibration_target_size": [
+        {
+          "kind": "unit",
+          "title": "squares_x",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 16
+        },
+        {
+          "kind": "unit",
+          "title": "squares_y",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 12
+        },
+        {
+          "kind": "unit",
+          "title": "square_size",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 0.3
+        },
+        {
+          "kind": "unit",
+          "title": "expected_inner_corners",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 165
+        },
+        {
+          "kind": "unit",
+          "title": "z_range_min",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 2.65
+        },
+        {
+          "kind": "unit",
+          "title": "z_range_max",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 3.35
+        }
+      ],
+      "associated_data_sources": []
+    }
+  ],
+  "data_sources": [
+    {
+      "id": "src_zernike_rayfield_fit",
+      "kind": "data_sources/identification",
+      "title": "Zernike O(0)+d(2) fit",
+      "description": "",
+      "input_data_sets": [
+        "ds_tps_intermediate_state_npz"
+      ],
+      "output_components": 6,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "Ox",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "Oy",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "Oz",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "dx",
+          "unit": "1",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "dy",
+          "unit": "1",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "dz",
+          "unit": "1",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "Zernike O(0)+d(2), constrained poses",
+      "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md"
+    },
+    {
+      "id": "src_cmo_descriptor_readout",
+      "kind": "data_sources/identification",
+      "title": "Descriptor readout",
+      "description": "",
+      "input_data_sets": [
+        "ds_summary_json",
+        "ds_zernike_pose_variants_json"
+      ],
+      "output_components": 5,
+      "output_dimension": "point",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "baseline",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "subpupil_depth",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "working_distance",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "objective_focal_length",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "convergence_angle",
+          "unit": "deg",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "CMO descriptor readout from O,d"
+    }
+  ],
+  "data_sets": [
+    {
+      "id": "ds_tps_intermediate_state_npz",
+      "kind": "data_sets/generic",
+      "title": "Denoised corners (NPZ)",
+      "description": "TPS-denoised 165-corners + Zernike fit + 26p model (NPZ archive)",
+      "file_type": "application/x-npz",
+      "path": "docs/assets/pycaso_real_data/intermediate_state.npz",
+      "data_sources": [
+        "src_zernike_rayfield_fit"
+      ]
+    },
+    {
+      "id": "ds_summary_json",
+      "kind": "data_sets/generic",
+      "title": "Calibration summary",
+      "description": "Calibration RMS, CMO descriptors, Zernike order sweep best",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/summary.json",
+      "data_sources": [
+        "src_zernike_rayfield_fit",
+        "src_cmo_descriptor_readout"
+      ]
+    },
+    {
+      "id": "ds_zernike_pose_variants_json",
+      "kind": "data_sets/generic",
+      "title": "Zernike coefficients",
+      "description": "Zernike coefficients for constrained and full-pose fits",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/zernike_pose_variants.json",
+      "data_sources": [
+        "src_zernike_rayfield_fit"
+      ]
+    }
+  ]
+}

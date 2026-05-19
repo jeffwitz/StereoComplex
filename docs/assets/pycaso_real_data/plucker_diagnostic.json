@@ -1,0 +1,15 @@
+{
+  "direction_rms_deg_L": 2.012103260127035,
+  "direction_rms_deg_R": 2.0702519083264557,
+  "moment_rms_mm_L": 0.47470050944445624,
+  "moment_rms_mm_R": 0.47856178819148515,
+  "origin_rms_mm_L": 0.4751807625532223,
+  "origin_rms_mm_R": 0.4910158643368507,
+  "dx_mean_err_L": 0.020771678777559723,
+  "dy_mean_err_L": 0.02131098591981196,
+  "dz_mean_err_L": 0.004522634709152092,
+  "mx_mean_err_L": 0.11074948727037019,
+  "my_mean_err_L": 0.3113458139535888,
+  "mz_mean_err_L": 0.28628099767400633,
+  "interpretation": "Direction errors are small (~2\u00b0), moment/origin errors dominate (~0.5mm). The telecentric model captures directions well but origin/moment mismatch suggests either gauge freedom or need for pupil shear."
+}

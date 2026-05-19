@@ -1,0 +1,302 @@
+[
+  {
+    "oracle": "pinhole",
+    "expected_winner": "central_pinhole",
+    "n_poses": 8,
+    "n_corners": 46,
+    "t_sim_s": 0.9980471134185791,
+    "pipeline_A": {
+      "rms_px": 0.038674018736456504,
+      "bic": -1013.1773227651754,
+      "converged": true,
+      "elapsed_s": 96.45080661773682
+    },
+    "pipeline_B": {
+      "winner": "central_pinhole",
+      "correct": true,
+      "elapsed_s": 3.2100656032562256,
+      "candidates": [
+        {
+          "name": "central_pinhole",
+          "rms_mm": 0.0,
+          "bic": -89524.50841560849
+        },
+        {
+          "name": "central_brown_conrady",
+          "rms_mm": 0.0,
+          "bic": -89470.75563153165
+        },
+        {
+          "name": "pinhole_parallel_plate",
+          "rms_mm": 1.376835909703199e-07,
+          "bic": -43239.08190963231
+        },
+        {
+          "name": "cmo_physical_shared",
+          "rms_mm": 7.596032644974801e-14,
+          "bic": -80531.34156693683
+        },
+        {
+          "name": "polynomial_surrogate_channel",
+          "rms_mm": 0.0,
+          "bic": -89330.99839293186
+        },
+        {
+          "name": "zernike_compact",
+          "rms_mm": 0.0,
+          "bic": -89330.99839293186
+        }
+      ]
+    }
+  },
+  {
+    "oracle": "brown",
+    "expected_winner": "central_brown_conrady",
+    "n_poses": 8,
+    "n_corners": 46,
+    "t_sim_s": 2.4331836700439453,
+    "pipeline_A": {
+      "rms_px": 0.056138439820889036,
+      "bic": -856.8979017279926,
+      "converged": true,
+      "elapsed_s": 474.1923325061798
+    },
+    "pipeline_B": {
+      "winner": "central_brown_conrady",
+      "correct": true,
+      "elapsed_s": 5.540532827377319,
+      "candidates": [
+        {
+          "name": "central_pinhole",
+          "rms_mm": 3.321142972476304,
+          "bic": 789.080636439531
+        },
+        {
+          "name": "central_brown_conrady",
+          "rms_mm": 4.1955600254166764e-14,
+          "bic": -82107.5778010118
+        },
+        {
+          "name": "pinhole_parallel_plate",
+          "rms_mm": 3.3211429724763035,
+          "bic": 821.3323068856357
+        },
+        {
+          "name": "cmo_physical_shared",
+          "rms_mm": 1.1054457016240523e-13,
+          "bic": -79558.80345236126
+        },
+        {
+          "name": "polynomial_surrogate_channel",
+          "rms_mm": 5.6172891279129765e-14,
+          "bic": -81211.41701402713
+        },
+        {
+          "name": "zernike_compact",
+          "rms_mm": 1.0176843173121173,
+          "bic": -2083.1730877674313
+        }
+      ]
+    }
+  },
+  {
+    "oracle": "plate",
+    "expected_winner": "pinhole_parallel_plate",
+    "n_poses": 8,
+    "n_corners": 44,
+    "t_sim_s": 1.3156778812408447,
+    "pipeline_A": {
+      "rms_px": 0.10699046492163305,
+      "bic": -593.7318062734485,
+      "converged": true,
+      "elapsed_s": 712.1968846321106
+    },
+    "pipeline_B": {
+      "winner": "pinhole_parallel_plate",
+      "correct": true,
+      "elapsed_s": 11.529188394546509,
+      "candidates": [
+        {
+          "name": "central_pinhole",
+          "rms_mm": 0.33711521456978805,
+          "bic": -5140.480990488384
+        },
+        {
+          "name": "central_brown_conrady",
+          "rms_mm": 0.22045695398644938,
+          "bic": -6187.608405697404
+        },
+        {
+          "name": "pinhole_parallel_plate",
+          "rms_mm": 4.5509868803429473e-14,
+          "bic": -81918.30453291183
+        },
+        {
+          "name": "cmo_physical_shared",
+          "rms_mm": 0.0700566957194064,
+          "bic": -9121.44404314139
+        },
+        {
+          "name": "polynomial_surrogate_channel",
+          "rms_mm": 0.009015940862425988,
+          "bic": -14333.718920713462
+        },
+        {
+          "name": "zernike_compact",
+          "rms_mm": 0.00903716411673519,
+          "bic": -14327.624600586783
+        }
+      ]
+    }
+  },
+  {
+    "oracle": "cmo",
+    "expected_winner": "cmo_physical_shared",
+    "n_poses": 8,
+    "n_corners": 319,
+    "t_sim_s": 7.860748052597046,
+    "pipeline_A": {
+      "rms_px": 1.6330672537314634,
+      "bic": 1626.3913347885007,
+      "converged": false,
+      "elapsed_s": 296.2406258583069
+    },
+    "pipeline_B": {
+      "winner": "cmo_physical_shared",
+      "correct": true,
+      "elapsed_s": 3.363811492919922,
+      "candidates": [
+        {
+          "name": "central_pinhole",
+          "rms_mm": 52.020859185242486,
+          "bic": 7920.5429881142145
+        },
+        {
+          "name": "central_brown_conrady",
+          "rms_mm": 51.02347683025551,
+          "bic": 7924.117452808759
+        },
+        {
+          "name": "pinhole_parallel_plate",
+          "rms_mm": 51.66826224824971,
+          "bic": 7935.166294642603
+        },
+        {
+          "name": "cmo_physical_shared",
+          "rms_mm": 1.8187230513851936e-14,
+          "bic": -84236.58342056237
+        },
+        {
+          "name": "polynomial_surrogate_channel",
+          "rms_mm": 41.73383150196698,
+          "bic": 7542.950731576381
+        },
+        {
+          "name": "zernike_compact",
+          "rms_mm": 0.07384073214894325,
+          "bic": -8882.959902338025
+        }
+      ]
+    }
+  },
+  {
+    "oracle": "greenough",
+    "expected_winner": "central_brown_conrady",
+    "n_poses": 8,
+    "n_corners": 45,
+    "t_sim_s": 3.316505193710327,
+    "pipeline_A": {
+      "rms_px": 1.4560041776718953,
+      "bic": 337.00360681601614,
+      "converged": false,
+      "elapsed_s": 8418.476073026657
+    },
+    "pipeline_B": {
+      "winner": "central_brown_conrady",
+      "correct": true,
+      "elapsed_s": 6.0773162841796875,
+      "candidates": [
+        {
+          "name": "central_pinhole",
+          "rms_mm": 3.1474949856424033,
+          "bic": 649.8847966389607
+        },
+        {
+          "name": "central_brown_conrady",
+          "rms_mm": 4.384167451086324e-14,
+          "bic": -81993.60000389273
+        },
+        {
+          "name": "pinhole_parallel_plate",
+          "rms_mm": 3.1474949856424033,
+          "bic": 682.1364670850659
+        },
+        {
+          "name": "cmo_physical_shared",
+          "rms_mm": 2.686454518544375,
+          "bic": 330.73166607021835
+        },
+        {
+          "name": "polynomial_surrogate_channel",
+          "rms_mm": 5.343976995009315e-14,
+          "bic": -81340.7035234247
+        },
+        {
+          "name": "zernike_compact",
+          "rms_mm": 0.9412102816945452,
+          "bic": -2285.6561550768706
+        }
+      ]
+    }
+  },
+  {
+    "oracle": "exotic",
+    "expected_winner": "zernike_compact",
+    "n_poses": 8,
+    "n_corners": 46,
+    "t_sim_s": 5.780329704284668,
+    "pipeline_A": {
+      "rms_px": 0.5113463006843818,
+      "bic": 5.8697049390412985,
+      "converged": true,
+      "elapsed_s": 5456.489902019501
+    },
+    "pipeline_B": {
+      "winner": "zernike_compact",
+      "correct": true,
+      "elapsed_s": 8.776127815246582,
+      "candidates": [
+        {
+          "name": "central_pinhole",
+          "rms_mm": 6.165111530073718,
+          "bic": 2392.4846690420113
+        },
+        {
+          "name": "central_brown_conrady",
+          "rms_mm": 4.753966946968342,
+          "bic": 1772.5071588403164
+        },
+        {
+          "name": "pinhole_parallel_plate",
+          "rms_mm": 5.190094287015969,
+          "bic": 1978.512229990487
+        },
+        {
+          "name": "cmo_physical_shared",
+          "rms_mm": 3.458526427572508,
+          "bic": 985.5235068869061
+        },
+        {
+          "name": "polynomial_surrogate_channel",
+          "rms_mm": 3.5719143715853456,
+          "bic": 1171.2693326087372
+        },
+        {
+          "name": "zernike_compact",
+          "rms_mm": 2.933985965015716,
+          "bic": 661.3197853591818
+        }
+      ]
+    }
+  }
+]

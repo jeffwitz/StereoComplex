@@ -8,6 +8,33 @@ StereoComplex provides a simple idea:
 2. replace raw ChArUco corners by **refined corners** (`rayfield_tps_robust`) using a planar geometric prior,
 3. feed these refined points to OpenCV (`calibrateCamera`, `stereoCalibrate`) or your own pipeline.
 
+## Fast path on your own images
+
+If you do **not** use the synthetic dataset layout, you can still use the public API
+directly on your own folders:
+
+```python
+import stereocomplex as sc
+
+board = sc.CharucoBoardSpec(
+    squares_x=11,
+    squares_y=7,
+    square_size_mm=39.0713,
+    marker_size_mm=27.3499,
+    aruco_dictionary="DICT_4X4_1000",
+)
+
+detections = sc.detect_charuco_corners(image="left/000000.png", board=board)
+refined_xy = sc.refine_charuco_corners(
+    method="rayfield_tps_robust",
+    board=board,
+    detections=detections,
+)
+```
+
+This is the smallest public API example when you only want the refined 2D corners.
+For the full stereo path from two folders, see :doc:`BRING_YOUR_OWN_DATA`.
+
 ## Step 1 — Export refined 2D corners
 
 On a dataset v0 scene:
@@ -45,13 +72,12 @@ This script shows the expected impact on:
 
 ## What to do on real data?
 
-The current `refine-corners` command expects a dataset v0 scene (it uses `meta.json` to build the board definition).
+Use the public Python path described in :doc:`BRING_YOUR_OWN_DATA`.
 
-For real data, the next step is to add a folder-based mode:
+The dataset v0 CLI remains useful for:
 
-- provide your ChArUco board parameters (`squares_x/y`, `square_size_mm`, `marker_size_mm`, dictionary),
-- run corner refinement on all images,
-- export the resulting 2D points for OpenCV calibration.
+- reproducible synthetic benchmarks,
+- paper figures,
+- regression tests.
 
-This is planned as a follow-up once we lock the output format and validation workflow.
-
+But it is no longer the only way to try StereoComplex on real stereo folders.

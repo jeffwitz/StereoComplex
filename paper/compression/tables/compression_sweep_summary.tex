@@ -1,0 +1,27 @@
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llccc}
+\toprule
+Codec & Method & Stereo RMS (px) & Baseline err (px @ $\bar Z$) & Tri RMS (\%$\bar Z$)\\
+\midrule
+\multicolumn{5}{l}{\textbf{PNG (lossless)}}\\
+\quad & OpenCV pinhole (raw) & 0.529 & 1.693 & 0.971\\
+\quad & OpenCV pinhole + planar refinement & 0.123 & 0.287 & 1.079\\
+\quad & 3D ray-field + planar refinement & -- & 0.200 & 0.097\\
+\midrule
+\multicolumn{5}{l}{\textbf{WebP (q70)}}\\
+\quad & OpenCV pinhole (raw) & 0.499 & 1.208 & 0.874\\
+\quad & OpenCV pinhole + planar refinement & 0.117 & 0.110 & 1.010\\
+\quad & 3D ray-field + planar refinement & -- & 0.218 & 0.077\\
+\midrule
+\multicolumn{5}{l}{\textbf{JPEG (q80)}}\\
+\quad & OpenCV pinhole (raw) & 0.513 & 1.376 & 0.890\\
+\quad & OpenCV pinhole + planar refinement & 0.119 & 0.137 & 1.102\\
+\quad & 3D ray-field + planar refinement & -- & 0.296 & 0.101\\
+\bottomrule
+\end{tabular}
+\caption{Compression robustness (synthetic, selected codecs) using the released sweep results (\texttt{docs/assets/compression\_sweep/sweep\_metrics.json}). ``Baseline abs. err'' is converted to disparity-equivalent pixels at mean depth $\bar Z$; ``Tri RMS'' is depth-normalized. The 3D ray-field remains stable across lossy codecs in this benchmark.}
+\label{tab:compression_summary}
+\end{table}

@@ -27,10 +27,11 @@ def refine_charuco_corners(
     *,
     method: RefineMethod,
     board: Any,
-    marker_ids: np.ndarray,
-    marker_corners: list[np.ndarray],
-    charuco_ids: np.ndarray,
-    charuco_xy: np.ndarray,
+    detections: CharucoDetections | None = None,
+    marker_ids: np.ndarray | None = None,
+    marker_corners: list[np.ndarray] | None = None,
+    charuco_ids: np.ndarray | None = None,
+    charuco_xy: np.ndarray | None = None,
     tps_lam: float = 10.0,
     huber_c: float = 3.0,
     iters: int = 3,
@@ -46,6 +47,27 @@ def refine_charuco_corners(
     Output:
     - refined corner positions (K,2) in pixels, same order as `charuco_ids`.
     """
+    if detections is not None:
+        marker_ids = detections.marker_ids
+        marker_corners = detections.marker_corners
+        charuco_ids = detections.charuco_ids
+        charuco_xy = detections.charuco_xy
+    if marker_ids is None or marker_corners is None or charuco_ids is None or charuco_xy is None:
+        raise TypeError("provide either detections=... or marker_ids/marker_corners/charuco_ids/charuco_xy")
+
+    if not (
+        hasattr(board, "getIds")
+        and hasattr(board, "getObjPoints")
+        and hasattr(board, "getChessboardCorners")
+    ):
+        try:
+            from stereocomplex.api.calibration import CharucoBoardSpec, build_charuco_board  # noqa: PLC0415
+
+            if isinstance(board, CharucoBoardSpec):
+                board = build_charuco_board(board)
+        except Exception:
+            pass
+
     charuco_ids = np.asarray(charuco_ids, dtype=np.int32).reshape(-1)
     charuco_xy = np.asarray(charuco_xy, dtype=np.float64).reshape(-1, 2)
     if charuco_ids.size == 0:

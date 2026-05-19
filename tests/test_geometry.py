@@ -1,7 +1,6 @@
 import numpy as np
 
 from stereocomplex.core.geometry import (
-    PinholeCamera,
     pixel_to_sensor_um,
     sensor_um_to_pixel,
     triangulate_midpoint,
@@ -42,4 +41,3 @@ def test_triangulation_midpoint_hits_known_point():
     xyz, dist = triangulate_midpoint(o1, d1, o2, d2)
     assert np.linalg.norm(xyz - target) < 1e-6
     assert dist < 1e-9
-

@@ -12,13 +12,17 @@ endif
 SOURCEDIR     = .
 BUILDDIR      = _build
 
-.PHONY: help clean
+.PHONY: help clean pdf
 
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
 
 clean:
 	@rm -rf "$(BUILDDIR)"
+
+# 'pdf' is not a built-in Sphinx builder; route to latexpdf (requires xelatex).
+pdf:
+	@$(SPHINXBUILD) -M latexpdf "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
 
 .PHONY: Makefile
 

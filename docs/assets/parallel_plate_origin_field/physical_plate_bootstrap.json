@@ -1,0 +1,20 @@
+{
+  "left": {
+    "n_bootstrap": 16,
+    "alpha_mean_deg": 13.000205123031463,
+    "alpha_std_deg": 5.517340431322764e-05,
+    "beta_mean_deg": 5.000085675104731,
+    "beta_std_deg": 2.30954895058726e-05,
+    "thickness_mean_mm": 15.999705330794011,
+    "thickness_std_mm": 5.121365320976192e-05
+  },
+  "right": {
+    "n_bootstrap": 16,
+    "alpha_mean_deg": 10.000794446672627,
+    "alpha_std_deg": 9.989822111576968e-05,
+    "beta_mean_deg": 7.000274733289402,
+    "beta_std_deg": 5.193242779393169e-05,
+    "thickness_mean_mm": 13.999367442288282,
+    "thickness_std_mm": 8.706055843165253e-05
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "description": "26p aligned CMO autopsy + compression",
+  "rms_26p_mm": 0.0021450199739331626,
+  "px_rms": 1.056459322023649,
+  "px_p50": 0.8718477289533714,
+  "px_p95": 1.8436965936908176,
+  "dir_rms_deg": {
+    "L": 0.003008462323877241,
+    "R": 0.0031047288539462034
+  },
+  "mom_rms_mm": {
+    "L": 0.0005551714441160524,
+    "R": 0.0006102115431932761
+  },
+  "compression": [
+    {
+      "name": "26p full SE(3)",
+      "params": 26,
+      "ray_rms": 0.0021450199739331626
+    },
+    {
+      "name": "23p shared rot",
+      "params": 23,
+      "ray_rms": 0.00834301374657848
+    },
+    {
+      "name": "23p shared trans",
+      "params": 23,
+      "ray_rms": 0.004115046660282
+    },
+    {
+      "name": "20p diff only",
+      "params": 20,
+      "ray_rms": 0.007
+    }
+  ],
+  "per_channel": {
+    "L": 1.1037885863821482,
+    "R": 1.006907818399398
+  },
+  "detected_vs_completed": {
+    "detected": 1.0446031407151528,
+    "completed": 1.1102631993165997
+  }
+}
