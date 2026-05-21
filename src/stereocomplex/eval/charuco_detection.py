@@ -6,6 +6,8 @@ from pathlib import Path
 
 import numpy as np
 
+from stereocomplex.eval.predictors.warps import build_marker_correspondences
+
 
 @dataclass(frozen=True)
 class ErrorStats:
@@ -480,6 +482,26 @@ def _camera_params_from_meta(view_meta: dict, f_um: float, brown: dict) -> tuple
     return K, dist
 
 
+def _marker_correspondences(charuco_board, marker_ids, marker_corners, *, ndim: int = 2):
+    if marker_ids is None or marker_corners is None or len(marker_ids) == 0:
+        return None
+    return build_marker_correspondences(charuco_board, marker_ids, marker_corners, ndim=ndim)
+
+
+def _predict_marker_warp(method: str, obj_pts: np.ndarray, img_pts: np.ndarray, chess: np.ndarray) -> np.ndarray:
+    predictors = {
+        "kfield": _predict_points_affine_field,
+        "rayfield": _predict_points_rayfield,
+        "rayfield_tps": _predict_points_rayfield_tps,
+        "rayfield_tps_robust": _predict_points_rayfield_tps_robust,
+        "mls_affine": _predict_points_mls_affine,
+        "mls_h": _predict_points_mls_homography,
+        "pw_affine": _predict_points_piecewise_affine,
+        "tps": _predict_points_tps,
+    }
+    return predictors[method](obj_pts, img_pts, chess)
+
+
 def _eval_one_image(
     cv2,
     aruco,
@@ -559,34 +581,15 @@ def _eval_one_image(
         # interpolated residual field learned from detected ChArUco corners.
         if charuco_ids is None or charuco_corners is None:
             return [], [], [], 0, 0
-        if marker_ids is None or marker_corners is None or len(marker_ids) == 0:
-            return [], [], [], 0, 0
-
         det_ids = np.asarray(charuco_ids, dtype=np.int32).reshape(-1)
         det_xy = np.asarray(charuco_corners, dtype=np.float64).reshape(-1, 2)
         # Match dataset pixel-center convention.
         det_xy = det_xy - 0.5
 
-        marker_ids_arr = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids_arr.tolist(), marker_corners, strict=True):
-            o = id_to_obj2.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4 or o.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
+        corr = _marker_correspondences(charuco_board, marker_ids, marker_corners, ndim=2)
+        if corr is None:
             return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)
-        img_pts = np.concatenate(img_pts, axis=0)
+        obj_pts, img_pts = corr
 
         chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
         base_xy = _predict_points_mls_homography(obj_pts, img_pts, chess)
@@ -601,243 +604,29 @@ def _eval_one_image(
             charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
             charuco_xy = base_xy + res_pred
 
-    elif method == "kfield":
-        if marker_ids is None or marker_corners is None or len(marker_ids) == 0:
+    elif method in (
+        "kfield",
+        "rayfield",
+        "rayfield_tps",
+        "rayfield_tps_robust",
+        "mls_affine",
+        "mls_h",
+        "pw_affine",
+        "tps",
+    ):
+        corr = _marker_correspondences(charuco_board, marker_ids, marker_corners, ndim=2)
+        if corr is None:
             return [], [], [], 0, 0
-
-        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
-            o = id_to_obj2.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4 or o.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
-            return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)
-        img_pts = np.concatenate(img_pts, axis=0)
+        obj_pts, img_pts = corr
 
         chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
         charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
-        charuco_xy = _predict_points_affine_field(obj_pts, img_pts, chess)
-
-    elif method == "rayfield":
-        if marker_ids is None or marker_corners is None or len(marker_ids) == 0:
-            return [], [], [], 0, 0
-
-        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
-            o = id_to_obj2.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4 or o.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
-            return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)
-        img_pts = np.concatenate(img_pts, axis=0)
-
-        chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
-        charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
-        charuco_xy = _predict_points_rayfield(obj_pts, img_pts, chess)
-
-    elif method == "rayfield_tps":
-        if marker_ids is None or marker_corners is None or len(marker_ids) == 0:
-            return [], [], [], 0, 0
-
-        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
-            o = id_to_obj2.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4 or o.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
-            return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)
-        img_pts = np.concatenate(img_pts, axis=0)
-
-        chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
-        charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
-        charuco_xy = _predict_points_rayfield_tps(obj_pts, img_pts, chess)
-
-    elif method == "rayfield_tps_robust":
-        if marker_ids is None or marker_corners is None or len(marker_ids) == 0:
-            return [], [], [], 0, 0
-
-        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
-            o = id_to_obj2.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4 or o.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
-            return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)
-        img_pts = np.concatenate(img_pts, axis=0)
-
-        chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
-        charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
-        charuco_xy = _predict_points_rayfield_tps_robust(obj_pts, img_pts, chess)
-
-    elif method == "mls_affine":
-        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
-            o = id_to_obj2.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4 or o.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
-            return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)  # (N,2) in board units (mm)
-        img_pts = np.concatenate(img_pts, axis=0)  # (N,2) in px
-
-        chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
-        charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
-        charuco_xy = _predict_points_mls_affine(obj_pts, img_pts, chess)
-    elif method == "mls_h":
-        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
-            o = id_to_obj2.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4 or o.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
-            return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)
-        img_pts = np.concatenate(img_pts, axis=0)
-
-        chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
-        charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
-        charuco_xy = _predict_points_mls_homography(obj_pts, img_pts, chess)
-    elif method == "pw_affine":
-        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
-            o = id_to_obj2.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4 or o.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
-            return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)
-        img_pts = np.concatenate(img_pts, axis=0)
-
-        chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
-        charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
-        charuco_xy = _predict_points_piecewise_affine(obj_pts, img_pts, chess)
-    elif method == "tps":
-        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
-            o = id_to_obj2.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4 or o.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
-            return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)
-        img_pts = np.concatenate(img_pts, axis=0)
-
-        chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
-        charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
-        charuco_xy = _predict_points_tps(obj_pts, img_pts, chess)
+        charuco_xy = _predict_marker_warp(method, obj_pts, img_pts, chess)
     elif method == "pnp":
-        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj = {int(i): np.asarray(p, dtype=np.float64) for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
-            o = id_to_obj.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4 or o.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
+        corr = _marker_correspondences(charuco_board, marker_ids, marker_corners, ndim=3)
+        if corr is None:
             return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)
-        img_pts = np.concatenate(img_pts, axis=0)
+        obj_pts, img_pts = corr
 
         if camera_matrix is None or dist_coeffs is None:
             raise RuntimeError("pnp method requires camera_matrix and dist_coeffs from meta.json")
@@ -863,26 +652,10 @@ def _eval_one_image(
         if charuco_detector is None:
             raise RuntimeError("homography method requires CharucoDetector (OpenCV >= 4.7).")
 
-        marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
-        board_ids = np.asarray(charuco_board.getIds(), dtype=np.int32).reshape(-1)
-        board_obj = charuco_board.getObjPoints()
-        id_to_obj = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
-
-        obj_pts = []
-        img_pts = []
-        for mid, mc in zip(marker_ids.tolist(), marker_corners, strict=True):
-            o = id_to_obj.get(int(mid))
-            if o is None:
-                continue
-            mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] != 4:
-                continue
-            obj_pts.append(o)
-            img_pts.append(mc)
-        if not obj_pts:
+        corr = _marker_correspondences(charuco_board, marker_ids, marker_corners, ndim=2)
+        if corr is None:
             return [], [], [], 0, 0
-        obj_pts = np.concatenate(obj_pts, axis=0)
-        img_pts = np.concatenate(img_pts, axis=0)
+        obj_pts, img_pts = corr
 
         H, _mask = cv2.findHomography(obj_pts, img_pts, method=cv2.RANSAC, ransacReprojThreshold=3.0)
         if H is None:
