@@ -779,6 +779,22 @@ def _sorted_image_paths(folder: Path) -> list[Path]:
     return sorted(p for p in Path(folder).iterdir() if p.is_file() and p.suffix.lower() in exts)
 
 
+def _image_pairs_from_dirs(left_dir: str | Path, right_dir: str | Path, *, max_pairs: int = 0) -> list[StereoImagePair]:
+    left_paths = _sorted_image_paths(Path(left_dir))
+    right_paths = _sorted_image_paths(Path(right_dir))
+    if not left_paths or not right_paths:
+        raise FileNotFoundError("no images found in left_dir/right_dir")
+    if len(left_paths) != len(right_paths):
+        raise ValueError("left_dir and right_dir must contain the same number of images")
+    if max_pairs and max_pairs > 0:
+        left_paths = left_paths[: int(max_pairs)]
+        right_paths = right_paths[: int(max_pairs)]
+    return [
+        StereoImagePair(left_path=left_path, right_path=right_path, frame_id=k)
+        for k, (left_path, right_path) in enumerate(zip(left_paths, right_paths, strict=True))
+    ]
+
+
 def fit_opencv_stereo_from_image_pairs(
     *,
     image_pairs: Sequence[StereoImagePair | tuple[str | Path, str | Path]],
@@ -971,19 +987,7 @@ def fit_opencv_stereo_from_image_dirs(
     huber_c: float = 3.0,
     iters: int = 3,
 ) -> StereoOpenCVCalibrationResult:
-    left_paths = _sorted_image_paths(Path(left_dir))
-    right_paths = _sorted_image_paths(Path(right_dir))
-    if not left_paths or not right_paths:
-        raise FileNotFoundError("no images found in left_dir/right_dir")
-    if len(left_paths) != len(right_paths):
-        raise ValueError("left_dir and right_dir must contain the same number of images")
-    if max_pairs and max_pairs > 0:
-        left_paths = left_paths[: int(max_pairs)]
-        right_paths = right_paths[: int(max_pairs)]
-    pairs = [
-        StereoImagePair(left_path=left_path, right_path=right_path, frame_id=k)
-        for k, (left_path, right_path) in enumerate(zip(left_paths, right_paths, strict=True))
-    ]
+    pairs = _image_pairs_from_dirs(left_dir, right_dir, max_pairs=max_pairs)
     return fit_opencv_stereo_from_image_pairs(
         image_pairs=pairs,
         board=board,
@@ -1254,19 +1258,7 @@ def fit_stereo_central_rayfield_from_image_dirs(
     max_nfev: int = 800,
     export_model_dir: str | Path | None = None,
 ) -> StereoCentralRayFieldFitResult:
-    left_paths = _sorted_image_paths(Path(left_dir))
-    right_paths = _sorted_image_paths(Path(right_dir))
-    if not left_paths or not right_paths:
-        raise FileNotFoundError("no images found in left_dir/right_dir")
-    if len(left_paths) != len(right_paths):
-        raise ValueError("left_dir and right_dir must contain the same number of images")
-    if max_pairs and max_pairs > 0:
-        left_paths = left_paths[: int(max_pairs)]
-        right_paths = right_paths[: int(max_pairs)]
-    pairs = [
-        StereoImagePair(left_path=left_path, right_path=right_path, frame_id=k)
-        for k, (left_path, right_path) in enumerate(zip(left_paths, right_paths, strict=True))
-    ]
+    pairs = _image_pairs_from_dirs(left_dir, right_dir, max_pairs=max_pairs)
     return fit_stereo_central_rayfield_from_image_pairs(
         image_pairs=pairs,
         board=board,
