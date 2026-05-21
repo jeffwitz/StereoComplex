@@ -58,6 +58,10 @@ Validate that the pipeline correctly identifies:
 
 ## Conventions (unchanged)
 
+- `origin/develop` is the source of truth for current code. Treat `develop` as
+  the real implementation branch for large refactors and substantial code
+  changes. Do not use `main` / `origin/main` as the reference branch for this
+  work unless JFW explicitly asks for a release/backport.
 - deep-claude: fresh session + CLAUDE.md only
 - Flags: --pro --dangerously-skip-permissions --allowedTools "Read,Write,Edit,Bash"
 - All artefacts → JSON
