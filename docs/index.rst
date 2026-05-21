@@ -210,6 +210,7 @@ scripts 07 and 08.
   :doc:`ROADMAP`.
 - Reference:
   :doc:`PUBLIC_API`,
+  :doc:`API`,
   :doc:`ARCHITECTURE`,
   :doc:`DATASET_SPEC`,
   :doc:`CONVENTIONS`,
@@ -281,6 +282,7 @@ scripts 07 and 08.
    :hidden:
 
    PUBLIC_API
+   API
    ARCHITECTURE
    DATASET_SPEC
    CONVENTIONS
