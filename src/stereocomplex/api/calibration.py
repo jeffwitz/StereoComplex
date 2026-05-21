@@ -108,6 +108,16 @@ class StereoImagePair:
 
 
 @dataclass(frozen=True)
+class _RefinedStereoDetections:
+    det_left: CharucoDetections
+    det_right: CharucoDetections
+    xy_left: np.ndarray
+    xy_right: np.ndarray
+    map_left: dict[int, np.ndarray]
+    map_right: dict[int, np.ndarray]
+
+
+@dataclass(frozen=True)
 class StereoCentralRayFieldFitReport:
     image_width_px: int
     image_height_px: int
@@ -397,6 +407,47 @@ def _refine_detection_points(
         ),
         dtype=np.float64,
     ).reshape(-1, 2)
+
+
+def _detect_refined_stereo_pair(
+    *,
+    runtime: _CharucoRuntime,
+    img_left: np.ndarray,
+    img_right: np.ndarray,
+    method2d: RefineMethod,
+    tps_lam: float,
+    huber_c: float,
+    iters: int,
+) -> _RefinedStereoDetections | None:
+    det_left = _detect_view(runtime, img_left)
+    det_right = _detect_view(runtime, img_right)
+    if det_left is None or det_right is None:
+        return None
+
+    xy_left = _refine_detection_points(
+        runtime=runtime,
+        detection=det_left,
+        method2d=method2d,
+        tps_lam=tps_lam,
+        huber_c=huber_c,
+        iters=iters,
+    )
+    xy_right = _refine_detection_points(
+        runtime=runtime,
+        detection=det_right,
+        method2d=method2d,
+        tps_lam=tps_lam,
+        huber_c=huber_c,
+        iters=iters,
+    )
+    return _RefinedStereoDetections(
+        det_left=det_left,
+        det_right=det_right,
+        xy_left=xy_left,
+        xy_right=xy_right,
+        map_left=_dict_from_ids_xy(det_left.charuco_ids, xy_left),
+        map_right=_dict_from_ids_xy(det_right.charuco_ids, xy_right),
+    )
 
 
 def _estimate_K0_from_homographies(*, homographies: list[np.ndarray], image_size: tuple[int, int]) -> np.ndarray:
@@ -775,47 +826,35 @@ def fit_opencv_stereo_from_image_pairs(
         if current_size != image_size or img_right_gray.shape[:2] != img_left_gray.shape[:2]:
             raise ValueError("all left/right images must share the same size")
 
-        det_left = _detect_view(runtime, img_left_gray)
-        det_right = _detect_view(runtime, img_right_gray)
-        if det_left is None or det_right is None:
+        refined = _detect_refined_stereo_pair(
+            runtime=runtime,
+            img_left=img_left_gray,
+            img_right=img_right_gray,
+            method2d=method2d,
+            tps_lam=tps_lam,
+            huber_c=huber_c,
+            iters=iters,
+        )
+        if refined is None:
             continue
         detected_pairs += 1
 
-        xy_left = _refine_detection_points(
-            runtime=runtime,
-            detection=det_left,
-            method2d=method2d,
-            tps_lam=tps_lam,
-            huber_c=huber_c,
-            iters=iters,
-        )
-        xy_right = _refine_detection_points(
-            runtime=runtime,
-            detection=det_right,
-            method2d=method2d,
-            tps_lam=tps_lam,
-            huber_c=huber_c,
-            iters=iters,
-        )
-
-        ids_left = np.asarray(det_left.charuco_ids, dtype=np.int32).reshape(-1)
-        ids_right = np.asarray(det_right.charuco_ids, dtype=np.int32).reshape(-1)
+        ids_left = np.asarray(refined.det_left.charuco_ids, dtype=np.int32).reshape(-1)
+        ids_right = np.asarray(refined.det_right.charuco_ids, dtype=np.int32).reshape(-1)
         if ids_left.size >= 4:
             obj_left.append(np.asarray(chess3[ids_left], dtype=np.float32).reshape(-1, 3))
-            img_left.append(np.asarray(xy_left, dtype=np.float32).reshape(-1, 2))
+            img_left.append(np.asarray(refined.xy_left, dtype=np.float32).reshape(-1, 2))
         if ids_right.size >= 4:
             obj_right.append(np.asarray(chess3[ids_right], dtype=np.float32).reshape(-1, 3))
-            img_right.append(np.asarray(xy_right, dtype=np.float32).reshape(-1, 2))
+            img_right.append(np.asarray(refined.xy_right, dtype=np.float32).reshape(-1, 2))
 
-        map_left = _dict_from_ids_xy(ids_left, xy_left)
-        map_right = _dict_from_ids_xy(ids_right, xy_right)
-        common_ids = sorted(set(map_left).intersection(map_right))
+        common_ids = sorted(set(refined.map_left).intersection(refined.map_right))
         if len(common_ids) < int(min_common_corners):
             continue
 
         obj_stereo.append(np.asarray(chess3[np.asarray(common_ids, dtype=np.int32)], dtype=np.float32).reshape(-1, 3))
-        img_stereo_left.append(np.asarray([map_left[i] for i in common_ids], dtype=np.float32).reshape(-1, 2))
-        img_stereo_right.append(np.asarray([map_right[i] for i in common_ids], dtype=np.float32).reshape(-1, 2))
+        img_stereo_left.append(np.asarray([refined.map_left[i] for i in common_ids], dtype=np.float32).reshape(-1, 2))
+        img_stereo_right.append(np.asarray([refined.map_right[i] for i in common_ids], dtype=np.float32).reshape(-1, 2))
         used_frame_ids.append(int(pair.frame_id if pair.frame_id is not None else len(used_frame_ids)))
 
     if image_size is None:
@@ -1034,37 +1073,25 @@ def fit_stereo_central_rayfield_from_image_pairs(
         if image_size != (int(img_left.shape[1]), int(img_left.shape[0])):
             raise ValueError("all images must have the same size")
 
-        det_left = _detect_view(runtime, img_left)
-        det_right = _detect_view(runtime, img_right)
-        if det_left is None or det_right is None:
+        refined = _detect_refined_stereo_pair(
+            runtime=runtime,
+            img_left=img_left,
+            img_right=img_right,
+            method2d=method2d,
+            tps_lam=tps_lam,
+            huber_c=huber_c,
+            iters=iters,
+        )
+        if refined is None:
             continue
         detected_pairs += 1
 
-        xy_left = _refine_detection_points(
-            runtime=runtime,
-            detection=det_left,
-            method2d=method2d,
-            tps_lam=tps_lam,
-            huber_c=huber_c,
-            iters=iters,
-        )
-        xy_right = _refine_detection_points(
-            runtime=runtime,
-            detection=det_right,
-            method2d=method2d,
-            tps_lam=tps_lam,
-            huber_c=huber_c,
-            iters=iters,
-        )
-        map_left = _dict_from_ids_xy(det_left.charuco_ids, xy_left)
-        map_right = _dict_from_ids_xy(det_right.charuco_ids, xy_right)
-
-        common_ids = sorted(set(map_left).intersection(map_right))
+        common_ids = sorted(set(refined.map_left).intersection(refined.map_right))
         if len(common_ids) < int(min_common_corners):
             continue
 
-        uv_left = np.stack([map_left[i] for i in common_ids], axis=0).astype(np.float64)
-        uv_right = np.stack([map_right[i] for i in common_ids], axis=0).astype(np.float64)
+        uv_left = np.stack([refined.map_left[i] for i in common_ids], axis=0).astype(np.float64)
+        uv_right = np.stack([refined.map_right[i] for i in common_ids], axis=0).astype(np.float64)
         obj = chess3[np.asarray(common_ids, dtype=np.int32)].astype(np.float64)
         fid = int(pair.frame_id if pair.frame_id is not None else len(obs_by_side["left"]))
         obs_by_side["left"][fid] = FrameObservations(uv_px=uv_left, P_board_mm=obj)
