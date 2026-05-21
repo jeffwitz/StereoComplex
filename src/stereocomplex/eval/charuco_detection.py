@@ -6,25 +6,9 @@ from pathlib import Path
 
 import numpy as np
 
-from stereocomplex.eval.predictors.warps import (
-    build_marker_correspondences,
-    predict_points_affine_field as _predict_points_affine_field,
-    predict_points_mls_affine as _predict_points_mls_affine,
-    predict_hybrid as _predict_hybrid,
-    predict_points_homography as _predict_points_homography,
-    predict_points_mls_homography as _predict_points_mls_homography,
-    predict_points_piecewise_affine as _predict_points_piecewise_affine,
-    predict_points_rayfield as _predict_points_rayfield,
-    predict_points_rayfield_tps as _predict_points_rayfield_tps,
-    predict_points_rayfield_tps_robust as _predict_points_rayfield_tps_robust,
-    predict_points_tps as _predict_points_tps,
-)
-from stereocomplex.eval.refiners.tensor import (
-    refine_points_tensor_lines as _refine_points_tensor_lines,
-    refine_points_tensor_lsq as _refine_points_tensor_lsq,
-    refine_points_tensor_noble as _refine_points_tensor_noble,
-    refine_points_tensor_symmetry as _refine_points_tensor_symmetry,
-)
+from stereocomplex.eval.detectors.charuco import detect_image_features
+from stereocomplex.eval.predictors.dispatch import predict_charuco_points
+from stereocomplex.eval.refiners.dispatch import refine_detected_points
 
 
 @dataclass(frozen=True)
@@ -39,14 +23,6 @@ class ErrorStats:
     mean_dy_px: float
     rms_dx_px: float
     rms_dy_px: float
-
-
-@dataclass(frozen=True)
-class _ImageFeatures:
-    charuco_corners: object | None
-    charuco_ids: object | None
-    marker_corners: object | None
-    marker_ids: object | None
 
 
 def eval_charuco_detection(
@@ -508,202 +484,6 @@ def _camera_params_from_meta(view_meta: dict, f_um: float, brown: dict) -> tuple
     return K, dist
 
 
-def _marker_correspondences(charuco_board, marker_ids, marker_corners, *, ndim: int = 2):
-    if marker_ids is None or marker_corners is None or len(marker_ids) == 0:
-        return None
-    return build_marker_correspondences(charuco_board, marker_ids, marker_corners, ndim=ndim)
-
-
-def _predict_marker_warp(method: str, obj_pts: np.ndarray, img_pts: np.ndarray, chess: np.ndarray) -> np.ndarray:
-    predictors = {
-        "kfield": _predict_points_affine_field,
-        "rayfield": _predict_points_rayfield,
-        "rayfield_tps": _predict_points_rayfield_tps,
-        "rayfield_tps_robust": _predict_points_rayfield_tps_robust,
-        "mls_affine": _predict_points_mls_affine,
-        "mls_h": _predict_points_mls_homography,
-        "pw_affine": _predict_points_piecewise_affine,
-        "tps": _predict_points_tps,
-    }
-    return predictors[method](obj_pts, img_pts, chess)
-
-
-def _refine_detected_points(
-    refine: str,
-    cv2,
-    img: np.ndarray,
-    charuco_xy: np.ndarray,
-    *,
-    search_radius: int,
-    tensor_sigma: float,
-) -> np.ndarray:
-    if refine == "none":
-        return charuco_xy
-
-    refiners = {
-        "tensor": _refine_points_tensor_symmetry,
-        "lines": _refine_points_tensor_lines,
-        "lsq": _refine_points_tensor_lsq,
-        "noble": _refine_points_tensor_noble,
-    }
-    refiner = refiners.get(refine)
-    if refiner is None:
-        raise ValueError("refine must be none|tensor|lines|lsq|noble")
-    return refiner(
-        cv2,
-        img,
-        charuco_xy,
-        search_radius=float(search_radius),
-        tensor_sigma=float(tensor_sigma),
-    )
-
-
-def _method_requires_markers(method: str) -> bool:
-    return method in {
-        "homography",
-        "pnp",
-        "mls",
-        "mls_affine",
-        "mls_h",
-        "pw_affine",
-        "tps",
-        "kfield",
-        "rayfield",
-        "rayfield_tps",
-        "rayfield_tps_robust",
-    }
-
-
-def _detect_image_features(
-    aruco,
-    dictionary,
-    charuco_board,
-    detector_params,
-    aruco_detector,
-    charuco_detector,
-    img: np.ndarray,
-    method: str,
-) -> tuple[_ImageFeatures | None, int]:
-    if charuco_detector is not None:
-        charuco_corners, charuco_ids, marker_corners, marker_ids = charuco_detector.detectBoard(img)
-        if _method_requires_markers(method):
-            if marker_ids is None or marker_corners is None or len(marker_ids) == 0:
-                return None, 0
-        elif charuco_ids is None or charuco_corners is None:
-            return None, 0
-        return _ImageFeatures(charuco_corners, charuco_ids, marker_corners, marker_ids), 0
-
-    if aruco_detector is not None:
-        corners, ids, _rejected = aruco_detector.detectMarkers(img)
-    else:  # pragma: no cover
-        corners, ids, _rejected = aruco.detectMarkers(img, dictionary, parameters=detector_params)
-
-    if ids is None or len(ids) == 0:
-        return None, 0
-
-    charuco_corners, charuco_ids = None, None
-    if method in ("charuco", "hybrid"):
-        if not hasattr(aruco, "interpolateCornersCharuco"):
-            raise RuntimeError("OpenCV build has no CharucoDetector or interpolateCornersCharuco.")
-
-        ret = aruco.interpolateCornersCharuco(corners, ids, img, charuco_board)
-        if ret is None:
-            return None, int(len(ids))
-        charuco_corners, charuco_ids, _ = ret
-        if charuco_ids is None or charuco_corners is None:
-            return None, int(len(ids))
-
-    return _ImageFeatures(charuco_corners, charuco_ids, corners, ids), 0
-
-
-def _predict_charuco_points(
-    cv2,
-    charuco_board,
-    features: _ImageFeatures,
-    method: str,
-    camera_matrix: np.ndarray | None,
-    dist_coeffs: np.ndarray | None,
-) -> tuple[np.ndarray, np.ndarray] | None:
-    if method == "mls":
-        method = "mls_affine"
-
-    if method == "hybrid":
-        return _predict_hybrid(
-            charuco_board,
-            features.charuco_ids,
-            features.charuco_corners,
-            features.marker_ids,
-            features.marker_corners,
-        )
-
-    if method in (
-        "kfield",
-        "rayfield",
-        "rayfield_tps",
-        "rayfield_tps_robust",
-        "mls_affine",
-        "mls_h",
-        "pw_affine",
-        "tps",
-    ):
-        corr = _marker_correspondences(charuco_board, features.marker_ids, features.marker_corners, ndim=2)
-        if corr is None:
-            return None
-        obj_pts, img_pts = corr
-        chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
-        charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
-        charuco_xy = _predict_marker_warp(method, obj_pts, img_pts, chess)
-        return charuco_ids, charuco_xy
-
-    if method == "pnp":
-        corr = _marker_correspondences(charuco_board, features.marker_ids, features.marker_corners, ndim=3)
-        if corr is None:
-            return None
-        obj_pts, img_pts = corr
-
-        if camera_matrix is None or dist_coeffs is None:
-            raise RuntimeError("pnp method requires camera_matrix and dist_coeffs from meta.json")
-
-        ok, rvec, tvec, _inliers = cv2.solvePnPRansac(
-            obj_pts,
-            img_pts,
-            camera_matrix,
-            dist_coeffs,
-            flags=cv2.SOLVEPNP_ITERATIVE,
-            reprojectionError=3.0,
-            iterationsCount=200,
-            confidence=0.999,
-        )
-        if not ok:
-            return None
-
-        chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)
-        charuco_ids = np.arange(chess.shape[0], dtype=np.int32)
-        proj, _jac = cv2.projectPoints(chess, rvec, tvec, camera_matrix, dist_coeffs)
-        return charuco_ids, proj.reshape(-1, 2).astype(np.float64)
-
-    if method == "homography":
-        corr = _marker_correspondences(charuco_board, features.marker_ids, features.marker_corners, ndim=2)
-        if corr is None:
-            return None
-        obj_pts, img_pts = corr
-        chess = np.asarray(charuco_board.getChessboardCorners(), dtype=np.float64)[:, :2]
-        charuco_xy = _predict_points_homography(obj_pts, img_pts, chess)
-        if charuco_xy is None:
-            return None
-        return np.arange(chess.shape[0], dtype=np.int32), charuco_xy
-
-    if method == "charuco":
-        if features.charuco_ids is None or features.charuco_corners is None:
-            return None
-        charuco_ids = features.charuco_ids.reshape(-1).astype(np.int32)
-        charuco_xy = features.charuco_corners.reshape(-1, 2).astype(np.float64) - 0.5
-        return charuco_ids, charuco_xy
-
-    raise ValueError(
-        "method must be charuco|homography|pnp|mls|mls_h|pw_affine|tps|hybrid|kfield|rayfield|rayfield_tps|rayfield_tps_robust"
-    )
-
 
 def _eval_one_image(
     cv2,
@@ -732,7 +512,7 @@ def _eval_one_image(
     method = str(method)
     refine = str(refine)
 
-    features, n_detected_on_failure = _detect_image_features(
+    features, n_detected_on_failure = detect_image_features(
         aruco,
         dictionary,
         charuco_board,
@@ -745,7 +525,7 @@ def _eval_one_image(
     if features is None:
         return [], [], [], n_detected_on_failure, 0
 
-    predicted = _predict_charuco_points(
+    predicted = predict_charuco_points(
         cv2,
         charuco_board,
         features,
@@ -757,7 +537,7 @@ def _eval_one_image(
         return [], [], [], 0, 0
     charuco_ids, charuco_xy = predicted
 
-    charuco_xy = _refine_detected_points(
+    charuco_xy = refine_detected_points(
         refine,
         cv2,
         img,
