@@ -1363,37 +1363,34 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
         if img_l.shape != img_r.shape or (int(img_l.shape[1]), int(img_l.shape[0])) != image_size:
             continue
 
-        det_l = _detect_view(runtime, img_l)
-        det_r = _detect_view(runtime, img_r)
-        if det_l is None or det_r is None:
+        refined = _detect_refined_stereo_pair(
+            runtime=runtime,
+            img_left=img_l,
+            img_right=img_r,
+            method2d=method2d,
+            tps_lam=tps_lam,
+            huber_c=huber_c,
+            iters=iters,
+        )
+        if refined is None:
             continue
 
-        xy_l = _refine_detection_points(
-            runtime=runtime, detection=det_l, method2d=method2d,
-            tps_lam=tps_lam, huber_c=huber_c, iters=iters,
-        )
-        xy_r = _refine_detection_points(
-            runtime=runtime, detection=det_r, method2d=method2d,
-            tps_lam=tps_lam, huber_c=huber_c, iters=iters,
-        )
-        ids_l = np.asarray(det_l.charuco_ids, dtype=np.int32).reshape(-1)
-        ids_r = np.asarray(det_r.charuco_ids, dtype=np.int32).reshape(-1)
-        map_l = _dict_from_ids_xy(ids_l, xy_l)
-        map_r = _dict_from_ids_xy(ids_r, xy_r)
-        common_ids = sorted(set(map_l).intersection(map_r))
+        ids_l = np.asarray(refined.det_left.charuco_ids, dtype=np.int32).reshape(-1)
+        ids_r = np.asarray(refined.det_right.charuco_ids, dtype=np.int32).reshape(-1)
+        common_ids = sorted(set(refined.map_left).intersection(refined.map_right))
         if len(common_ids) < int(min_common_corners):
             continue
 
-        frame_maps_left.append(map_l)
-        frame_maps_right.append(map_r)
+        frame_maps_left.append(refined.map_left)
+        frame_maps_right.append(refined.map_right)
         frame_common_ids.append(common_ids)
 
         if ids_l.size >= 4:
             obj_left.append(chess3[ids_l].astype(np.float32).reshape(-1, 3))
-            img_left_cv.append(xy_l.astype(np.float32).reshape(-1, 2))
+            img_left_cv.append(refined.xy_left.astype(np.float32).reshape(-1, 2))
         if ids_r.size >= 4:
             obj_right.append(chess3[ids_r].astype(np.float32).reshape(-1, 3))
-            img_right_cv.append(xy_r.astype(np.float32).reshape(-1, 2))
+            img_right_cv.append(refined.xy_right.astype(np.float32).reshape(-1, 2))
 
     if not frame_common_ids:
         raise RuntimeError("no usable stereo frames after ChArUco detection")
