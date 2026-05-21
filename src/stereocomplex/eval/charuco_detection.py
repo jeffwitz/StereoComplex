@@ -25,6 +25,24 @@ class ErrorStats:
     rms_dy_px: float
 
 
+@dataclass(frozen=True)
+class _SceneEvalContext:
+    frames: list[dict[str, object]]
+    frame_id: np.ndarray
+    gt_by_frame: dict[int, dict[str, dict[int, np.ndarray]]]
+    cv2: object
+    aruco: object
+    dictionary: object
+    charuco_board: object
+    detector_params: object
+    aruco_detector: object
+    charuco_detector: object
+    K_left: np.ndarray
+    d_left: np.ndarray
+    K_right: np.ndarray
+    d_right: np.ndarray
+
+
 def eval_charuco_detection(
     dataset_root: Path,
     write_json: bool = True,
@@ -66,39 +84,7 @@ def eval_charuco_scene(
     tensor_sigma: float = 1.5,
     search_radius: int = 3,
 ) -> dict[str, object]:
-    meta = json.loads((scene_dir / "meta.json").read_text(encoding="utf-8"))
-    board = meta.get("board", {})
-    if board.get("type") != "charuco":
-        raise ValueError(f"{scene_dir} board.type must be charuco for this eval")
-
-    frames = _read_frames(scene_dir / "frames.jsonl")
-
-    gt_path = scene_dir / "gt_charuco_corners.npz"
-    if not gt_path.exists():
-        raise FileNotFoundError(f"Missing {gt_path}")
-
-    gt = np.load(gt_path)
-    frame_id = gt["frame_id"].astype(np.int32)
-    corner_id = gt["corner_id"].astype(np.int32)
-    uvL = gt["uv_left_px"].astype(np.float64)
-    uvR = gt["uv_right_px"].astype(np.float64)
-
-    gt_by_frame = _index_gt_by_frame(frame_id, corner_id, uvL, uvR)
-
-    # Build OpenCV board/detector once.
-    cv2, aruco, dictionary, charuco_board, detector_params, aruco_detector, charuco_detector = _make_charuco_detector(board)
-
-    # Camera parameters (needed for distortion-aware methods like PnP).
-    sim = meta.get("sim_params", {})
-    f_um = float(sim.get("f_um", 0.0))
-    if f_um <= 0.0:
-        f_um = float("nan")
-
-    dist_model = str(sim.get("distortion_model", "none"))
-    dist_left = sim.get("distortion_left", {}) if dist_model == "brown" else {}
-    dist_right = sim.get("distortion_right", {}) if dist_model == "brown" else {}
-    K_left, d_left = _camera_params_from_meta(meta["stereo"]["left"], f_um=f_um, brown=dist_left)
-    K_right, d_right = _camera_params_from_meta(meta["stereo"]["right"], f_um=f_um, brown=dist_right)
+    context = _load_scene_eval_context(scene_dir)
 
     per_side_errors: dict[str, list[float]] = {"left": [], "right": []}
     per_side_dx: dict[str, list[float]] = {"left": [], "right": []}
@@ -109,51 +95,22 @@ def eval_charuco_scene(
     n_frames = 0
     n_frames_with_any_match = 0
 
-    for fr in frames:
+    for fr in context.frames:
         n_frames += 1
         fid = int(fr["frame_id"])
-        gt_frame = gt_by_frame.get(fid)
+        gt_frame = context.gt_by_frame.get(fid)
         if gt_frame is None:
             continue
 
-        left_path = scene_dir / "left" / fr["left"]
-        right_path = scene_dir / "right" / fr["right"]
-
-        eL, dxL, dyL, n_det_L, n_match_L = _eval_one_image(
-            cv2,
-            aruco,
-            dictionary,
-            charuco_board,
-            detector_params,
-            aruco_detector,
-            charuco_detector,
-            left_path,
+        (eL, dxL, dyL, n_det_L, n_match_L), (eR, dxR, dyR, n_det_R, n_match_R) = _eval_image_pair(
+            scene_dir,
+            context,
+            fr,
             gt_frame,
-            side="left",
             method=method,
             refine=refine,
             tensor_sigma=tensor_sigma,
             search_radius=search_radius,
-            camera_matrix=K_left,
-            dist_coeffs=d_left,
-        )
-        eR, dxR, dyR, n_det_R, n_match_R = _eval_one_image(
-            cv2,
-            aruco,
-            dictionary,
-            charuco_board,
-            detector_params,
-            aruco_detector,
-            charuco_detector,
-            right_path,
-            gt_frame,
-            side="right",
-            method=method,
-            refine=refine,
-            tensor_sigma=tensor_sigma,
-            search_radius=search_radius,
-            camera_matrix=K_right,
-            dist_coeffs=d_right,
         )
 
         per_side_errors["left"].extend(eL)
@@ -176,7 +133,7 @@ def eval_charuco_scene(
     return {
         "n_frames": n_frames,
         "n_frames_with_any_match": n_frames_with_any_match,
-        "n_gt_rows": int(frame_id.shape[0]),
+        "n_gt_rows": int(context.frame_id.shape[0]),
         "left": {
             "n_detected": per_side_n_detected["left"],
             "n_matched": per_side_n_matched["left"],
@@ -210,6 +167,69 @@ def collect_charuco_scene_errors(
       - `rayfield_tps_robust`: homography + TPS-smoothed residual field with robust IRLS (Huber).
       - `mls_affine`, `mls_h`, `pw_affine`, `kfield`, `hybrid`: experimental/ablations.
     """
+    context = _load_scene_eval_context(scene_dir)
+
+    errors_left: list[float] = []
+    errors_right: list[float] = []
+    dx_left: list[float] = []
+    dy_left: list[float] = []
+    dx_right: list[float] = []
+    dy_right: list[float] = []
+    n_det_left = 0
+    n_det_right = 0
+    n_match_left = 0
+    n_match_right = 0
+
+    for fr in context.frames:
+        fid = int(fr["frame_id"])
+        gt_frame = context.gt_by_frame.get(fid)
+        if gt_frame is None:
+            continue
+
+        (eL, dxL, dyL, n_det_L, n_match_L), (eR, dxR, dyR, n_det_R, n_match_R) = _eval_image_pair(
+            scene_dir,
+            context,
+            fr,
+            gt_frame,
+            method=method,
+            refine=refine,
+            tensor_sigma=tensor_sigma,
+            search_radius=search_radius,
+        )
+
+        errors_left.extend(eL)
+        dx_left.extend(dxL)
+        dy_left.extend(dyL)
+        errors_right.extend(eR)
+        dx_right.extend(dxR)
+        dy_right.extend(dyR)
+        n_det_left += int(n_det_L)
+        n_det_right += int(n_det_R)
+        n_match_left += int(n_match_L)
+        n_match_right += int(n_match_R)
+
+    return {
+        "scene_dir": str(scene_dir),
+        "method": str(method),
+        "refine": str(refine),
+        "left": {
+            "n_detected": n_det_left,
+            "n_matched": n_match_left,
+            "errors": errors_left,
+            "dx": dx_left,
+            "dy": dy_left,
+        },
+        "right": {
+            "n_detected": n_det_right,
+            "n_matched": n_match_right,
+            "errors": errors_right,
+            "dx": dx_right,
+            "dy": dy_right,
+        },
+    }
+
+
+def _load_scene_eval_context(scene_dir: Path) -> _SceneEvalContext:
     meta = json.loads((scene_dir / "meta.json").read_text(encoding="utf-8"))
     board = meta.get("board", {})
     if board.get("type") != "charuco":
@@ -234,93 +254,82 @@ def collect_charuco_scene_errors(
     f_um = float(sim.get("f_um", 0.0))
     if f_um <= 0.0:
         f_um = float("nan")
+
     dist_model = str(sim.get("distortion_model", "none"))
     dist_left = sim.get("distortion_left", {}) if dist_model == "brown" else {}
     dist_right = sim.get("distortion_right", {}) if dist_model == "brown" else {}
     K_left, d_left = _camera_params_from_meta(meta["stereo"]["left"], f_um=f_um, brown=dist_left)
     K_right, d_right = _camera_params_from_meta(meta["stereo"]["right"], f_um=f_um, brown=dist_right)
 
-    errors_left: list[float] = []
-    errors_right: list[float] = []
-    dx_left: list[float] = []
-    dy_left: list[float] = []
-    dx_right: list[float] = []
-    dy_right: list[float] = []
-    n_det_left = 0
-    n_det_right = 0
-    n_match_left = 0
-    n_match_right = 0
+    return _SceneEvalContext(
+        frames=frames,
+        frame_id=frame_id,
+        gt_by_frame=gt_by_frame,
+        cv2=cv2,
+        aruco=aruco,
+        dictionary=dictionary,
+        charuco_board=charuco_board,
+        detector_params=detector_params,
+        aruco_detector=aruco_detector,
+        charuco_detector=charuco_detector,
+        K_left=K_left,
+        d_left=d_left,
+        K_right=K_right,
+        d_right=d_right,
+    )
 
-    for fr in frames:
-        fid = int(fr["frame_id"])
-        gt_frame = gt_by_frame.get(fid)
-        if gt_frame is None:
-            continue
 
-        left_path = scene_dir / "left" / fr["left"]
-        right_path = scene_dir / "right" / fr["right"]
+def _eval_image_pair(
+    scene_dir: Path,
+    context: _SceneEvalContext,
+    frame: dict[str, object],
+    gt_frame: dict[str, dict[int, np.ndarray]],
+    *,
+    method: str,
+    refine: str,
+    tensor_sigma: float,
+    search_radius: int,
+):
+    left_path = scene_dir / "left" / str(frame["left"])
+    right_path = scene_dir / "right" / str(frame["right"])
 
-        eL, dxL, dyL, n_det_L, n_match_L = _eval_one_image(
-            cv2,
-            aruco,
-            dictionary,
-            charuco_board,
-            detector_params,
-            aruco_detector,
-            charuco_detector,
-            left_path,
-            gt_frame,
-            side="left",
-            method=method,
-            refine=refine,
-            tensor_sigma=tensor_sigma,
-            search_radius=search_radius,
-            camera_matrix=K_left,
-            dist_coeffs=d_left,
-        )
-        eR, dxR, dyR, n_det_R, n_match_R = _eval_one_image(
-            cv2,
-            aruco,
-            dictionary,
-            charuco_board,
-            detector_params,
-            aruco_detector,
-            charuco_detector,
-            right_path,
-            gt_frame,
-            side="right",
-            method=method,
-            refine=refine,
-            tensor_sigma=tensor_sigma,
-            search_radius=search_radius,
-            camera_matrix=K_right,
-            dist_coeffs=d_right,
-        )
-
-        errors_left.extend(eL)
-        dx_left.extend(dxL)
-        dy_left.extend(dyL)
-        errors_right.extend(eR)
-        dx_right.extend(dxR)
-        dy_right.extend(dyR)
-        n_det_left += int(n_det_L)
-        n_det_right += int(n_det_R)
-        n_match_left += int(n_match_L)
-        n_match_right += int(n_match_R)
-
-    return {
-        "scene_dir": str(scene_dir),
-        "method": str(method),
-        "refine": str(refine),
-        "left": {"n_detected": n_det_left, "n_matched": n_match_left, "errors": errors_left, "dx": dx_left, "dy": dy_left},
-        "right": {
-            "n_detected": n_det_right,
-            "n_matched": n_match_right,
-            "errors": errors_right,
-            "dx": dx_right,
-            "dy": dy_right,
-        },
-    }
+    left = _eval_one_image(
+        context.cv2,
+        context.aruco,
+        context.dictionary,
+        context.charuco_board,
+        context.detector_params,
+        context.aruco_detector,
+        context.charuco_detector,
+        left_path,
+        gt_frame,
+        side="left",
+        method=method,
+        refine=refine,
+        tensor_sigma=tensor_sigma,
+        search_radius=search_radius,
+        camera_matrix=context.K_left,
+        dist_coeffs=context.d_left,
+    )
+    right = _eval_one_image(
+        context.cv2,
+        context.aruco,
+        context.dictionary,
+        context.charuco_board,
+        context.detector_params,
+        context.aruco_detector,
+        context.charuco_detector,
+        right_path,
+        gt_frame,
+        side="right",
+        method=method,
+        refine=refine,
+        tensor_sigma=tensor_sigma,
+        search_radius=search_radius,
+        camera_matrix=context.K_right,
+        dist_coeffs=context.d_right,
+    )
+    return left, right
 
 
 def _stats_to_dict(stats: ErrorStats | None) -> dict[str, float]:
@@ -482,7 +491,6 @@ def _camera_params_from_meta(view_meta: dict, f_um: float, brown: dict) -> tuple
         dtype=np.float64,
     )
     return K, dist
-
 
 
 def _eval_one_image(
