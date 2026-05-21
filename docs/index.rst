@@ -206,8 +206,7 @@ scripts 07 and 08.
   :doc:`CMO_PHYSICAL_MODEL`,
   :doc:`PYCASO_Z_SWEEP`.
 - Project status:
-  :doc:`VALIDATION_STATUS`,
-  :doc:`ROADMAP`.
+  :doc:`VALIDATION_STATUS`,.
 - Reference:
   :doc:`PUBLIC_API`,
   :doc:`API`,
@@ -274,8 +273,6 @@ scripts 07 and 08.
    :hidden:
 
    VALIDATION_STATUS
-   ROADMAP
-
 .. toctree::
    :maxdepth: 2
    :caption: Reference
