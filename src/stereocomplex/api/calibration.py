@@ -1040,34 +1040,24 @@ def fit_stereo_central_rayfield_from_image_pairs(
             continue
         detected_pairs += 1
 
-        if method2d == "raw":
-            map_left = _dict_from_ids_xy(det_left.charuco_ids, det_left.charuco_xy)
-            map_right = _dict_from_ids_xy(det_right.charuco_ids, det_right.charuco_xy)
-        else:
-            refined_left = refine_charuco_corners(
-                method=str(method2d),
-                board=runtime.board,
-                marker_ids=det_left.marker_ids,
-                marker_corners=det_left.marker_corners,
-                charuco_ids=det_left.charuco_ids,
-                charuco_xy=det_left.charuco_xy,
-                tps_lam=float(tps_lam),
-                huber_c=float(huber_c),
-                iters=int(iters),
-            )
-            refined_right = refine_charuco_corners(
-                method=str(method2d),
-                board=runtime.board,
-                marker_ids=det_right.marker_ids,
-                marker_corners=det_right.marker_corners,
-                charuco_ids=det_right.charuco_ids,
-                charuco_xy=det_right.charuco_xy,
-                tps_lam=float(tps_lam),
-                huber_c=float(huber_c),
-                iters=int(iters),
-            )
-            map_left = _dict_from_ids_xy(det_left.charuco_ids, refined_left)
-            map_right = _dict_from_ids_xy(det_right.charuco_ids, refined_right)
+        xy_left = _refine_detection_points(
+            runtime=runtime,
+            detection=det_left,
+            method2d=method2d,
+            tps_lam=tps_lam,
+            huber_c=huber_c,
+            iters=iters,
+        )
+        xy_right = _refine_detection_points(
+            runtime=runtime,
+            detection=det_right,
+            method2d=method2d,
+            tps_lam=tps_lam,
+            huber_c=huber_c,
+            iters=iters,
+        )
+        map_left = _dict_from_ids_xy(det_left.charuco_ids, xy_left)
+        map_right = _dict_from_ids_xy(det_right.charuco_ids, xy_right)
 
         common_ids = sorted(set(map_left).intersection(map_right))
         if len(common_ids) < int(min_common_corners):
