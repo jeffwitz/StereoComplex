@@ -65,8 +65,8 @@ The report shows reprojection RMS, epipolar error, and reconstruction quality.
 **Key take-away:** the Ray2D front-end is a drop‑in improvement over raw OpenCV
 detection.  It does not require a camera model — it works on the 2D board plane.
 
-> 📓 **Notebook:** [examples/notebooks/00_getting_started.ipynb](../examples/notebooks/00_getting_started.ipynb) and
-> [examples/notebooks/01_ray2d_vs_opencv.ipynb](../examples/notebooks/01_ray2d_vs_opencv.ipynb) walk through this step in
+> 📓 **Notebook:** [00_getting_started.ipynb](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/00_getting_started.ipynb) and
+> [01_ray2d_vs_opencv.ipynb](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/01_ray2d_vs_opencv.ipynb) walk through this step in
 > detail with visual comparisons.
 
 ## 3.  Move to a central 3D ray‑field (3 minutes)
@@ -103,7 +103,7 @@ print(points_3d)  # shape (N, 3) in mm
 classical OpenCV model.  It triangulates from rays instead of projecting from
 pinhole matrices.
 
-> 📓 **Notebook:** [examples/notebooks/02_ray3d.ipynb](../examples/notebooks/02_ray3d.ipynb) covers the central
+> 📓 **Notebook:** [02_ray3d.ipynb](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/02_ray3d.ipynb) covers the central
 > ray‑field and compression sweeps.
 
 ## 4.  Detect non‑centrality with a Zernike rayfield (5 minutes)
@@ -142,8 +142,8 @@ print(f"Baseline: {baseline:.1f} mm, Convergence: {convergence:.1f}°")
 **Key take-away:** the Zernike rayfield is a diagnostic instrument.  You read
 physical descriptors directly from it without fitting any optical model.
 
-> 📓 **Notebook:** [examples/notebooks/05_noncentral_calibration_from_images.ipynb](../examples/notebooks/05_noncentral_calibration_from_images.ipynb)
-> and [examples/notebooks/04_parallel_plate_origin_field.ipynb](../examples/notebooks/04_parallel_plate_origin_field.ipynb) demonstrate
+> 📓 **Notebook:** [05_noncentral_calibration_from_images.ipynb](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/05_noncentral_calibration_from_images.ipynb)
+> and [04_parallel_plate_origin_field.ipynb](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/04_parallel_plate_origin_field.ipynb) demonstrate
 > Zernike fitting from image directories and on synthetic oracles.
 
 ## 5.  Identify the physical optics (2 minutes)
@@ -169,8 +169,8 @@ candidates in ray‑space using the Bayesian Information Criterion.
 **Key take-away:** model selection happens in ray‑space, without re‑projecting
 corners.  The BIC identifies the correct optical family.
 
-> 📓 **Notebook:** [examples/notebooks/06_cmo_model_selection.ipynb](../examples/notebooks/06_cmo_model_selection.ipynb) and
-> [examples/notebooks/07_model_selection_matrix.ipynb](../examples/notebooks/07_model_selection_matrix.ipynb) demonstrate model
+> 📓 **Notebook:** [06_cmo_model_selection.ipynb](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/06_cmo_model_selection.ipynb) and
+> [07_model_selection_matrix.ipynb](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/07_model_selection_matrix.ipynb) demonstrate model
 > selection on CMO-like and multi-oracle data.
 
 ## 6.  Build a compact CMO model (with real data)
@@ -193,7 +193,7 @@ This notebook walks through:
 4. Per‑channel SE(3) arm alignment → 26p model at 1.06 px
 5. BIC model selection + operational usability score
 
-> 📓 **Full walkthrough:** [examples/notebooks/09_pycaso_real_data.py](../examples/notebooks/09_pycaso_real_data.py) (1676 lines).
+> 📓 **Full walkthrough:** [09_pycaso_real_data.py](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/09_pycaso_real_data.py) (1676 lines).
 > The compiled CMO paper is at [paper/cmo/build/manuscript.pdf](../paper/cmo/build/manuscript.pdf).
 
 ## Where to go next
