@@ -26,6 +26,7 @@ class ZernikeOriginFieldConfig:
     enforce_transverse_gauge: bool = True
 
     def modes(self) -> tuple[ZernikeMode, ...]:
+        """Zernike mode descriptors for this configuration."""
         return tuple(zernike_modes(int(self.max_order)))
 
 
@@ -74,6 +75,7 @@ class MultiCameraZernikeRayField:
 
     @classmethod
     def from_fields(cls, fields: dict[str, ZernikeRayField]) -> MultiCameraZernikeRayField:
+        """Factory from a dict of named ZernikeRayField objects."""
         return cls(
             tuple(ZernikeRayFieldChannel(name=name, field=field) for name, field in fields.items())
         )
@@ -84,6 +86,7 @@ class MultiCameraZernikeRayField:
         intrinsics_by_channel: dict[str, np.ndarray],
         configs_by_channel: dict[str, ZernikeOriginFieldConfig],
     ) -> MultiCameraZernikeRayField:
+        """Factory from intrinsics and configs, validating channel membership."""
         intrinsics_names = set(intrinsics_by_channel)
         config_names = set(configs_by_channel)
         missing_configs = sorted(intrinsics_names - config_names)
@@ -103,19 +106,23 @@ class MultiCameraZernikeRayField:
 
     @property
     def names(self) -> tuple[str, ...]:
+        """Channel names in insertion order."""
         return tuple(channel.name for channel in self.channels)
 
     @property
     def n_channels(self) -> int:
+        """Total number of channels."""
         return len(self.channels)
 
     def channel(self, name: str) -> ZernikeRayField:
+        """Look up the rayfield for a named channel."""
         for channel in self.channels:
             if channel.name == name:
                 return channel.field
         raise KeyError(name)
 
     def ray(self, name: str, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Compute ray (origin, direction) for a pixel."""
         return self.channel(name).ray(u, v)
 
 
@@ -148,6 +155,7 @@ class ZernikeOriginField:
 
     @property
     def coeffs(self) -> np.ndarray:
+        """Zernike coefficients for the rayfield."""
         return self.coefficients.coeffs
 
     def basis(self, u: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -230,10 +238,12 @@ class ZernikeRayField(ZernikeOriginField):
 
     @property
     def origin_coeffs(self) -> np.ndarray:
+        """Zernike coefficients for the origin field O(u,v) in mm."""
         return self.rayfield_coefficients.origin_coeffs
 
     @property
     def direction_coeffs(self) -> np.ndarray:
+        """Zernike coefficients for the direction perturbation."""
         return self.rayfield_coefficients.direction_coeffs
 
     def direction_delta(self, u: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -290,10 +300,12 @@ class ZernikeCandidate:
 
     @property
     def n_parameters(self) -> int:
+        """Total number of free parameters for model selection."""
         n_modes = len(self.config.modes())
         return n_modes * 6 if self.fit_directions else n_modes * 3
 
     def parameter_vector(self) -> np.ndarray:
+        """All parameters packed into a flat vector for optimisation."""
         if self.fit_directions:
             return np.concatenate(
                 [
@@ -305,6 +317,7 @@ class ZernikeCandidate:
 
     @classmethod
     def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> ZernikeCandidate:
+        """Reconstruct rayfield from a parameter vector."""
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         config = kwargs["config"]
         fit_directions = bool(kwargs.get("fit_directions", True))
@@ -337,6 +350,7 @@ class ZernikeCandidate:
         )
 
     def parameter_dict(self) -> dict[str, float]:
+        """All parameters as a dict keyed by channel and parameter name."""
         d: dict[str, float] = {}
         for j, mode in enumerate(self.config.modes()):
             key = f"z{j:02d}_n{mode.n}_m{mode.m}_{mode.kind}"
@@ -350,6 +364,7 @@ class ZernikeCandidate:
         return d
 
     def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Compute ray (origin, direction) for a pixel."""
         if self.fit_directions:
             field = ZernikeRayField(K=self.K, config=self.config, coefficients=self.coefficients)
         else:
