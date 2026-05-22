@@ -401,7 +401,7 @@ class CMOChannelRayField:
         R = np.asarray(self.channel.R_cam_to_world, dtype=np.float64)
         d_world = (R @ d_cam.T).T
         origins = np.broadcast_to(self.channel.origin[None, :], d_world.shape).copy()
-        return origins.reshape(shape + (3,)), d_world.reshape(shape + (3,))
+        return origins.reshape((*shape, 3)), d_world.reshape((*shape, 3))
 
 
 @dataclass(frozen=True)

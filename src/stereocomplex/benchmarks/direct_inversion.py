@@ -271,7 +271,7 @@ def fit_direct_model_from_observations(
 
     # Per-measurement offsets for pose lookup
     meas_per_pose = [arr.shape[0] for arr in obs_u_L]
-    pose_start = np.cumsum([0] + meas_per_pose)
+    pose_start = np.cumsum([0, *meas_per_pose])
 
     n_meas = uL_all.size
     n_scalar = 2 * n_meas * 2  # 2 channels x 2 coordinates per measurement

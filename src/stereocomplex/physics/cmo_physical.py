@@ -299,7 +299,7 @@ class CMOPhysicalStereoModel:
             pupil = (R @ pupil.T).T
             directions = (R @ directions.T).T
 
-        return pupil.reshape(shape + (3,)), directions.reshape(shape + (3,))
+        return pupil.reshape((*shape, 3)), directions.reshape((*shape, 3))
 
 
 @dataclass(frozen=True)
@@ -827,7 +827,7 @@ class CMOTelecentricStereoModel:
         delta_O = np.column_stack([rho_x * tilde_u, rho_y * tilde_v, np.zeros_like(uf)])
         pupil = O_rigid + delta_O  # physical origin, NOT gauge-projected
 
-        return pupil.reshape(shape + (3,)), directions.reshape(shape + (3,))
+        return pupil.reshape((*shape, 3)), directions.reshape((*shape, 3))
 
 
 @dataclass(frozen=True)
@@ -1374,7 +1374,7 @@ class CMOWarpedStereoModel:
         delta_O = np.column_stack([rho_x * tilde_u, rho_y * tilde_v, np.zeros_like(uf)])
         pupil = O_rigid + delta_O
 
-        return pupil.reshape(shape + (3,)), directions.reshape(shape + (3,))
+        return pupil.reshape((*shape, 3)), directions.reshape((*shape, 3))
 
 
 @dataclass(frozen=True)
