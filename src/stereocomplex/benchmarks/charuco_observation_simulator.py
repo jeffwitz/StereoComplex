@@ -338,3 +338,116 @@ def simulate_charuco_observations_from_rayfield(
         image_size=image_size,
         diagnostics=diag,
     )
+
+
+def simulate_charuco_observations_from_camera_fields(
+    fields_by_channel: dict[str, object],
+    squares_x: int = 5,
+    squares_y: int = 4,
+    square_size_mm: float = 20.0,
+    n_poses: int = 8,
+    z_distance_mm: float = 100.0,
+    image_size: tuple[int, int] = (160, 120),
+    noise_std_px: float = 0.0,
+    dropout_rate: float = 0.0,
+    seed: int = 42,
+    min_corners_per_frame: int = 30,
+    max_pose_attempts: int = 200,
+    pose_jitter_deg: float = 5.0,
+) -> MultiCameraCharucoObservationSet:
+    """Simulate ChArUco observations for an arbitrary named camera set."""
+    if not fields_by_channel:
+        raise ValueError("at least one camera field is required")
+
+    rng = np.random.default_rng(seed)
+    from scipy.spatial.transform import Rotation
+
+    obj_pts = _make_board_points(squares_x, squares_y, square_size_mm)
+    accepted_rvecs: list[np.ndarray] = []
+    accepted_tvecs: list[np.ndarray] = []
+    pixels_by_channel: dict[str, list[np.ndarray]] = {name: [] for name in fields_by_channel}
+    point_indices: list[np.ndarray] = []
+    n_attempts = 0
+    corner_counts: list[int] = []
+
+    pose_seed = seed
+    while len(accepted_rvecs) < n_poses and n_attempts < max_pose_attempts:
+        n_attempts += 1
+        pose_seed += 1
+        rvecs_one, tvecs_one = _make_pose_sweep(1, z_distance_mm, seed=pose_seed)
+        rv_single, tv_single = rvecs_one[0], tvecs_one[0]
+
+        R = Rotation.from_rotvec(rv_single).as_matrix()
+        if pose_jitter_deg > 0:
+            jitter_rad = np.deg2rad(rng.uniform(-pose_jitter_deg, pose_jitter_deg))
+            c, s = np.cos(jitter_rad), np.sin(jitter_rad)
+            R = R @ np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]], dtype=np.float64)
+        t = np.asarray(tv_single, dtype=np.float64).reshape(3)
+        world_pts = (R @ obj_pts.T).T + t[None, :]
+
+        uv_lists: dict[str, list[np.ndarray]] = {name: [] for name in fields_by_channel}
+        idx_list: list[int] = []
+        for k, point in enumerate(world_pts):
+            projected: dict[str, np.ndarray] = {}
+            visible = True
+            for name, field in fields_by_channel.items():
+                uv, ok, dist = project_point_by_rayfield_inverse(
+                    field, point, image_size, max_nfev=80
+                )
+                if not ok or dist >= 1e-2:
+                    visible = False
+                    break
+                projected[name] = uv
+            if visible:
+                for name, uv in projected.items():
+                    uv_lists[name].append(uv)
+                idx_list.append(k)
+
+        n_vis = len(idx_list)
+        corner_counts.append(n_vis)
+        if n_vis >= min_corners_per_frame:
+            accepted_rvecs.append(np.asarray(rv_single, dtype=np.float64))
+            accepted_tvecs.append(np.asarray(tv_single, dtype=np.float64))
+            for name in fields_by_channel:
+                pixels_by_channel[name].append(np.array(uv_lists[name], dtype=np.float64))
+            point_indices.append(np.array(idx_list, dtype=int))
+
+    if dropout_rate > 0:
+        for i in range(len(point_indices)):
+            n_vis = point_indices[i].shape[0]
+            keep = rng.random(n_vis) > dropout_rate
+            point_indices[i] = point_indices[i][keep]
+            for name in fields_by_channel:
+                pixels_by_channel[name][i] = pixels_by_channel[name][i][keep]
+
+    if noise_std_px > 0:
+        for i in range(len(point_indices)):
+            for name in fields_by_channel:
+                if pixels_by_channel[name][i].size > 0:
+                    pixels_by_channel[name][i] = pixels_by_channel[name][i] + rng.normal(
+                        scale=noise_std_px,
+                        size=pixels_by_channel[name][i].shape,
+                    ).astype(np.float64)
+
+    diag = SamplingDiagnostics(
+        n_poses_requested=n_poses,
+        n_poses_accepted=len(accepted_rvecs),
+        n_attempts_used=n_attempts,
+        mean_corners_per_frame=float(np.mean(corner_counts)) if corner_counts else 0.0,
+        min_corners=int(np.min(corner_counts)) if corner_counts else 0,
+        max_corners=int(np.max(corner_counts)) if corner_counts else 0,
+    )
+    return MultiCameraCharucoObservationSet(
+        object_points_mm=obj_pts,
+        pose_rvecs=np.array(accepted_rvecs, dtype=np.float64)
+        if accepted_rvecs
+        else np.empty((0, 3), dtype=np.float64),
+        pose_tvecs=np.array(accepted_tvecs, dtype=np.float64)
+        if accepted_tvecs
+        else np.empty((0, 3), dtype=np.float64),
+        pixels_by_channel=pixels_by_channel,
+        point_indices=point_indices,
+        noise_std_px=float(noise_std_px),
+        image_size=image_size,
+        diagnostics=diag,
+    )

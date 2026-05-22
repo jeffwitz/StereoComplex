@@ -9,8 +9,10 @@ from stereocomplex.benchmarks.charuco_observation_simulator import (
     MultiCameraCharucoObservationSet,
     _make_board_points,
     _make_pose_sweep,
+    simulate_charuco_observations_from_camera_fields,
     simulate_charuco_observations_from_rayfield,
 )
+from stereocomplex.benchmarks.model_selection_oracles import build_pinhole_n_camera_oracle
 from stereocomplex.benchmarks.model_selection_oracles import build_pinhole_oracle
 
 
@@ -70,6 +72,24 @@ def test_stereo_observation_set_converts_to_multi_camera():
     assert multi.n_poses == len(obs.point_indices)
     assert multi.pixels("left") is obs.left_pixels
     assert multi.pixels("right") is obs.right_pixels
+
+
+def test_simulate_multi_camera_observations_from_four_pinhole_fields():
+    oracle = build_pinhole_n_camera_oracle(image_size=(160, 120))
+    obs = simulate_charuco_observations_from_camera_fields(
+        oracle.fields_by_channel,
+        image_size=oracle.image_size,
+        n_poses=3,
+        noise_std_px=0.0,
+        seed=42,
+        min_corners_per_frame=0,
+    )
+
+    assert isinstance(obs, MultiCameraCharucoObservationSet)
+    assert obs.channel_names == oracle.channel_names
+    assert obs.n_channels == 4
+    assert obs.n_poses == 3
+    assert all(len(obs.pixels(name)) == 3 for name in obs.channel_names)
 
 
 def test_noise_adds_perturbation():
