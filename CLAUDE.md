@@ -99,6 +99,58 @@ is identifiable; assert `working_distance` / `b` / `f_tube` and
 `f_obj - telecentric_offset`, never `f_obj` alone. The four
 `test_cmo_physical_model.py` slow tests were aligned to this in commit `b13d71e`.
 
+## Docstring coverage — active objective
+
+**Current priority for this repository:** raise docstring coverage so a working
+scientist — an optics / vision researcher, not necessarily a Python expert — can
+understand the code from its docstrings alone.
+
+Baseline (2026-05-22): **41.8 %** of public functions documented (164/392),
+**20 %** of private ones. Target: 100 % of public functions, then the
+non-trivial private ones.
+
+A good docstring here is teaching material, not a type echo:
+
+- Lead with **what the function is for and why**, in scientific terms (the
+  geometry / optics / estimation problem it solves) — not a restatement of the
+  signature.
+- Numpydoc-ish `Parameters` / `Returns`, each with its **unit** (mm, px, rad)
+  and **physical meaning**, not just its type.
+- For any algorithmic function, **cite the source**: paper DOI / arXiv, or the
+  governing equation.
+- Spell out non-obvious constraints, gauges or degeneracies (e.g. the
+  `f_obj` / `telecentric_offset` degeneracy) — the things that surprise a reader.
+
+Rules:
+
+- Every **new** public function ships with such a docstring.
+- Every public function **touched** for any reason gets its docstring brought up
+  to this standard in the same change.
+- Priority order — the hardest-to-read scientific core first: `physics/cmo*.py`,
+  `ray3d/`, `benchmarks/rayfield_from_observations.py`,
+  `physics/model_selection.py`.
+- Do **not** refactor / split files for this; readability comes from the
+  docstrings, not from moving code around.
+
+Measure progress:
+
+```bash
+rtk .venv/bin/python - <<'PY'
+import ast, glob
+pub = pud = prv = prd = 0
+for f in glob.glob("src/**/*.py", recursive=True):
+    for n in ast.walk(ast.parse(open(f).read())):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            d = ast.get_docstring(n) is not None
+            if n.name.startswith("_"):
+                prv += 1; prd += d
+            else:
+                pub += 1; pud += d
+print(f"public  {pud}/{pub} = {100 * pud / pub:.1f}%")
+print(f"private {prd}/{prv} = {100 * prd / prv:.1f}%")
+PY
+```
+
 ## Active task: N-camera calibration
 
 ### Phase 1 — Refactor camera model to support N channels
