@@ -131,8 +131,17 @@ def test_cmo_physical_oracle_recovery_no_distortion() -> None:
     assert result.success
     assert result.rms_mm < 1e-8
     truth_vec = truth.parameter_vector()
-    assert result.n_parameters == 17
-    assert np.allclose(result.parameter_vector[:4], truth_vec[:4], rtol=1e-4, atol=1e-5)
+    assert result.n_parameters == 19
+    # f_obj_mm and telecentric_offset_mm are exactly degenerate: both enter the
+    # model only via z_pupil = working_distance - f_obj + telecentric_offset, so
+    # only their difference is identifiable. Assert the identifiable quantities.
+    assert np.allclose(result.parameter_vector[1:4], truth_vec[1:4], rtol=1e-4, atol=1e-5)
+    assert np.isclose(
+        result.parameter_vector[0] - result.parameter_vector[8],
+        truth_vec[0] - truth_vec[8],
+        rtol=1e-4,
+        atol=1e-5,
+    )
     assert np.allclose(result.parameter_vector[4:6], truth_vec[4:6], rtol=1e-4, atol=1e-5)
     assert result.parameter_dict["fixed"]["pixel_pitch_mm"] == truth.pixel_pitch_mm
 
@@ -142,7 +151,7 @@ def test_cmo_physical_oracle_recovery_with_distortion() -> None:
     truth = _truth_model(distortion=True)
     x0 = truth.parameter_vector().copy()
     x0[:4] *= np.array([1.015, 0.985, 1.02, 0.99])
-    x0[7:17] *= 0.8
+    x0[9:19] *= 0.8
 
     result = fit_cmo_physical_stereo_model_to_rayfields(
         left_field=truth.channel("left"),
@@ -158,9 +167,17 @@ def test_cmo_physical_oracle_recovery_with_distortion() -> None:
     assert result.success
     assert result.rms_mm < 1e-6
     truth_vec = truth.parameter_vector()
-    assert np.allclose(result.parameter_vector[:4], truth_vec[:4], rtol=1e-3, atol=1e-4)
+    # f_obj_mm / telecentric_offset_mm are degenerate (see no-distortion test);
+    # only their difference is identifiable.
+    assert np.allclose(result.parameter_vector[1:4], truth_vec[1:4], rtol=1e-3, atol=1e-4)
+    assert np.isclose(
+        result.parameter_vector[0] - result.parameter_vector[8],
+        truth_vec[0] - truth_vec[8],
+        rtol=1e-3,
+        atol=1e-4,
+    )
     assert np.allclose(result.parameter_vector[4:6], truth_vec[4:6], rtol=1e-3, atol=1e-4)
-    assert np.allclose(result.parameter_vector[7:17], truth.parameter_vector()[7:17], atol=1e-3)
+    assert np.allclose(result.parameter_vector[9:19], truth.parameter_vector()[9:19], atol=1e-3)
 
 
 @pytest.mark.slow
@@ -193,7 +210,7 @@ def test_cmo_aligned_mode_represents_offset_oracle() -> None:
 
     assert result.success
     assert result.rms_mm < 1e-8
-    assert result.n_parameters == 19
+    assert result.n_parameters == 21
     # The y offset is directly recovered. The x offset is correlated with the
     # fitted stereo baseline in this compact ray-only model, so the invariant
     # tested here is exact rayfield recovery rather than a unique x split.
@@ -607,7 +624,7 @@ def test_select_with_mixed_per_channel_and_stereo_shared_candidates() -> None:
     rows = {row["model"]: row for row in report.rows()}
 
     assert rows["central_brown_conrady"]["parameters"] == 10
-    assert rows["cmo_physical_shared"]["parameters"] == 17
+    assert rows["cmo_physical_shared"]["parameters"] == 19
     assert report.best_by_bic == "cmo_physical_shared"
 
 
