@@ -15,7 +15,8 @@ using them, not by reading about them.
 ## 1.  Installation (2 minutes)
 
 ```bash
-git clone https://github.com/jeffwitz/StereoComplex.git
+# develop is the current branch; main is stale (see CLAUDE.md).
+git clone --branch develop https://github.com/jeffwitz/StereoComplex.git
 cd StereoComplex
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
