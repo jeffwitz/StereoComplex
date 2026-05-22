@@ -118,6 +118,18 @@ class _RefinedStereoDetections:
 
 
 @dataclass(frozen=True)
+class _OriginFieldImageObservations:
+    image_size: tuple[int, int]
+    frame_maps_left: list[dict[int, np.ndarray]]
+    frame_maps_right: list[dict[int, np.ndarray]]
+    frame_common_ids: list[list[int]]
+    obj_left: list[np.ndarray]
+    img_left_cv: list[np.ndarray]
+    obj_right: list[np.ndarray]
+    img_right_cv: list[np.ndarray]
+
+
+@dataclass(frozen=True)
 class StereoCentralRayFieldFitReport:
     image_width_px: int
     image_height_px: int
@@ -851,6 +863,80 @@ def _image_pairs_from_dataset(
     return board, pairs
 
 
+def _collect_origin_field_image_observations(
+    *,
+    pairs: Sequence[StereoImagePair],
+    runtime: _CharucoRuntime,
+    chess3: np.ndarray,
+    method2d: RefineMethod,
+    min_common_corners: int,
+    tps_lam: float,
+    huber_c: float,
+    iters: int,
+) -> _OriginFieldImageObservations:
+    image_size: tuple[int, int] | None = None
+    frame_maps_left: list[dict[int, np.ndarray]] = []
+    frame_maps_right: list[dict[int, np.ndarray]] = []
+    frame_common_ids: list[list[int]] = []
+    obj_left: list[np.ndarray] = []
+    img_left_cv: list[np.ndarray] = []
+    obj_right: list[np.ndarray] = []
+    img_right_cv: list[np.ndarray] = []
+
+    for pair in pairs:
+        img_l = _ensure_gray_u8(pair.left_path)
+        img_r = _ensure_gray_u8(pair.right_path)
+        if image_size is None:
+            image_size = (int(img_l.shape[1]), int(img_l.shape[0]))
+        if img_l.shape != img_r.shape or (int(img_l.shape[1]), int(img_l.shape[0])) != image_size:
+            continue
+
+        refined = _detect_refined_stereo_pair(
+            runtime=runtime,
+            img_left=img_l,
+            img_right=img_r,
+            method2d=method2d,
+            tps_lam=tps_lam,
+            huber_c=huber_c,
+            iters=iters,
+        )
+        if refined is None:
+            continue
+
+        ids_l = np.asarray(refined.det_left.charuco_ids, dtype=np.int32).reshape(-1)
+        ids_r = np.asarray(refined.det_right.charuco_ids, dtype=np.int32).reshape(-1)
+        common_ids = sorted(set(refined.map_left).intersection(refined.map_right))
+        if len(common_ids) < int(min_common_corners):
+            continue
+
+        frame_maps_left.append(refined.map_left)
+        frame_maps_right.append(refined.map_right)
+        frame_common_ids.append(common_ids)
+
+        if ids_l.size >= 4:
+            obj_left.append(chess3[ids_l].astype(np.float32).reshape(-1, 3))
+            img_left_cv.append(refined.xy_left.astype(np.float32).reshape(-1, 2))
+        if ids_r.size >= 4:
+            obj_right.append(chess3[ids_r].astype(np.float32).reshape(-1, 3))
+            img_right_cv.append(refined.xy_right.astype(np.float32).reshape(-1, 2))
+
+    if not frame_common_ids:
+        raise RuntimeError("no usable stereo frames after ChArUco detection")
+    if image_size is None:
+        raise RuntimeError("no image pairs were available for ChArUco detection")
+
+    return _OriginFieldImageObservations(
+        image_size=image_size,
+        frame_maps_left=frame_maps_left,
+        frame_maps_right=frame_maps_right,
+        frame_common_ids=frame_common_ids,
+        obj_left=obj_left,
+        img_left_cv=img_left_cv,
+        obj_right=obj_right,
+        img_right_cv=img_right_cv,
+    )
+
+
 def fit_opencv_stereo_from_image_pairs(
     *,
     image_pairs: Sequence[StereoImagePair | tuple[str | Path, str | Path]],
@@ -1359,85 +1445,49 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
 
     runtime = _build_charuco_runtime(board)
     chess3 = np.asarray(runtime.board.getChessboardCorners(), dtype=np.float64)
-    image_size: tuple[int, int] | None = None
-
-    frame_maps_left: list[dict[int, np.ndarray]] = []
-    frame_maps_right: list[dict[int, np.ndarray]] = []
-    frame_common_ids: list[list[int]] = []
-    obj_left: list[np.ndarray] = []
-    img_left_cv: list[np.ndarray] = []
-    obj_right: list[np.ndarray] = []
-    img_right_cv: list[np.ndarray] = []
-
-    for pair in pairs:
-        img_l = _ensure_gray_u8(pair.left_path)
-        img_r = _ensure_gray_u8(pair.right_path)
-        if image_size is None:
-            image_size = (int(img_l.shape[1]), int(img_l.shape[0]))
-        if img_l.shape != img_r.shape or (int(img_l.shape[1]), int(img_l.shape[0])) != image_size:
-            continue
-
-        refined = _detect_refined_stereo_pair(
-            runtime=runtime,
-            img_left=img_l,
-            img_right=img_r,
-            method2d=method2d,
-            tps_lam=tps_lam,
-            huber_c=huber_c,
-            iters=iters,
-        )
-        if refined is None:
-            continue
-
-        ids_l = np.asarray(refined.det_left.charuco_ids, dtype=np.int32).reshape(-1)
-        ids_r = np.asarray(refined.det_right.charuco_ids, dtype=np.int32).reshape(-1)
-        common_ids = sorted(set(refined.map_left).intersection(refined.map_right))
-        if len(common_ids) < int(min_common_corners):
-            continue
-
-        frame_maps_left.append(refined.map_left)
-        frame_maps_right.append(refined.map_right)
-        frame_common_ids.append(common_ids)
-
-        if ids_l.size >= 4:
-            obj_left.append(chess3[ids_l].astype(np.float32).reshape(-1, 3))
-            img_left_cv.append(refined.xy_left.astype(np.float32).reshape(-1, 2))
-        if ids_r.size >= 4:
-            obj_right.append(chess3[ids_r].astype(np.float32).reshape(-1, 3))
-            img_right_cv.append(refined.xy_right.astype(np.float32).reshape(-1, 2))
-
-    if not frame_common_ids:
-        raise RuntimeError("no usable stereo frames after ChArUco detection")
-    assert image_size is not None
-    if len(obj_left) < 2 or len(obj_right) < 2:
+    observations = _collect_origin_field_image_observations(
+        pairs=pairs,
+        runtime=runtime,
+        chess3=chess3,
+        method2d=method2d,
+        min_common_corners=min_common_corners,
+        tps_lam=tps_lam,
+        huber_c=huber_c,
+        iters=iters,
+    )
+    if len(observations.obj_left) < 2 or len(observations.obj_right) < 2:
         raise RuntimeError("not enough frames for mono calibration (need ≥ 2 per side)")
 
     _, K_left_cv, dist_left_cv, _, _ = cv2.calibrateCamera(
-        obj_left, img_left_cv, image_size, None, None, flags=0,
+        observations.obj_left, observations.img_left_cv, observations.image_size, None, None, flags=0,
         criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 1e-9),
     )
     _, K_right_cv, dist_right_cv, _, _ = cv2.calibrateCamera(
-        obj_right, img_right_cv, image_size, None, None, flags=0,
+        observations.obj_right, observations.img_right_cv, observations.image_size, None, None, flags=0,
         criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 1e-9),
     )
 
     obj_stereo = [
         chess3[np.asarray(cids, dtype=np.int32)].astype(np.float32).reshape(-1, 3)
-        for cids in frame_common_ids
+        for cids in observations.frame_common_ids
     ]
     img_stereo_l = [
-        np.stack([frame_maps_left[i][c] for c in frame_common_ids[i]], axis=0).astype(np.float32)
-        for i in range(len(frame_common_ids))
+        np.stack([observations.frame_maps_left[i][c] for c in observations.frame_common_ids[i]], axis=0).astype(
+            np.float32
+        )
+        for i in range(len(observations.frame_common_ids))
     ]
     img_stereo_r = [
-        np.stack([frame_maps_right[i][c] for c in frame_common_ids[i]], axis=0).astype(np.float32)
-        for i in range(len(frame_common_ids))
+        np.stack([observations.frame_maps_right[i][c] for c in observations.frame_common_ids[i]], axis=0).astype(
+            np.float32
+        )
+        for i in range(len(observations.frame_common_ids))
     ]
 
     _, K_left_cv, dist_left_cv, K_right_cv, dist_right_cv, R_rl, t_rl, _, _ = cv2.stereoCalibrate(
         obj_stereo, img_stereo_l, img_stereo_r,
         K_left_cv, dist_left_cv, K_right_cv, dist_right_cv,
-        image_size,
+        observations.image_size,
         criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 1e-9),
         flags=cv2.CALIB_FIX_INTRINSIC,
     )
@@ -1457,8 +1507,8 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
     # restrict to corners visible in EVERY frame.  Frames with partial board
     # coverage are restricted to this global intersection; corners unique to a
     # subset of frames are dropped.
-    global_common: set[int] = set(frame_common_ids[0])
-    for cids in frame_common_ids[1:]:
+    global_common: set[int] = set(observations.frame_common_ids[0])
+    for cids in observations.frame_common_ids[1:]:
         global_common = global_common.intersection(cids)
     global_ids = sorted(global_common)
     if len(global_ids) < int(min_common_corners):
@@ -1472,9 +1522,9 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
     left_pixels: list[np.ndarray] = []
     right_pixels: list[np.ndarray] = []
 
-    for i in range(len(frame_common_ids)):
-        uv_l = np.stack([frame_maps_left[i][c] for c in global_ids], axis=0).astype(np.float64)
-        uv_r = np.stack([frame_maps_right[i][c] for c in global_ids], axis=0).astype(np.float64)
+    for i in range(len(observations.frame_common_ids)):
+        uv_l = np.stack([observations.frame_maps_left[i][c] for c in global_ids], axis=0).astype(np.float64)
+        uv_r = np.stack([observations.frame_maps_right[i][c] for c in global_ids], axis=0).astype(np.float64)
         obj_pts_f = object_points_3d.astype(np.float32).reshape(-1, 3)
         success, rvec, tvec = cv2.solvePnP(
             obj_pts_f,
@@ -1504,12 +1554,12 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
         K_right=K_right,
         T_left_world=np.eye(4, dtype=np.float64),
         T_right_world=T_right_left.copy(),
-        image_size=image_size,
+        image_size=observations.image_size,
         oracle_left_params=None,
         oracle_right_params=None,
     )
 
-    config = ZernikeOriginFieldConfig(image_size=image_size, max_order=int(max_order))
+    config = ZernikeOriginFieldConfig(image_size=observations.image_size, max_order=int(max_order))
     return fit_stereo_zernike_origin_field(
         observations=dataset,
         K_left=K_left,
