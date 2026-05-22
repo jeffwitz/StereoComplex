@@ -67,9 +67,59 @@ class CharucoObservationSet:
     image_size: tuple[int, int]
     diagnostics: SamplingDiagnostics | None = None
 
+    def to_multi_camera(self) -> "MultiCameraCharucoObservationSet":
+        return MultiCameraCharucoObservationSet(
+            object_points_mm=self.object_points_mm,
+            pose_rvecs=self.pose_rvecs,
+            pose_tvecs=self.pose_tvecs,
+            pixels_by_channel={"left": self.left_pixels, "right": self.right_pixels},
+            point_indices=self.point_indices,
+            noise_std_px=self.noise_std_px,
+            image_size=self.image_size,
+            diagnostics=self.diagnostics,
+        )
 
-def _make_board_points(squares_x: int, squares_y: int,
-                       square_size_mm: float) -> np.ndarray:
+
+@dataclass(frozen=True)
+class MultiCameraCharucoObservationSet:
+    """Synthetic ChArUco observations for an ordered set of camera channels."""
+
+    object_points_mm: np.ndarray
+    pose_rvecs: np.ndarray
+    pose_tvecs: np.ndarray
+    pixels_by_channel: dict[str, list[np.ndarray]]
+    point_indices: list[np.ndarray]
+    noise_std_px: float
+    image_size: tuple[int, int]
+    diagnostics: SamplingDiagnostics | None = None
+
+    def __post_init__(self) -> None:
+        if not self.pixels_by_channel:
+            raise ValueError("at least one camera channel is required")
+        expected = len(self.point_indices)
+        for name, pixels in self.pixels_by_channel.items():
+            if not name:
+                raise ValueError("camera channel names must be non-empty")
+            if len(pixels) != expected:
+                raise ValueError(f"channel {name!r} has {len(pixels)} frames, expected {expected}")
+
+    @property
+    def channel_names(self) -> tuple[str, ...]:
+        return tuple(self.pixels_by_channel)
+
+    @property
+    def n_channels(self) -> int:
+        return len(self.pixels_by_channel)
+
+    @property
+    def n_poses(self) -> int:
+        return len(self.point_indices)
+
+    def pixels(self, channel: str) -> list[np.ndarray]:
+        return self.pixels_by_channel[channel]
+
+
+def _make_board_points(squares_x: int, squares_y: int, square_size_mm: float) -> np.ndarray:
     """Return (M, 3) array of ChArUco inner corner coordinates (z = 0)."""
     pts = []
     for iy in range(squares_y - 1):
@@ -106,6 +156,7 @@ def _make_pose_sweep(
         R = Rz @ Ry @ Rx
         # Convert to Rodrigues
         from scipy.spatial.transform import Rotation
+
         rvec = Rotation.from_matrix(R).as_rotvec()
         # Translation: board placed at ~z_distance_mm along the camera z axis,
         # with small lateral shifts.
@@ -202,10 +253,16 @@ def simulate_charuco_observations_from_rayfield(
         for k in range(obj_pts.shape[0]):
             X = world_pts[k]
             uvL, okL, distL = project_point_by_rayfield_inverse(
-                left_field, X, image_size, max_nfev=80,
+                left_field,
+                X,
+                image_size,
+                max_nfev=80,
             )
             uvR, okR, distR = project_point_by_rayfield_inverse(
-                right_field, X, image_size, max_nfev=80,
+                right_field,
+                X,
+                image_size,
+                max_nfev=80,
             )
             if okL and okR and distL < 1e-2 and distR < 1e-2:
                 uv_left_list.append(uvL)
@@ -233,9 +290,12 @@ def simulate_charuco_observations_from_rayfield(
         )
     else:
         diag = SamplingDiagnostics(
-            n_poses_requested=n_poses, n_poses_accepted=0,
-            n_attempts_used=n_attempts, mean_corners_per_frame=0.0,
-            min_corners=0, max_corners=0,
+            n_poses_requested=n_poses,
+            n_poses_accepted=0,
+            n_attempts_used=n_attempts,
+            mean_corners_per_frame=0.0,
+            min_corners=0,
+            max_corners=0,
         )
 
     rvecs = accepted_rvecs  # already np arrays
@@ -255,16 +315,22 @@ def simulate_charuco_observations_from_rayfield(
         for i in range(len(left_pixels)):
             if left_pixels[i].size > 0:
                 left_pixels[i] = left_pixels[i] + rng.normal(
-                    scale=noise_std_px, size=left_pixels[i].shape,
+                    scale=noise_std_px,
+                    size=left_pixels[i].shape,
                 ).astype(np.float64)
                 right_pixels[i] = right_pixels[i] + rng.normal(
-                    scale=noise_std_px, size=right_pixels[i].shape,
+                    scale=noise_std_px,
+                    size=right_pixels[i].shape,
                 ).astype(np.float64)
 
     return CharucoObservationSet(
         object_points_mm=obj_pts,
-        pose_rvecs=np.array(rvecs, dtype=np.float64) if rvecs else np.empty((0, 3), dtype=np.float64),
-        pose_tvecs=np.array(tvecs, dtype=np.float64) if tvecs else np.empty((0, 3), dtype=np.float64),
+        pose_rvecs=np.array(rvecs, dtype=np.float64)
+        if rvecs
+        else np.empty((0, 3), dtype=np.float64),
+        pose_tvecs=np.array(tvecs, dtype=np.float64)
+        if tvecs
+        else np.empty((0, 3), dtype=np.float64),
         left_pixels=left_pixels,
         right_pixels=right_pixels,
         point_indices=point_indices,

@@ -6,12 +6,11 @@ import numpy as np
 
 from stereocomplex.benchmarks.charuco_observation_simulator import (
     CharucoObservationSet,
-    SamplingDiagnostics,
+    MultiCameraCharucoObservationSet,
     _make_board_points,
     _make_pose_sweep,
     simulate_charuco_observations_from_rayfield,
 )
-from stereocomplex.benchmarks.model_selection_oracles import build_pinhole_oracle
 from stereocomplex.benchmarks.model_selection_oracles import build_pinhole_oracle
 
 
@@ -34,8 +33,12 @@ def test_simulate_zero_noise_observations():
     """With zero noise, the simulator should produce observations."""
     oracle = build_pinhole_oracle(image_size=(160, 120))
     obs = simulate_charuco_observations_from_rayfield(
-        oracle.left_field, oracle.right_field,
-        image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=4,
+        noise_std_px=0.0,
+        seed=42,
         min_corners_per_frame=0,  # disable rejection for backward compat
     )
     assert isinstance(obs, CharucoObservationSet)
@@ -48,17 +51,46 @@ def test_simulate_zero_noise_observations():
     assert total_corners > 0, "at least some corners should be visible"
 
 
+def test_stereo_observation_set_converts_to_multi_camera():
+    oracle = build_pinhole_oracle(image_size=(160, 120))
+    obs = simulate_charuco_observations_from_rayfield(
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=3,
+        noise_std_px=0.0,
+        seed=42,
+        min_corners_per_frame=0,
+    )
+    multi = obs.to_multi_camera()
+
+    assert isinstance(multi, MultiCameraCharucoObservationSet)
+    assert multi.channel_names == ("left", "right")
+    assert multi.n_channels == 2
+    assert multi.n_poses == len(obs.point_indices)
+    assert multi.pixels("left") is obs.left_pixels
+    assert multi.pixels("right") is obs.right_pixels
+
+
 def test_noise_adds_perturbation():
     """With noise_std_px > 0, pixels are perturbed from the oracle."""
     oracle = build_pinhole_oracle(image_size=(160, 120))
     obs_clean = simulate_charuco_observations_from_rayfield(
-        oracle.left_field, oracle.right_field,
-        image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=4,
+        noise_std_px=0.0,
+        seed=42,
         min_corners_per_frame=0,
     )
     obs_noisy = simulate_charuco_observations_from_rayfield(
-        oracle.left_field, oracle.right_field,
-        image_size=(160, 120), n_poses=4, noise_std_px=0.5, seed=42,
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=4,
+        noise_std_px=0.5,
+        seed=42,
         min_corners_per_frame=0,
     )
     # At least some pixels should differ
@@ -73,13 +105,20 @@ def test_noise_adds_perturbation():
 def test_simulator_meets_min_corners_per_frame_on_cmo_oracle():
     """With min_corners_per_frame=20, all accepted poses have enough corners."""
     from stereocomplex.benchmarks.model_selection_oracles import build_cmo_oracle
+
     oracle = build_cmo_oracle(image_size=(160, 120))
     z_dist = oracle.ground_truth_parameters["working_distance_mm"]
     obs = simulate_charuco_observations_from_rayfield(
-        oracle.left_field, oracle.right_field,
-        image_size=(160, 120), n_poses=4, z_distance_mm=z_dist,
-        squares_x=9, squares_y=7, square_size_mm=3.0,
-        min_corners_per_frame=5, seed=42,
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=4,
+        z_distance_mm=z_dist,
+        squares_x=9,
+        squares_y=7,
+        square_size_mm=3.0,
+        min_corners_per_frame=5,
+        seed=42,
     )
     assert obs.diagnostics is not None
     diag = obs.diagnostics
@@ -93,8 +132,12 @@ def test_simulator_diagnostics_report_correct_counts():
     """SamplingDiagnostics must match the actual observation set."""
     oracle = build_pinhole_oracle(image_size=(160, 120))
     obs = simulate_charuco_observations_from_rayfield(
-        oracle.left_field, oracle.right_field,
-        image_size=(160, 120), n_poses=3, min_corners_per_frame=0, seed=42,
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=3,
+        min_corners_per_frame=0,
+        seed=42,
     )
     diag = obs.diagnostics
     assert diag is not None
@@ -109,9 +152,12 @@ def test_simulator_returns_zero_poses_when_min_unsatisfiable():
     """With impossible min_corners, simulator returns empty set, not loop."""
     oracle = build_pinhole_oracle(image_size=(160, 120))
     obs = simulate_charuco_observations_from_rayfield(
-        oracle.left_field, oracle.right_field,
-        image_size=(160, 120), n_poses=4,
-        min_corners_per_frame=10000, max_pose_attempts=20,
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=4,
+        min_corners_per_frame=10000,
+        max_pose_attempts=20,
         seed=42,
     )
     assert obs.diagnostics is not None
@@ -124,23 +170,38 @@ def test_pose_jitter_changes_corner_positions():
     oracle = build_pinhole_oracle(image_size=(160, 120))
     # With zero jitter, results are reproducible across runs with the same seed
     obs_ref = simulate_charuco_observations_from_rayfield(
-        oracle.left_field, oracle.right_field,
-        image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
-        min_corners_per_frame=0, pose_jitter_deg=0.0,
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=4,
+        noise_std_px=0.0,
+        seed=42,
+        min_corners_per_frame=0,
+        pose_jitter_deg=0.0,
     )
     obs_same = simulate_charuco_observations_from_rayfield(
-        oracle.left_field, oracle.right_field,
-        image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
-        min_corners_per_frame=0, pose_jitter_deg=0.0,
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=4,
+        noise_std_px=0.0,
+        seed=42,
+        min_corners_per_frame=0,
+        pose_jitter_deg=0.0,
     )
     for Lr, Ls in zip(obs_ref.left_pixels, obs_same.left_pixels, strict=True):
         assert np.allclose(Lr, Ls), "zero jitter should be deterministic"
 
     # With large jitter, corners shift noticeably
     obs_jit = simulate_charuco_observations_from_rayfield(
-        oracle.left_field, oracle.right_field,
-        image_size=(160, 120), n_poses=4, noise_std_px=0.0, seed=42,
-        min_corners_per_frame=0, pose_jitter_deg=30.0,
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=4,
+        noise_std_px=0.0,
+        seed=42,
+        min_corners_per_frame=0,
+        pose_jitter_deg=30.0,
     )
     max_shift = 0.0
     for Lr, Lj in zip(obs_ref.left_pixels, obs_jit.left_pixels, strict=True):
