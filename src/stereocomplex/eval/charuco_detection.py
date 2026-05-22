@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,6 +10,8 @@ import numpy as np
 from stereocomplex.eval.detectors.charuco import detect_image_features
 from stereocomplex.eval.predictors.dispatch import predict_charuco_points
 from stereocomplex.eval.refiners.dispatch import refine_detected_points
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -69,12 +72,12 @@ def eval_charuco_detection(
             scene_stats["split"] = split
             scene_stats["scene"] = scene_dir.name
             report["scenes"].append(scene_stats)
-            print(f"{split}/{scene_dir.name}: {json.dumps(scene_stats, sort_keys=True)}")
+            LOGGER.info("%s/%s: %s", split, scene_dir.name, json.dumps(scene_stats, sort_keys=True))
 
     if write_json:
         out = dataset_root / "charuco_detection_report.json"
         out.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
-        print(f"Wrote {out}")
+        LOGGER.info("Wrote %s", out)
 
 
 def eval_charuco_scene(

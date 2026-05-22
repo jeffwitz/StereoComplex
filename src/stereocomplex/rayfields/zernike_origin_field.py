@@ -84,9 +84,17 @@ class MultiCameraZernikeRayField:
         intrinsics_by_channel: dict[str, np.ndarray],
         configs_by_channel: dict[str, ZernikeOriginFieldConfig],
     ) -> "MultiCameraZernikeRayField":
-        missing = [name for name in intrinsics_by_channel if name not in configs_by_channel]
-        if missing:
-            raise ValueError(f"missing Zernike configs for channels: {missing}")
+        intrinsics_names = set(intrinsics_by_channel)
+        config_names = set(configs_by_channel)
+        missing_configs = sorted(intrinsics_names - config_names)
+        missing_intrinsics = sorted(config_names - intrinsics_names)
+        if missing_configs or missing_intrinsics:
+            details = []
+            if missing_configs:
+                details.append(f"missing configs for channels: {missing_configs}")
+            if missing_intrinsics:
+                details.append(f"missing intrinsics for channels: {missing_intrinsics}")
+            raise ValueError("; ".join(details))
         fields = {
             name: ZernikeRayField(K=intrinsics, config=configs_by_channel[name])
             for name, intrinsics in intrinsics_by_channel.items()

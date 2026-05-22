@@ -29,7 +29,11 @@ behind compatibility wrappers:
   CMO telecentric channels, calibration results, and benchmark oracles.
 - The new public `calibrate(cameras=...)` API exists, but currently routes only
   the `("left", "right")` case to the existing stereo central rayfield fit.
-- A true N-camera bundle adjustment is not implemented yet.
+- Important scope note: the current work validates scaffolding, API shape, data
+  containers, and stereo equivalence. It does **not** validate a real N-camera
+  calibration algorithm yet.
+- A true N-camera bundle adjustment is not implemented yet; Phase 2 is the core
+  algorithmic task still ahead.
 - Latest full test baseline on `develop`: `119 passed, 39 deselected`.
 
 ## Active task: N-camera calibration
@@ -98,6 +102,8 @@ Current status:
 - This is the main next technical milestone.
 - Existing `fit_zernike_rayfields_from_multi_camera_observations(...)` is a
   compatibility entry point, not a true N-camera optimizer.
+- Until this phase is implemented, any N-camera result should be described as
+  scaffolding or API validation, not as validated N-camera calibration.
 
 Recommended next implementation step:
 
