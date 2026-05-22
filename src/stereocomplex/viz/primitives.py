@@ -10,6 +10,8 @@ from __future__ import annotations
 import numpy as np
 
 from stereocomplex.viz.style import COLORS, FONT, LINEWIDTHS
+from matplotlib.patches import Arc
+from matplotlib.patches import Rectangle
 
 
 def draw_ray(ax, origin_2d, direction_2d, length, *, channel="left",
@@ -53,7 +55,6 @@ def draw_lens(ax, center_2d, radius, *, label=None, kind="biconvex"):
     cx, cz = float(center_2d[0]), float(center_2d[1])
     r = float(radius)
     # Draw a biconvex shape: two circular arcs
-    from matplotlib.patches import Arc
     # Use two Arc patches meeting at the edges
     arc_left = Arc((cx, cz), 2 * r, 2 * r, angle=0, theta1=290, theta2=70,
                    color=COLORS["lens"], linewidth=LINEWIDTHS["lens"])
@@ -81,7 +82,6 @@ def draw_sensor(ax, center_2d, width, height, *, channel="left", label=None):
     channel : str  — ``"left"`` or ``"right"``.
     label : str | None
     """
-    from matplotlib.patches import Rectangle
     cx, cz = float(center_2d[0]), float(center_2d[1])
     rect = Rectangle(
         (cx - float(width) / 2, cz - float(height) / 2),

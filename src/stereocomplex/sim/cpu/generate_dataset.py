@@ -572,7 +572,7 @@ def _render_plane_texture(
     img = np.clip(img, 0.0, 1.0)
     img_u8 = (img * 255.0 + 0.5).astype(np.uint8)
 
-    sigma_px = float(0.0)
+    sigma_px = 0.0
     if blur_fwhm_px > 0:
         sigma_px = fwhm_to_sigma(blur_fwhm_px)
     elif blur_fwhm_um > 0:

@@ -102,7 +102,7 @@ def predict_points_mls_affine(
         w = np.exp(-0.5 * d2 / sigma2)
 
         # Take k best weights.
-        if N > k:
+        if k < N:
             idx = np.argpartition(w, -k)[-k:]
         else:
             idx = np.arange(N)
@@ -206,7 +206,7 @@ def predict_points_affine_field(
             q = np.array([xs[i], ys[j]], dtype=np.float64)
             d2 = np.sum((obj_xy - q[None, :]) ** 2, axis=1)
             w = np.exp(-0.5 * d2 / sigma2)
-            if N > k:
+            if k < N:
                 idx = np.argpartition(w, -k)[-k:]
             else:
                 idx = np.arange(N)
@@ -571,7 +571,7 @@ def predict_points_mls_homography(
         q = query_xy[i]
         d2 = np.sum((obj_xy - q[None, :]) ** 2, axis=1)
         w = np.exp(-0.5 * d2 / sigma2)
-        if N > k:
+        if k < N:
             idx = np.argpartition(w, -k)[-k:]
         else:
             idx = np.arange(N)

@@ -68,7 +68,7 @@ class SyntheticStereoDataset:
 
         return _ray
 
-    def subset(self, indices: Sequence[int]) -> "SyntheticStereoDataset":
+    def subset(self, indices: Sequence[int]) -> SyntheticStereoDataset:
         """Return a new dataset restricted to the frames at *indices*."""
         idx = list(indices)
         return SyntheticStereoDataset(

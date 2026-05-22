@@ -115,7 +115,7 @@ class PycasoSoloffStereoModel:
         uv_right_px: np.ndarray,
         degree: int = 3,
         ridge: float = 0.0,
-    ) -> "PycasoSoloffStereoModel":
+    ) -> PycasoSoloffStereoModel:
         XYZ_mm = np.asarray(XYZ_mm, dtype=np.float64).reshape(-1, 3)
         uv_left_px = np.asarray(uv_left_px, dtype=np.float64).reshape(-1, 2)
         uv_right_px = np.asarray(uv_right_px, dtype=np.float64).reshape(-1, 2)

@@ -29,7 +29,7 @@ def load_frames(scene_dir: Path) -> list[dict[str, Any]]:
 
 def build_charuco_from_meta(meta: dict[str, Any]):
     import cv2  # type: ignore
-    import cv2.aruco as aruco  # type: ignore
+    from cv2 import aruco  # type: ignore
 
     board_meta = meta["board"]
     opencv_meta = meta.get("opencv", {})
@@ -224,7 +224,7 @@ def make_calibration_npz(
     scene_dir = dataset_root / split / scene
     meta = load_json(scene_dir / "meta.json")
 
-    import cv2.aruco as aruco  # type: ignore
+    from cv2 import aruco  # type: ignore
 
     board_meta = meta["board"]
     dict_name = str(board_meta.get("aruco_dictionary", "DICT_4X4_1000"))

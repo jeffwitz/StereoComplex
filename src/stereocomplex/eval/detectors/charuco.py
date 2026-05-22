@@ -65,9 +65,9 @@ def detect_image_features(
 
         ret = aruco.interpolateCornersCharuco(corners, ids, img, charuco_board)
         if ret is None:
-            return None, int(len(ids))
+            return None, len(ids)
         charuco_corners, charuco_ids, _ = ret
         if charuco_ids is None or charuco_corners is None:
-            return None, int(len(ids))
+            return None, len(ids)
 
     return ImageFeatures(charuco_corners, charuco_ids, corners, ids), 0

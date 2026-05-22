@@ -137,7 +137,7 @@ class CMOPhysicalStereoModel:
         return 19 if self.share_principal_point else 21
 
     @classmethod
-    def from_parameter_vector(cls, x: Array, **kwargs) -> "CMOPhysicalStereoModel":
+    def from_parameter_vector(cls, x: Array, **kwargs) -> CMOPhysicalStereoModel:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if "pixel_pitch_mm" not in kwargs:
             raise ValueError(
@@ -241,7 +241,7 @@ class CMOPhysicalStereoModel:
         }
         return {"free": self.flat_parameter_dict(), "fixed": fixed}
 
-    def channel(self, channel: Literal["left", "right"]) -> "CMOPhysicalChannelModel":
+    def channel(self, channel: Literal["left", "right"]) -> CMOPhysicalChannelModel:
         return CMOPhysicalChannelModel(rig=self, channel=channel)
 
     def principal_point_for_channel(self, channel: Literal["left", "right"]) -> tuple[float, float]:
@@ -319,7 +319,7 @@ class CMOPhysicalChannelModel:
         return self.rig.parameter_vector()
 
     @classmethod
-    def from_parameter_vector(cls, x: Array, **kwargs) -> "CMOPhysicalChannelModel":
+    def from_parameter_vector(cls, x: Array, **kwargs) -> CMOPhysicalChannelModel:
         rig = CMOPhysicalStereoModel.from_parameter_vector(
             x,
             image_size=kwargs.get("image_size"),
@@ -626,7 +626,7 @@ class CMOTelecentricStereoModel:
         cls,
         x: Array,
         **kwargs: Any,
-    ) -> "CMOTelecentricStereoModel":
+    ) -> CMOTelecentricStereoModel:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size not in {12, 14, 16}:
             raise ValueError(
@@ -757,7 +757,7 @@ class CMOTelecentricStereoModel:
             },
         }
 
-    def channel(self, channel: Literal["left", "right"]) -> "CMOTelecentricChannelModel":
+    def channel(self, channel: Literal["left", "right"]) -> CMOTelecentricChannelModel:
         return CMOTelecentricChannelModel(rig=self, channel=channel)
 
     def ray(self, u: Array, v: Array, channel: Literal["left", "right"]) -> tuple[Array, Array]:
@@ -834,7 +834,7 @@ class CMOTelecentricStereoModel:
 class CMOTelecentricNModel:
     """Named collection of telecentric CMO channels for N-camera workflows."""
 
-    channels: tuple["CMOTelecentricChannelModel", ...]
+    channels: tuple[CMOTelecentricChannelModel, ...]
     name: str = "cmo_telecentric_n"
     is_stereo_shared: bool = False
 
@@ -846,7 +846,7 @@ class CMOTelecentricNModel:
             raise ValueError("channel names must be unique")
 
     @classmethod
-    def from_stereo(cls, stereo: CMOTelecentricStereoModel) -> "CMOTelecentricNModel":
+    def from_stereo(cls, stereo: CMOTelecentricStereoModel) -> CMOTelecentricNModel:
         return cls((stereo.channel("left"), stereo.channel("right")))
 
     @property
@@ -861,7 +861,7 @@ class CMOTelecentricNModel:
     def n_parameters(self) -> int:
         return sum(channel.n_parameters for channel in self.channels)
 
-    def channel(self, name: str) -> "CMOTelecentricChannelModel":
+    def channel(self, name: str) -> CMOTelecentricChannelModel:
         for channel in self.channels:
             if channel.channel == name:
                 return channel
@@ -888,7 +888,7 @@ class CMOTelecentricChannelModel:
         return self.rig.parameter_vector()
 
     @classmethod
-    def from_parameter_vector(cls, x: Array, **kwargs: Any) -> "CMOTelecentricChannelModel":
+    def from_parameter_vector(cls, x: Array, **kwargs: Any) -> CMOTelecentricChannelModel:
         rig = CMOTelecentricStereoModel.from_parameter_vector(
             x,
             pixel_pitch_mm=kwargs["pixel_pitch_mm"],
@@ -1056,7 +1056,7 @@ def _polyval_2d(u: Array, v: Array, coeffs: tuple[float, ...], level: int) -> Ar
     v_arr = np.asarray(v, dtype=np.float64)
     result = np.zeros_like(u_arr)
     terms = _poly_terms_2d(level)
-    for (pu, pv), c in zip(terms, coeffs):
+    for (pu, pv), c in zip(terms, coeffs, strict=True):
         result = result + float(c) * (u_arr ** float(pu)) * (v_arr ** float(pv))
     return result
 
@@ -1185,7 +1185,7 @@ class CMOWarpedStereoModel:
         return np.array(vec, dtype=np.float64)
 
     @classmethod
-    def from_parameter_vector(cls, x: Array, **kwargs: Any) -> "CMOWarpedStereoModel":
+    def from_parameter_vector(cls, x: Array, **kwargs: Any) -> CMOWarpedStereoModel:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         pixel_pitch_mm = float(kwargs["pixel_pitch_mm"])
         image_size = kwargs.get("image_size")
@@ -1306,7 +1306,7 @@ class CMOWarpedStereoModel:
                     d[f"warp_eta_{ch}_u{pu}v{pv}"] = float(eta_tup[i])
         return d
 
-    def channel(self, channel: Literal["left", "right"]) -> "CMOWarpedChannelModel":
+    def channel(self, channel: Literal["left", "right"]) -> CMOWarpedChannelModel:
         return CMOWarpedChannelModel(rig=self, channel=channel)
 
     def ray(self, u: Array, v: Array, channel: Literal["left", "right"]) -> tuple[Array, Array]:
@@ -1394,7 +1394,7 @@ class CMOWarpedChannelModel:
         return self.rig.parameter_vector()
 
     @classmethod
-    def from_parameter_vector(cls, x: Array, **kwargs: Any) -> "CMOWarpedChannelModel":
+    def from_parameter_vector(cls, x: Array, **kwargs: Any) -> CMOWarpedChannelModel:
         rig = CMOWarpedStereoModel.from_parameter_vector(x, **kwargs)
         channel = kwargs.get("channel", "left")
         if channel not in {"left", "right"}:

@@ -67,7 +67,7 @@ class CharucoObservationSet:
     image_size: tuple[int, int]
     diagnostics: SamplingDiagnostics | None = None
 
-    def to_multi_camera(self) -> "MultiCameraCharucoObservationSet":
+    def to_multi_camera(self) -> MultiCameraCharucoObservationSet:
         return MultiCameraCharucoObservationSet(
             object_points_mm=self.object_points_mm,
             pose_rvecs=self.pose_rvecs,
@@ -121,10 +121,8 @@ class MultiCameraCharucoObservationSet:
 
 def _make_board_points(squares_x: int, squares_y: int, square_size_mm: float) -> np.ndarray:
     """Return (M, 3) array of ChArUco inner corner coordinates (z = 0)."""
-    pts = []
-    for iy in range(squares_y - 1):
-        for ix in range(squares_x - 1):
-            pts.append([float(ix) * square_size_mm, float(iy) * square_size_mm, 0.0])
+    pts = [[float(ix) * square_size_mm, float(iy) * square_size_mm, 0.0]
+           for iy in range(squares_y - 1) for ix in range(squares_x - 1)]
     return np.array(pts, dtype=np.float64)
 
 

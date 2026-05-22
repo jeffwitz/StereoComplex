@@ -171,7 +171,7 @@ def fit_zernike_rayfield_from_charuco_observations(
         return A, d0
 
     class _CachedGroup:
-        __slots__ = ("pose_idx", "A", "d0", "X_local")
+        __slots__ = ("A", "X_local", "d0", "pose_idx")
         pose_idx: int
         A: np.ndarray  # (N, n_modes)
         d0: np.ndarray  # (N, 3)
@@ -498,7 +498,7 @@ def fit_constrained_zernike_rayfield(
         return np.column_stack([dx * inv, dy * inv, dz * inv])
 
     class _Group:
-        __slots__ = ("pose_idx", "A_O", "A_d", "d0", "X_local")
+        __slots__ = ("A_O", "A_d", "X_local", "d0", "pose_idx")
         pose_idx: int
         A_O: np.ndarray
         A_d: np.ndarray
@@ -528,7 +528,7 @@ def fit_constrained_zernike_rayfield(
     # --- initial poses (un-flipped, consistent) ---
     from stereocomplex.benchmarks.direct_inversion import (
         estimate_initial_poses_from_central_pinhole,
-    )  # noqa: PLC0415
+    )
 
     R_est, t_est = estimate_initial_poses_from_central_pinhole(obs, K_L)
     if not R_est:

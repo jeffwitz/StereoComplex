@@ -28,7 +28,7 @@ class _CharucoRuntime:
 
 def _build_charuco_runtime(board: CharucoBoardSpec) -> _CharucoRuntime:
     import cv2  # type: ignore
-    import cv2.aruco as aruco  # type: ignore
+    from cv2 import aruco  # type: ignore
 
     dict_id = getattr(aruco, str(board.aruco_dictionary), None)
     if dict_id is None:

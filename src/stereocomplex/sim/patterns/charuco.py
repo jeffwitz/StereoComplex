@@ -26,7 +26,7 @@ def generate_charuco_texture(spec: CharucoSpec) -> np.ndarray:
     OpenCV dependency is optional at import time; this function will raise if cv2.aruco is missing.
     """
     try:
-        import cv2.aruco as aruco  # type: ignore
+        from cv2 import aruco  # type: ignore
     except Exception as e:  # pragma: no cover
         raise RuntimeError("ChArUco generation requires opencv-contrib-python (cv2.aruco).") from e
 

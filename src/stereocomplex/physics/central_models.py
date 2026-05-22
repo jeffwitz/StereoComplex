@@ -27,7 +27,7 @@ class CentralPinholeModel:
         return np.zeros(0, dtype=np.float64)
 
     @classmethod
-    def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> "CentralPinholeModel":
+    def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> CentralPinholeModel:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size != 0:
             raise ValueError("CentralPinholeModel expects zero parameters")
@@ -130,7 +130,7 @@ class CentralBrownConradyModel:
         return np.array([self.k1, self.k2, self.p1, self.p2, self.k3], dtype=np.float64)
 
     @classmethod
-    def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> "CentralBrownConradyModel":
+    def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> CentralBrownConradyModel:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size != 5:
             raise ValueError("CentralBrownConradyModel expects five parameters")

@@ -52,7 +52,7 @@ class StereoCentralRayFieldModel:
         R_RL: np.ndarray,
         t_RL: np.ndarray,
         C_L_mm: np.ndarray | None = None,
-    ) -> "StereoCentralRayFieldModel":
+    ) -> StereoCentralRayFieldModel:
         if C_L_mm is None:
             C_L_mm = np.zeros((3,), dtype=np.float64)
         C_L_mm = np.asarray(C_L_mm, dtype=np.float64).reshape(3)

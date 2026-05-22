@@ -124,7 +124,7 @@ def fit_central_stereo_rayfield_ba(
     u0, v0, radius = default_disk(int(image_width_px), int(image_height_px))
 
     # Stable parameter ordering.
-    fids = sorted(int(fid) for fid in frames.keys())
+    fids = sorted(int(fid) for fid in frames)
     for fid in fids:
         if fid not in rvecs0 or fid not in tvecs0:
             raise ValueError("missing initial pose for some frame")
@@ -333,7 +333,7 @@ def fit_central_stereo_rayfield_coeffs_fixed(
     u0, v0, radius = default_disk(int(image_width_px), int(image_height_px))
 
     # Stable ordering.
-    fids = sorted(int(fid) for fid in frames.keys())
+    fids = sorted(int(fid) for fid in frames)
     for fid in fids:
         if fid not in rvecs or fid not in tvecs:
             raise ValueError("missing pose for some frame")

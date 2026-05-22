@@ -69,7 +69,7 @@ class PinholeParallelPlateModel(PinholeParallelPlateRayField):
         )
 
     @classmethod
-    def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> "PinholeParallelPlateModel":
+    def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> PinholeParallelPlateModel:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size != 3:
             raise ValueError("PinholeParallelPlateModel expects three parameters")

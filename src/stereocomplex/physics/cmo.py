@@ -64,7 +64,7 @@ def pose_from_euler_xyz(
     ry: float,
     rz: float,
     t_xyz: tuple[float, float, float],
-) -> "CMOPlanePose":
+) -> CMOPlanePose:
     """Create a calibration-plane pose in the CMO/world frame."""
     return CMOPlanePose(
         R=rotz(rz) @ roty(ry) @ rotx(rx),
@@ -129,7 +129,7 @@ class CMOIntrinsics:
         height: int,
         focal_mm: float,
         pitch_um: float,
-    ) -> "CMOIntrinsics":
+    ) -> CMOIntrinsics:
         f_px = float(focal_mm) * 1000.0 / float(pitch_um)
         return cls(
             width=int(width),
@@ -225,7 +225,7 @@ class PolynomialRayAberration:
             dy = dy + float(value) * terms[name]
         return dx, dy
 
-    def add(self, other: "PolynomialRayAberration") -> "PolynomialRayAberration":
+    def add(self, other: PolynomialRayAberration) -> PolynomialRayAberration:
         coeff_x = dict(self.coeff_x)
         coeff_y = dict(self.coeff_y)
         for key, value in other.coeff_x.items():
@@ -329,7 +329,7 @@ class CMOStereoSpec:
         common_aberration: PolynomialRayAberration | None = None,
         left_distortion: BrownConrady | None = None,
         right_distortion: BrownConrady | None = None,
-    ) -> "CMOStereoSpec":
+    ) -> CMOStereoSpec:
         intr = CMOIntrinsics.from_focal_and_pitch(width, height, focal_mm, pitch_um)
         b2 = 0.5 * float(baseline_mm)
         return cls(
@@ -370,7 +370,7 @@ class CMOChannelRayField:
         return np.zeros(0, dtype=np.float64)
 
     @classmethod
-    def from_parameter_vector(cls, x: Array, **kwargs) -> "CMOChannelRayField":
+    def from_parameter_vector(cls, x: Array, **kwargs) -> CMOChannelRayField:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size:
             raise ValueError("CMOChannelRayField expects zero parameters")
@@ -459,7 +459,7 @@ class NonCentralPolynomialChannelModel:
         )
 
     @classmethod
-    def from_parameter_vector(cls, x: Array, **kwargs) -> "NonCentralPolynomialChannelModel":
+    def from_parameter_vector(cls, x: Array, **kwargs) -> NonCentralPolynomialChannelModel:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         terms = tuple(kwargs.get("aberration_terms", cls.default_terms()))
         image_size = kwargs.get("cmo_image_size", kwargs.get("image_size"))
@@ -1224,20 +1224,20 @@ __all__ = [
     "CMOIntrinsics",
     "CMOPlanePose",
     "CMOPlaneTargetSpec",
-    "NonCentralPolynomialChannelModel",
     "CMORayfieldBundleAdjustmentResult",
     "CMOStereoSpec",
+    "NonCentralPolynomialChannelModel",
     "PolynomialRayAberration",
     "SensorWarp",
     "Vignetting",
     "apply_blur_noise",
     "apply_sensor_warp",
-    "polynomial_channel_parameters_from_spec",
     "fit_cmo_stereo_model_and_poses_from_zernike_rayfields",
     "generate_cmo_plane_dataset",
     "intersect_rays_with_plane",
     "make_reference_cmo_scenario",
     "normalize_vectors",
+    "polynomial_channel_parameters_from_spec",
     "pose_from_euler_xyz",
     "project_cmo_points",
     "project_cmo_points_approx",

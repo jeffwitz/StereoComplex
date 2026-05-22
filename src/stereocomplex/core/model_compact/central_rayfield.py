@@ -92,7 +92,7 @@ class CentralRayFieldZernike:
         radius_px: float,
         lam: float = 1e-6,
         C_mm: np.ndarray | None = None,
-    ) -> tuple["CentralRayFieldZernike", dict[str, float]]:
+    ) -> tuple[CentralRayFieldZernike, dict[str, float]]:
         """
         Fit (x(u,v), y(u,v)) from ground-truth 3D points expressed in camera frame.
 

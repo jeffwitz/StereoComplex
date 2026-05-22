@@ -54,7 +54,7 @@ class ZernikeRayFieldChannel:
     """Named camera channel carrying one Zernike rayfield."""
 
     name: str
-    field: "ZernikeRayField"
+    field: ZernikeRayField
 
 
 @dataclass(frozen=True)
@@ -73,7 +73,7 @@ class MultiCameraZernikeRayField:
             raise ValueError("channel names must be unique")
 
     @classmethod
-    def from_fields(cls, fields: dict[str, "ZernikeRayField"]) -> "MultiCameraZernikeRayField":
+    def from_fields(cls, fields: dict[str, ZernikeRayField]) -> MultiCameraZernikeRayField:
         return cls(
             tuple(ZernikeRayFieldChannel(name=name, field=field) for name, field in fields.items())
         )
@@ -83,7 +83,7 @@ class MultiCameraZernikeRayField:
         cls,
         intrinsics_by_channel: dict[str, np.ndarray],
         configs_by_channel: dict[str, ZernikeOriginFieldConfig],
-    ) -> "MultiCameraZernikeRayField":
+    ) -> MultiCameraZernikeRayField:
         intrinsics_names = set(intrinsics_by_channel)
         config_names = set(configs_by_channel)
         missing_configs = sorted(intrinsics_names - config_names)
@@ -109,7 +109,7 @@ class MultiCameraZernikeRayField:
     def n_channels(self) -> int:
         return len(self.channels)
 
-    def channel(self, name: str) -> "ZernikeRayField":
+    def channel(self, name: str) -> ZernikeRayField:
         for channel in self.channels:
             if channel.name == name:
                 return channel.field
@@ -303,7 +303,7 @@ class ZernikeCandidate:
         return np.asarray(self.coefficients.origin_coeffs, dtype=np.float64).reshape(-1)
 
     @classmethod
-    def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> "ZernikeCandidate":
+    def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> ZernikeCandidate:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         config = kwargs["config"]
         fit_directions = bool(kwargs.get("fit_directions", True))

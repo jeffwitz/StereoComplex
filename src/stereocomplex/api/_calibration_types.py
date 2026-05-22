@@ -27,7 +27,7 @@ class CharucoBoardSpec:
     legacy_pattern: bool = False
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "CharucoBoardSpec":
+    def from_dict(cls, payload: dict[str, Any]) -> CharucoBoardSpec:
         return cls(
             squares_x=int(payload["squares_x"]),
             squares_y=int(payload["squares_y"]),
@@ -61,7 +61,7 @@ class CharucoBoardSpec:
         )
 
     @classmethod
-    def from_meta(cls, meta: dict[str, Any]) -> "CharucoBoardSpec":
+    def from_meta(cls, meta: dict[str, Any]) -> CharucoBoardSpec:
         board_meta = meta["board"]
         opencv_meta = meta.get("opencv", {})
         opencv_aruco = (

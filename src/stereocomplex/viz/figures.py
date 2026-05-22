@@ -14,6 +14,8 @@ from stereocomplex.viz.primitives import (
     draw_dimension,
 )
 from stereocomplex.viz.style import COLORS
+import math
+from matplotlib.patches import Arc as _Arc
 
 
 def diagram_pinhole_stereo(
@@ -115,7 +117,6 @@ def diagram_cmo_physical(
     the defining property of an infinity-corrected CMO and justifies
     modelling each channel as a virtual pinhole at its sub-pupil.
     """
-    import math
 
     if model is not None:
         f_obj = model.f_obj_mm
@@ -219,7 +220,6 @@ def diagram_cmo_physical(
     gamma_deg = math.degrees(gamma)
     # Small arc at C showing gamma
     arc_r = 18
-    from matplotlib.patches import Arc as _Arc
     ax.add_patch(_Arc(C_pt, arc_r * 2, arc_r * 2, angle=0,
                       theta1=-gamma_deg, theta2=gamma_deg,
                       color="#666666", linewidth=1.0, zorder=12))
@@ -257,8 +257,6 @@ def diagram_greenough(
     axis points DOWN from objective toward specimen.  Each sensor
     sits ABOVE its objective along the tilted axis.
     """
-    import math
-    from matplotlib.patches import Arc as _Arc
 
     OL = np.array([float(O_left[0]), float(O_left[1])])
     OR = np.array([float(O_right[0]), float(O_right[1])])

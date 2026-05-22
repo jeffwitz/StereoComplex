@@ -544,7 +544,7 @@ def select_physical_model_from_rayfield(
                 ):
                     from stereocomplex.physics.cmo_physical import (
                         fit_cmo_telecentric_model_to_rayfields,
-                    )  # noqa: PLC0415
+                    )
 
                     result = _as_shared_cmo_selection_result(
                         spec.name,

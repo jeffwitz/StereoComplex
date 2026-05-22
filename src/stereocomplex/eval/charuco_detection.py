@@ -442,7 +442,7 @@ def _index_gt_by_frame(
 def _make_charuco_detector(board_meta: dict):
     try:
         import cv2  # type: ignore
-        import cv2.aruco as aruco  # type: ignore
+        from cv2 import aruco  # type: ignore
     except Exception as e:
         raise RuntimeError("ChArUco eval requires opencv-contrib-python (cv2.aruco).") from e
 
