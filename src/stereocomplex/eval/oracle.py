@@ -11,6 +11,15 @@ from stereocomplex.meta import parse_view_meta
 
 
 def eval_oracle_dataset(dataset_root: Path) -> None:
+    """Evaluate the pinhole oracle across all scenes in a dataset.
+
+    Prints per-scene reprojection RMS and triangulation accuracy.
+
+    Parameters
+    ----------
+    dataset_root : Path
+        Root directory containing ``train/``, ``val/``, ``test/`` subdirectories.
+    """
     dataset_root = dataset_root.resolve()
     for split in ("train", "val", "test"):
         split_dir = dataset_root / split
@@ -22,6 +31,22 @@ def eval_oracle_dataset(dataset_root: Path) -> None:
 
 
 def eval_oracle_scene(scene_dir: Path) -> dict[str, float]:
+    """Evaluate the pinhole oracle for a single scene.
+
+    Computes reprojection error on each side and 3D triangulation accuracy
+    from ground-truth pixels.
+
+    Parameters
+    ----------
+    scene_dir : Path
+        Scene directory containing ``meta.json`` and ``gt_points.npz``.
+
+    Returns
+    -------
+    dict[str, float]
+        Reprojection RMS (left/right), triangulation RMS, P95 ray distance,
+        and point count.
+    """
     meta = json.loads((scene_dir / "meta.json").read_text(encoding="utf-8"))
     left_view = parse_view_meta(meta["stereo"]["left"])
     right_view = parse_view_meta(meta["stereo"]["right"])

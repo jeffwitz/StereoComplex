@@ -174,6 +174,20 @@ def reconstruct_points_with_parallel_plate_oracle(
 
 
 def reconstruction_error_report(result: ReconstructionResult, true_points: np.ndarray) -> ReconstructionErrorReport:
+    """Compute 3D reconstruction error statistics against ground truth.
+
+    Parameters
+    ----------
+    result : ReconstructionResult
+        Reconstructed points, ray gaps, and validity mask.
+    true_points : np.ndarray
+        Ground truth 3D points, shape ``(N, 3)``.
+
+    Returns
+    -------
+    ReconstructionErrorReport
+        RMS, median, P95, and max 3D errors plus per-axis RMS and ray-gap stats.
+    """
     true = np.asarray(true_points, dtype=np.float64).reshape(-1, 3)
     pred = np.asarray(result.points_3d, dtype=np.float64).reshape(-1, 3)
     if true.shape != pred.shape:

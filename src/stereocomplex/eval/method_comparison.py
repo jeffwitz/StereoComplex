@@ -21,6 +21,26 @@ def compare_charuco_methods(
     tensor_sigma: float = 1.5,
     search_radius: int = 3,
 ) -> dict[str, object]:
+    """Compare multiple ChArUco corner detection methods across scenes and splits.
+
+    Parameters
+    ----------
+    dataset_root : Path
+        Root directory containing split subdirectories.
+    cases : list[MethodCase]
+        Detection methods to compare (each specifies a name, method, and refine).
+    splits : tuple[str, ...]
+        Dataset splits to evaluate (e.g. ``("train", "val")``).
+    tensor_sigma : float
+        Gaussian sigma for tensor-based refinement.
+    search_radius : int
+        Search window half-width for refinement.
+
+    Returns
+    -------
+    dict
+        Report with per-case aggregated and per-scene error statistics.
+    """
     dataset_root = dataset_root.resolve()
 
     report: dict[str, object] = {

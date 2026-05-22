@@ -8,6 +8,21 @@ import numpy as np
 
 @dataclass(frozen=True)
 class RayfieldComparisonReport:
+    """Summary of rayfield comparison between two models.
+
+    Attributes
+    ----------
+    plane_intersection_rms : float
+        RMS of 3D intersection point distances at the z-plane, in mm.
+    plane_intersection_median : float
+        Median intersection point distance at the z-plane, in mm.
+    plane_intersection_p95 : float
+        95th percentile intersection distance at the z-plane, in mm.
+    direction_angle_rms_deg : float
+        RMS angular difference between ray directions, in degrees.
+    n_samples : int
+        Number of rays compared.
+    """
     plane_intersection_rms: float
     plane_intersection_median: float
     plane_intersection_p95: float
@@ -15,7 +30,30 @@ class RayfieldComparisonReport:
     n_samples: int
 
 
-def intersect_rays_with_z_plane(origin: np.ndarray, direction: np.ndarray, z_plane: float) -> np.ndarray:
+def intersect_rays_with_z_plane(
+    origin: np.ndarray, direction: np.ndarray, z_plane: float
+) -> np.ndarray:
+    """Intersect rays with a horizontal z-plane.
+
+    Parameters
+    ----------
+    origin : np.ndarray
+        Ray origins, shape (N, 3).
+    direction : np.ndarray
+        Ray directions (unit vectors), shape (N, 3).
+    z_plane : float
+        Z-coordinate of the target plane.
+
+    Returns
+    -------
+    np.ndarray
+        Intersection points, shape (N, 3).
+
+    Raises
+    ------
+    ValueError
+        If any ray is parallel to the z-plane (z-component < 1e-12).
+    """
     origin_arr = np.asarray(origin, dtype=np.float64).reshape(-1, 3)
     direction_arr = np.asarray(direction, dtype=np.float64).reshape(-1, 3)
     denom = direction_arr[:, 2]

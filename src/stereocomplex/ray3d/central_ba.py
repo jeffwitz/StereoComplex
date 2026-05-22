@@ -35,6 +35,23 @@ class CentralRayFieldBAResult:
 
 
 def default_disk(width_px: int, height_px: int) -> tuple[float, float, float]:
+    """Return the Zernike normalization disk for an image of the given size.
+
+    The disk is centered at the image midpoint and its radius circumscribes
+    the full pixel grid.
+
+    Parameters
+    ----------
+    width_px : int
+        Image width in pixels.
+    height_px : int
+        Image height in pixels.
+
+    Returns
+    -------
+    tuple[float, float, float]
+        ``(u0_px, v0_px, radius_px)``.
+    """
     u0 = (width_px - 1) / 2.0
     v0 = (height_px - 1) / 2.0
     radius = 0.5 * float(np.hypot(width_px - 1, height_px - 1))

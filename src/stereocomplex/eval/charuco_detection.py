@@ -54,6 +54,23 @@ def eval_charuco_detection(
     tensor_sigma: float = 1.5,
     search_radius: int = 3,
 ) -> None:
+    """Evaluate ChArUco corner detection accuracy across all scenes in a dataset.
+
+    Parameters
+    ----------
+    dataset_root : Path
+        Root directory containing ``train/``, ``val/``, ``test/`` subdirectories.
+    write_json : bool
+        If True, write the aggregate report to ``charuco_detection_report.json``.
+    method : str
+        Corner identification method (see ``collect_charuco_scene_errors``).
+    refine : str
+        Subpixel refinement strategy.
+    tensor_sigma : float
+        Gaussian sigma for tensor-based refinement.
+    search_radius : int
+        Search window half-width for refinement.
+    """
     dataset_root = dataset_root.resolve()
     report: dict[str, object] = {"dataset_root": str(dataset_root), "scenes": []}
 
@@ -87,6 +104,27 @@ def eval_charuco_scene(
     tensor_sigma: float = 1.5,
     search_radius: int = 3,
 ) -> dict[str, object]:
+    """Evaluate ChArUco corner detection accuracy for a single scene.
+
+    Parameters
+    ----------
+    scene_dir : Path
+        Scene directory containing ``meta.json``, ``frames.jsonl``,
+        ``gt_charuco_corners.npz``, and ``left/`` / ``right/`` image subdirs.
+    method : str
+        Corner identification method.
+    refine : str
+        Subpixel refinement strategy.
+    tensor_sigma : float
+        Gaussian sigma for tensor-based refinement.
+    search_radius : int
+        Search window half-width for refinement.
+
+    Returns
+    -------
+    dict
+        Per-side error statistics (n_frames, n_matched, rms_px, p95_px, etc.).
+    """
     context = _load_scene_eval_context(scene_dir)
 
     per_side_errors: dict[str, list[float]] = {"left": [], "right": []}
