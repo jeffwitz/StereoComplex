@@ -46,12 +46,19 @@ def _point_line_residual(P: np.ndarray, origin: np.ndarray, direction: np.ndarra
     return np.cross(P - origin, direction)
 
 
-def _left_board_poses(board_poses: Sequence[np.ndarray], T_left_world: np.ndarray) -> list[np.ndarray]:
+def _left_board_poses(
+    board_poses: Sequence[np.ndarray], T_left_world: np.ndarray,
+) -> list[np.ndarray]:
     T_left_world_arr = np.asarray(T_left_world, dtype=np.float64).reshape(4, 4)
-    return [T_left_world_arr @ np.asarray(T_board_world, dtype=np.float64).reshape(4, 4) for T_board_world in board_poses]
+    return [
+        T_left_world_arr @ np.asarray(T_board_world, dtype=np.float64).reshape(4, 4)
+        for T_board_world in board_poses
+    ]
 
 
-def _frame_points_from_left_board_poses(object_points: np.ndarray, left_board_poses: Sequence[np.ndarray]) -> list[np.ndarray]:
+def _frame_points_from_left_board_poses(
+    object_points: np.ndarray, left_board_poses: Sequence[np.ndarray],
+) -> list[np.ndarray]:
     return [transform_points(T_left_board, object_points) for T_left_board in left_board_poses]
 
 
@@ -94,7 +101,9 @@ def _pose_params_to_transforms(params: np.ndarray, n_frames: int) -> list[np.nda
     return poses
 
 
-def _world_board_poses(left_board_poses: Sequence[np.ndarray], T_left_world: np.ndarray) -> list[np.ndarray]:
+def _world_board_poses(
+    left_board_poses: Sequence[np.ndarray], T_left_world: np.ndarray,
+) -> list[np.ndarray]:
     T_world_left = np.linalg.inv(np.asarray(T_left_world, dtype=np.float64).reshape(4, 4))
     return [T_world_left @ np.asarray(T, dtype=np.float64).reshape(4, 4) for T in left_board_poses]
 
@@ -151,10 +160,15 @@ def fit_stereo_zernike_origin_field(
         if observations.per_frame_object_points is not None
         else [observations.object_points] * len(observations.left_pixels)
     )
-    P_left_frames = [transform_points(T, obj) for T, obj in zip(left_board_initial, all_obj_per_frame, strict=True)]
+    P_left_frames = [
+        transform_points(T, obj)
+        for T, obj in zip(left_board_initial, all_obj_per_frame, strict=True)
+    ]
 
     frame_data: list[tuple[np.ndarray, np.ndarray]] = []
-    for uvL, uvR, P_L in zip(observations.left_pixels, observations.right_pixels, P_left_frames, strict=True):
+    for uvL, uvR, P_L in zip(
+        observations.left_pixels, observations.right_pixels, P_left_frames, strict=True,
+    ):
         uvL_arr = np.asarray(uvL, dtype=np.float64).reshape(-1, 2)
         uvR_arr = np.asarray(uvR, dtype=np.float64).reshape(-1, 2)
         P_L_arr = np.asarray(P_L, dtype=np.float64).reshape(-1, 3)
@@ -185,7 +199,9 @@ def fit_stereo_zernike_origin_field(
 
     weights = _mode_weights(left0)
     sqrt_reg = np.sqrt(float(max(regularization, 0.0)))
-    direction_reg = regularization if direction_regularization is None else float(direction_regularization)
+    direction_reg = (
+        regularization if direction_regularization is None else float(direction_regularization)
+    )
     sqrt_dir_reg = np.sqrt(float(max(direction_reg, 0.0)))
     sqrt_pose_reg = np.sqrt(float(max(pose_regularization, 0.0)))
     sqrt_rig_reg = np.sqrt(float(max(rig_regularization, 0.0)))
@@ -233,7 +249,16 @@ def fit_stereo_zernike_origin_field(
         if cursor != arr.size:
             raise ValueError(f"unused optimization parameters: {arr.size - cursor}")
         T_RL_current = _se3_params_to_transform(rig_params)
-        return left_origin, right_origin, left_direction, right_direction, pose_params, left_board_poses, rig_params, T_RL_current
+        return (
+            left_origin,
+            right_origin,
+            left_direction,
+            right_direction,
+            pose_params,
+            left_board_poses,
+            rig_params,
+            T_RL_current,
+        )
 
     def make_fields(
         left_origin: np.ndarray,
@@ -253,11 +278,21 @@ def fit_stereo_zernike_origin_field(
                 ZernikeRayFieldCoefficients(right_origin, right_direction),
             )
         else:
-            left = ZernikeOriginField(K_left, config_left, ZernikeOriginFieldCoefficients(left_origin))
-            right = ZernikeOriginField(K_right, config_right, ZernikeOriginFieldCoefficients(right_origin))
+            left = ZernikeOriginField(
+                K_left, config_left, ZernikeOriginFieldCoefficients(left_origin),
+            )
+            right = ZernikeOriginField(
+                K_right, config_right, ZernikeOriginFieldCoefficients(right_origin),
+            )
         return left, right
 
-    def _ray_cached(A: np.ndarray, d0: np.ndarray, origin_coeffs: np.ndarray, direction_coeffs: np.ndarray, enforce_gauge: bool) -> tuple[np.ndarray, np.ndarray]:
+    def _ray_cached(
+        A: np.ndarray,
+        d0: np.ndarray,
+        origin_coeffs: np.ndarray,
+        direction_coeffs: np.ndarray,
+        enforce_gauge: bool,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Compute (O, d) using precomputed design matrix A and pinhole directions d0.
 
         Mirrors ZernikeOriginField.origin() / ZernikeRayField.direction() using
@@ -283,16 +318,27 @@ def fit_stereo_zernike_origin_field(
             rig_params,
             T_RL_current,
         ) = unpack(p)
-        P_left_current = [transform_points(T, obj) for T, obj in zip(left_board_poses, all_obj_per_frame, strict=True)]
+        P_left_current = [
+            transform_points(T, obj)
+            for T, obj in zip(left_board_poses, all_obj_per_frame, strict=True)
+        ]
         R_RL = T_RL_current[:3, :3]
         t_RL = T_RL_current[:3, 3]
         parts: list[np.ndarray] = []
-        for i, ((_uvL_arr, uvR_arr), P_L_arr) in enumerate(zip(frame_data, P_left_current, strict=True)):
-            O_L, d_L = _ray_cached(A_left_per_frame[i], d0_left_per_frame[i], left_origin, left_direction, _gauge_left)
+        for i, ((_uvL_arr, uvR_arr), P_L_arr) in enumerate(
+            zip(frame_data, P_left_current, strict=True),
+        ):
+            O_L, d_L = _ray_cached(
+                A_left_per_frame[i], d0_left_per_frame[i], left_origin, left_direction,
+                _gauge_left,
+            )
             parts.append(_point_line_residual(P_L_arr, O_L, d_L).reshape(-1))
             if uvR_arr.shape[0] > 0:
                 P_R_arr = (R_RL @ P_L_arr.T).T + t_RL.reshape(1, 3)
-                O_R, d_R = _ray_cached(A_right_per_frame[i], d0_right_per_frame[i], right_origin, right_direction, _gauge_right)
+                O_R, d_R = _ray_cached(
+                    A_right_per_frame[i], d0_right_per_frame[i], right_origin,
+                    right_direction, _gauge_right,
+                )
                 parts.append(_point_line_residual(P_R_arr, O_R, d_R).reshape(-1))
         if sqrt_reg > 0:
             reg_left = (np.sqrt(weights)[:, None] * left_origin).reshape(-1)
@@ -312,7 +358,9 @@ def fit_stereo_zernike_origin_field(
 
     from scipy.optimize import least_squares  # type: ignore
 
-    sol = least_squares(residuals, p0, method="trf", loss=robust_loss, f_scale=1.0, max_nfev=int(max_nfev))
+    sol = least_squares(
+        residuals, p0, method="trf", loss=robust_loss, f_scale=1.0, max_nfev=int(max_nfev),
+    )
     (
         left_origin,
         right_origin,
@@ -323,8 +371,13 @@ def fit_stereo_zernike_origin_field(
         _rig_params,
         T_RL_final,
     ) = unpack(sol.x)
-    left_field, right_field = make_fields(left_origin, right_origin, left_direction, right_direction)
-    P_left_final = [transform_points(T, obj) for T, obj in zip(left_board_poses, all_obj_per_frame, strict=True)]
+    left_field, right_field = make_fields(
+        left_origin, right_origin, left_direction, right_direction,
+    )
+    P_left_final = [
+        transform_points(T, obj)
+        for T, obj in zip(left_board_poses, all_obj_per_frame, strict=True)
+    ]
     R_RL = T_RL_final[:3, :3]
     t_RL = T_RL_final[:3, 3]
 

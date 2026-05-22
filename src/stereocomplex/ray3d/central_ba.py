@@ -117,7 +117,9 @@ def _fit_coeffs_least_squares(
             res_parts.append(np.sqrt(lam_coeff) * p)
         return np.concatenate(res_parts, axis=0)
 
-    sol = least_squares(fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev))
+    sol = least_squares(
+        fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev)
+    )
     cx, cy = _unpack_coeffs(sol.x, K)
     diag = {
         "coeff_opt_cost": float(sol.cost),
@@ -152,7 +154,9 @@ def _fit_pose_least_squares(
         P_cam = (rot @ fr.P_board_mm.T).T + tvec.reshape(1, 3)
         return _point_to_ray_residual(P_cam, d)
 
-    sol = least_squares(fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev))
+    sol = least_squares(
+        fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev)
+    )
     rvec = sol.x[:3].copy()
     tvec = sol.x[3:].copy()
     diag = {
@@ -219,8 +223,14 @@ def fit_central_rayfield_ba(
             raise RuntimeError("inconsistent Zernike design matrix width")
     assert K is not None
 
-    rvecs = {int(fid): np.asarray(rvecs0[int(fid)], dtype=np.float64).reshape(3) for fid in frames_clean}
-    tvecs = {int(fid): np.asarray(tvecs0[int(fid)], dtype=np.float64).reshape(3) for fid in frames_clean}
+    rvecs = {
+        int(fid): np.asarray(rvecs0[int(fid)], dtype=np.float64).reshape(3)
+        for fid in frames_clean
+    }
+    tvecs = {
+        int(fid): np.asarray(tvecs0[int(fid)], dtype=np.float64).reshape(3)
+        for fid in frames_clean
+    }
 
     if coeffs0_x is None:
         coeffs_x = np.zeros((K,), dtype=np.float64)

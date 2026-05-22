@@ -168,9 +168,22 @@ def fit_central_stereo_rayfield_ba(
     from scipy.spatial.transform import Rotation as R  # type: ignore
 
     coeff0 = _pack_coeffs(coeffs0_left_x, coeffs0_left_y, coeffs0_right_x, coeffs0_right_y)
-    rig0 = np.concatenate([np.asarray(rig_rvec0, dtype=np.float64).reshape(3), np.asarray(rig_tvec0, dtype=np.float64).reshape(3)])
+    rig0 = np.concatenate(
+        [
+            np.asarray(rig_rvec0, dtype=np.float64).reshape(3),
+            np.asarray(rig_tvec0, dtype=np.float64).reshape(3),
+        ]
+    )
     poses0 = np.concatenate(
-        [np.concatenate([np.asarray(rvecs0[fid], dtype=np.float64).reshape(3), np.asarray(tvecs0[fid], dtype=np.float64).reshape(3)]) for fid in fids],
+        [
+            np.concatenate(
+                [
+                    np.asarray(rvecs0[fid], dtype=np.float64).reshape(3),
+                    np.asarray(tvecs0[fid], dtype=np.float64).reshape(3),
+                ]
+            )
+            for fid in fids
+        ],
         axis=0,
     )
     p0 = np.concatenate([coeff0, rig0, poses0], axis=0)
@@ -178,12 +191,22 @@ def fit_central_stereo_rayfield_ba(
     # Gauge constraints to reduce drift:
     # - center: x(u0,v0)=0, y(u0,v0)=0
     # - local Jacobian near center: d(x,y)/d(u,v) ~ diag(1/f0, 1/f0), cross terms ~ 0
-    A0 = zernike_design_matrix(np.array([u0]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius)[0]
+    A0 = zernike_design_matrix(
+        np.array([u0]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+    )[0]
     eps = 1.0
-    Au_p = zernike_design_matrix(np.array([u0 + eps]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius)[0]
-    Au_m = zernike_design_matrix(np.array([u0 - eps]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius)[0]
-    Av_p = zernike_design_matrix(np.array([u0]), np.array([v0 + eps]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius)[0]
-    Av_m = zernike_design_matrix(np.array([u0]), np.array([v0 - eps]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius)[0]
+    Au_p = zernike_design_matrix(
+        np.array([u0 + eps]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+    )[0]
+    Au_m = zernike_design_matrix(
+        np.array([u0 - eps]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+    )[0]
+    Av_p = zernike_design_matrix(
+        np.array([u0]), np.array([v0 + eps]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+    )[0]
+    Av_m = zernike_design_matrix(
+        np.array([u0]), np.array([v0 - eps]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+    )[0]
     f0_px = 1.5 * float(max(image_width_px, image_height_px))
     target = 1.0 / f0_px
 
@@ -222,7 +245,9 @@ def fit_central_stereo_rayfield_ba(
             y0_L = float((A0 @ cLy).item())
             x0_R = float((A0 @ cRx).item())
             y0_R = float((A0 @ cRy).item())
-            res_parts.append(np.sqrt(lam_center) * np.array([x0_L, y0_L, x0_R, y0_R], dtype=np.float64))
+            res_parts.append(
+                np.sqrt(lam_center) * np.array([x0_L, y0_L, x0_R, y0_R], dtype=np.float64)
+            )
 
         if lam_jacobian > 0:
             # Finite-difference Jacobian at (u0,v0) in normalized coordinates.
@@ -257,7 +282,9 @@ def fit_central_stereo_rayfield_ba(
 
         return np.concatenate(res_parts, axis=0)
 
-    sol = least_squares(fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev))
+    sol = least_squares(
+        fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev)
+    )
 
     coeffs = sol.x[: 4 * K]
     rig = sol.x[4 * K : 4 * K + 6]
@@ -402,7 +429,9 @@ def fit_central_stereo_rayfield_coeffs_fixed(
             res_parts.append(np.sqrt(lam_coeff) * p)
         return np.concatenate(res_parts, axis=0)
 
-    sol = least_squares(fun, coeff0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev))
+    sol = least_squares(
+        fun, coeff0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev)
+    )
     cLx, cLy, cRx, cRy = _unpack_coeffs(sol.x, K)
 
     diag = {

@@ -39,7 +39,9 @@ def _poly_design_matrix_3vars(X: np.ndarray, powers: np.ndarray) -> np.ndarray:
     return A
 
 
-def _poly_features_and_jacobian_3vars(xyz: np.ndarray, powers: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _poly_features_and_jacobian_3vars(
+    xyz: np.ndarray, powers: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     """
     For a single xyz point, return (phi, Jphi) where:
       - phi: (M,)
@@ -65,13 +67,19 @@ def _poly_features_and_jacobian_3vars(xyz: np.ndarray, powers: np.ndarray) -> tu
 
     mask = ax > 0
     if np.any(mask):
-        dphi_dx[mask] = ax[mask] * np.power(x, ax[mask] - 1, dtype=np.float64) * y_b[mask] * z_c[mask]
+        dphi_dx[mask] = (
+            ax[mask] * np.power(x, ax[mask] - 1, dtype=np.float64) * y_b[mask] * z_c[mask]
+        )
     mask = by > 0
     if np.any(mask):
-        dphi_dy[mask] = by[mask] * x_a[mask] * np.power(y, by[mask] - 1, dtype=np.float64) * z_c[mask]
+        dphi_dy[mask] = (
+            by[mask] * x_a[mask] * np.power(y, by[mask] - 1, dtype=np.float64) * z_c[mask]
+        )
     mask = cz > 0
     if np.any(mask):
-        dphi_dz[mask] = cz[mask] * x_a[mask] * y_b[mask] * np.power(z, cz[mask] - 1, dtype=np.float64)
+        dphi_dz[mask] = (
+            cz[mask] * x_a[mask] * y_b[mask] * np.power(z, cz[mask] - 1, dtype=np.float64)
+        )
 
     Jphi = np.stack([dphi_dx, dphi_dy, dphi_dz], axis=1)
     return phi, Jphi
@@ -89,7 +97,8 @@ class PycasoSoloffStereoModel:
 
     where each S(.) is a polynomial in (X,Y,Z) with crossed terms up to a chosen degree.
 
-    Identification (reconstruction) solves for (X,Y,Z) given (C_L,R_L,C_R,R_R) by non-linear least squares.
+    Identification (reconstruction) solves for (X,Y,Z) given
+    (C_L,R_L,C_R,R_R) by non-linear least squares.
     """
 
     degree: int
@@ -228,9 +237,15 @@ class PycasoSoloffStereoModel:
         """
         uv_left_px = np.asarray(uv_left_px, dtype=np.float64).reshape(2)
         uv_right_px = np.asarray(uv_right_px, dtype=np.float64).reshape(2)
-        obs = np.array([uv_left_px[0], uv_left_px[1], uv_right_px[0], uv_right_px[1]], dtype=np.float64)
+        obs = np.array(
+            [uv_left_px[0], uv_left_px[1], uv_right_px[0], uv_right_px[1]],
+            dtype=np.float64,
+        )
 
-        c0 = np.array([self.coeffs1_Cl[0], self.coeffs1_Rl[0], self.coeffs1_Cr[0], self.coeffs1_Rr[0]], dtype=np.float64)
+        c0 = np.array(
+            [self.coeffs1_Cl[0], self.coeffs1_Rl[0], self.coeffs1_Cr[0], self.coeffs1_Rr[0]],
+            dtype=np.float64,
+        )
         B = np.array(
             [
                 self.coeffs1_Cl[1:4],

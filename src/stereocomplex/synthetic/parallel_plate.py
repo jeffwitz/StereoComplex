@@ -117,7 +117,11 @@ def normal_from_tilts(alpha_deg: float, beta_deg: float) -> np.ndarray:
     return _normalize(q)
 
 
-def pinhole_ray_from_pixel(u: float | np.ndarray, v: float | np.ndarray, K: np.ndarray) -> np.ndarray:
+def pinhole_ray_from_pixel(
+    u: float | np.ndarray,
+    v: float | np.ndarray,
+    K: np.ndarray,
+) -> np.ndarray:
     """Return normalized pinhole directions in camera coordinates."""
     K = np.asarray(K, dtype=np.float64).reshape(3, 3)
     u_arr = np.asarray(u, dtype=np.float64)
@@ -157,7 +161,11 @@ def parallel_plate_ray_from_pixel(
     return I2, s
 
 
-def _point_line_residual(point: np.ndarray, origin: np.ndarray, direction: np.ndarray) -> np.ndarray:
+def _point_line_residual(
+    point: np.ndarray,
+    origin: np.ndarray,
+    direction: np.ndarray,
+) -> np.ndarray:
     return np.cross(point - origin, direction)
 
 
@@ -181,7 +189,9 @@ def project_point_with_parallel_plate(
 
     def fun(x: np.ndarray) -> np.ndarray:
         origin, direction = parallel_plate_ray_from_pixel(float(x[0]), float(x[1]), K, params)
-        return _point_line_residual(P, np.asarray(origin).reshape(3), np.asarray(direction).reshape(3))
+        return _point_line_residual(
+            P, np.asarray(origin).reshape(3), np.asarray(direction).reshape(3)
+        )
 
     if image_size is None:
         bounds = (-np.inf, np.inf)
@@ -190,7 +200,14 @@ def project_point_with_parallel_plate(
         bounds = ([0.0, 0.0], [float(width - 1), float(height - 1)])
         u0 = float(np.clip(u0, 0.0, width - 1))
         v0 = float(np.clip(v0, 0.0, height - 1))
-    sol = least_squares(fun, x0=np.array([u0, v0], dtype=np.float64), bounds=bounds, xtol=1e-12, ftol=1e-12, gtol=1e-12)
+    sol = least_squares(
+        fun,
+        x0=np.array([u0, v0], dtype=np.float64),
+        bounds=bounds,
+        xtol=1e-12,
+        ftol=1e-12,
+        gtol=1e-12,
+    )
     return float(sol.x[0]), float(sol.x[1])
 
 
@@ -222,7 +239,10 @@ def generate_parallel_plate_stereo_dataset(
             dtype=np.float64,
         )
         uv_right = np.array(
-            [project_point_with_parallel_plate(P, K_right, plate_right, image_size) for P in P_right],
+            [
+                project_point_with_parallel_plate(P, K_right, plate_right, image_size)
+                for P in P_right
+            ],
             dtype=np.float64,
         )
         if noise_std_px > 0:

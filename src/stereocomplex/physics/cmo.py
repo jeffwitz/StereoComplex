@@ -383,12 +383,16 @@ class CMOChannelRayField:
         return {}
 
     def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
-        uu, vv = np.broadcast_arrays(np.asarray(u, dtype=np.float64), np.asarray(v, dtype=np.float64))
+        uu, vv = np.broadcast_arrays(
+            np.asarray(u, dtype=np.float64), np.asarray(v, dtype=np.float64)
+        )
         shape = uu.shape
         uf = uu.reshape(-1)
         vf = vv.reshape(-1)
         uv = np.column_stack([uf, vf])
-        uv_ideal = _inverse_sensor_warp_pixels(uv, self.channel.sensor_warp, self.channel.intrinsics)
+        uv_ideal = _inverse_sensor_warp_pixels(
+            uv, self.channel.sensor_warp, self.channel.intrinsics
+        )
         x_dist, y_dist = self.channel.intrinsics.pixel_to_norm(uv_ideal[:, 0], uv_ideal[:, 1])
         x, y = self.channel.distortion.undistort(x_dist, y_dist)
         aberration = self.common_aberration.add(self.channel.differential_aberration)
@@ -495,9 +499,13 @@ class NonCentralPolynomialChannelModel:
             "p2": float(self.p2),
             "k3": float(self.k3),
         }
-        for name, value in zip(self.aberration_terms, self._coeff_array(self.aberration_coeff_x), strict=True):
+        for name, value in zip(
+            self.aberration_terms, self._coeff_array(self.aberration_coeff_x), strict=True
+        ):
             params[f"aberr_x_{name}"] = float(value)
-        for name, value in zip(self.aberration_terms, self._coeff_array(self.aberration_coeff_y), strict=True):
+        for name, value in zip(
+            self.aberration_terms, self._coeff_array(self.aberration_coeff_y), strict=True
+        ):
             params[f"aberr_y_{name}"] = float(value)
         return params
 
@@ -506,7 +514,9 @@ class NonCentralPolynomialChannelModel:
         channel = CMOChannelSpec(
             name="left",
             intrinsics=intr,
-            origin_world_mm=(float(self.origin_x_mm), float(self.origin_y_mm), float(self.origin_z_mm)),
+            origin_world_mm=(
+                float(self.origin_x_mm), float(self.origin_y_mm), float(self.origin_z_mm),
+            ),
             distortion=BrownConrady(self.k1, self.k2, self.p1, self.p2, self.k3),
             differential_aberration=self._aberration(),
             vignetting=Vignetting(strength=0.0),
@@ -537,8 +547,14 @@ class NonCentralPolynomialChannelModel:
         cx = self._coeff_array(self.aberration_coeff_x)
         cy = self._coeff_array(self.aberration_coeff_y)
         return PolynomialRayAberration(
-            coeff_x={name: float(value) for name, value in zip(self.aberration_terms, cx, strict=True)},
-            coeff_y={name: float(value) for name, value in zip(self.aberration_terms, cy, strict=True)},
+            coeff_x={
+                name: float(value)
+                for name, value in zip(self.aberration_terms, cx, strict=True)
+            },
+            coeff_y={
+                name: float(value)
+                for name, value in zip(self.aberration_terms, cy, strict=True)
+            },
         )
 
 
@@ -553,7 +569,9 @@ def polynomial_channel_parameters_from_spec(
     of common CMO aberration and channel differential aberration.
     """
     terms = tuple(aberration_terms or NonCentralPolynomialChannelModel.default_terms())
-    effective = (common_aberration or PolynomialRayAberration()).add(channel.differential_aberration)
+    effective = (
+        common_aberration or PolynomialRayAberration()
+    ).add(channel.differential_aberration)
     dx, dy = [], []
     for term in terms:
         dx.append(float(effective.coeff_x.get(term, 0.0)))
@@ -642,7 +660,9 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
         raise ValueError("left_pixels, right_pixels and pose_initials must have the same length")
 
     if isinstance(object_points, list):
-        object_per_frame = [np.asarray(obj, dtype=np.float64).reshape(-1, 2) for obj in object_points]
+        object_per_frame = [
+            np.asarray(obj, dtype=np.float64).reshape(-1, 2) for obj in object_points
+        ]
     else:
         common_obj = np.asarray(object_points, dtype=np.float64).reshape(-1, 2)
         object_per_frame = [common_obj for _ in left_pixels]
@@ -651,15 +671,23 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
 
     left_obs = [np.asarray(pix, dtype=np.float64).reshape(-1, 2) for pix in left_pixels]
     right_obs = [np.asarray(pix, dtype=np.float64).reshape(-1, 2) for pix in right_pixels]
-    for idx, (obj, left, right) in enumerate(zip(object_per_frame, left_obs, right_obs, strict=True)):
+    for idx, (obj, left, right) in enumerate(
+        zip(object_per_frame, left_obs, right_obs, strict=True)
+    ):
         if obj.shape[0] != left.shape[0] or obj.shape[0] != right.shape[0]:
             raise ValueError(f"frame {idx} object/pixel counts do not match")
 
     pose0 = np.concatenate([_pose_to_vector(pose) for pose in pose_initials])
     x0 = np.r_[left0, right0, pose0]
     if parameter_bounds is None:
-        lo_model = np.r_[[-12.0, -12.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0], -0.05 * np.ones(2 * len(terms))]
-        hi_model = np.r_[[+12.0, +12.0, +50.0, +1.0, +1.0, +0.1, +0.1, +1.0], +0.05 * np.ones(2 * len(terms))]
+        lo_model = np.r_[
+            [-12.0, -12.0, -50.0, -1.0, -1.0, -0.1, -0.1, -1.0],
+            -0.05 * np.ones(2 * len(terms)),
+        ]
+        hi_model = np.r_[
+            [+12.0, +12.0, +50.0, +1.0, +1.0, +0.1, +0.1, +1.0],
+            +0.05 * np.ones(2 * len(terms)),
+        ]
     else:
         lo_model, hi_model = (np.asarray(v, dtype=np.float64).reshape(-1) for v in parameter_bounds)
     if lo_model.size != n_params or hi_model.size != n_params:
@@ -668,7 +696,10 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
     pose_hi = pose0 + np.inf
     bounds = (np.r_[lo_model, lo_model, pose_lo], np.r_[hi_model, hi_model, pose_hi])
 
-    def unpack(x: Array) -> tuple[NonCentralPolynomialChannelModel, NonCentralPolynomialChannelModel, list[CMOPlanePose], Array]:
+    def unpack(x: Array) -> tuple[
+        NonCentralPolynomialChannelModel, NonCentralPolynomialChannelModel,
+        list[CMOPlanePose], Array,
+    ]:
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         left_params = arr[:n_params]
         right_params = arr[n_params : 2 * n_params]
@@ -699,16 +730,26 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
             points = pose.local_to_world(obj)
             O_l, d_l = left_model.ray(uv_l[:, 0], uv_l[:, 1])
             O_r, d_r = right_model.ray(uv_r[:, 0], uv_r[:, 1])
-            blocks.append(float(incidence_weight) * np.cross(points - O_l.reshape(-1, 3), d_l.reshape(-1, 3)).reshape(-1))
-            blocks.append(float(incidence_weight) * np.cross(points - O_r.reshape(-1, 3), d_r.reshape(-1, 3)).reshape(-1))
+            blocks.append(
+                float(incidence_weight)
+                * np.cross(points - O_l.reshape(-1, 3), d_l.reshape(-1, 3)).reshape(-1)
+            )
+            blocks.append(
+                float(incidence_weight)
+                * np.cross(points - O_r.reshape(-1, 3), d_r.reshape(-1, 3)).reshape(-1)
+            )
         if rayfield_weight > 0:
             blocks.append(
                 float(rayfield_weight)
-                * rayfield_two_plane_residuals(left_field, left_model, support_left, z_planes=z_planes)
+                * rayfield_two_plane_residuals(
+                    left_field, left_model, support_left, z_planes=z_planes
+                )
             )
             blocks.append(
                 float(rayfield_weight)
-                * rayfield_two_plane_residuals(right_field, right_model, support_right, z_planes=z_planes)
+                * rayfield_two_plane_residuals(
+                    right_field, right_model, support_right, z_planes=z_planes
+                )
             )
         if sqrt_pose_reg > 0:
             blocks.append(sqrt_pose_reg * (pose_params - pose0))
@@ -736,8 +777,12 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
         incidence_blocks.append(np.cross(points - O_r.reshape(-1, 3), d_r.reshape(-1, 3)))
     incidence = np.vstack(incidence_blocks)
     incidence_norms = np.linalg.norm(incidence, axis=1)
-    left_ray = rayfield_two_plane_residuals(left_field, left_model, support_left, z_planes=z_planes).reshape(-1, 6)
-    right_ray = rayfield_two_plane_residuals(right_field, right_model, support_right, z_planes=z_planes).reshape(-1, 6)
+    left_ray = rayfield_two_plane_residuals(
+        left_field, left_model, support_left, z_planes=z_planes
+    ).reshape(-1, 6)
+    right_ray = rayfield_two_plane_residuals(
+        right_field, right_model, support_right, z_planes=z_planes
+    ).reshape(-1, 6)
 
     return CMORayfieldBundleAdjustmentResult(
         left_model=left_model,
@@ -808,7 +853,8 @@ class CMOPlaneTargetSpec:
                 h = int(self.squares_y * self.pixels_per_square)
                 if hasattr(board, "generateImage"):
                     return board.generateImage((w, h)).astype(np.uint8)
-                img = np.zeros((h, w), dtype=np.uint8)  # pragma: no cover - old OpenCV compatibility path
+                # pragma: no cover - old OpenCV compatibility path
+                img = np.zeros((h, w), dtype=np.uint8)
                 board.draw((w, h), img)
                 return img.astype(np.uint8)
             except Exception as exc:
@@ -960,9 +1006,9 @@ def render_cmo_channel_image(
     sampled = sample_cmo_target_texture(target, texture_u8, xy, inside, interpolation)
     img = np.full_like(sampled, int(background_gray), dtype=np.uint8)
     img[inside] = sampled[inside]
-    img = np.clip(img.astype(np.float64) * channel.vignetting.gain(channel.intrinsics), 0, 255).astype(
-        np.uint8
-    )
+    img = np.clip(
+        img.astype(np.float64) * channel.vignetting.gain(channel.intrinsics), 0, 255
+    ).astype(np.uint8)
     return apply_blur_noise(img, blur_sigma_px, noise_std_gray, rng)
 
 
@@ -1008,7 +1054,9 @@ def project_cmo_points(
     out = np.full((points.shape[0], 2), np.nan, dtype=np.float64)
 
     lower = np.array([-float(channel.intrinsics.width), -float(channel.intrinsics.height)])
-    upper = np.array([2.0 * float(channel.intrinsics.width), 2.0 * float(channel.intrinsics.height)])
+    upper = np.array([
+        2.0 * float(channel.intrinsics.width), 2.0 * float(channel.intrinsics.height)
+    ])
     center = np.array([channel.intrinsics.cx, channel.intrinsics.cy], dtype=np.float64)
 
     for idx, point in enumerate(points):
@@ -1125,7 +1173,8 @@ def generate_cmo_plane_dataset(
         "model_notes": [
             "The renderer and sparse projection both use stereocomplex.physics.cmo.",
             "CMOChannelRayField is the shared pixel-to-line physics model.",
-            "Sparse GT projection minimizes point-to-ray distance with the same CMOChannelRayField.",
+            "Sparse GT projection minimizes point-to-ray distance "
+            "with the same CMOChannelRayField.",
         ],
     }
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
@@ -1140,14 +1189,33 @@ def generate_cmo_plane_dataset(
             left_name = f"{frame_id:06d}.png"
             right_name = f"{frame_id:06d}.png"
             img_l = render_cmo_channel_image(
-                cmo, cmo.left, target, pose, texture, blur_sigma_px=blur_sigma_px, noise_std_gray=noise_std_gray, rng=rng
+                cmo,
+                cmo.left,
+                target,
+                pose,
+                texture,
+                blur_sigma_px=blur_sigma_px,
+                noise_std_gray=noise_std_gray,
+                rng=rng,
             )
             img_r = render_cmo_channel_image(
-                cmo, cmo.right, target, pose, texture, blur_sigma_px=blur_sigma_px, noise_std_gray=noise_std_gray, rng=rng
+                cmo,
+                cmo.right,
+                target,
+                pose,
+                texture,
+                blur_sigma_px=blur_sigma_px,
+                noise_std_gray=noise_std_gray,
+                rng=rng,
             )
             save_gray(left_dir / left_name, img_l)
             save_gray(right_dir / right_name, img_r)
-            stream.write(json.dumps({"frame_id": frame_id, "left": left_name, "right": right_name}) + "\n")
+            frame_record = {
+                "frame_id": frame_id,
+                "left": left_name,
+                "right": right_name,
+            }
+            stream.write(json.dumps(frame_record) + "\n")
             gt = project_cmo_target_corners(cmo, target, pose)
             n = gt["corner_id"].shape[0]
             all_frame.append(np.full((n,), frame_id, dtype=np.int32))
