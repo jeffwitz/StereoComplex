@@ -9,7 +9,7 @@ COLAB_CELL = {
     "metadata": {},
     "source": [
         "<table align=\"left\"><td>\n",
-        "  <a target=\"_blank\" href=\"https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/{name}\">\n",
+        "  <a target=\"_blank\" href=\"https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/{name}\">\n",
         "    <img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/>\n",
         "  </a>\n",
         "</td><td>\n",
@@ -47,7 +47,7 @@ for nb_path in sorted(glob.glob(f"{notebooks_dir}/*.ipynb")):
     name = os.path.basename(nb_path)
     badge_source = [
         f"<table align=\"left\"><td>\n",
-        f"  <a target=\"_blank\" href=\"https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/{name}\">\n",
+        f"  <a target=\"_blank\" href=\"https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/{name}\">\n",
         f"    <img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/>\n",
         f"  </a>\n",
         f"</td><td>\n",
