@@ -198,6 +198,32 @@ rtk .venv/bin/python -m pytest tests/test_physical_model_selection.py
 rtk .venv/bin/python -m pytest tests/test_model_selection_oracles.py
 ```
 
+## Ruff status (2026-05-22)\n\nBaseline (`E,F` rules): **0 errors**.
+
+| Rule | Description | Fixed | Remaining | Notes |
+|---|---|---|---|---|
+| E702 | semicolons | 2 | — | |
+| E741 | ambiguous var `O` | 3 | — | `# noqa: E741` |
+| UP037 | quoted annotations | 36 | — | auto-fix |
+| UP006 | PEP585 annotations | 7 | — | auto-fix |
+| UP045 | PEP604 optional | 5 | — | auto-fix |
+| UP018 | native literals | 1 | — | auto-fix |
+| UP035 | deprecated import | 3 | — | |
+| B905 | zip without strict | 4 | — | → `strict=True` |
+| PERF401 | manual list comp | 2 | — | → list comprehension |
+| RUF046 | unnecessary int | 4 | — | `int(round(x))` → `round(x)` |
+| B007 | unused loop var | 1 | — | → `_name` |
+| B008 | mutable default | 1 | — | → `None` + check |
+| RUF059 | unused unpack | 4 | — | → `_name` |
+| SIM108 | ternary instead of if | 3 | 2 | 2 in `api/` (skip) |
+| PLC0415 | lazy import | 6 | 52 | viz/ done; rest risky |
+| E501 | line too long | — | 247 | cosmetic, fix opportunistically |
+| PLR2004 | magic values | — | 170 | mostly false positives |
+| PLR0913 | too many args | — | 76 | needs dataclass refactoring |
+| PLR0915 | too many statements | — | 28 | = §9 refactoring targets |
+| PLR0912 | too many branches | — | 17 | complex control flow |
+| B023 | loop var in closure | — | 2 | risky, needs careful fix |
+
 ## Conventions
 
 - Code, comments, docstrings, and commit messages are in English.
