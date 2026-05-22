@@ -146,31 +146,117 @@ Remaining Phase 1 work:
 - Generalize physical CMO models beyond stereo wrappers.
 - Add a stable public result schema for non-stereo calibration outputs.
 
-### Phase 2 — Joint N-rayfield bundle adjustment
+### Phase 2 — Joint N-rayfield bundle adjustment — CDC
 
-Goal: extend the BA objective from two channels to N channels.
+Status: **specification ready, not implemented.** This subsection is the cahier
+des charges — implement directly from it. It is the main next technical
+milestone; until it ships, any N-camera result is scaffolding, not validated
+N-camera calibration.
 
-Required constraints:
+**Goal.** Generalize the stereo ray-to-point bundle adjustment to `N` named
+channels, so `fit_zernike_rayfields_from_multi_camera_observations(...)` becomes
+a true N-camera optimizer instead of a `left/right`-only wrapper.
 
-- All cameras share the same board-to-world transform per frame.
-- Each camera has independent Zernike origin/direction coefficients.
-- Cameras may optionally share a rigid rig transform or fixed relative SE(3).
+**Grounding — the existing stereo solver.** The reference implementation is
+`fit_zernike_rayfield_from_charuco_observations(...)` in
+`benchmarks/rayfield_from_observations.py`. Its parameter vector is:
 
-Current status:
+```
+x = [ c_left (n_zernike) | c_right (n_zernike) | poses (6 * n_poses) ]
+```
 
-- Not implemented.
-- This is the main next technical milestone.
-- Existing `fit_zernike_rayfields_from_multi_camera_observations(...)` is a
-  compatibility entry point, not a true N-camera optimizer.
-- Until this phase is implemented, any N-camera result should be described as
-  scaffolding or API validation, not as validated N-camera calibration.
+- `n_modes  = len(ZernikeOriginFieldConfig(image_size, max_order).modes())`.
+- `n_zernike = n_modes * 6` per channel; first `n_modes*3` = origin coeffs
+  `(n_modes,3)`, last `n_modes*3` = direction coeffs `(n_modes,3)`.
+- `poses`: one shared `(rotvec[3], tvec[3])` block per board frame. Both
+  channels read the same pose block — the board-to-reference transform is shared.
+- Residual per channel = ray-to-point perpendicular distance
+  (`_channel_residuals`); total = `concat` over channels, then per-channel
+  origin-Z regularization rows appended (`residuals_reg`).
 
-Recommended next implementation step:
+**Architectural decisions (fixed for Phase 2.0 — do not deviate without JFW).**
 
-- Extract the stereo BA parameter layout in
-  `benchmarks/rayfield_from_observations.py` into reusable channel blocks:
-  channel observations, per-channel coefficient slices, shared pose vector, and
-  residual accumulation over `obs.channel_names`.
+1. Extrinsics are absorbed into each channel's rayfield. The world frame is the
+   reference channel `channel_names[0]`; every channel's Zernike rayfield is
+   expressed in that frame, exactly as the stereo `right` field works today.
+   → **No explicit rig SE(3) parameters in Phase 2.0.**
+2. An explicit shared rig SE(3) (CDC constraint "optionally share a rigid rig
+   transform") is **deferred to Phase 2.1**, a separate task. Do not add it now.
+3. One shared board pose per frame, unchanged.
+4. Channel order is `obs.channel_names`; reference channel is index 0.
+
+**Generalized parameter layout.**
+
+```
+x = [ c_ch0 | c_ch1 | ... | c_ch{N-1} | poses (6 * n_poses) ]
+```
+
+Channel block `k` occupies `x[k*n_zernike : (k+1)*n_zernike]` with the same
+origin/direction split as stereo; the pose block is unchanged. For `N == 2` and
+`channel_names == ("left","right")` this is **byte-identical** to the current
+stereo layout — that identity is what makes step 5 below provable.
+
+**Implementation steps (ordered, each with a gate).**
+
+1. Add a layout helper (free function or frozen dataclass) in
+   `rayfield_from_observations.py` returning the slice for
+   `(channel_index, "origin"|"direction")` and the pose slice. No behavior
+   change. Gate: unit test of the slice arithmetic.
+2. Write `fit_zernike_rayfields_n_camera(obs: MultiCameraCharucoObservationSet,
+   image_size, intrinsics_by_channel, max_order=4, initial_poses_R=None,
+   initial_poses_t=None, *, max_nfev=300, origin_reg_weight=1e-3)
+   -> tuple[MultiCameraZernikeRayField, ZernikeFitDiagnostics]`. Reuse
+   `_precompute`, `_CachedGroup`, `_channel_residuals` unchanged — iterate
+   channels instead of hardcoding L/R. Pose init uses the reference channel:
+   `estimate_initial_poses_from_central_pinhole` with
+   `K_ref = intrinsics_by_channel[channel_names[0]]` and the reference channel's
+   pixels — add a reference-channel adapter if that helper does not accept the
+   multi-camera container directly.
+3. Bounds & regularization: replicate the stereo per-channel bounds (origin Z
+   ∈ ±20 mm, direction ∈ ±0.5, pose ∈ x0±0.3) and the origin-Z regularization
+   rows, once per channel, in channel order.
+4. Make stereo `fit_zernike_rayfield_from_charuco_observations` **delegate** to
+   the N-camera function for the 2-channel case — but only after step 5 passes.
+   Until then leave the stereo function untouched (no duplicated business logic
+   once delegation is proven).
+5. **Non-regression gate (mandatory).** Capture a numerical snapshot (recovered
+   coeffs, poses, `ray_rms_mm`, `nfev`) of
+   `fit_zernike_rayfield_from_charuco_observations` on a fixed seeded oracle, run
+   the same case through `fit_zernike_rayfields_n_camera`, and assert
+   **max abs diff == 0.0** (identical residual order, x0, and bounds → the
+   optimizer must take the identical path). If not exactly 0, the layout/order
+   diverged — fix before proceeding.
+6. Wire `fit_zernike_rayfields_from_multi_camera_observations(...)`: drop the
+   `NotImplementedError`, route every topology through
+   `fit_zernike_rayfields_n_camera`. Keep the existing intrinsics validation.
+7. Return a `MultiCameraZernikeRayField` (`from_fields`, channel order
+   preserved) and a `ZernikeFitDiagnostics` with
+   `channel_names = obs.channel_names`.
+
+**Non-regression contract.**
+
+- `fit_zernike_rayfield_from_charuco_observations` public signature unchanged.
+- Stereo numerical output bit-exact (step 5 gate == 0.0).
+- Fast + slow suites: no new failures beyond the 4 known stale CMO tests.
+- `ruff check src/` stays at 0.
+
+**Out of scope / do not touch.**
+
+- `paper/`, the CMO physics (`physics/cmo*`), the central rayfield façade
+  `api/calibration.py::fit_stereo_central_rayfield_*`.
+- No explicit rig SE(3) (that is Phase 2.1).
+- No new public symbols beyond what `advanced/__init__.py` already exports.
+
+**Validation anchors (Phase 4 closes on these).**
+
+- `build_pinhole_n_camera_oracle(channel_names=("cam0","cam1","cam2","cam3"))`
+  + noise-free `simulate_charuco_observations_from_camera_fields(...)` →
+  `fit_zernike_rayfields_n_camera` converges with `diag.ray_rms_mm < 1e-3` mm
+  and recovered Zernike coefficients ≈ 0 (a central pinhole has no
+  origin/direction field).
+- Recovered board poses within `1e-3` rad / `1e-2` mm of the simulated poses.
+- Stereo equivalence: noise-free 2-channel `ray_rms_mm` matches the existing
+  stereo solver to machine precision (step 5).
 
 ### Phase 3 — N-channel model selection
 
