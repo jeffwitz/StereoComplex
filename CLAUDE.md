@@ -34,7 +34,67 @@ behind compatibility wrappers:
   calibration algorithm yet.
 - A true N-camera bundle adjustment is not implemented yet; Phase 2 is the core
   algorithmic task still ahead.
-- Latest full test baseline on `develop`: `119 passed, 39 deselected`.
+- Quality gates (lint + tests): see **Build, lint & test status** below — it is
+  authoritative and must be kept up to date.
+
+## Build, lint & test status (2026-05-22)
+
+Authoritative quality snapshot. Update this block whenever a gate moves.
+
+### Lint — ruff
+
+- Enforced gate: `rtk .venv/bin/python -m ruff check src/` → **0 errors**.
+- The gate is narrow: `[tool.ruff.lint].select` is unset, so only the default
+  `E`/`F` rules gate. A broader run
+  (`ruff check src/ --select E,F,W,B,UP,SIM,RUF,PERF,PLR,PLC,C90`) still reports
+  **658 errors**.
+- A first cleanup batch is fully cleared (0 remaining): E702, E741,
+  UP006/018/035/037/045, B905, B007, B008, PERF401, RUF046, RUF059.
+- Remaining backlog, by impact:
+
+| Rule | Description | Remaining | Notes |
+|---|---|---|---|
+| E501 | line too long | 248 | cosmetic, fix opportunistically |
+| PLR2004 | magic value comparison | 170 | mostly false positives |
+| PLR0913 | too many arguments | 76 | needs dataclass refactors |
+| PLC0415 | import outside top-level | 60 | viz/ done; rest are deliberate lazy imports |
+| C901 / PLR0915 | complex / too many statements | 29 / 28 | complexity hot-spots |
+| PLR0912 | too many branches | 16 | complex control flow |
+| RUF005 / RUF001-3 | concat / ambiguous unicode | 9 / 11 | low risk |
+| B023 | loop variable bound in closure | 2 | **risky — needs careful fix** |
+| SIM108, PLR0911, PLC0414, RUF022 | misc | ~9 | low risk |
+
+- Widening `select` to `["E","F","W","B","UP","SIM","RUF"]` is only safe once the
+  `B`/`RUF` rows above are cleared.
+
+### Tests
+
+- Fast: `rtk .venv/bin/python -m pytest` → **120 passed, 39 deselected**.
+- Slow: `rtk .venv/bin/python -m pytest -m slow` → **35 passed, 4 FAILED**.
+
+The 4 slow failures are all in `tests/test_cmo_physical_model.py`:
+
+| Test | Failing assertion |
+|---|---|
+| `test_cmo_physical_oracle_recovery_no_distortion` | `n_parameters == 17` (model gives 19) |
+| `test_cmo_physical_oracle_recovery_with_distortion` | parameter-vector slices assume the old 17-param layout |
+| `test_cmo_aligned_mode_represents_offset_oracle` | `n_parameters == 19` (model gives 21) |
+| `test_select_with_mixed_per_channel_and_stereo_shared_candidates` | `n_parameters == 17` (model gives 19) |
+
+**These are stale test assertions, not a code regression** — they fail identically
+on `main`, so they predate the N-camera work:
+
+- `CMOPhysicalStereoModel` now carries a **per-axis SE(3)** (one SE(3) per axis)
+  instead of a mutualised transform. This is intentional and validated: a shared
+  SE(3) fits the rayfields measurably worse.
+- The per-axis SE(3) adds 2 parameters: shared-principal-point case `17 → 19`;
+  `share_principal_point=False` case `19 → 21`.
+- The 4 tests still encode the old counts and the old parameter-vector slice
+  layout (`[4:6]`, `[7:17]`, `[7]`).
+
+Fix: **update the 4 tests** to the new counts and slice indices.
+**Do not revert the model** — per-axis SE(3) (19 / 21 parameters) is the chosen,
+validated design.
 
 ## Active task: N-camera calibration
 
@@ -197,32 +257,6 @@ rtk .venv/bin/python -m pytest tests/test_cmo_telecentric_model.py
 rtk .venv/bin/python -m pytest tests/test_physical_model_selection.py
 rtk .venv/bin/python -m pytest tests/test_model_selection_oracles.py
 ```
-
-## Ruff status (2026-05-22)\n\nBaseline (`E,F` rules): **0 errors**.
-
-| Rule | Description | Fixed | Remaining | Notes |
-|---|---|---|---|---|
-| E702 | semicolons | 2 | — | |
-| E741 | ambiguous var `O` | 3 | — | `# noqa: E741` |
-| UP037 | quoted annotations | 36 | — | auto-fix |
-| UP006 | PEP585 annotations | 7 | — | auto-fix |
-| UP045 | PEP604 optional | 5 | — | auto-fix |
-| UP018 | native literals | 1 | — | auto-fix |
-| UP035 | deprecated import | 3 | — | |
-| B905 | zip without strict | 4 | — | → `strict=True` |
-| PERF401 | manual list comp | 2 | — | → list comprehension |
-| RUF046 | unnecessary int | 4 | — | `int(round(x))` → `round(x)` |
-| B007 | unused loop var | 1 | — | → `_name` |
-| B008 | mutable default | 1 | — | → `None` + check |
-| RUF059 | unused unpack | 4 | — | → `_name` |
-| SIM108 | ternary instead of if | 3 | 2 | 2 in `api/` (skip) |
-| PLC0415 | lazy import | 6 | 52 | viz/ done; rest risky |
-| E501 | line too long | — | 247 | cosmetic, fix opportunistically |
-| PLR2004 | magic values | — | 170 | mostly false positives |
-| PLR0913 | too many args | — | 76 | needs dataclass refactoring |
-| PLR0915 | too many statements | — | 28 | = §9 refactoring targets |
-| PLR0912 | too many branches | — | 17 | complex control flow |
-| B023 | loop var in closure | — | 2 | risky, needs careful fix |
 
 ## Conventions
 
