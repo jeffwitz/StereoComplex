@@ -96,12 +96,14 @@ def render_parallel_plate_charuco_images(
     left_paths: list[Path] = []
     right_paths: list[Path] = []
     for frame_id, T_board_world in enumerate(dataset.board_poses):
-        T_left_board = np.asarray(dataset.T_left_world, dtype=np.float64).reshape(4, 4) @ np.asarray(
-            T_board_world, dtype=np.float64
-        ).reshape(4, 4)
-        T_right_board = np.asarray(dataset.T_right_world, dtype=np.float64).reshape(4, 4) @ np.asarray(
-            T_board_world, dtype=np.float64
-        ).reshape(4, 4)
+        T_left_board = (
+            np.asarray(dataset.T_left_world, dtype=np.float64).reshape(4, 4)
+            @ np.asarray(T_board_world, dtype=np.float64).reshape(4, 4)
+        )
+        T_right_board = (
+            np.asarray(dataset.T_right_world, dtype=np.float64).reshape(4, 4)
+            @ np.asarray(T_board_world, dtype=np.float64).reshape(4, 4)
+        )
         img_left = _render_one_view(
             image_size=dataset.image_size,
             K=dataset.K_left,
@@ -164,13 +166,19 @@ def detected_observations_from_rendered_parallel_plate(
         det_right = detect_charuco_corners(image=right_path, board=rendered.board)
         if det_left is None or det_right is None:
             raise RuntimeError(f"ChArUco detection failed for pair {left_path.name}")
-        left_xy = refine_charuco_corners(method=method2d, board=rendered.board, detections=det_left)
-        right_xy = refine_charuco_corners(method=method2d, board=rendered.board, detections=det_right)
+        left_xy = refine_charuco_corners(
+            method=method2d, board=rendered.board, detections=det_left
+        )
+        right_xy = refine_charuco_corners(
+            method=method2d, board=rendered.board, detections=det_right
+        )
         left_map = {int(cid): left_xy[i] for i, cid in enumerate(det_left.charuco_ids.tolist())}
         right_map = {int(cid): right_xy[i] for i, cid in enumerate(det_right.charuco_ids.tolist())}
         common = sorted(set(left_map).intersection(right_map).intersection(object_by_id))
         if len(common) < int(min_common_corners):
-            raise RuntimeError(f"only {len(common)} common ChArUco corners in frame {left_path.name}")
+            raise RuntimeError(
+                f"only {len(common)} common ChArUco corners in frame {left_path.name}"
+            )
         per_frame_obj.append(np.stack([object_by_id[cid] for cid in common]))
         per_frame_left.append(np.stack([left_map[cid] for cid in common]).astype(np.float64))
         per_frame_right.append(np.stack([right_map[cid] for cid in common]).astype(np.float64))
@@ -216,8 +224,13 @@ def _render_one_view(
     rng: np.random.Generator,
 ) -> np.ndarray:
     width, height = int(image_size[0]), int(image_size[1])
-    yy, xx = np.meshgrid(np.arange(height, dtype=np.float64), np.arange(width, dtype=np.float64), indexing="ij")
-    origins, directions = parallel_plate_ray_from_pixel(xx.reshape(-1), yy.reshape(-1), K, plate_params)
+    yy, xx = np.meshgrid(
+        np.arange(height, dtype=np.float64), np.arange(width, dtype=np.float64),
+        indexing="ij",
+    )
+    origins, directions = parallel_plate_ray_from_pixel(
+        xx.reshape(-1), yy.reshape(-1), K, plate_params
+    )
     origins = origins.reshape(height, width, 3)
     directions = directions.reshape(height, width, 3)
 
@@ -243,7 +256,10 @@ def _render_one_view(
         & (yp >= -0.5 * h_mm)
         & (yp <= 0.5 * h_mm)
     )
-    sampled = _sample_texture(texture, xp, yp, inside, w_mm, h_mm, params.texture_interp).astype(np.float64) / 255.0
+    sampled = (
+        _sample_texture(texture, xp, yp, inside, w_mm, h_mm, params.texture_interp)
+        .astype(np.float64) / 255.0
+    )
     img = np.full((height, width), float(params.background_level), dtype=np.float64)
     img[inside] = sampled[inside]
 
@@ -251,7 +267,11 @@ def _render_one_view(
     ynorm = (yy - 0.5 * (height - 1)) / max(1.0, 0.5 * (height - 1))
     r2 = np.clip(xnorm * xnorm + ynorm * ynorm, 0.0, 2.0) / 2.0
     vignette = np.clip(1.0 - float(params.vignette_strength) * r2, 0.05, 1.0)
-    gradient = 1.0 + float(params.illumination_gradient_x) * xnorm + float(params.illumination_gradient_y) * ynorm
+    gradient = (
+        1.0
+        + float(params.illumination_gradient_x) * xnorm
+        + float(params.illumination_gradient_y) * ynorm
+    )
     img = np.clip(img * vignette * gradient, 0.0, 1.0)
     img_u8 = (img * 255.0 + 0.5).astype(np.uint8)
 
@@ -296,7 +316,10 @@ def _sample_texture(
             "cubic": cv2.INTER_CUBIC,
             "lanczos4": cv2.INTER_LANCZOS4,
         }[str(interp)]
-        return cv2.remap(texture, map_x, map_y, flags, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+        return cv2.remap(
+            texture, map_x, map_y, flags,
+            borderMode=cv2.BORDER_CONSTANT, borderValue=0,
+        )
     except Exception:
         xi = np.clip(np.rint(map_x).astype(np.int32), 0, width - 1)
         yi = np.clip(np.rint(map_y).astype(np.int32), 0, height - 1)

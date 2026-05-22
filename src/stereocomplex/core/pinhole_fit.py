@@ -22,7 +22,11 @@ class BrownPinholeParams:
 
     def K(self) -> np.ndarray:
         return np.array(
-            [[float(self.fx), 0.0, float(self.cx)], [0.0, float(self.fy), float(self.cy)], [0.0, 0.0, 1.0]],
+            [
+                [float(self.fx), 0.0, float(self.cx)],
+                [0.0, float(self.fy), float(self.cy)],
+                [0.0, 0.0, 1.0],
+            ],
             dtype=np.float64,
         )
 
@@ -139,17 +143,24 @@ def fit_brown_pinhole_from_camera_points(
 
     if fit_rotation:
         p0 = np.array(
-            [0.0, 0.0, 0.0, init.fx, init.fy, init.cx, init.cy, init.k1, init.k2, init.p1, init.p2, init.k3],
+            [
+                0.0, 0.0, 0.0,
+                init.fx, init.fy, init.cx, init.cy,
+                init.k1, init.k2, init.p1, init.p2, init.k3,
+            ],
             dtype=np.float64,
         )
     else:
         p0 = np.array(
-            [init.fx, init.fy, init.cx, init.cy, init.k1, init.k2, init.p1, init.p2, init.k3], dtype=np.float64
+            [init.fx, init.fy, init.cx, init.cy, init.k1, init.k2, init.p1, init.p2, init.k3],
+            dtype=np.float64,
         )
 
     # Conservative bounds: keep distortion moderate to avoid pathological fits.
     lb_base = np.array([10.0, 10.0, -0.5, -0.5, -1.0, -1.0, -0.1, -0.1, -1.0], dtype=np.float64)
-    ub_base = np.array([10_000.0, 10_000.0, w - 0.5, h - 0.5, 1.0, 1.0, 0.1, 0.1, 1.0], dtype=np.float64)
+    ub_base = np.array(
+        [10_000.0, 10_000.0, w - 0.5, h - 0.5, 1.0, 1.0, 0.1, 0.1, 1.0], dtype=np.float64
+    )
     if fit_rotation:
         lb = np.concatenate([np.full((3,), -np.pi, dtype=np.float64), lb_base], axis=0)
         ub = np.concatenate([np.full((3,), np.pi, dtype=np.float64), ub_base], axis=0)
@@ -208,7 +219,11 @@ def fit_brown_pinhole_from_camera_points(
         rvec_opt = None
         fx, fy, cx, cy, k1, k2, p1, p2, k3 = (float(v) for v in sol.x.tolist())
     params = BrownPinholeParams(fx=fx, fy=fy, cx=cx, cy=cy, k1=k1, k2=k2, p1=p1, p2=p2, k3=k3)
-    diag = {"opt_cost": float(sol.cost), "opt_nfev": float(sol.nfev), "opt_success": float(bool(sol.success))}
+    diag = {
+        "opt_cost": float(sol.cost),
+        "opt_nfev": float(sol.nfev),
+        "opt_success": float(bool(sol.success)),
+    }
     if rvec_opt is not None:
         diag["rvec"] = [float(x) for x in rvec_opt.tolist()]
     return params, diag
@@ -255,8 +270,14 @@ def distortion_displacement_metrics(
     x = (uv[:, 0] - cx) / fx
     y = (uv[:, 1] - cy) / fy
 
-    gt = BrownDistortion(k1=float(dist_gt[0]), k2=float(dist_gt[1]), p1=float(dist_gt[2]), p2=float(dist_gt[3]), k3=float(dist_gt[4]))
-    est = BrownDistortion(k1=float(dist_est[0]), k2=float(dist_est[1]), p1=float(dist_est[2]), p2=float(dist_est[3]), k3=float(dist_est[4]))
+    gt = BrownDistortion(
+        k1=float(dist_gt[0]), k2=float(dist_gt[1]), p1=float(dist_gt[2]),
+        p2=float(dist_gt[3]), k3=float(dist_gt[4]),
+    )
+    est = BrownDistortion(
+        k1=float(dist_est[0]), k2=float(dist_est[1]), p1=float(dist_est[2]),
+        p2=float(dist_est[3]), k3=float(dist_est[4]),
+    )
 
     xd_gt, yd_gt = gt.distort(x, y)
     xd_est, yd_est = est.distort(x, y)

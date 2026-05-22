@@ -22,7 +22,9 @@ def reencode_dataset(in_root: Path, out_root: Path, opts: ReencodeOptions) -> No
         raise FileNotFoundError(f"Missing {(in_root / 'manifest.json')}")
 
     out_root.mkdir(parents=True, exist_ok=True)
-    (out_root / "manifest.json").write_text((in_root / "manifest.json").read_text(encoding="utf-8"), encoding="utf-8")
+    (out_root / "manifest.json").write_text(
+        (in_root / "manifest.json").read_text(encoding="utf-8"), encoding="utf-8"
+    )
 
     for split in ("train", "val", "test"):
         split_in = in_root / split

@@ -106,9 +106,27 @@ def refine_points_tensor_noble(
     Iy = cv2.Sobel(img, cv2.CV_32F, 0, 1, ksize=3, borderType=cv2.BORDER_REFLECT)
 
     # Smoothed gradient products (structure tensor components).
-    A = cv2.GaussianBlur(Ix * Ix, ksize=(0, 0), sigmaX=tensor_sigma, sigmaY=tensor_sigma, borderType=cv2.BORDER_REFLECT)
-    B = cv2.GaussianBlur(Ix * Iy, ksize=(0, 0), sigmaX=tensor_sigma, sigmaY=tensor_sigma, borderType=cv2.BORDER_REFLECT)
-    C = cv2.GaussianBlur(Iy * Iy, ksize=(0, 0), sigmaX=tensor_sigma, sigmaY=tensor_sigma, borderType=cv2.BORDER_REFLECT)
+    A = cv2.GaussianBlur(
+        Ix * Ix,
+        ksize=(0, 0),
+        sigmaX=tensor_sigma,
+        sigmaY=tensor_sigma,
+        borderType=cv2.BORDER_REFLECT,
+    )
+    B = cv2.GaussianBlur(
+        Ix * Iy,
+        ksize=(0, 0),
+        sigmaX=tensor_sigma,
+        sigmaY=tensor_sigma,
+        borderType=cv2.BORDER_REFLECT,
+    )
+    C = cv2.GaussianBlur(
+        Iy * Iy,
+        ksize=(0, 0),
+        sigmaX=tensor_sigma,
+        sigmaY=tensor_sigma,
+        borderType=cv2.BORDER_REFLECT,
+    )
 
     trace = A + C
     det = A * C - B * B
@@ -310,8 +328,14 @@ def refine_points_tensor_lsq(
         if xi < win_r + 2 or xi >= (W - win_r - 2) or yi < win_r + 2 or yi >= (H - win_r - 2):
             continue
 
-        gx = Ix[yi - win_r : yi + win_r + 1, xi - win_r : xi + win_r + 1].astype(np.float64, copy=False)
-        gy = Iy[yi - win_r : yi + win_r + 1, xi - win_r : xi + win_r + 1].astype(np.float64, copy=False)
+        gx = (
+            Ix[yi - win_r : yi + win_r + 1, xi - win_r : xi + win_r + 1]
+            .astype(np.float64, copy=False)
+        )
+        gy = (
+            Iy[yi - win_r : yi + win_r + 1, xi - win_r : xi + win_r + 1]
+            .astype(np.float64, copy=False)
+        )
 
         mag = np.sqrt(gx * gx + gy * gy)
         m = mag > mag_thresh

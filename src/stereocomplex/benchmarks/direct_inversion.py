@@ -224,7 +224,9 @@ def fit_direct_model_from_observations(
             for R, t in zip(R_est, t_est, strict=True):
                 rv = Rotation.from_matrix(R).as_rotvec()
                 pose_pairs.append((rv, np.asarray(t, dtype=np.float64).reshape(3)))
-            x0_poses = _poses_to_vector(pose_pairs) if pose_pairs else np.zeros(6 * n_poses, dtype=np.float64)
+            x0_poses = _poses_to_vector(pose_pairs) if pose_pairs else np.zeros(
+                6 * n_poses, dtype=np.float64
+            )
         except Exception:
             x0_poses = np.zeros(6 * n_poses, dtype=np.float64)
     else:

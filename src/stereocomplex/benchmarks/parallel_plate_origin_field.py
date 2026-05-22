@@ -9,7 +9,10 @@ from stereocomplex.calibration.fit_zernike_origin_field import (
     fit_stereo_zernike_origin_field,
 )
 from stereocomplex.api.corner_refinement import RefineMethod
-from stereocomplex.metrics.rayfield_metrics import RayfieldComparisonReport, compare_rayfields_on_planes
+from stereocomplex.metrics.rayfield_metrics import (
+    RayfieldComparisonReport,
+    compare_rayfields_on_planes,
+)
 from stereocomplex.metrics.reconstruction_metrics import (
     OracleReconstructionFloorReport,
     ReconstructionComparisonReport,
@@ -97,8 +100,12 @@ def make_default_parallel_plate_dataset(noise_std_px: float = 0.0) -> SyntheticS
         make_transform(t=np.array([0.0, -24.0, 800.0])),
         make_transform(t=np.array([34.0, 22.0, 900.0])),
     ]
-    plate_left = ParallelPlateSyntheticParams(eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0)
-    plate_right = ParallelPlateSyntheticParams(eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0)
+    plate_left = ParallelPlateSyntheticParams(
+        eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0
+    )
+    plate_right = ParallelPlateSyntheticParams(
+        eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0
+    )
     return generate_parallel_plate_stereo_dataset(
         object_points=board_points,
         board_poses=board_poses,
@@ -159,8 +166,12 @@ def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> Synt
     T_left_world = np.eye(4, dtype=np.float64)
     T_right_world = make_transform(t=np.array([-baseline, 0.0, 0.0]))
     all_board_points = make_grid_board(nx=11, ny=9, spacing=38.0)
-    plate_left = ParallelPlateSyntheticParams(eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0)
-    plate_right = ParallelPlateSyntheticParams(eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0)
+    plate_left = ParallelPlateSyntheticParams(
+        eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0
+    )
+    plate_right = ParallelPlateSyntheticParams(
+        eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0
+    )
 
     # Central poses — full board visible in both cameras
     central_poses = [
@@ -305,8 +316,12 @@ def make_parallel_plate_extended_dataset(noise_std_px: float = 0.0) -> Synthetic
         make_transform(t=np.array([-42.0, -8.0,  710.0])),
         make_transform(t=np.array([38.0,  28.0,  860.0])),
     ]
-    plate_left = ParallelPlateSyntheticParams(eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0)
-    plate_right = ParallelPlateSyntheticParams(eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0)
+    plate_left = ParallelPlateSyntheticParams(
+        eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0
+    )
+    plate_right = ParallelPlateSyntheticParams(
+        eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0
+    )
     return generate_parallel_plate_stereo_dataset(
         object_points=board_points,
         board_poses=board_poses,
@@ -337,7 +352,9 @@ def make_default_parallel_plate_charuco_board() -> CharucoBoardSpec:
     )
 
 
-def make_default_parallel_plate_charuco_dataset(noise_std_px: float = 0.0) -> SyntheticStereoDataset:
+def make_default_parallel_plate_charuco_dataset(
+    noise_std_px: float = 0.0,
+) -> SyntheticStereoDataset:
     """
     Default parallel-plate dataset whose object points are ChArUco inner corners.
 
@@ -375,8 +392,12 @@ def make_default_parallel_plate_charuco_dataset(noise_std_px: float = 0.0) -> Sy
         make_transform(R=_rot_x(-6.0), t=np.array([0.0, -125.0, 650.0])),  # top edge
         make_transform(R=_rot_x(6.0), t=np.array([0.0, 125.0, 650.0])),    # bottom edge
     ]
-    plate_left = ParallelPlateSyntheticParams(eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0)
-    plate_right = ParallelPlateSyntheticParams(eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0)
+    plate_left = ParallelPlateSyntheticParams(
+        eta=1.5, thickness=16.0, alpha_deg=13.0, beta_deg=5.0, d1=70.0
+    )
+    plate_right = ParallelPlateSyntheticParams(
+        eta=1.5, thickness=14.0, alpha_deg=10.0, beta_deg=7.0, d1=75.0
+    )
     return generate_parallel_plate_stereo_dataset(
         object_points=board_points,
         board_poses=board_poses,

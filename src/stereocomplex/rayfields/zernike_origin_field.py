@@ -255,7 +255,8 @@ class ZernikeCandidate:
     This wraps a :class:`ZernikeOriginField` into the
     :class:`~stereocomplex.physics.base.PhysicalRayFieldModel` protocol so it can
     compete alongside the physical candidates (pinhole, Brown-Conrady, CMO,
-    polynomial surrogate) in :func:`~stereocomplex.physics.model_selection.select_physical_model_from_rayfield`.
+    polynomial surrogate) in
+    :func:`~stereocomplex.physics.model_selection.select_physical_model_from_rayfield`.
 
     The candidate uses a **lower** max-order than the measured Zernike rayfield
     (typically ``max_order=1``, 18 parameters per channel with directions, versus

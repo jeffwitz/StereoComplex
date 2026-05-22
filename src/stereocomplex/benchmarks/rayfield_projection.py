@@ -69,7 +69,11 @@ def project_point_by_rayfield_inverse(
     distance_mm : float  — final point-to-line distance in millimetres.
     """
     W, H = int(image_size[0]), int(image_size[1])
-    x0 = np.asarray(initial_uv, dtype=np.float64).reshape(2) if initial_uv is not None else np.array([(W - 1) / 2, (H - 1) / 2], dtype=np.float64)
+    x0 = (
+        np.asarray(initial_uv, dtype=np.float64).reshape(2)
+        if initial_uv is not None
+        else np.array([(W - 1) / 2, (H - 1) / 2], dtype=np.float64)
+    )
 
     def fun(uv):
         return point_ray_residual(uv, field, X)

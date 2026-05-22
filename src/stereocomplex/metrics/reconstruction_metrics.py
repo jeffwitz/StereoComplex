@@ -79,7 +79,9 @@ def triangulate_two_rays(
     return 0.5 * (P1 + P2), float(np.linalg.norm(P1 - P2))
 
 
-def _triangulate_many(OL: np.ndarray, dL: np.ndarray, OR: np.ndarray, dR: np.ndarray) -> ReconstructionResult:
+def _triangulate_many(
+    OL: np.ndarray, dL: np.ndarray, OR: np.ndarray, dR: np.ndarray,
+) -> ReconstructionResult:
     # Normalize (mirrors triangulate_two_rays per-row behaviour)
     d1 = dL / np.linalg.norm(dL, axis=1, keepdims=True)
     d2 = dR / np.linalg.norm(dR, axis=1, keepdims=True)
@@ -166,14 +168,20 @@ def reconstruct_points_with_parallel_plate_oracle(
     T = np.asarray(dataset.T_right_left, dtype=np.float64).reshape(4, 4)
     R_RL = T[:3, :3]
     t_RL = T[:3, 3]
-    OL, dL = parallel_plate_ray_from_pixel(uvL[:, 0], uvL[:, 1], dataset.K_left, dataset.oracle_left_params)
-    OR_R, dR_R = parallel_plate_ray_from_pixel(uvR[:, 0], uvR[:, 1], dataset.K_right, dataset.oracle_right_params)
+    OL, dL = parallel_plate_ray_from_pixel(
+        uvL[:, 0], uvL[:, 1], dataset.K_left, dataset.oracle_left_params
+    )
+    OR_R, dR_R = parallel_plate_ray_from_pixel(
+        uvR[:, 0], uvR[:, 1], dataset.K_right, dataset.oracle_right_params
+    )
     OR_L = (R_RL.T @ (OR_R - t_RL.reshape(1, 3)).T).T
     dR_L = (R_RL.T @ dR_R.T).T
     return _triangulate_many(OL, dL, OR_L, dR_L)
 
 
-def reconstruction_error_report(result: ReconstructionResult, true_points: np.ndarray) -> ReconstructionErrorReport:
+def reconstruction_error_report(
+    result: ReconstructionResult, true_points: np.ndarray,
+) -> ReconstructionErrorReport:
     """Compute 3D reconstruction error statistics against ground truth.
 
     Parameters
@@ -216,7 +224,11 @@ def reconstruction_error_report(result: ReconstructionResult, true_points: np.nd
 def _dataset_left_camera_points(dataset: SyntheticStereoDataset) -> np.ndarray:
     pts: list[np.ndarray] = []
     for i, T_board_world in enumerate(dataset.board_poses):
-        obj = dataset.per_frame_object_points[i] if dataset.per_frame_object_points is not None else dataset.object_points
+        obj = (
+            dataset.per_frame_object_points[i]
+            if dataset.per_frame_object_points is not None
+            else dataset.object_points
+        )
         P_world = transform_points(T_board_world, obj)
         pts.append(transform_points(dataset.T_left_world, P_world))
     return np.concatenate(pts, axis=0)
@@ -262,7 +274,9 @@ def compare_3d_reconstruction_with_without_origin_field(
     uvL = np.concatenate(dataset.left_pixels, axis=0)
     uvR = np.concatenate(dataset.right_pixels, axis=0)
     truth = _dataset_left_camera_points(dataset)
-    central = reconstruct_points_central_stereo(uvL, uvR, dataset.K_left, dataset.K_right, dataset.T_right_left)
+    central = reconstruct_points_central_stereo(
+        uvL, uvR, dataset.K_left, dataset.K_right, dataset.T_right_left
+    )
     with_origin = reconstruct_points_with_origin_fields(
         uvL,
         uvR,

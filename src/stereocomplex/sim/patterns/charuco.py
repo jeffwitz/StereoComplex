@@ -38,7 +38,10 @@ def generate_charuco_texture(spec: CharucoSpec) -> np.ndarray:
 
     # OpenCV API differs across versions: CharucoBoard vs CharucoBoard_create.
     if hasattr(aruco, "CharucoBoard"):
-        board = aruco.CharucoBoard((spec.squares_x, spec.squares_y), spec.square_size_mm, spec.marker_size_mm, dictionary)
+        board = aruco.CharucoBoard(
+            (spec.squares_x, spec.squares_y),
+            spec.square_size_mm, spec.marker_size_mm, dictionary,
+        )
     elif hasattr(aruco, "CharucoBoard_create"):  # pragma: no cover
         board = aruco.CharucoBoard_create(
             spec.squares_x, spec.squares_y, spec.square_size_mm, spec.marker_size_mm, dictionary

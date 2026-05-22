@@ -7,7 +7,9 @@ import numpy as np
 from stereocomplex.meta import ViewMeta
 
 
-def pixel_to_sensor_um(view: ViewMeta, u_px: np.ndarray, v_px: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def pixel_to_sensor_um(
+    view: ViewMeta, u_px: np.ndarray, v_px: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Map delivered image pixel coordinates (u,v) -> sensor-plane coordinates in µm.
 
@@ -35,7 +37,9 @@ def pixel_to_sensor_um(view: ViewMeta, u_px: np.ndarray, v_px: np.ndarray) -> tu
     return x_um, y_um
 
 
-def sensor_um_to_pixel(view: ViewMeta, x_um: np.ndarray, y_um: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def sensor_um_to_pixel(
+    view: ViewMeta, x_um: np.ndarray, y_um: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Inverse of `pixel_to_sensor_um` for the same conventions (origin at crop center).
     Returns delivered image pixel coordinates (u_px, v_px).

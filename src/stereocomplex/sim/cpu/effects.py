@@ -23,7 +23,10 @@ def gaussian_blur_u8(img_u8: np.ndarray, sigma_x: float, sigma_y: float) -> np.n
     try:
         import cv2  # type: ignore
 
-        out = cv2.GaussianBlur(img_u8, ksize=(0, 0), sigmaX=sigma_x, sigmaY=sigma_y, borderType=cv2.BORDER_REFLECT)
+        out = cv2.GaussianBlur(
+            img_u8, ksize=(0, 0), sigmaX=sigma_x, sigmaY=sigma_y,
+            borderType=cv2.BORDER_REFLECT,
+        )
         return out
     except Exception:
         return _gaussian_blur_numpy(img_u8, sigma_x, sigma_y)
@@ -38,7 +41,9 @@ def radial_weight(h: int, w: int, start: float = 0.6, power: float = 2.0) -> np.
     start = float(np.clip(start, 0.0, 1.0))
     power = float(max(1e-6, power))
 
-    yy, xx = np.meshgrid(np.arange(h, dtype=np.float32), np.arange(w, dtype=np.float32), indexing="ij")
+    yy, xx = np.meshgrid(
+        np.arange(h, dtype=np.float32), np.arange(w, dtype=np.float32), indexing="ij"
+    )
     cx = (w - 1) * 0.5
     cy = (h - 1) * 0.5
     rx = (w - 1) * 0.5

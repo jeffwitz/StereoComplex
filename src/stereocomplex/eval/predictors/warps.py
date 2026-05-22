@@ -90,7 +90,12 @@ def predict_points_mls_affine(
     if sigma_obj is None:
         # Heuristic: use a few square sizes worth of influence, derived from marker spacing.
         # If correspondences are very sparse, inflate sigma.
-        span = float(np.median(np.sqrt(np.sum((obj_xy - np.median(obj_xy, axis=0)) ** 2, axis=1))) + 1e-9)
+        span = float(
+            np.median(
+                np.sqrt(np.sum((obj_xy - np.median(obj_xy, axis=0)) ** 2, axis=1))
+            )
+            + 1e-9
+        )
         sigma_obj = max(10.0, 0.25 * span)
     sigma2 = float(sigma_obj) ** 2
 
@@ -108,7 +113,9 @@ def predict_points_mls_affine(
             out[i] = np.array([np.nan, np.nan], dtype=np.float64)
             continue
 
-        X = np.concatenate([obj_xy[idx], np.ones((idx.shape[0], 1), dtype=np.float64)], axis=1)  # (k,3)
+        X = np.concatenate(
+            [obj_xy[idx], np.ones((idx.shape[0], 1), dtype=np.float64)], axis=1
+        )  # (k,3)
         u = img_uv[idx, 0]
         v = img_uv[idx, 1]
 
@@ -172,11 +179,20 @@ def predict_points_affine_field(
     xmax = float(np.max(obj_xy[:, 0]))
     ymin = float(np.min(obj_xy[:, 1]))
     ymax = float(np.max(obj_xy[:, 1]))
-    if not np.isfinite([xmin, xmax, ymin, ymax]).all() or (xmax - xmin) < 1e-9 or (ymax - ymin) < 1e-9:
+    if (
+        not np.isfinite([xmin, xmax, ymin, ymax]).all()
+        or (xmax - xmin) < 1e-9
+        or (ymax - ymin) < 1e-9
+    ):
         return predict_points_mls_affine(obj_xy, img_uv, query_xy)
 
     if sigma_obj is None:
-        span = float(np.median(np.sqrt(np.sum((obj_xy - np.median(obj_xy, axis=0)) ** 2, axis=1))) + 1e-9)
+        span = float(
+            np.median(
+                np.sqrt(np.sum((obj_xy - np.median(obj_xy, axis=0)) ** 2, axis=1))
+            )
+            + 1e-9
+        )
         sigma_obj = max(10.0, 0.35 * span)
     sigma2 = float(sigma_obj) ** 2
 
@@ -225,11 +241,15 @@ def predict_points_affine_field(
                 Pv[j, i] = av_g
 
     for c in range(3):
-        Pu[:, :, c] = cv2.GaussianBlur(Pu[:, :, c].astype(np.float32), ksize=(0, 0), sigmaX=float(smooth_sigma)).astype(
-            np.float64
+        Pu[:, :, c] = (
+            cv2.GaussianBlur(
+                Pu[:, :, c].astype(np.float32), ksize=(0, 0), sigmaX=float(smooth_sigma)
+            ).astype(np.float64)
         )
-        Pv[:, :, c] = cv2.GaussianBlur(Pv[:, :, c].astype(np.float32), ksize=(0, 0), sigmaX=float(smooth_sigma)).astype(
-            np.float64
+        Pv[:, :, c] = (
+            cv2.GaussianBlur(
+                Pv[:, :, c].astype(np.float32), ksize=(0, 0), sigmaX=float(smooth_sigma)
+            ).astype(np.float64)
         )
 
     def lerp(a0: np.ndarray, a1: np.ndarray, t: float) -> np.ndarray:
@@ -324,7 +344,9 @@ def predict_points_rayfield(
     def node_index(ix: int, iy: int) -> int:
         return iy * nx + ix
 
-    def weights_for_points(pts: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def weights_for_points(
+        pts: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         x = pts[:, 0]
         y = pts[:, 1]
         tx = (x - xmin) / (xmax - xmin)
@@ -420,10 +442,16 @@ def predict_points_rayfield(
 
         # Update robust weights.
         du_pred = (
-            nodes_u[idx00] * ww[:, 0] + nodes_u[idx10] * ww[:, 1] + nodes_u[idx01] * ww[:, 2] + nodes_u[idx11] * ww[:, 3]
+            nodes_u[idx00] * ww[:, 0]
+            + nodes_u[idx10] * ww[:, 1]
+            + nodes_u[idx01] * ww[:, 2]
+            + nodes_u[idx11] * ww[:, 3]
         )
         dv_pred = (
-            nodes_v[idx00] * ww[:, 0] + nodes_v[idx10] * ww[:, 1] + nodes_v[idx01] * ww[:, 2] + nodes_v[idx11] * ww[:, 3]
+            nodes_v[idx00] * ww[:, 0]
+            + nodes_v[idx10] * ww[:, 1]
+            + nodes_v[idx01] * ww[:, 2]
+            + nodes_v[idx11] * ww[:, 3]
         )
         r = np.sqrt((du_pred - res_obs[:, 0]) ** 2 + (dv_pred - res_obs[:, 1]) ** 2)
         w_data = np.where(r <= huber_c, 1.0, huber_c / (r + 1e-12))
@@ -431,8 +459,18 @@ def predict_points_rayfield(
     # Predict queries: base homography + smoothed residual field.
     base_q = proj(Hb, query_xy)
     q00, q10, q01, q11, qw = weights_for_points(query_xy)
-    du = nodes_u[q00] * qw[:, 0] + nodes_u[q10] * qw[:, 1] + nodes_u[q01] * qw[:, 2] + nodes_u[q11] * qw[:, 3]
-    dv = nodes_v[q00] * qw[:, 0] + nodes_v[q10] * qw[:, 1] + nodes_v[q01] * qw[:, 2] + nodes_v[q11] * qw[:, 3]
+    du = (
+        nodes_u[q00] * qw[:, 0]
+        + nodes_u[q10] * qw[:, 1]
+        + nodes_u[q01] * qw[:, 2]
+        + nodes_u[q11] * qw[:, 3]
+    )
+    dv = (
+        nodes_v[q00] * qw[:, 0]
+        + nodes_v[q10] * qw[:, 1]
+        + nodes_v[q01] * qw[:, 2]
+        + nodes_v[q11] * qw[:, 3]
+    )
     return (base_q + np.stack([du, dv], axis=1)).astype(np.float64)
 
 
@@ -536,7 +574,12 @@ def predict_points_mls_homography(
     N = int(obj_xy.shape[0])
     k = int(max(8, min(k, N)))
     if sigma_obj is None:
-        span = float(np.median(np.sqrt(np.sum((obj_xy - np.median(obj_xy, axis=0)) ** 2, axis=1))) + 1e-9)
+        span = float(
+            np.median(
+                np.sqrt(np.sum((obj_xy - np.median(obj_xy, axis=0)) ** 2, axis=1))
+            )
+            + 1e-9
+        )
         sigma_obj = max(10.0, 0.25 * span)
     sigma2 = float(sigma_obj) ** 2
 
@@ -624,7 +667,12 @@ def predict_points_piecewise_affine(
     xmax = float(np.max(obj_xy[:, 0]))
     ymax = float(np.max(obj_xy[:, 1]))
     pad = 1.0
-    rect = (int(np.floor(xmin - pad)), int(np.floor(ymin - pad)), int(np.ceil((xmax - xmin) + 2 * pad)), int(np.ceil((ymax - ymin) + 2 * pad)))
+    rect = (
+        int(np.floor(xmin - pad)),
+        int(np.floor(ymin - pad)),
+        int(np.ceil((xmax - xmin) + 2 * pad)),
+        int(np.ceil((ymax - ymin) + 2 * pad)),
+    )
     subdiv = cv2.Subdiv2D(rect)
     for p in obj_xy.tolist():
         subdiv.insert((float(p[0]), float(p[1])))

@@ -6,7 +6,12 @@ from pathlib import Path
 import numpy as np
 
 from stereocomplex.core.distortion import BrownDistortion, brown_from_dict
-from stereocomplex.core.geometry import PinholeCamera, pixel_to_sensor_um, sensor_um_to_pixel, triangulate_midpoint
+from stereocomplex.core.geometry import (
+    PinholeCamera,
+    pixel_to_sensor_um,
+    sensor_um_to_pixel,
+    triangulate_midpoint,
+)
 from stereocomplex.meta import parse_view_meta
 
 
@@ -53,7 +58,9 @@ def eval_oracle_scene(scene_dir: Path) -> dict[str, float]:
 
     sim = meta.get("sim_params", {})
     if sim.get("camera_model") != "pinhole":
-        raise ValueError(f"Oracle only supports camera_model=pinhole (got {sim.get('camera_model')})")
+        raise ValueError(
+            f"Oracle only supports camera_model=pinhole (got {sim.get('camera_model')})"
+        )
     f_um = float(sim["f_um"])
     baseline_mm = float(sim["baseline_mm"])
     distortion_model = str(sim.get("distortion_model", "none"))
@@ -102,7 +109,9 @@ def _load_distortion(model: str, params: object) -> BrownDistortion:
     return BrownDistortion()
 
 
-def _rays_from_pixels(view, cam: PinholeCamera, dist: BrownDistortion, uv_px: np.ndarray) -> np.ndarray:
+def _rays_from_pixels(
+    view, cam: PinholeCamera, dist: BrownDistortion, uv_px: np.ndarray
+) -> np.ndarray:
     x_um, y_um = pixel_to_sensor_um(view, uv_px[:, 0], uv_px[:, 1])
     xd = x_um / float(cam.f_um)
     yd = y_um / float(cam.f_um)

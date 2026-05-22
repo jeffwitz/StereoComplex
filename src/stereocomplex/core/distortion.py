@@ -37,7 +37,9 @@ class BrownDistortion:
         yd = y * radial + y_tan
         return xd, yd
 
-    def undistort(self, xd: np.ndarray, yd: np.ndarray, iterations: int = 7) -> tuple[np.ndarray, np.ndarray]:
+    def undistort(
+        self, xd: np.ndarray, yd: np.ndarray, iterations: int = 7
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Iterative inverse of distort() for small/moderate distortion.
         """

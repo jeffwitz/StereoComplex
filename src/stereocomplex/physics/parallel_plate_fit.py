@@ -185,7 +185,9 @@ def _param_vector(params: PinholeParallelPlateFitParams, *, fit_eta: bool) -> np
     return np.asarray(base, dtype=np.float64)
 
 
-def _params_from_vector(x: np.ndarray, *, eta: float, d1_mm: float, fit_eta: bool) -> PinholeParallelPlateFitParams:
+def _params_from_vector(
+    x: np.ndarray, *, eta: float, d1_mm: float, fit_eta: bool,
+) -> PinholeParallelPlateFitParams:
     arr = np.asarray(x, dtype=np.float64).reshape(-1)
     eta_val = float(arr[3]) if fit_eta else float(eta)
     return PinholeParallelPlateFitParams(
@@ -269,12 +271,16 @@ def fit_parallel_plate_to_zernike_rayfield(
     def fun(x: np.ndarray) -> np.ndarray:
         residual_blocks = [
             float(support_weight)
-            * rayfield_two_plane_residuals(zernike_field, plate_field(x), support, z_planes=z_planes)
+            * rayfield_two_plane_residuals(
+                zernike_field, plate_field(x), support, z_planes=z_planes
+            )
         ]
         if full_grid_weight > 0:
             residual_blocks.append(
                 float(full_grid_weight)
-                * rayfield_two_plane_residuals(zernike_field, plate_field(x), full_pixels, z_planes=z_planes)
+                * rayfield_two_plane_residuals(
+                    zernike_field, plate_field(x), full_pixels, z_planes=z_planes
+                )
             )
         return np.concatenate(residual_blocks)
 
@@ -298,8 +304,12 @@ def fit_parallel_plate_to_zernike_rayfield(
     )
     fitted_params = _params_from_vector(sol.x, eta=eta, d1_mm=initial_params.d1_mm, fit_eta=fit_eta)
     fitted_field = PinholeParallelPlateRayField(K_arr, fitted_params)
-    support_res = rayfield_two_plane_residuals(zernike_field, fitted_field, support, z_planes=z_planes)
-    full_res = rayfield_two_plane_residuals(zernike_field, fitted_field, full_pixels, z_planes=z_planes)
+    support_res = rayfield_two_plane_residuals(
+        zernike_field, fitted_field, support, z_planes=z_planes
+    )
+    full_res = rayfield_two_plane_residuals(
+        zernike_field, fitted_field, full_pixels, z_planes=z_planes
+    )
     support_stats = _residual_norm_stats(support_res)
     full_stats = _residual_norm_stats(full_res)
     return ParallelPlateFromRayfieldFitResult(

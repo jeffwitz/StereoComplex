@@ -289,7 +289,10 @@ def _load_scene_eval_context(scene_dir: Path) -> _SceneEvalContext:
     uvR = gt["uv_right_px"].astype(np.float64)
     gt_by_frame = _index_gt_by_frame(frame_id, corner_id, uvL, uvR)
 
-    cv2, aruco, dictionary, charuco_board, detector_params, aruco_detector, charuco_detector = _make_charuco_detector(board)
+    (
+        cv2, aruco, dictionary, charuco_board,
+        detector_params, aruco_detector, charuco_detector,
+    ) = _make_charuco_detector(board)
 
     sim = meta.get("sim_params", {})
     f_um = float(sim.get("f_um", 0.0))
@@ -300,7 +303,9 @@ def _load_scene_eval_context(scene_dir: Path) -> _SceneEvalContext:
     dist_left = sim.get("distortion_left", {}) if dist_model == "brown" else {}
     dist_right = sim.get("distortion_right", {}) if dist_model == "brown" else {}
     K_left, d_left = _camera_params_from_meta(meta["stereo"]["left"], f_um=f_um, brown=dist_left)
-    K_right, d_right = _camera_params_from_meta(meta["stereo"]["right"], f_um=f_um, brown=dist_right)
+    K_right, d_right = _camera_params_from_meta(
+        meta["stereo"]["right"], f_um=f_um, brown=dist_right
+    )
 
     return _SceneEvalContext(
         frames=frames,
@@ -432,7 +437,9 @@ def _index_gt_by_frame(
     frame_id: np.ndarray, corner_id: np.ndarray, uvL: np.ndarray, uvR: np.ndarray
 ) -> dict[int, dict[str, dict[int, np.ndarray]]]:
     out: dict[int, dict[str, dict[int, np.ndarray]]] = {}
-    for fid, cid, left_uv, right_uv in zip(frame_id.tolist(), corner_id.tolist(), uvL, uvR, strict=True):
+    for fid, cid, left_uv, right_uv in zip(
+        frame_id.tolist(), corner_id.tolist(), uvL, uvR, strict=True
+    ):
         f = out.setdefault(int(fid), {"left": {}, "right": {}})
         f["left"][int(cid)] = left_uv
         f["right"][int(cid)] = right_uv
@@ -459,14 +466,19 @@ def _make_charuco_detector(board_meta: dict):
     marker_size = float(board_meta["marker_size_mm"])
 
     if hasattr(aruco, "CharucoBoard"):
-        charuco_board = aruco.CharucoBoard((squares_x, squares_y), square_size, marker_size, dictionary)
+        charuco_board = aruco.CharucoBoard(
+            (squares_x, squares_y), square_size, marker_size, dictionary
+        )
     elif hasattr(aruco, "CharucoBoard_create"):  # pragma: no cover
-        charuco_board = aruco.CharucoBoard_create(squares_x, squares_y, square_size, marker_size, dictionary)
+        charuco_board = aruco.CharucoBoard_create(
+            squares_x, squares_y, square_size, marker_size, dictionary
+        )
     else:  # pragma: no cover
         raise RuntimeError("cv2.aruco does not expose CharucoBoard APIs in this build.")
 
     detector_params = aruco.DetectorParameters()
-    # Improve marker corner localization (and therefore charuco interpolation) via subpixel refinement.
+    # Improve marker corner localization (and therefore charuco interpolation)
+    # via subpixel refinement.
     # This is a major factor when evaluating compression/blur impacts.
     if hasattr(aruco, "CORNER_REFINE_SUBPIX"):
         detector_params.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX
@@ -488,7 +500,9 @@ def _make_charuco_detector(board_meta: dict):
     return cv2, aruco, dictionary, charuco_board, detector_params, aruco_detector, charuco_detector
 
 
-def _camera_params_from_meta(view_meta: dict, f_um: float, brown: dict) -> tuple[np.ndarray, np.ndarray]:
+def _camera_params_from_meta(
+    view_meta: dict, f_um: float, brown: dict
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Build OpenCV-style (K, dist) from dataset meta conventions.
 

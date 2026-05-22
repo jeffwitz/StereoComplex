@@ -26,7 +26,9 @@ def marker_correspondences(charuco_board, marker_ids, marker_corners, *, ndim: i
     return build_marker_correspondences(charuco_board, marker_ids, marker_corners, ndim=ndim)
 
 
-def predict_marker_warp(method: str, obj_pts: np.ndarray, img_pts: np.ndarray, chess: np.ndarray) -> np.ndarray:
+def predict_marker_warp(
+    method: str, obj_pts: np.ndarray, img_pts: np.ndarray, chess: np.ndarray
+) -> np.ndarray:
     predictors = {
         "kfield": predict_points_affine_field,
         "rayfield": predict_points_rayfield,
@@ -70,7 +72,9 @@ def predict_charuco_points(
         "pw_affine",
         "tps",
     ):
-        corr = marker_correspondences(charuco_board, features.marker_ids, features.marker_corners, ndim=2)
+        corr = marker_correspondences(
+            charuco_board, features.marker_ids, features.marker_corners, ndim=2
+        )
         if corr is None:
             return None
         obj_pts, img_pts = corr
@@ -80,7 +84,9 @@ def predict_charuco_points(
         return charuco_ids, charuco_xy
 
     if method == "pnp":
-        corr = marker_correspondences(charuco_board, features.marker_ids, features.marker_corners, ndim=3)
+        corr = marker_correspondences(
+            charuco_board, features.marker_ids, features.marker_corners, ndim=3
+        )
         if corr is None:
             return None
         obj_pts, img_pts = corr
@@ -107,7 +113,9 @@ def predict_charuco_points(
         return charuco_ids, proj.reshape(-1, 2).astype(np.float64)
 
     if method == "homography":
-        corr = marker_correspondences(charuco_board, features.marker_ids, features.marker_corners, ndim=2)
+        corr = marker_correspondences(
+            charuco_board, features.marker_ids, features.marker_corners, ndim=2
+        )
         if corr is None:
             return None
         obj_pts, img_pts = corr
@@ -125,5 +133,6 @@ def predict_charuco_points(
         return charuco_ids, charuco_xy
 
     raise ValueError(
-        "method must be charuco|homography|pnp|mls|mls_h|pw_affine|tps|hybrid|kfield|rayfield|rayfield_tps|rayfield_tps_robust"
+        "method must be charuco|homography|pnp|mls|mls_h|pw_affine|tps|hybrid"
+        "|kfield|rayfield|rayfield_tps|rayfield_tps_robust"
     )

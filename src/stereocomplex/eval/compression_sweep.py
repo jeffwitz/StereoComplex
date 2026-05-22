@@ -71,7 +71,11 @@ def run_compression_sweep(
         reencode_dataset(
             base_dataset,
             ds_out,
-            ReencodeOptions(image_format=case.image_format, quality=case.quality, webp_lossless=case.webp_lossless),
+            ReencodeOptions(
+                image_format=case.image_format,
+                quality=case.quality,
+                webp_lossless=case.webp_lossless,
+            ),
         )
 
         scene_results: list[dict[str, object]] = []

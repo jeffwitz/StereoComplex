@@ -126,7 +126,11 @@ def _generate_scene(
     right_dir.mkdir(exist_ok=True)
 
     # Meta: keep it explicit and compatible OptiX later.
-    pitch_um = float(pitch_um_override) if pitch_um_override is not None else float(rng.uniform(1.4, 6.5))
+    pitch_um = (
+        float(pitch_um_override)
+        if pitch_um_override is not None
+        else float(rng.uniform(1.4, 6.5))
+    )
     view = {
         "schema_version": "stereocomplex.meta.v0",
         "sensor": {"pixel_pitch_um": pitch_um, "binning_xy": [1, 1]},
@@ -136,11 +140,17 @@ def _generate_scene(
 
     stereo_meta = {"left": view, "right": view}
     # Camera model (pinhole in camera frame, sensor-plane in mm derived from meta).
-    f_um = float(f_um_override) if f_um_override is not None else float(rng.uniform(4000.0, 40000.0))
+    f_um = (
+        float(f_um_override)
+        if f_um_override is not None
+        else float(rng.uniform(4000.0, 40000.0))
+    )
 
     # Pick a nominal working distance, then size the board so it is actually visible.
     tz_nominal = (
-        float(tz_nominal_mm_override) if tz_nominal_mm_override is not None else float(rng.uniform(200.0, 5000.0))
+        float(tz_nominal_mm_override)
+        if tz_nominal_mm_override is not None
+        else float(rng.uniform(200.0, 5000.0))
     )
     if tz_schedule_mm is not None:
         if len(tz_schedule_mm) != int(frames_per_scene):
@@ -207,7 +217,9 @@ def _generate_scene(
             "camera_model": "pinhole",
             "f_um": f_um,
             "baseline_mm": baseline_mm,
-            "tz_schedule_mm": [float(x) for x in tz_schedule_mm] if tz_schedule_mm is not None else None,
+            "tz_schedule_mm": (
+                [float(x) for x in tz_schedule_mm] if tz_schedule_mm is not None else None
+            ),
             "tex_interp": str(tex_interp),
             "distortion_model": str(distort),
             "distortion_left": brown_to_dict(dist_left),
@@ -278,7 +290,10 @@ def _generate_scene(
             xyz_world = (R @ np.c_[pts_plane, np.zeros(P)].T).T + t[None, :]
             uvL = _project_points_pinhole(view_meta, cam, dist_left, oL, xyz_world)
             uvR = _project_points_pinhole(view_meta, cam, dist_right, oR, xyz_world)
-            valid = _in_image(uvL, width, height) & _in_image(uvR, width, height) & (xyz_world[:, 2] > 0)
+            valid = (
+                _in_image(uvL, width, height) & _in_image(uvR, width, height)
+                & (xyz_world[:, 2] > 0)
+            )
             if int(np.count_nonzero(valid)) >= 80:
                 xyz_world = xyz_world[valid]
                 uvL = uvL[valid]
@@ -335,7 +350,10 @@ def _generate_scene(
         _save_gray_image(left_dir / left_name, imgL, image_format=image_format)
         _save_gray_image(right_dir / right_name, imgR, image_format=image_format)
 
-        frames_f.write(json.dumps({"frame_id": frame_id, "left": left_name, "right": right_name}) + "\n")
+        frames_f.write(
+            json.dumps({"frame_id": frame_id, "left": left_name, "right": right_name})
+            + "\n"
+        )
 
         all_frame_id.append(np.full((xyz_world.shape[0],), frame_id, dtype=np.int32))
         all_xyz.append(xyz_world.astype(np.float32))
@@ -345,11 +363,19 @@ def _generate_scene(
         if board.get("type") == "charuco":
             corner_id, corners_plane = _charuco_inner_corners_mm(board)
             if corners_plane.size:
-                xyz_c_world = (R @ np.c_[corners_plane, np.zeros(corners_plane.shape[0])].T).T + t[None, :]
+                xyz_c_world = (
+                    (R @ np.c_[corners_plane, np.zeros(corners_plane.shape[0])].T).T
+                    + t[None, :]
+                )
                 uvL_c = _project_points_pinhole(view_meta, cam, dist_left, oL, xyz_c_world)
                 uvR_c = _project_points_pinhole(view_meta, cam, dist_right, oR, xyz_c_world)
-                valid_c = _in_image(uvL_c, width, height) & _in_image(uvR_c, width, height) & (xyz_c_world[:, 2] > 0)
-                all_corner_frame.append(np.full((int(np.count_nonzero(valid_c)),), frame_id, dtype=np.int32))
+                valid_c = (
+                    _in_image(uvL_c, width, height) & _in_image(uvR_c, width, height)
+                    & (xyz_c_world[:, 2] > 0)
+                )
+                all_corner_frame.append(
+                    np.full((int(np.count_nonzero(valid_c)),), frame_id, dtype=np.int32)
+                )
                 all_corner_id.append(corner_id[valid_c].astype(np.int32))
                 all_corner_xyz.append(xyz_c_world[valid_c].astype(np.float32))
                 all_corner_uvL.append(uvL_c[valid_c].astype(np.float32))
@@ -357,7 +383,11 @@ def _generate_scene(
 
     frames_f.close()
 
-    frame_id_arr = np.concatenate(all_frame_id, axis=0) if all_frame_id else np.zeros((0,), np.int32)
+    frame_id_arr = (
+        np.concatenate(all_frame_id, axis=0)
+        if all_frame_id
+        else np.zeros((0,), np.int32)
+    )
     xyz_arr = np.concatenate(all_xyz, axis=0) if all_xyz else np.zeros((0, 3), np.float32)
     uvL_arr = np.concatenate(all_uvL, axis=0) if all_uvL else np.zeros((0, 2), np.float32)
     uvR_arr = np.concatenate(all_uvR, axis=0) if all_uvR else np.zeros((0, 2), np.float32)
@@ -372,17 +402,29 @@ def _generate_scene(
 
     if board.get("type") == "charuco":
         corner_frame = (
-            np.concatenate(all_corner_frame, axis=0) if all_corner_frame else np.zeros((0,), np.int32)
+            np.concatenate(all_corner_frame, axis=0)
+            if all_corner_frame
+            else np.zeros((0,), np.int32)
         )
-        corner_id = np.concatenate(all_corner_id, axis=0) if all_corner_id else np.zeros((0,), np.int32)
+        corner_id = (
+            np.concatenate(all_corner_id, axis=0)
+            if all_corner_id
+            else np.zeros((0,), np.int32)
+        )
         corner_xyz = (
-            np.concatenate(all_corner_xyz, axis=0) if all_corner_xyz else np.zeros((0, 3), np.float32)
+            np.concatenate(all_corner_xyz, axis=0)
+            if all_corner_xyz
+            else np.zeros((0, 3), np.float32)
         )
         corner_uvL = (
-            np.concatenate(all_corner_uvL, axis=0) if all_corner_uvL else np.zeros((0, 2), np.float32)
+            np.concatenate(all_corner_uvL, axis=0)
+            if all_corner_uvL
+            else np.zeros((0, 2), np.float32)
         )
         corner_uvR = (
-            np.concatenate(all_corner_uvR, axis=0) if all_corner_uvR else np.zeros((0, 2), np.float32)
+            np.concatenate(all_corner_uvR, axis=0)
+            if all_corner_uvR
+            else np.zeros((0, 2), np.float32)
         )
         np.savez_compressed(
             scene_dir / "gt_charuco_corners.npz",
@@ -485,7 +527,11 @@ def _ray_grid_from_pixels(view_meta, cam: PinholeCamera, dist: BrownDistortion) 
 
 
 def _project_points_pinhole(
-    view_meta, cam: PinholeCamera, dist: BrownDistortion, origin_mm: np.ndarray, xyz_world_mm: np.ndarray
+    view_meta,
+    cam: PinholeCamera,
+    dist: BrownDistortion,
+    origin_mm: np.ndarray,
+    xyz_world_mm: np.ndarray,
 ) -> np.ndarray:
     # Camera frame == world frame in MVP; origin defines translation only.
     p_cam = xyz_world_mm - origin_mm[None, :]
@@ -555,7 +601,10 @@ def _render_plane_texture(
         & (yp >= -0.5 * h_mm)
         & (yp <= 0.5 * h_mm)
     )
-    tex = _sample_board_texture(board, xp, yp, inside, tex_interp=tex_interp).astype(np.float64) / 255.0
+    tex = (
+        _sample_board_texture(board, xp, yp, inside, tex_interp=tex_interp)
+        .astype(np.float64) / 255.0
+    )
 
     # Background + illumination gradient + noise.
     bg = float(rng.uniform(0.05, 0.25))
@@ -635,7 +684,9 @@ def _save_gray_image(path: Path, img_u8: np.ndarray, image_format: str) -> None:
             from PIL import features
 
             if not features.check("webp"):
-                raise RuntimeError("Pillow has no WebP support (PIL.features.check('webp') is False).")
+                raise RuntimeError(
+                    "Pillow has no WebP support (PIL.features.check('webp') is False)."
+                )
         except Exception:
             pass
         im.save(path, lossless=True, quality=100, method=6)
@@ -645,7 +696,8 @@ def _save_gray_image(path: Path, img_u8: np.ndarray, image_format: str) -> None:
 
 def _make_board_texture(board: dict, pattern: str) -> np.ndarray | None:
     """
-    Generates and returns the board texture as a grayscale uint8 image, or None to use analytic grid.
+    Generates and returns the board texture as a grayscale uint8 image, or None
+    to use analytic grid.
     """
     if pattern not in ("auto", "charuco", "grid"):
         raise ValueError("pattern must be auto|charuco|grid")
@@ -701,7 +753,8 @@ def _sample_board_texture(
             v = (yp + 0.5 * h_mm) / h_mm
             map_x = np.zeros_like(xp, dtype=np.float32)
             map_y = np.zeros_like(yp, dtype=np.float32)
-            # Pixel-center convention: pixel centers at integer coordinates, borders at -0.5 and W-0.5.
+            # Pixel-center convention: pixel centers at integer coordinates,
+            # borders at -0.5 and W-0.5.
             # This avoids a half-texel bias when mapping plane coordinates to the discrete texture.
             map_x[inside] = (u[inside] * Wt - 0.5).astype(np.float32)
             map_y[inside] = (v[inside] * Ht - 0.5).astype(np.float32)
@@ -717,7 +770,9 @@ def _sample_board_texture(
     return tex
 
 
-def _remap_texture(img_u8: np.ndarray, map_x: np.ndarray, map_y: np.ndarray, interp: str) -> np.ndarray:
+def _remap_texture(
+    img_u8: np.ndarray, map_x: np.ndarray, map_y: np.ndarray, interp: str,
+) -> np.ndarray:
     interp = str(interp)
     if interp not in ("nearest", "linear", "cubic", "lanczos4"):
         raise ValueError("tex_interp must be nearest|linear|cubic|lanczos4")

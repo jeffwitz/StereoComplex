@@ -189,7 +189,11 @@ def compute_inverse_problem_diagnostics(
         s_schur = np.zeros(0)
 
     # Correlation between optical and pose parameters
-    corr = np.zeros((p_opt, p_pose), dtype=np.float64) if p_opt > 0 and p_pose > 0 else np.zeros((p_opt, p_pose))
+    corr = (
+        np.zeros((p_opt, p_pose), dtype=np.float64)
+        if p_opt > 0 and p_pose > 0
+        else np.zeros((p_opt, p_pose))
+    )
     max_corr = 0.0
     if p_opt > 0 and p_pose > 0:
         for i in range(p_opt):

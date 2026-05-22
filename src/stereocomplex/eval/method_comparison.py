@@ -4,7 +4,12 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from stereocomplex.eval.charuco_detection import ErrorStats, collect_charuco_scene_errors, _stats_to_dict, _summarize
+from stereocomplex.eval.charuco_detection import (
+    ErrorStats,
+    collect_charuco_scene_errors,
+    _stats_to_dict,
+    _summarize,
+)
 
 
 @dataclass(frozen=True)
@@ -94,8 +99,16 @@ def compare_charuco_methods(
                     {
                         "split": split,
                         "scene": scene_dir.name,
-                        "left": {"n_detected": int(L["n_detected"]), "n_matched": int(L["n_matched"]), **_stats_to_dict(stats_L)},
-                        "right": {"n_detected": int(R["n_detected"]), "n_matched": int(R["n_matched"]), **_stats_to_dict(stats_R)},
+                        "left": {
+                            "n_detected": int(L["n_detected"]),
+                            "n_matched": int(L["n_matched"]),
+                            **_stats_to_dict(stats_L),
+                        },
+                        "right": {
+                            "n_detected": int(R["n_detected"]),
+                            "n_matched": int(R["n_matched"]),
+                            **_stats_to_dict(stats_R),
+                        },
                     }
                 )
 
@@ -106,8 +119,16 @@ def compare_charuco_methods(
             "name": case.name,
             "method": case.method,
             "refine": case.refine,
-            "left": {"n_detected": int(n_det_L), "n_matched": int(n_match_L), **_stats_to_dict(stats_L_all)},
-            "right": {"n_detected": int(n_det_R), "n_matched": int(n_match_R), **_stats_to_dict(stats_R_all)},
+            "left": {
+                "n_detected": int(n_det_L),
+                "n_matched": int(n_match_L),
+                **_stats_to_dict(stats_L_all),
+            },
+            "right": {
+                "n_detected": int(n_det_R),
+                "n_matched": int(n_match_R),
+                **_stats_to_dict(stats_R_all),
+            },
             "scenes": scene_summaries,
         }
         report["cases"].append(entry)
@@ -149,7 +170,10 @@ def write_latex_table(report: dict[str, object], out_path: Path, caption: str, l
         rmsR = float(R["rms_px"])
         p95L = float(L["p95_px"])
         p95R = float(R["p95_px"])
-        lines.append(f"{c['name']} & {nL:d} & {rmsL:.3f} & {p95L:.3f} & {nR:d} & {rmsR:.3f} & {p95R:.3f}\\\\")
+        lines.append(
+            f"{c['name']} & {nL:d} & {rmsL:.3f} & {p95L:.3f}"
+            f" & {nR:d} & {rmsR:.3f} & {p95R:.3f}\\\\"
+        )
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     lines.append(f"\\caption{{{esc(caption)}}}")

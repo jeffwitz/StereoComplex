@@ -21,7 +21,9 @@ def _fit_affine(obj_xy: np.ndarray, img_uv: np.ndarray) -> np.ndarray | None:
 
 def _apply_affine(M: np.ndarray, query_xy: np.ndarray) -> np.ndarray:
     query_xy = np.asarray(query_xy, dtype=np.float64).reshape(-1, 2)
-    qh = np.concatenate([query_xy, np.ones((query_xy.shape[0], 1), dtype=np.float64)], axis=1)  # (M,3)
+    qh = np.concatenate(
+        [query_xy, np.ones((query_xy.shape[0], 1), dtype=np.float64)], axis=1
+    )  # (M,3)
     return (qh @ M.T).astype(np.float64)
 
 
@@ -151,7 +153,9 @@ def predict_points_rayfield_tps_robust(
 
     import cv2  # type: ignore
 
-    H, _mask = cv2.findHomography(obj_xy, img_uv, method=cv2.RANSAC, ransacReprojThreshold=float(ransac_reproj_px))
+    H, _mask = cv2.findHomography(
+        obj_xy, img_uv, method=cv2.RANSAC, ransacReprojThreshold=float(ransac_reproj_px)
+    )
     if H is None:
         H, _mask = cv2.findHomography(obj_xy, img_uv, method=0)
     if H is None:
@@ -167,7 +171,9 @@ def predict_points_rayfield_tps_robust(
 
     base_obs = proj(H, obj_xy)
     res_obs = img_uv - base_obs
-    res_q = _predict_points_tps_irls(obj_xy, res_obs, query_xy, lam=float(lam), huber_c=float(huber_c), iters=int(iters))
+    res_q = _predict_points_tps_irls(
+        obj_xy, res_obs, query_xy, lam=float(lam), huber_c=float(huber_c), iters=int(iters)
+    )
     base_q = proj(H, query_xy)
     return (base_q + res_q).astype(np.float64)
 

@@ -34,7 +34,9 @@ def build_charuco_from_meta(meta: dict[str, Any]):
     board_meta = meta["board"]
     opencv_meta = meta.get("opencv", {})
     opencv_aruco = opencv_meta.get("aruco_detector", {}) if isinstance(opencv_meta, dict) else {}
-    opencv_charuco = opencv_meta.get("charuco_detector", {}) if isinstance(opencv_meta, dict) else {}
+    opencv_charuco = (
+        opencv_meta.get("charuco_detector", {}) if isinstance(opencv_meta, dict) else {}
+    )
     dict_name = str(board_meta.get("aruco_dictionary", "DICT_4X4_1000"))
     dict_id = getattr(aruco, dict_name, None)
     if dict_id is None:
@@ -49,7 +51,9 @@ def build_charuco_from_meta(meta: dict[str, Any]):
     if hasattr(aruco, "CharucoBoard"):
         board = aruco.CharucoBoard((squares_x, squares_y), square_size, marker_size, dictionary)
     elif hasattr(aruco, "CharucoBoard_create"):  # pragma: no cover
-        board = aruco.CharucoBoard_create(squares_x, squares_y, square_size, marker_size, dictionary)
+        board = aruco.CharucoBoard_create(
+            squares_x, squares_y, square_size, marker_size, dictionary
+        )
     else:  # pragma: no cover
         raise RuntimeError("cv2.aruco does not expose CharucoBoard APIs in this build.")
 
@@ -65,16 +69,24 @@ def build_charuco_from_meta(meta: dict[str, Any]):
         if "cornerRefinementWinSize" in opencv_aruco:
             detector_params.cornerRefinementWinSize = int(opencv_aruco["cornerRefinementWinSize"])
         if "cornerRefinementMaxIterations" in opencv_aruco:
-            detector_params.cornerRefinementMaxIterations = int(opencv_aruco["cornerRefinementMaxIterations"])
+            detector_params.cornerRefinementMaxIterations = int(
+                opencv_aruco["cornerRefinementMaxIterations"]
+            )
         if "cornerRefinementMinAccuracy" in opencv_aruco:
-            detector_params.cornerRefinementMinAccuracy = float(opencv_aruco["cornerRefinementMinAccuracy"])
+            detector_params.cornerRefinementMinAccuracy = float(
+                opencv_aruco["cornerRefinementMinAccuracy"]
+            )
 
     charuco_detector = None
     if hasattr(aruco, "CharucoDetector"):
         charuco_detector = aruco.CharucoDetector(board)
         if hasattr(charuco_detector, "setDetectorParameters"):
             charuco_detector.setDetectorParameters(detector_params)
-        if isinstance(opencv_charuco, dict) and hasattr(charuco_detector, "getCharucoParameters") and hasattr(charuco_detector, "setCharucoParameters"):
+        if (
+            isinstance(opencv_charuco, dict)
+            and hasattr(charuco_detector, "getCharucoParameters")
+            and hasattr(charuco_detector, "setCharucoParameters")
+        ):
             cp = charuco_detector.getCharucoParameters()
             if "checkMarkers" in opencv_charuco:
                 cp.checkMarkers = bool(opencv_charuco["checkMarkers"])
@@ -102,15 +114,23 @@ def detect_view(
     img_gray: np.ndarray,
 ) -> CharucoDetections | None:
     if charuco_detector is not None:
-        charuco_corners, charuco_ids, marker_corners, marker_ids = charuco_detector.detectBoard(img_gray)
+        charuco_corners, charuco_ids, marker_corners, marker_ids = (
+            charuco_detector.detectBoard(img_gray)
+        )
     else:
         if aruco_detector is not None:
             marker_corners, marker_ids, _rej = aruco_detector.detectMarkers(img_gray)
         else:  # pragma: no cover
-            marker_corners, marker_ids, _rej = aruco.detectMarkers(img_gray, dictionary, parameters=detector_params)
+            marker_corners, marker_ids, _rej = aruco.detectMarkers(
+                img_gray, dictionary, parameters=detector_params
+            )
 
         charuco_corners, charuco_ids = None, None
-        if hasattr(aruco, "interpolateCornersCharuco") and marker_ids is not None and len(marker_ids) > 0:
+        if (
+            hasattr(aruco, "interpolateCornersCharuco")
+            and marker_ids is not None
+            and len(marker_ids) > 0
+        ):
             ret = aruco.interpolateCornersCharuco(marker_corners, marker_ids, img_gray, board)
             if ret is not None and len(ret) >= 2:
                 if len(ret) == 3:
@@ -142,7 +162,10 @@ def detect_view(
 
 
 def _dict_from_ids_xy(ids: np.ndarray, xy: np.ndarray) -> dict[int, np.ndarray]:
-    return {int(i): np.asarray(p, dtype=np.float64) for i, p in zip(ids.tolist(), xy.tolist(), strict=True)}
+    return {
+        int(i): np.asarray(p, dtype=np.float64)
+        for i, p in zip(ids.tolist(), xy.tolist(), strict=True)
+    }
 
 
 def refine_dataset_scene(
@@ -164,7 +187,9 @@ def refine_dataset_scene(
     if max_frames and max_frames > 0:
         frames = frames[: int(max_frames)]
 
-    cv2, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector = build_charuco_from_meta(meta)
+    cv2, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector = (
+        build_charuco_from_meta(meta)
+    )
 
     results: list[dict[str, Any]] = []
     for fr in frames:
@@ -173,7 +198,10 @@ def refine_dataset_scene(
         for side in ("left", "right"):
             img_path = scene_dir / side / str(fr[side])
             img = load_gray_u8(img_path)
-            det = detect_view(cv2, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector, img)
+            det = detect_view(
+                cv2, aruco, dictionary, board, detector_params,
+                aruco_detector, charuco_detector, img
+            )
             if det is None:
                 continue
             refined_xy = refine_charuco_corners(
@@ -251,8 +279,14 @@ def make_calibration_npz(
             continue
         L = fr["left"]
         R = fr["right"]
-        mapL = _dict_from_ids_xy(np.asarray(L["charuco_ids"], dtype=np.int32), np.asarray(L["charuco_xy_refined"], dtype=np.float64))
-        mapR = _dict_from_ids_xy(np.asarray(R["charuco_ids"], dtype=np.int32), np.asarray(R["charuco_xy_refined"], dtype=np.float64))
+        mapL = _dict_from_ids_xy(
+            np.asarray(L["charuco_ids"], dtype=np.int32),
+            np.asarray(L["charuco_xy_refined"], dtype=np.float64),
+        )
+        mapR = _dict_from_ids_xy(
+            np.asarray(R["charuco_ids"], dtype=np.int32),
+            np.asarray(R["charuco_xy_refined"], dtype=np.float64),
+        )
         common = sorted(set(mapL).intersection(mapR))
         if len(common) < 6:
             continue
