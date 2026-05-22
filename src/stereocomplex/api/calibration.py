@@ -827,6 +827,30 @@ def _image_pairs_from_dirs(left_dir: str | Path, right_dir: str | Path, *, max_p
     ]
 
 
+def _image_pairs_from_dataset(
+    *,
+    dataset_root: str | Path,
+    split: str,
+    scene: str,
+    max_frames: int = 0,
+) -> tuple[CharucoBoardSpec, list[StereoImagePair]]:
+    scene_dir = Path(dataset_root) / str(split) / str(scene)
+    meta = _load_json(scene_dir / "meta.json")
+    board = CharucoBoardSpec.from_meta(meta)
+    frames = _load_frames(scene_dir)
+    if max_frames and max_frames > 0:
+        frames = frames[: int(max_frames)]
+    pairs = [
+        StereoImagePair(
+            left_path=scene_dir / "left" / str(frame["left"]),
+            right_path=scene_dir / "right" / str(frame["right"]),
+            frame_id=int(frame["frame_id"]),
+        )
+        for frame in frames
+    ]
+    return board, pairs
+
+
 def fit_opencv_stereo_from_image_pairs(
     *,
     image_pairs: Sequence[StereoImagePair | tuple[str | Path, str | Path]],
@@ -1043,21 +1067,9 @@ def fit_opencv_stereo_from_dataset(
     huber_c: float = 3.0,
     iters: int = 3,
 ) -> StereoOpenCVCalibrationResult:
-    dataset_root = Path(dataset_root)
-    scene_dir = dataset_root / str(split) / str(scene)
-    meta = _load_json(scene_dir / "meta.json")
-    board = CharucoBoardSpec.from_meta(meta)
-    frames = _load_frames(scene_dir)
-    if max_frames and max_frames > 0:
-        frames = frames[: int(max_frames)]
-    pairs = [
-        StereoImagePair(
-            left_path=scene_dir / "left" / str(frame["left"]),
-            right_path=scene_dir / "right" / str(frame["right"]),
-            frame_id=int(frame["frame_id"]),
-        )
-        for frame in frames
-    ]
+    board, pairs = _image_pairs_from_dataset(
+        dataset_root=dataset_root, split=split, scene=scene, max_frames=max_frames
+    )
     return fit_opencv_stereo_from_image_pairs(
         image_pairs=pairs,
         board=board,
@@ -1535,21 +1547,9 @@ def fit_stereo_central_rayfield_from_dataset(
     max_nfev: int = 800,
     export_model_dir: str | Path | None = None,
 ) -> StereoCentralRayFieldFitResult:
-    dataset_root = Path(dataset_root)
-    scene_dir = dataset_root / str(split) / str(scene)
-    meta = _load_json(scene_dir / "meta.json")
-    board = CharucoBoardSpec.from_meta(meta)
-    frames = _load_frames(scene_dir)
-    if max_frames and max_frames > 0:
-        frames = frames[: int(max_frames)]
-    pairs = [
-        StereoImagePair(
-            left_path=scene_dir / "left" / str(frame["left"]),
-            right_path=scene_dir / "right" / str(frame["right"]),
-            frame_id=int(frame["frame_id"]),
-        )
-        for frame in frames
-    ]
+    board, pairs = _image_pairs_from_dataset(
+        dataset_root=dataset_root, split=split, scene=scene, max_frames=max_frames
+    )
     return fit_stereo_central_rayfield_from_image_pairs(
         image_pairs=pairs,
         board=board,
