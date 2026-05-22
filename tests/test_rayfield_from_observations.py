@@ -12,7 +12,9 @@ from stereocomplex.benchmarks.model_selection_oracles import build_pinhole_oracl
 from stereocomplex.benchmarks.rayfield_from_observations import (
     ZernikeFitDiagnostics,
     fit_zernike_rayfield_from_charuco_observations,
+    fit_zernike_rayfields_from_multi_camera_observations,
 )
+from stereocomplex.rayfields.zernike_origin_field import MultiCameraZernikeRayField
 
 
 def test_zernike_fit_diagnostics_report_residual_and_pose_count():
@@ -40,6 +42,31 @@ def test_zernike_fit_diagnostics_report_residual_and_pose_count():
     assert diag.n_observations > 0
     assert diag.ray_rms_mm is not None
     assert np.isfinite(diag.ray_rms_mm)
+    assert diag.channel_names == ("left", "right")
+    assert diag.n_channels == 2
+
+
+def test_multi_camera_zernike_fit_accepts_stereo_observation_container():
+    oracle = build_pinhole_oracle(image_size=(160, 120))
+    obs = simulate_charuco_observations_from_rayfield(
+        oracle.left_field,
+        oracle.right_field,
+        image_size=(160, 120),
+        n_poses=4,
+        noise_std_px=0.0,
+        seed=42,
+        min_corners_per_frame=0,
+    ).to_multi_camera()
+    fields, diag = fit_zernike_rayfields_from_multi_camera_observations(
+        obs,
+        (160, 120),
+        {"left": oracle.K_left, "right": oracle.K_right},
+        max_order=2,
+        max_nfev=50,
+    )
+
+    assert isinstance(fields, MultiCameraZernikeRayField)
+    assert fields.names == ("left", "right")
     assert diag.channel_names == ("left", "right")
     assert diag.n_channels == 2
 

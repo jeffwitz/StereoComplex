@@ -15,12 +15,14 @@ from scipy.spatial.transform import Rotation
 
 from stereocomplex.benchmarks.charuco_observation_simulator import (
     CharucoObservationSet,
+    MultiCameraCharucoObservationSet,
 )
 from stereocomplex.benchmarks.direct_inversion import (
     estimate_initial_poses_from_central_pinhole,
 )
 from stereocomplex.core.model_compact.zernike import eval_real_zernike
 from stereocomplex.rayfields.zernike_origin_field import (
+    MultiCameraZernikeRayField,
     ZernikeOriginFieldConfig,
     ZernikeRayField,
     ZernikeRayFieldCoefficients,
@@ -334,6 +336,66 @@ def fit_zernike_rayfield_from_charuco_observations(
         nfev=int(sol.nfev),
     )
     return left_field, right_field, diag
+
+
+def fit_zernike_rayfields_from_multi_camera_observations(
+    obs: MultiCameraCharucoObservationSet,
+    image_size: tuple[int, int],
+    intrinsics_by_channel: dict[str, np.ndarray],
+    max_order: int = 4,
+    initial_poses_R: list[np.ndarray] | None = None,
+    initial_poses_t: list[np.ndarray] | None = None,
+    *,
+    max_nfev: int = 300,
+    origin_reg_weight: float = 1e-3,
+) -> tuple[MultiCameraZernikeRayField, ZernikeFitDiagnostics]:
+    """Fit Zernike rayfields from the multi-camera observation container.
+
+    The current optimizer remains stereo internally.  This entry point gives
+    Phase 1 callers a channel-indexed contract while keeping the existing
+    left/right solver path intact.
+    """
+    if obs.channel_names != ("left", "right"):
+        raise NotImplementedError(
+            "multi-camera Zernike fitting currently supports left/right observations"
+        )
+    missing = [name for name in obs.channel_names if name not in intrinsics_by_channel]
+    if missing:
+        raise ValueError(f"missing intrinsics for channels: {missing}")
+
+    stereo_obs = CharucoObservationSet(
+        object_points_mm=obs.object_points_mm,
+        pose_rvecs=obs.pose_rvecs,
+        pose_tvecs=obs.pose_tvecs,
+        left_pixels=obs.pixels("left"),
+        right_pixels=obs.pixels("right"),
+        point_indices=obs.point_indices,
+        noise_std_px=obs.noise_std_px,
+        image_size=obs.image_size,
+        diagnostics=obs.diagnostics,
+    )
+    left, right, diag = fit_zernike_rayfield_from_charuco_observations(
+        stereo_obs,
+        image_size,
+        intrinsics_by_channel["left"],
+        intrinsics_by_channel["right"],
+        max_order=max_order,
+        initial_poses_R=initial_poses_R,
+        initial_poses_t=initial_poses_t,
+        max_nfev=max_nfev,
+        origin_reg_weight=origin_reg_weight,
+    )
+    diag = ZernikeFitDiagnostics(
+        max_order=diag.max_order,
+        n_zernike_coeffs=diag.n_zernike_coeffs,
+        n_poses=diag.n_poses,
+        n_observations=diag.n_observations,
+        ray_rms_mm=diag.ray_rms_mm,
+        converged=diag.converged,
+        nfev=diag.nfev,
+        channel_names=obs.channel_names,
+    )
+    return MultiCameraZernikeRayField.from_fields({"left": left, "right": right}), diag
 
 
 def fit_constrained_zernike_rayfield(
