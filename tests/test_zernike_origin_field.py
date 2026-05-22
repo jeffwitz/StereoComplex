@@ -73,3 +73,18 @@ def test_multi_camera_zernike_rayfield_dispatches_by_name():
     assert rig.n_channels == 2
     assert np.allclose(origin, right.origin(u, v))
     assert np.allclose(direction, right.direction(u, v))
+
+
+def test_multi_camera_zernike_rayfield_builds_per_camera_configs():
+    K = np.array([[500.0, 0.0, 320.0], [0.0, 520.0, 240.0], [0.0, 0.0, 1.0]])
+    rig = MultiCameraZernikeRayField.from_camera_configs(
+        {"left": K, "context": K},
+        {
+            "left": ZernikeOriginFieldConfig(image_size=(640, 480), max_order=1),
+            "context": ZernikeOriginFieldConfig(image_size=(320, 240), max_order=2),
+        },
+    )
+
+    assert rig.names == ("left", "context")
+    assert rig.channel("left").config.image_size == (640, 480)
+    assert rig.channel("context").config.max_order == 2

@@ -74,7 +74,24 @@ class MultiCameraZernikeRayField:
 
     @classmethod
     def from_fields(cls, fields: dict[str, "ZernikeRayField"]) -> "MultiCameraZernikeRayField":
-        return cls(tuple(ZernikeRayFieldChannel(name=name, field=field) for name, field in fields.items()))
+        return cls(
+            tuple(ZernikeRayFieldChannel(name=name, field=field) for name, field in fields.items())
+        )
+
+    @classmethod
+    def from_camera_configs(
+        cls,
+        intrinsics_by_channel: dict[str, np.ndarray],
+        configs_by_channel: dict[str, ZernikeOriginFieldConfig],
+    ) -> "MultiCameraZernikeRayField":
+        missing = [name for name in intrinsics_by_channel if name not in configs_by_channel]
+        if missing:
+            raise ValueError(f"missing Zernike configs for channels: {missing}")
+        fields = {
+            name: ZernikeRayField(K=intrinsics, config=configs_by_channel[name])
+            for name, intrinsics in intrinsics_by_channel.items()
+        }
+        return cls.from_fields(fields)
 
     @property
     def names(self) -> tuple[str, ...]:
@@ -189,9 +206,13 @@ class ZernikeRayField(ZernikeOriginField):
             super().__init__(
                 K,
                 config,
-                ZernikeOriginFieldCoefficients(np.asarray(coefficients.origin_coeffs, dtype=np.float64)),
+                ZernikeOriginFieldCoefficients(
+                    np.asarray(coefficients.origin_coeffs, dtype=np.float64)
+                ),
             )
-            direction_coeffs = np.asarray(coefficients.direction_coeffs, dtype=np.float64).reshape(-1, 3)
+            direction_coeffs = np.asarray(coefficients.direction_coeffs, dtype=np.float64).reshape(
+                -1, 3
+            )
         if direction_coeffs.shape != self.coeffs.shape:
             raise ValueError(f"direction_coeffs must have shape {self.coeffs.shape}")
         self.rayfield_coefficients = ZernikeRayFieldCoefficients(
@@ -265,10 +286,12 @@ class ZernikeCandidate:
 
     def parameter_vector(self) -> np.ndarray:
         if self.fit_directions:
-            return np.concatenate([
-                np.asarray(self.coefficients.origin_coeffs, dtype=np.float64).reshape(-1),
-                np.asarray(self.coefficients.direction_coeffs, dtype=np.float64).reshape(-1),
-            ])
+            return np.concatenate(
+                [
+                    np.asarray(self.coefficients.origin_coeffs, dtype=np.float64).reshape(-1),
+                    np.asarray(self.coefficients.direction_coeffs, dtype=np.float64).reshape(-1),
+                ]
+            )
         return np.asarray(self.coefficients.origin_coeffs, dtype=np.float64).reshape(-1)
 
     @classmethod
@@ -289,8 +312,8 @@ class ZernikeCandidate:
                 K=np.asarray(kwargs["K"], dtype=np.float64).reshape(3, 3),
                 config=config,
                 coefficients=ZernikeRayFieldCoefficients(
-                    origin_coeffs=arr[:n_modes*3].reshape(n_modes, 3),
-                    direction_coeffs=arr[n_modes*3:].reshape(n_modes, 3),
+                    origin_coeffs=arr[: n_modes * 3].reshape(n_modes, 3),
+                    direction_coeffs=arr[n_modes * 3 :].reshape(n_modes, 3),
                 ),
                 fit_directions=True,
             )
@@ -322,7 +345,8 @@ class ZernikeCandidate:
             field = ZernikeRayField(K=self.K, config=self.config, coefficients=self.coefficients)
         else:
             field = ZernikeOriginField(
-                K=self.K, config=self.config,
+                K=self.K,
+                config=self.config,
                 coefficients=ZernikeOriginFieldCoefficients(coeffs=self.coefficients.origin_coeffs),
             )
         return field.ray(u, v)
