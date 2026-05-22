@@ -79,7 +79,7 @@ def gaussian_blur_edge_varying_u8(
 def _gaussian_kernel1d(sigma: float) -> np.ndarray:
     if sigma <= 0:
         return np.array([1.0], dtype=np.float64)
-    radius = int(math.ceil(3.0 * sigma))
+    radius = math.ceil(3.0 * sigma)
     x = np.arange(-radius, radius + 1, dtype=np.float64)
     k = np.exp(-(x * x) / (2.0 * sigma * sigma))
     k /= np.sum(k)

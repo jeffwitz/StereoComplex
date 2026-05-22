@@ -16,7 +16,7 @@ def pixel_to_sensor_um(view: ViewMeta, u_px: np.ndarray, v_px: np.ndarray) -> tu
     u_px = np.asarray(u_px, dtype=np.float64)
     v_px = np.asarray(v_px, dtype=np.float64)
 
-    crop_x, crop_y, crop_w, crop_h = view.preprocess.crop_xywh_px
+    _crop_x, _crop_y, crop_w, crop_h = view.preprocess.crop_xywh_px
     resize_x, resize_y = view.preprocess.resize_xy
 
     # Back-map to cropped (binned) sensor pixel coordinates (continuous, pixel centers).

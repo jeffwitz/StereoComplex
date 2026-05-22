@@ -509,7 +509,7 @@ def _camera_params_from_meta(view_meta: dict, f_um: float, brown: dict) -> tuple
     pitch_y_um = pitch_um * float(bin_y)
 
     resize_x, resize_y = preprocess.get("resize_xy", [1.0, 1.0])
-    crop_x, crop_y, crop_w, crop_h = preprocess.get("crop_xywh_px", [0, 0, 0, 0])
+    _crop_x, _crop_y, crop_w, crop_h = preprocess.get("crop_xywh_px", [0, 0, 0, 0])
     crop_w = float(crop_w)
     crop_h = float(crop_h)
     resize_x = float(resize_x)

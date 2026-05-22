@@ -47,8 +47,10 @@ class RectifyParams:
     lut_use: bool = True
 
 
-def _build_rect_axes(t_lr: np.ndarray, up_hint: np.ndarray = np.array([0, 1, 0], dtype=np.float64)) -> np.ndarray:
+def _build_rect_axes(t_lr: np.ndarray, up_hint: np.ndarray | None = None) -> np.ndarray:
     """Return R_rect (rect frame rows expressed in left cam frame)."""
+    if up_hint is None:
+        up_hint = np.array([0, 1, 0], dtype=np.float64)
     b = np.asarray(t_lr, dtype=np.float64).reshape(3)
     e1 = _normalize(b)
     u = up_hint.astype(np.float64).reshape(3)

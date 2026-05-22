@@ -287,7 +287,7 @@ def fit_stereo_zernike_origin_field(
         R_RL = T_RL_current[:3, :3]
         t_RL = T_RL_current[:3, 3]
         parts: list[np.ndarray] = []
-        for i, ((uvL_arr, uvR_arr), P_L_arr) in enumerate(zip(frame_data, P_left_current, strict=True)):
+        for i, ((_uvL_arr, uvR_arr), P_L_arr) in enumerate(zip(frame_data, P_left_current, strict=True)):
             O_L, d_L = _ray_cached(A_left_per_frame[i], d0_left_per_frame[i], left_origin, left_direction, _gauge_left)
             parts.append(_point_line_residual(P_L_arr, O_L, d_L).reshape(-1))
             if uvR_arr.shape[0] > 0:

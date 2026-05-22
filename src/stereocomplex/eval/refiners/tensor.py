@@ -116,7 +116,7 @@ def refine_points_tensor_noble(
 
     H, W = img_u8.shape[:2]
     out = pts_xy.astype(np.float64, copy=True)
-    r = int(round(search_radius))
+    r = round(search_radius)
     ys, xs = np.mgrid[-r : r + 1, -r : r + 1]
     # Favor the peak closest to the initial estimate to avoid snapping to nearby
     # high-contrast features (e.g., marker micro-corners).

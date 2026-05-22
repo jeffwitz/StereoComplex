@@ -92,8 +92,8 @@ def parse_view_meta(data: dict[str, Any]) -> ViewMeta:
     _require(gamma > 0.0, "image.gamma must be > 0")
 
     # Minimal consistency check: crop+resize should match delivered image size (rounded).
-    exp_w = int(round(crop_w * sx))
-    exp_h = int(round(crop_h * sy))
+    exp_w = round(crop_w * sx)
+    exp_h = round(crop_h * sy)
     _require((exp_w, exp_h) == (w, h), f"image size must match crop*resize: expected {(exp_w, exp_h)}")
 
     return ViewMeta(
