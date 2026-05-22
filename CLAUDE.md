@@ -105,9 +105,12 @@ is identifiable; assert `working_distance` / `b` / `f_tube` and
 scientist — an optics / vision researcher, not necessarily a Python expert — can
 understand the code from its docstrings alone.
 
-Baseline (2026-05-22): **41.8 %** of public functions documented (164/392),
-**20 %** of private ones. Target: 100 % of public functions, then the
+Baseline (2026-05-22): **53.8 %** of public functions documented (211/392),
+**20.0 %** of private ones. Target: 100 % of public functions, then the
 non-trivial private ones.
+
+Highest-priority file `physics/cmo_physical.py`: **100 %** (53/53 public
+functions documented).
 
 A good docstring here is teaching material, not a type echo:
 

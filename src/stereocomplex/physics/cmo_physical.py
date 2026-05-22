@@ -134,10 +134,64 @@ class CMOPhysicalStereoModel:
 
     @property
     def n_parameters(self) -> int:
+        """Number of free parameters in the flattened parameter vector.
+
+        Returns 19 when ``share_principal_point=True`` (a single principal
+        point serves both channels) or 21 when each channel carries its own
+        principal-point offset via ``delta_cx_diff_px`` and
+        ``delta_cy_diff_px``.
+
+        The layout is: 6 shared optical parameters
+        (``f_obj_mm``, ``working_distance_mm``, ``b_mm``, ``f_tube_mm``,
+        ``cx``, ``cy``), optionally 2 principal-point deltas, 3 rigid-body
+        tilts (``theta_axis_tilt_rad``, ``theta_pitch_rad``,
+        ``telecentric_offset_mm``), and 5 Brown-Conrady distortion
+        coefficients per channel (10 total).
+        """
         return 19 if self.share_principal_point else 21
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs) -> CMOPhysicalStereoModel:
+        """Reconstruct the model from a flat parameter vector.
+
+        Inverse of :meth:`parameter_vector`.  The parameter layout depends
+        on ``share_principal_point``:
+
+        *Shared PP (19 params)*
+            | 0: ``f_obj_mm``
+            | 1: ``working_distance_mm``
+            | 2: ``b_mm``
+            | 3: ``f_tube_mm``
+            | 4: ``cx_principal_px``
+            | 5: ``cy_principal_px``
+            | 6: ``theta_axis_tilt_rad``
+            | 7: ``theta_pitch_rad``
+            | 8: ``telecentric_offset_mm``
+            | 9-13: ``distortion_left`` (k1, k2, p1, p2, k3)
+            | 14-18: ``distortion_right``
+
+        *Per-channel PP (21 params)*
+            | 0-5: as above
+            | 6: ``delta_cx_diff_px``
+            | 7: ``delta_cy_diff_px``
+            | 8: ``theta_axis_tilt_rad``
+            | 9: ``theta_pitch_rad``
+            | 10: ``telecentric_offset_mm``
+            | 11-15: ``distortion_left``
+            | 16-20: ``distortion_right``
+
+        Parameters
+        ----------
+        x : ndarray of float, shape (19,) or (21,)
+            Flattened parameter vector.
+        **kwargs
+            Must include ``pixel_pitch_mm`` (float, mm).  May include
+            ``image_size``, ``share_principal_point``.
+
+        Returns
+        -------
+        CMOPhysicalStereoModel
+        """
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if "pixel_pitch_mm" not in kwargs:
             raise ValueError(
@@ -181,6 +235,16 @@ class CMOPhysicalStereoModel:
         )
 
     def parameter_vector(self) -> Array:
+        """Serialize the model to a flat parameter vector.
+
+        Inverse of :meth:`from_parameter_vector`.  The order matches the
+        layout documented there: shared optical params, optional PP deltas,
+        tilt angles, then left and right distortion tuples.
+
+        Returns
+        -------
+        ndarray of float, shape (19,) or (21,)
+        """
         common = [
             self.f_obj_mm,
             self.working_distance_mm,
@@ -201,6 +265,19 @@ class CMOPhysicalStereoModel:
         ].astype(np.float64)
 
     def flat_parameter_dict(self) -> dict[str, float]:
+        """Return all free parameters as a flat dictionary keyed by name.
+
+        Distortion coefficients are named ``{channel}_{k}`` where *channel*
+        is ``left`` or ``right`` and *k* is one of ``k1, k2, p1, p2, k3``
+        (Brown-Conrady convention).  Principal-point deltas are included
+        only when ``share_principal_point=False``.
+
+        Returns
+        -------
+        dict
+            Mapping from parameter name (str) to value (float, in its native
+            unit: mm, px, or rad).
+        """
         keys = ("k1", "k2", "p1", "p2", "k3")
         params = {
             "f_obj_mm": float(self.f_obj_mm),
@@ -229,6 +306,20 @@ class CMOPhysicalStereoModel:
         return params
 
     def parameter_dict(self) -> dict[str, object]:
+        """Return the parameter set split into free and fixed groups.
+
+        Fixed parameters are quantities treated as known sensor constants:
+        ``pixel_pitch_mm``, ``image_width``, ``image_height``, and
+        ``share_principal_point``.  Free parameters are the optical,
+        geometric, and distortion coefficients (see
+        :meth:`flat_parameter_dict`).
+
+        Returns
+        -------
+        dict
+            ``{"free": {...}, "fixed": {...}}``.  All values carry their
+            native units (mm, px, or rad for free; mm or px for fixed).
+        """
         fixed = {
             "pixel_pitch_mm": float(self.pixel_pitch_mm),
             "image_width": float(self.image_size[0])
@@ -242,9 +333,43 @@ class CMOPhysicalStereoModel:
         return {"free": self.flat_parameter_dict(), "fixed": fixed}
 
     def channel(self, channel: Literal["left", "right"]) -> CMOPhysicalChannelModel:
+        """Return a single-channel facade for the given channel name.
+
+        The returned :class:`CMOPhysicalChannelModel` delegates all
+        ray-tracing and parameter queries to this shared rig, transparently
+        passing the channel identifier.  This lets downstream code treat
+        each channel as an independent ray model while the underlying
+        parameters remain coupled through the shared CMO geometry.
+
+        Parameters
+        ----------
+        channel : {"left", "right"}
+            Which stereo channel to wrap.
+
+        Returns
+        -------
+        CMOPhysicalChannelModel
+        """
         return CMOPhysicalChannelModel(rig=self, channel=channel)
 
     def principal_point_for_channel(self, channel: Literal["left", "right"]) -> tuple[float, float]:
+        """Compute the principal point in pixels for a given channel.
+
+        When ``share_principal_point=True``, both channels share the same
+        ``(cx_principal_px, cy_principal_px)``.  When ``False``, the left
+        channel shifts by ``-0.5 * delta`` and the right by ``+0.5 * delta``,
+        so that ``delta_cx_diff_px`` / ``delta_cy_diff_px`` encode the total
+        separation between the two principal points.
+
+        Parameters
+        ----------
+        channel : {"left", "right"}
+
+        Returns
+        -------
+        (float, float)
+            Principal-point coordinates ``(cx, cy)`` in px.
+        """
         if self.share_principal_point:
             return float(self.cx_principal_px), float(self.cy_principal_px)
         sign = -1.0 if channel == "left" else 1.0
@@ -254,6 +379,50 @@ class CMOPhysicalStereoModel:
         )
 
     def ray(self, u: Array, v: Array, channel: Literal["left", "right"]) -> tuple[Array, Array]:
+        """Compute 3-D rays for pixel coordinates through the CMO paraxial model.
+
+        This is the core optical forward model.  For each pixel ``(u, v)``
+        the pipeline is:
+
+        1. Convert pixel displacement from the principal point to angular
+           coordinates via the tube lens:
+           ``alpha = (pixel - principal) * pixel_pitch / f_tube``.
+        2. Undo Brown-Conrady distortion to obtain undistorted angular
+           coordinates ``(alpha_x, alpha_y)``.
+        3. Place the effective sub-pupil (ray origin) at
+           ``(±b/2, 0, z_pupil)`` where
+           ``z_pupil = working_distance - f_obj + telecentric_offset``.
+           The sign is negative for the left channel, positive for right.
+        4. Determine the object-plane intersection at
+           ``(WD * alpha_x, WD * alpha_y, WD)``.
+        5. The ray direction is the unit vector from pupil to object-plane
+           point.
+        6. If ``theta_axis_tilt_rad`` or ``theta_pitch_rad`` is non-zero,
+           rotate both origin and direction by the corresponding yaw and
+           pitch matrices.
+
+        .. warning::
+           ``f_obj_mm`` and ``telecentric_offset_mm`` are **exactly
+           degenerate** — only their difference enters ``z_pupil``.  Do not
+           assert either value independently; use
+           ``working_distance_mm``, ``b_mm``, ``f_tube_mm``, and
+           ``f_obj_mm - telecentric_offset_mm``.
+
+        Parameters
+        ----------
+        u : ndarray
+            Horizontal pixel coordinates (column index, 0-based).
+        v : ndarray
+            Vertical pixel coordinates (row index, 0-based).
+        channel : {"left", "right"}
+
+        Returns
+        -------
+        origin : ndarray, shape (..., 3)
+            Ray origin in mm (the effective sub-pupil position).
+        direction : ndarray, shape (..., 3)
+            Unit ray direction vector (dimensionless).
+        """
         uu, vv = np.broadcast_arrays(
             np.asarray(u, dtype=np.float64), np.asarray(v, dtype=np.float64)
         )
@@ -313,13 +482,41 @@ class CMOPhysicalChannelModel:
 
     @property
     def n_parameters(self) -> int:
+        """Number of free parameters, delegated to the shared rig.
+
+        See :attr:`CMOPhysicalStereoModel.n_parameters`.
+        """
         return self.rig.n_parameters
 
     def parameter_vector(self) -> Array:
+        """Serialize to a flat parameter vector, delegated to the shared rig.
+
+        See :meth:`CMOPhysicalStereoModel.parameter_vector`.
+        """
         return self.rig.parameter_vector()
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs) -> CMOPhysicalChannelModel:
+        """Reconstruct a channel model from a flat parameter vector.
+
+        Builds the shared :class:`CMOPhysicalStereoModel` from *x*, then
+        wraps it with the channel given by ``kwargs["channel"]`` (default
+        ``"left"``).
+
+        Parameters
+        ----------
+        x : ndarray of float, shape (19,) or (21,)
+            Flattened parameter vector (see
+            :meth:`CMOPhysicalStereoModel.from_parameter_vector`).
+        **kwargs
+            Must include ``pixel_pitch_mm``.  May include ``image_size``,
+            ``share_principal_point``, and ``channel`` (``"left"`` or
+            ``"right"``).
+
+        Returns
+        -------
+        CMOPhysicalChannelModel
+        """
         rig = CMOPhysicalStereoModel.from_parameter_vector(
             x,
             image_size=kwargs.get("image_size"),
@@ -332,9 +529,17 @@ class CMOPhysicalChannelModel:
         return cls(rig=rig, channel=channel)
 
     def parameter_dict(self) -> dict[str, object]:
+        """Return free/fixed parameter groups, delegated to the shared rig.
+
+        See :meth:`CMOPhysicalStereoModel.parameter_dict`.
+        """
         return self.rig.parameter_dict()
 
     def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
+        """Compute 3-D rays, delegating to the shared rig with this channel.
+
+        See :meth:`CMOPhysicalStereoModel.ray`.
+        """
         return self.rig.ray(u, v, self.channel)
 
     def project_point(self, X: Array, max_iter: int = 20) -> tuple[Array, bool]:
@@ -441,6 +646,12 @@ def fit_cmo_physical_stereo_model_to_rayfields(
     )
 
     def model_at(x: Array) -> CMOPhysicalStereoModel:
+        """Reconstruct a :class:`CMOPhysicalStereoModel` from parameter vector *x*.
+
+        Convenience closure that supplies the fixed arguments
+        (``image_size``, ``pixel_pitch_mm``, ``share_principal_point``)
+        captured from the enclosing fit context.
+        """
         return CMOPhysicalStereoModel.from_parameter_vector(
             x,
             image_size=image_size,
@@ -449,6 +660,14 @@ def fit_cmo_physical_stereo_model_to_rayfields(
         )
 
     def residuals(x: Array) -> Array:
+        """Evaluate the stacked ray-to-rayfield residual for parameter vector *x*.
+
+        For each channel, computes the two-plane rayfield residual
+        (:func:`rayfield_two_plane_residuals`) at the support pixel set and,
+        optionally, at the full grid pixels (weighted by
+        ``full_grid_weight``).  The left and right residual blocks are
+        concatenated into a single 1-D array for the least-squares solver.
+        """
         model = model_at(x)
         left = model.channel("left")
         right = model.channel("right")
@@ -614,6 +833,14 @@ class CMOTelecentricStereoModel:
 
     @property
     def n_parameters(self) -> int:
+        """Number of free parameters in the flattened vector.
+
+        Base: 10 shared optical + slope params.  Add 2 per-channel slopes
+        when ``shared_slopes=False`` (→ 12), then optionally 2 per-channel
+        shear (→ 14 or 16), and optionally 2 per-channel quadratic terms.
+
+        See :meth:`from_parameter_vector` for the exact layout.
+        """
         n = 12 if self.shared_slopes else 14
         if not self.shared_shear:
             n += 2  # per-channel rho
@@ -627,6 +854,37 @@ class CMOTelecentricStereoModel:
         x: Array,
         **kwargs: Any,
     ) -> CMOTelecentricStereoModel:
+        """Reconstruct the telecentric model from a flat parameter vector.
+
+        Layout (12 params, shared slopes + shared shear)::
+
+            0  f_obj_mm
+            1  working_distance_mm
+            2  b_mm
+            3  cx_principal_px
+            4  cy_principal_px
+            5  f_angular_mm
+            6  theta_convergence_half_rad
+            7  d_y_common
+            8  s_x_L         (also s_x_R when shared_slopes)
+            9  s_y_L         (also s_y_R when shared_slopes)
+            10 rho_x_L       (also rho_x_R when shared_shear)
+            11 rho_y_L       (also rho_y_R when shared_shear)
+
+        When ``shared_slopes=False`` (14 params), indices 10-11 are
+        ``s_x_R, s_y_R`` and shear starts at 12.
+
+        Parameters
+        ----------
+        x : ndarray of float, shape (12,), (14,), or (16,)
+        **kwargs
+            Must include ``pixel_pitch_mm`` (float, mm).  May include
+            ``image_size``.
+
+        Returns
+        -------
+        CMOTelecentricStereoModel
+        """
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size not in {12, 14, 16}:
             raise ValueError(
@@ -699,6 +957,16 @@ class CMOTelecentricStereoModel:
         )
 
     def parameter_vector(self) -> Array:
+        """Serialize the telecentric model to a flat parameter vector.
+
+        Inverse of :meth:`from_parameter_vector`.  The order is: base
+        optical params (10), optionally per-channel slopes (2), then shear
+        coefficients (2 shared or 4 per-channel).
+
+        Returns
+        -------
+        ndarray of float, shape (12,), (14,), or (16,)
+        """
         vec = [
             self.f_obj_mm,
             self.working_distance_mm,
@@ -720,6 +988,18 @@ class CMOTelecentricStereoModel:
         return np.array(vec, dtype=np.float64)
 
     def parameter_dict(self) -> dict[str, object]:
+        """Return free/fixed parameter groups.
+
+        Fixed keys: ``pixel_pitch_mm``, ``image_width``, ``image_height``
+        (sensor constants).  Free keys include all optical/geometric
+        parameters with ``rho`` consolidated when ``shared_shear=True`` and
+        ``s_x``/``s_y`` consolidated when ``shared_slopes=True``.
+
+        Returns
+        -------
+        dict
+            ``{"free": {...}, "fixed": {...}}``.
+        """
         free = {
             "f_obj_mm": float(self.f_obj_mm),
             "working_distance_mm": float(self.working_distance_mm),
@@ -758,9 +1038,61 @@ class CMOTelecentricStereoModel:
         }
 
     def channel(self, channel: Literal["left", "right"]) -> CMOTelecentricChannelModel:
+        """Return a single-channel facade for the given channel name.
+
+        See :meth:`CMOPhysicalStereoModel.channel` — the pattern is
+        identical: the returned :class:`CMOTelecentricChannelModel`
+        delegates to this shared rig.
+
+        Parameters
+        ----------
+        channel : {"left", "right"}
+
+        Returns
+        -------
+        CMOTelecentricChannelModel
+        """
         return CMOTelecentricChannelModel(rig=self, channel=channel)
 
     def ray(self, u: Array, v: Array, channel: Literal["left", "right"]) -> tuple[Array, Array]:
+        """Compute 3-D rays through the quasi-telecentric CMO model.
+
+        For each pixel ``(u, v)``:
+
+        1. Convert pixel displacement to normalised angular coordinates
+           :math:`\\tilde{u}, \\tilde{v}` using ``f_angular_mm`` (or
+           ``f_obj_mm`` as fallback).
+        2. Set the chief-ray direction :math:`d_0` from the convergence
+           half-angle ``theta_convergence_half_rad`` and common vertical
+           offset ``d_y_common``.  The left channel tilts rightward
+           (:math:`+\\sin\\theta`), the right channel leftward
+           (:math:`-\\sin\\theta`).
+        3. Apply an affine + cross-term + centered-quadratic correction to
+           the direction's *x* and *y* components, then re-normalize.
+        4. Place the ray origin at the rigid sub-pupil
+           :math:`(\\pm b/2, 0, z_{\\text{pupil}})` plus a small affine
+           pupil shear :math:`(\\rho_x \\tilde{u}, \\rho_y \\tilde{v}, 0)`.
+
+        This model captures the quasi-telecentric character of
+        infinity-corrected stereo microscopes: the direction field varies
+        only slowly across the field of view, and the origin is nearly
+        constant.
+
+        Parameters
+        ----------
+        u : ndarray
+            Horizontal pixel coordinates (0-based column index).
+        v : ndarray
+            Vertical pixel coordinates (0-based row index).
+        channel : {"left", "right"}
+
+        Returns
+        -------
+        origin : ndarray, shape (..., 3)
+            Ray origin in mm at the sub-pupil plane.
+        direction : ndarray, shape (..., 3)
+            Unit ray direction vector (dimensionless).
+        """
         uu, vv = np.broadcast_arrays(
             np.asarray(u, dtype=np.float64), np.asarray(v, dtype=np.float64)
         )
@@ -847,27 +1179,95 @@ class CMOTelecentricNModel:
 
     @classmethod
     def from_stereo(cls, stereo: CMOTelecentricStereoModel) -> CMOTelecentricNModel:
+        """Wrap a stereo telecentric model as a 2-channel N-camera container.
+
+        This is a convenience constructor for the N-camera migration: it
+        takes an existing :class:`CMOTelecentricStereoModel` and returns a
+        :class:`CMOTelecentricNModel` with channels ``("left", "right")``,
+        allowing stereo models to be used wherever an N-channel container
+        is expected.
+
+        Parameters
+        ----------
+        stereo : CMOTelecentricStereoModel
+
+        Returns
+        -------
+        CMOTelecentricNModel
+        """
         return cls((stereo.channel("left"), stereo.channel("right")))
 
     @property
     def channel_names(self) -> tuple[str, ...]:
+        """Names of all channels, in order.
+
+        Returns
+        -------
+        tuple of str
+        """
         return tuple(channel.channel for channel in self.channels)
 
     @property
     def n_channels(self) -> int:
+        """Number of channels in the collection.
+
+        Returns
+        -------
+        int
+        """
         return len(self.channels)
 
     @property
     def n_parameters(self) -> int:
+        """Total free parameters summed across all channels.
+
+        Returns
+        -------
+        int
+        """
         return sum(channel.n_parameters for channel in self.channels)
 
     def channel(self, name: str) -> CMOTelecentricChannelModel:
+        """Look up a channel by name.
+
+        Parameters
+        ----------
+        name : str
+            Channel name (e.g. ``"left"``).
+
+        Returns
+        -------
+        CMOTelecentricChannelModel
+
+        Raises
+        ------
+        KeyError
+            If no channel matches *name*.
+        """
         for channel in self.channels:
             if channel.channel == name:
                 return channel
         raise KeyError(name)
 
     def ray(self, u: Array, v: Array, channel: str) -> tuple[Array, Array]:
+        """Compute 3-D rays for the named channel.
+
+        Delegates to the appropriate :class:`CMOTelecentricChannelModel`.
+
+        Parameters
+        ----------
+        u : ndarray
+            Horizontal pixel coordinates.
+        v : ndarray
+            Vertical pixel coordinates.
+        channel : str
+            Channel name.
+
+        Returns
+        -------
+        origin : ndarray, shape (..., 3)
+        direction : ndarray, shape (..., 3)
+        """
         return self.channel(channel).ray(u, v)
 
 
@@ -882,13 +1282,40 @@ class CMOTelecentricChannelModel:
 
     @property
     def n_parameters(self) -> int:
+        """Number of free parameters, delegated to the shared rig.
+
+        See :attr:`CMOTelecentricStereoModel.n_parameters`.
+        """
         return self.rig.n_parameters
 
     def parameter_vector(self) -> Array:
+        """Serialize to a flat parameter vector, delegated to the shared rig.
+
+        See :meth:`CMOTelecentricStereoModel.parameter_vector`.
+        """
         return self.rig.parameter_vector()
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs: Any) -> CMOTelecentricChannelModel:
+        """Reconstruct a channel model from a flat parameter vector.
+
+        Builds the shared :class:`CMOTelecentricStereoModel` from *x*, then
+        wraps it with the channel given by ``kwargs["channel"]`` (default
+        ``"left"``).
+
+        Parameters
+        ----------
+        x : ndarray of float
+            Flattened parameter vector (see
+            :meth:`CMOTelecentricStereoModel.from_parameter_vector`).
+        **kwargs
+            Must include ``pixel_pitch_mm``.  May include ``image_size``
+            and ``channel``.
+
+        Returns
+        -------
+        CMOTelecentricChannelModel
+        """
         rig = CMOTelecentricStereoModel.from_parameter_vector(
             x,
             pixel_pitch_mm=kwargs["pixel_pitch_mm"],
@@ -900,9 +1327,17 @@ class CMOTelecentricChannelModel:
         return cls(rig=rig, channel=channel)
 
     def parameter_dict(self) -> dict[str, object]:
+        """Return free/fixed parameter groups, delegated to the shared rig.
+
+        See :meth:`CMOTelecentricStereoModel.parameter_dict`.
+        """
         return self.rig.parameter_dict()
 
     def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
+        """Compute 3-D rays, delegating to the shared rig with this channel.
+
+        See :meth:`CMOTelecentricStereoModel.ray`.
+        """
         return self.rig.ray(u, v, self.channel)
 
 
@@ -929,11 +1364,22 @@ def fit_cmo_telecentric_model_to_rayfields(
     include_full = full_grid_weight > 0
 
     def model_at(x: Array) -> CMOTelecentricStereoModel:
+        """Reconstruct a :class:`CMOTelecentricStereoModel` from parameter vector *x*.
+
+        Convenience closure supplying ``pixel_pitch_mm`` and
+        ``image_size`` captured from the enclosing fit context.
+        """
         return CMOTelecentricStereoModel.from_parameter_vector(
             x, pixel_pitch_mm=pixel_pitch_mm, image_size=image_size
         )
 
     def residuals(x: Array) -> Array:
+        """Evaluate stacked two-plane rayfield residuals for parameter vector *x*.
+
+        Computes left and right channel residuals via
+        :func:`rayfield_two_plane_residuals`, optionally adding a
+        full-grid block weighted by ``full_grid_weight``.
+        """
         model = model_at(x)
         left = model.channel("left")
         right = model.channel("right")
@@ -1140,6 +1586,13 @@ class CMOWarpedStereoModel:
 
     @property
     def n_parameters(self) -> int:
+        """Number of free parameters including warp coefficients.
+
+        The base count is the telecentric parameter count (12, 14, or 16
+        depending on shared flags).  Added to this is the total warp
+        coefficient count from :func:`_n_warp_coeff_total`, which depends
+        on ``warp_level`` and ``shared_warp``.
+        """
         n = 12 if self.shared_slopes else 14
         if not self.shared_shear:
             n += 2
@@ -1156,6 +1609,18 @@ class CMOWarpedStereoModel:
         return self.warp_xi_R, self.warp_eta_R
 
     def parameter_vector(self) -> Array:
+        """Serialize the warped model to a flat parameter vector.
+
+        The vector begins with the telecentric base parameters (see
+        :meth:`CMOTelecentricStereoModel.parameter_vector`), followed by
+        the warp polynomial coefficients: ``warp_xi_L``, ``warp_eta_L``,
+        and optionally ``warp_xi_R``, ``warp_eta_R`` when
+        ``shared_warp=False``.
+
+        Returns
+        -------
+        ndarray of float
+        """
         vec: list[float] = [
             float(self.f_obj_mm),
             float(self.working_distance_mm),
@@ -1186,6 +1651,29 @@ class CMOWarpedStereoModel:
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs: Any) -> CMOWarpedStereoModel:
+        """Reconstruct the warped model from a flat parameter vector.
+
+        The vector layout is: telecentric base (see
+        :meth:`CMOTelecentricStereoModel.from_parameter_vector`), then
+        warp polynomial coefficients in order ``warp_xi_L, warp_eta_L``
+        (and ``warp_xi_R, warp_eta_R`` if ``shared_warp=False``).
+
+        The number of coefficients per polynomial axis is determined by
+        ``warp_level`` (via :func:`_poly_terms_2d`).  At level 0 (identity
+        warp), no warp coefficients are present.
+
+        Parameters
+        ----------
+        x : ndarray of float
+        **kwargs
+            Must include ``pixel_pitch_mm`` (float, mm).  Must include
+            ``warp_level`` (int) and ``shared_warp`` (bool) for non-zero
+            warp levels.  May include ``image_size``.
+
+        Returns
+        -------
+        CMOWarpedStereoModel
+        """
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         pixel_pitch_mm = float(kwargs["pixel_pitch_mm"])
         image_size = kwargs.get("image_size")
@@ -1266,6 +1754,18 @@ class CMOWarpedStereoModel:
         )
 
     def parameter_dict(self) -> dict[str, object]:
+        """Return free/fixed parameter groups with warp coefficients.
+
+        Fixed keys are sensor constants.  Free keys include telecentric
+        base parameters plus per-channel, per-monomial warp coefficients
+        keyed as ``warp_xi_{L|R}_u{pu}v{pv}`` and
+        ``warp_eta_{L|R}_u{pu}v{pv}``.
+
+        Returns
+        -------
+        dict
+            ``{"free": {...}, "fixed": {...}}``.
+        """
         d: dict[str, object] = {
             "f_obj_mm": float(self.f_obj_mm),
             "working_distance_mm": float(self.working_distance_mm),
@@ -1307,9 +1807,53 @@ class CMOWarpedStereoModel:
         return d
 
     def channel(self, channel: Literal["left", "right"]) -> CMOWarpedChannelModel:
+        """Return a single-channel facade for the given channel name.
+
+        See :meth:`CMOPhysicalStereoModel.channel` — identical pattern.
+
+        Parameters
+        ----------
+        channel : {"left", "right"}
+
+        Returns
+        -------
+        CMOWarpedChannelModel
+        """
         return CMOWarpedChannelModel(rig=self, channel=channel)
 
     def ray(self, u: Array, v: Array, channel: Literal["left", "right"]) -> tuple[Array, Array]:
+        """Compute 3-D rays through the warped CMO model.
+
+        Extends :meth:`CMOTelecentricStereoModel.ray` with an initial
+        pixel-domain polynomial warp:
+
+        1. If ``warp_level > 0``, map pixel coordinates ``(u, v)`` through
+           the polynomial warp :math:`W_c`: ``(xi, eta) = W_c(u, v)``.
+           Otherwise ``(xi, eta) = (u, v)``.
+        2. Convert the warped coordinates to normalised angular
+           coordinates, then proceed with the telecentric direction model
+           (chief-ray direction + affine/cross/quadratic correction +
+           normalisation, sub-pupil origin + pupil shear).
+
+        The warp captures residual field-angle distortions that the affine
+        direction-field model alone cannot represent, while the telecentric
+        base handles the dominant quasi-telecentric behaviour.
+
+        Parameters
+        ----------
+        u : ndarray
+            Horizontal pixel coordinates.
+        v : ndarray
+            Vertical pixel coordinates.
+        channel : {"left", "right"}
+
+        Returns
+        -------
+        origin : ndarray, shape (..., 3)
+            Ray origin in mm.
+        direction : ndarray, shape (..., 3)
+            Unit ray direction vector.
+        """
         uu, vv = np.broadcast_arrays(
             np.asarray(u, dtype=np.float64), np.asarray(v, dtype=np.float64)
         )
@@ -1388,13 +1932,39 @@ class CMOWarpedChannelModel:
 
     @property
     def n_parameters(self) -> int:
+        """Number of free parameters, delegated to the shared rig.
+
+        See :attr:`CMOWarpedStereoModel.n_parameters`.
+        """
         return self.rig.n_parameters
 
     def parameter_vector(self) -> Array:
+        """Serialize to a flat parameter vector, delegated to the shared rig.
+
+        See :meth:`CMOWarpedStereoModel.parameter_vector`.
+        """
         return self.rig.parameter_vector()
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs: Any) -> CMOWarpedChannelModel:
+        """Reconstruct a channel model from a flat parameter vector.
+
+        Builds the shared :class:`CMOWarpedStereoModel` from *x*, then
+        wraps it with the channel given by ``kwargs["channel"]``.
+
+        Parameters
+        ----------
+        x : ndarray of float
+            Flattened parameter vector (see
+            :meth:`CMOWarpedStereoModel.from_parameter_vector`).
+        **kwargs
+            Must include ``pixel_pitch_mm``, ``warp_level``, and
+            ``shared_warp``.  May include ``image_size`` and ``channel``.
+
+        Returns
+        -------
+        CMOWarpedChannelModel
+        """
         rig = CMOWarpedStereoModel.from_parameter_vector(x, **kwargs)
         channel = kwargs.get("channel", "left")
         if channel not in {"left", "right"}:
@@ -1402,9 +1972,17 @@ class CMOWarpedChannelModel:
         return cls(rig=rig, channel=channel)
 
     def parameter_dict(self) -> dict[str, object]:
+        """Return free/fixed parameter groups, delegated to the shared rig.
+
+        See :meth:`CMOWarpedStereoModel.parameter_dict`.
+        """
         return self.rig.parameter_dict()
 
     def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
+        """Compute 3-D rays, delegating to the shared rig with this channel.
+
+        See :meth:`CMOWarpedStereoModel.ray`.
+        """
         return self.rig.ray(u, v, self.channel)
 
 
@@ -1431,6 +2009,12 @@ def fit_cmo_warped_model_to_rayfields(
     full = _grid_pixels(image_size, grid_shape)
 
     def model_at(x: Array) -> CMOWarpedStereoModel:
+        """Reconstruct a :class:`CMOWarpedStereoModel` from parameter vector *x*.
+
+        Convenience closure supplying ``pixel_pitch_mm``, ``image_size``,
+        ``warp_level``, and ``shared_warp`` captured from the enclosing fit
+        context.
+        """
         return CMOWarpedStereoModel.from_parameter_vector(
             x,
             pixel_pitch_mm=pixel_pitch_mm,
@@ -1440,6 +2024,11 @@ def fit_cmo_warped_model_to_rayfields(
         )
 
     def residuals(x: Array) -> Array:
+        """Evaluate stacked two-plane rayfield residuals for parameter vector *x*.
+
+        Computes left and right channel residuals via
+        :func:`rayfield_two_plane_residuals` at the full grid.
+        """
         model = model_at(x)
         left = model.channel("left")
         right = model.channel("right")

@@ -36,6 +36,7 @@ def normalize_vectors(v: Array, eps: float = 1e-15) -> Array:
 
 
 def rotx(a: float) -> Array:
+    """Active rotation matrix about the world X axis (right-hand rule)."""
     ca, sa = math.cos(float(a)), math.sin(float(a))
     return np.array(
         [[1.0, 0.0, 0.0], [0.0, ca, -sa], [0.0, sa, ca]],
@@ -44,6 +45,7 @@ def rotx(a: float) -> Array:
 
 
 def roty(a: float) -> Array:
+    """Active rotation matrix about the world Y axis (right-hand rule)."""
     ca, sa = math.cos(float(a)), math.sin(float(a))
     return np.array(
         [[ca, 0.0, sa], [0.0, 1.0, 0.0], [-sa, 0.0, ca]],
@@ -52,6 +54,7 @@ def roty(a: float) -> Array:
 
 
 def rotz(a: float) -> Array:
+    """Active rotation matrix about the world Z axis (right-hand rule)."""
     ca, sa = math.cos(float(a)), math.sin(float(a))
     return np.array(
         [[ca, -sa, 0.0], [sa, ca, 0.0], [0.0, 0.0, 1.0]],
@@ -80,6 +83,7 @@ class CMOPlanePose:
     t: Array
 
     def local_to_world(self, xy_plane_mm: Array) -> Array:
+        """Transform 2D board-plane coordinates (mm) to 3D world coordinates (mm)."""
         xy = np.asarray(xy_plane_mm, dtype=np.float64).reshape(-1, 2)
         xyz_local = np.column_stack(
             [xy[:, 0], xy[:, 1], np.zeros(xy.shape[0], dtype=np.float64)]
@@ -90,9 +94,11 @@ class CMOPlanePose:
 
     @property
     def normal_world(self) -> Array:
+        """World-frame normal (Z axis) of the calibration plane."""
         return np.asarray(self.R, dtype=np.float64) @ np.array([0.0, 0.0, 1.0])
 
     def world_to_local(self, xyz_world: Array) -> Array:
+        """Transform 3D world coordinates back to local board frame."""
         x = np.asarray(xyz_world, dtype=np.float64) - np.asarray(self.t, dtype=np.float64)
         shp = x.shape
         flat = x.reshape(-1, 3)
@@ -130,6 +136,7 @@ class CMOIntrinsics:
         focal_mm: float,
         pitch_um: float,
     ) -> CMOIntrinsics:
+        """Build intrinsics from focal length (mm) and pixel pitch (um)."""
         f_px = float(focal_mm) * 1000.0 / float(pitch_um)
         return cls(
             width=int(width),
@@ -141,12 +148,14 @@ class CMOIntrinsics:
         )
 
     def as_K(self) -> Array:
+        """Camera matrix K (3x3)."""
         return np.array(
             [[self.fx, 0.0, self.cx], [0.0, self.fy, self.cy], [0.0, 0.0, 1.0]],
             dtype=np.float64,
         )
 
     def pixel_grid(self) -> tuple[Array, Array]:
+        """Pixel-centre meshgrid (u,v) for the full image."""
         u, v = np.meshgrid(
             np.arange(int(self.width), dtype=np.float64),
             np.arange(int(self.height), dtype=np.float64),
@@ -155,11 +164,13 @@ class CMOIntrinsics:
         return u, v
 
     def pixel_to_norm(self, u: Array, v: Array) -> tuple[Array, Array]:
+        """Convert pixel coords to normalised image coords (unitless)."""
         return (np.asarray(u, dtype=np.float64) - self.cx) / self.fx, (
             np.asarray(v, dtype=np.float64) - self.cy
         ) / self.fy
 
     def norm_to_pixel(self, x: Array, y: Array) -> Array:
+        """Convert normalised coords to pixel coords, shape (N,2)."""
         u = self.fx * np.asarray(x, dtype=np.float64) + self.cx
         v = self.fy * np.asarray(y, dtype=np.float64) + self.cy
         return np.stack([u, v], axis=-1)
@@ -176,9 +187,11 @@ class BrownConrady:
     k3: float = 0.0
 
     def distort(self, x: Array, y: Array) -> tuple[Array, Array]:
+        """Apply Brown-Conrady distortion (k1-k3 radial, p1-p2 tangential)."""
         return brown_conrady_distort_normalized(x, y, self.k1, self.k2, self.p1, self.p2, self.k3)
 
     def undistort(self, xd: Array, yd: Array, iterations: int = 10) -> tuple[Array, Array]:
+        """Iteratively remove Brown-Conrady distortion."""
         return undistort_brown_normalized(
             xd,
             yd,
@@ -199,6 +212,7 @@ class PolynomialRayAberration:
     coeff_y: dict[str, float] = field(default_factory=dict)
 
     def delta(self, x: Array, y: Array) -> tuple[Array, Array]:
+        """Polynomial ray-direction perturbation (dx,dy) at (x,y)."""
         x_arr = np.asarray(x, dtype=np.float64)
         y_arr = np.asarray(y, dtype=np.float64)
         terms = {
@@ -226,6 +240,7 @@ class PolynomialRayAberration:
         return dx, dy
 
     def add(self, other: PolynomialRayAberration) -> PolynomialRayAberration:
+        """Add coefficients of another aberration (same level required)."""
         coeff_x = dict(self.coeff_x)
         coeff_y = dict(self.coeff_y)
         for key, value in other.coeff_x.items():
@@ -243,6 +258,7 @@ class SensorWarp:
     dv_coeff_px: dict[str, float] = field(default_factory=dict)
 
     def delta_px(self, uv: Array, intr: CMOIntrinsics) -> Array:
+        """Sensor-plane warp offset in pixels at given pixel coordinates."""
         arr = np.asarray(uv, dtype=np.float64)
         u = arr[..., 0]
         v = arr[..., 1]
@@ -283,6 +299,7 @@ class Vignetting:
     y_shift: float = 0.0
 
     def gain(self, intr: CMOIntrinsics) -> Array:
+        """Pixel-wise vignetting gain map (0-1) for the full image."""
         u, v = intr.pixel_grid()
         x = (u - intr.cx) / max(abs(intr.cx), 1.0) - self.x_shift
         y = (v - intr.cy) / max(abs(intr.cy), 1.0) - self.y_shift
@@ -307,6 +324,7 @@ class CMOChannelSpec:
 
     @property
     def origin(self) -> Array:
+        """Optical centre (sub-pupil) in world coordinates (mm)."""
         return np.asarray(self.origin_world_mm, dtype=np.float64)
 
 
@@ -330,6 +348,7 @@ class CMOStereoSpec:
         left_distortion: BrownConrady | None = None,
         right_distortion: BrownConrady | None = None,
     ) -> CMOStereoSpec:
+        """Default stereo spec: symmetric channels, centred on screen."""
         intr = CMOIntrinsics.from_focal_and_pitch(width, height, focal_mm, pitch_um)
         b2 = 0.5 * float(baseline_mm)
         return cls(
@@ -351,6 +370,7 @@ class CMOStereoSpec:
         )
 
     def channels(self) -> tuple[CMOChannelSpec, CMOChannelSpec]:
+        """All channels in this stereo spec (left then right)."""
         return self.left, self.right
 
 
@@ -364,13 +384,16 @@ class CMOChannelRayField:
 
     @property
     def n_parameters(self) -> int:
+        """Total number of free parameters (0 for this minimal channel spec)."""
         return 0
 
     def parameter_vector(self) -> Array:
+        """Empty parameter vector (this channel has no free params)."""
         return np.zeros(0, dtype=np.float64)
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs) -> CMOChannelRayField:
+        """Reconstruct from parameter vector (no-op, zero params)."""
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size:
             raise ValueError("CMOChannelRayField expects zero parameters")
@@ -380,9 +403,11 @@ class CMOChannelRayField:
         )
 
     def parameter_dict(self) -> dict[str, float]:
+        """Empty parameter dict (this channel has no free params)."""
         return {}
 
     def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
+        """Compute ray for a pixel in this channel."""
         uu, vv = np.broadcast_arrays(
             np.asarray(u, dtype=np.float64), np.asarray(v, dtype=np.float64)
         )
@@ -433,13 +458,16 @@ class NonCentralPolynomialChannelModel:
 
     @property
     def n_parameters(self) -> int:
+        """Total number of free parameters for model selection."""
         return 8 + 2 * len(self.aberration_terms)
 
     @classmethod
     def default_terms(cls) -> tuple[str, ...]:
+        """Parameter names in canonical order for packing/unpacking."""
         return ("x", "y", "x2", "xy", "y2")
 
     def parameter_vector(self) -> Array:
+        """All parameters packed into a flat vector for optimisation."""
         cx = self._coeff_array(self.aberration_coeff_x)
         cy = self._coeff_array(self.aberration_coeff_y)
         return np.concatenate(
@@ -464,6 +492,7 @@ class NonCentralPolynomialChannelModel:
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs) -> NonCentralPolynomialChannelModel:
+        """Reconstruct spec from a parameter vector."""
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         terms = tuple(kwargs.get("aberration_terms", cls.default_terms()))
         image_size = kwargs.get("cmo_image_size", kwargs.get("image_size"))
@@ -489,6 +518,7 @@ class NonCentralPolynomialChannelModel:
         )
 
     def parameter_dict(self) -> dict[str, float]:
+        """All parameters as a dict keyed by channel and name."""
         params = {
             "origin_x_mm": float(self.origin_x_mm),
             "origin_y_mm": float(self.origin_y_mm),
@@ -510,6 +540,7 @@ class NonCentralPolynomialChannelModel:
         return params
 
     def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
+        """Compute ray (origin, direction) for a channel and pixel."""
         intr = self._intrinsics()
         channel = CMOChannelSpec(
             name="left",
@@ -609,6 +640,7 @@ class CMORayfieldBundleAdjustmentResult:
     pose_vectors: Array
 
     def parameter_summary(self) -> dict[str, dict[str, float]]:
+        """Human-readable string listing all model parameters with units."""
         return {
             "left": self.left_model.parameter_dict(),
             "right": self.right_model.parameter_dict(),
@@ -700,6 +732,7 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
         NonCentralPolynomialChannelModel, NonCentralPolynomialChannelModel,
         list[CMOPlanePose], Array,
     ]:
+        """Unpack stereo spec into (origins, directions, poses, aux)."""
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         left_params = arr[:n_params]
         right_params = arr[n_params : 2 * n_params]
@@ -724,6 +757,7 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
     sqrt_pose_reg = math.sqrt(max(float(pose_regularization), 0.0))
 
     def residuals(x: Array) -> Array:
+        """Ray-space residuals (Plucker) for left and right pixel pairs."""
         left_model, right_model, poses, pose_params = unpack(x)
         blocks: list[Array] = []
         for pose, obj, uv_l, uv_r in zip(poses, object_per_frame, left_obs, right_obs, strict=True):
@@ -813,13 +847,16 @@ class CMOPlaneTargetSpec:
 
     @property
     def width_mm(self) -> float:
+        """Board width in mm."""
         return float(self.squares_x) * float(self.square_size_mm)
 
     @property
     def height_mm(self) -> float:
+        """Board height in mm."""
         return float(self.squares_y) * float(self.square_size_mm)
 
     def inner_corners_local_mm(self) -> tuple[Array, Array]:
+        """Inner ChArUco corner positions in board-local mm."""
         xs = -0.5 * self.width_mm + self.square_size_mm * np.arange(1, self.squares_x)
         ys = -0.5 * self.height_mm + self.square_size_mm * np.arange(1, self.squares_y)
         xx, yy = np.meshgrid(xs, ys, indexing="xy")
@@ -828,6 +865,7 @@ class CMOPlaneTargetSpec:
         return ids, xy
 
     def make_texture_u8(self) -> Array:
+        """Generate synthetic speckle texture for ChArUco board rendering."""
         if self.pattern == "charuco":
             if cv2 is None or not hasattr(cv2, "aruco"):
                 raise RuntimeError("CMO ChArUco texture generation requires OpenCV aruco support")
@@ -967,6 +1005,7 @@ def apply_blur_noise(
     noise_std_gray: float,
     rng: np.random.Generator,
 ) -> Array:
+    """Simulate acquisition defects: Gaussian blur + Gaussian noise."""
     out = img_u8
     if blur_sigma_px > 0.0 and cv2 is not None:
         sigma = float(blur_sigma_px)
@@ -1066,6 +1105,7 @@ def project_cmo_points(
         x0 = np.clip(x0, lower + 1e-6, upper - 1e-6)
 
         def residual(uv: Array, point: Array = point) -> Array:
+            """Plucker distance between a predicted ray and a 3D point (mm)."""
             origin, direction = rayfield.ray(np.array([uv[0]]), np.array([uv[1]]))
             return np.cross(point - origin.reshape(3), direction.reshape(3))
 
@@ -1095,6 +1135,7 @@ def project_cmo_target_corners(
     uv_right = project_cmo_points(cmo.right, cmo.common_aberration, xyz)
 
     def in_image(uv: Array, intr: CMOIntrinsics) -> Array:
+        """Boolean mask: which pixel coords lie inside the image bounds."""
         return (
             np.isfinite(uv[:, 0])
             & np.isfinite(uv[:, 1])
@@ -1126,6 +1167,7 @@ def _jsonable_dataclass(obj):
 
 
 def save_gray(path: Path, img_u8: Array) -> None:
+    """Save a float64 array as 8-bit grayscale PNG."""
     path.parent.mkdir(parents=True, exist_ok=True)
     if Image is not None:
         Image.fromarray(img_u8).save(path)
