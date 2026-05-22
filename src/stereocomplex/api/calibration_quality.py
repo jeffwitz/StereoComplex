@@ -69,7 +69,11 @@ def assess_calibration(result: Any) -> CalibrationAssessment:
                 msgs.append(f"Zernike residual RMS is moderate ({rms:.2f} mm).")
     else:
         # --- OpenCV or central rayfield result ---
-        n_frames = getattr(report, "n_stereo_frames", None) or getattr(report, "n_initialized_frames", None) or 0
+        n_frames = (
+    getattr(report, "n_stereo_frames", None)
+    or getattr(report, "n_initialized_frames", None)
+    or 0
+)
         if n_frames < 4:
             msgs.append(f"Only {n_frames} stereo frames used (minimum 4 recommended).")
             recs.append("Capture more calibration images with the board in different poses.")

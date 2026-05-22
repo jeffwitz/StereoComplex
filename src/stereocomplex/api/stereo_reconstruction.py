@@ -88,7 +88,9 @@ class StereoCentralRayFieldModel:
             t_RL=t_RL,
         )
 
-    def triangulate(self, uv_left_px: np.ndarray, uv_right_px: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def triangulate(
+    self, uv_left_px: np.ndarray, uv_right_px: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
         """
         Triangulate corresponding pixels into 3D points in the left camera frame.
 
@@ -113,7 +115,11 @@ class StereoCentralRayFieldModel:
         """
         h = int(self.image_height_px)
         w = int(self.image_width_px)
-        yy, xx = np.meshgrid(np.arange(h, dtype=np.float64), np.arange(w, dtype=np.float64), indexing="ij")
+        yy, xx = np.meshgrid(
+    np.arange(h, dtype=np.float64),
+    np.arange(w, dtype=np.float64),
+    indexing="ij",
+)
         u = xx.reshape(-1)
         v = yy.reshape(-1)
         dL = self.left.ray_directions_cam(u, v).reshape(h, w, 3)

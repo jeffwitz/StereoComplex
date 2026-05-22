@@ -42,7 +42,11 @@ def save_stereo_central_rayfield(model_dir: Path, model: StereoCentralRayFieldMo
     meta: dict[str, Any] = {
         "schema_version": "stereocomplex.model.stereo_central_rayfield.v0",
         "image": {"width_px": int(model.image_width_px), "height_px": int(model.image_height_px)},
-        "disk": {"u0_px": float(model.left.u0_px), "v0_px": float(model.left.v0_px), "radius_px": float(model.left.radius_px)},
+        "disk": {
+    "u0_px": float(model.left.u0_px),
+    "v0_px": float(model.left.v0_px),
+    "radius_px": float(model.left.radius_px)
+},
         "zernike": {"nmax": int(model.left.nmax)},
         "rig": {
             "R_RL": np.asarray(model.R_RL, dtype=np.float64).tolist(),

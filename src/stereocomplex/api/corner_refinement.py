@@ -53,7 +53,10 @@ def refine_charuco_corners(
         charuco_ids = detections.charuco_ids
         charuco_xy = detections.charuco_xy
     if marker_ids is None or marker_corners is None or charuco_ids is None or charuco_xy is None:
-        raise TypeError("provide either detections=... or marker_ids/marker_corners/charuco_ids/charuco_xy")
+        raise TypeError(
+    "provide either detections=... or "
+    "marker_ids/marker_corners/charuco_ids/charuco_xy"
+)
 
     if not (
         hasattr(board, "getIds")
@@ -84,7 +87,10 @@ def refine_charuco_corners(
     marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
     board_ids = np.asarray(board.getIds(), dtype=np.int32).reshape(-1)
     board_obj = board.getObjPoints()
-    id_to_obj2 = {int(i): np.asarray(p, dtype=np.float64)[:, :2] for i, p in zip(board_ids.tolist(), board_obj, strict=True)}
+    id_to_obj2 = {
+    int(i): np.asarray(p, dtype=np.float64)[:, :2]
+    for i, p in zip(board_ids.tolist(), board_obj, strict=True)
+}
 
     obj_pts: list[np.ndarray] = []
     img_pts: list[np.ndarray] = []
