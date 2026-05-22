@@ -70,31 +70,19 @@ Authoritative quality snapshot. Update this block whenever a gate moves.
 ### Tests
 
 - Fast: `rtk .venv/bin/python -m pytest` → **120 passed, 39 deselected**.
-- Slow: `rtk .venv/bin/python -m pytest -m slow` → **35 passed, 4 FAILED**.
+- Slow: `rtk .venv/bin/python -m pytest -m slow` → **39 passed** (0 failures).
 
-The 4 slow failures are all in `tests/test_cmo_physical_model.py`:
+`CMOPhysicalStereoModel` carries a **per-axis SE(3)** (one SE(3) per axis, not a
+mutualised transform) — `n_parameters` is **19** with a shared principal point,
+**21** with `share_principal_point=False`. This is intentional and validated: a
+shared SE(3) fits the rayfields measurably worse.
 
-| Test | Failing assertion |
-|---|---|
-| `test_cmo_physical_oracle_recovery_no_distortion` | `n_parameters == 17` (model gives 19) |
-| `test_cmo_physical_oracle_recovery_with_distortion` | parameter-vector slices assume the old 17-param layout |
-| `test_cmo_aligned_mode_represents_offset_oracle` | `n_parameters == 19` (model gives 21) |
-| `test_select_with_mixed_per_channel_and_stereo_shared_candidates` | `n_parameters == 17` (model gives 19) |
-
-**These are stale test assertions, not a code regression** — they fail identically
-on `main`, so they predate the N-camera work:
-
-- `CMOPhysicalStereoModel` now carries a **per-axis SE(3)** (one SE(3) per axis)
-  instead of a mutualised transform. This is intentional and validated: a shared
-  SE(3) fits the rayfields measurably worse.
-- The per-axis SE(3) adds 2 parameters: shared-principal-point case `17 → 19`;
-  `share_principal_point=False` case `19 → 21`.
-- The 4 tests still encode the old counts and the old parameter-vector slice
-  layout (`[4:6]`, `[7:17]`, `[7]`).
-
-Fix: **update the 4 tests** to the new counts and slice indices.
-**Do not revert the model** — per-axis SE(3) (19 / 21 parameters) is the chosen,
-validated design.
+Gotcha for any recovery test or diagnostic on this model: `f_obj_mm` and
+`telecentric_offset_mm` are exactly degenerate — both enter `ray()` only via
+`z_pupil = working_distance - f_obj + telecentric_offset`. Only their difference
+is identifiable; assert `working_distance` / `b` / `f_tube` and
+`f_obj - telecentric_offset`, never `f_obj` alone. The four
+`test_cmo_physical_model.py` slow tests were aligned to this in commit `b13d71e`.
 
 ## Active task: N-camera calibration
 
