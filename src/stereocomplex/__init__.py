@@ -33,27 +33,27 @@ from stereocomplex.api import (
     StereoZernikeOriginFieldFitResult,
 )
 
-__all__ = [
+__all__ = [  # noqa: RUF022 — grouped by tier
     # Tier 1
-    "assess_calibration",
     "CalibrationAssessment",
     "CameraSetup",
     "CharucoBoardSpec",
     "NCameraCalibrationResult",
     "PhysicalModelSpec",
     "StereoCentralRayFieldModel",
+    "StereoImagePair",
+    "assess_calibration",
+    "build_charuco_board",
+    "calibrate",
     "calibrate_central",
     "calibrate_noncentral",
     "calibrate_opencv",
     "compare_opencv_stereo_calibration",
-    "StereoImagePair",
-    "build_charuco_board",
-    "calibrate",
     "detect_charuco_corners",
     "fit_opencv_stereo_from_image_dirs",
-    "identify_optics",
     "fit_stereo_central_rayfield_from_image_dirs",
     "fit_stereo_zernike_origin_field_from_image_dirs",
+    "identify_optics",
     "load_stereo_central_rayfield",
     "refine_charuco_corners",
     "save_stereo_central_rayfield",

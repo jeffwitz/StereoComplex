@@ -270,7 +270,7 @@ class PycasoSoloffStereoModel:
 
             x0 = self.initial_guess(uv_left_px[i], uv_right_px[i])
 
-            def fun(x):
+            def fun(x, obs=obs):
                 return self._predict_all(x) - obs
 
             def jac(x):

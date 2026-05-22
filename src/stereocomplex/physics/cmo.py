@@ -1017,7 +1017,7 @@ def project_cmo_points(
             x0 = center
         x0 = np.clip(x0, lower + 1e-6, upper - 1e-6)
 
-        def residual(uv: Array) -> Array:
+        def residual(uv: Array, point: Array = point) -> Array:
             origin, direction = rayfield.ray(np.array([uv[0]]), np.array([uv[1]]))
             return np.cross(point - origin.reshape(3), direction.reshape(3))
 
