@@ -138,6 +138,12 @@ class _OriginFieldPinholeSeed:
 
 
 @dataclass(frozen=True)
+class _OriginFieldDatasetSeed:
+    dataset: Any
+    board_poses: list[np.ndarray]
+
+
+@dataclass(frozen=True)
 class StereoCentralRayFieldFitReport:
     image_width_px: int
     image_height_px: int
@@ -1023,6 +1029,71 @@ def _calibrate_origin_field_pinhole_seed(
     )
 
 
+def _build_origin_field_dataset_seed(
+    *,
+    cv2_module: Any,
+    dataset_cls: Any,
+    observations: _OriginFieldImageObservations,
+    pinhole_seed: _OriginFieldPinholeSeed,
+    chess3: np.ndarray,
+    min_common_corners: int,
+) -> _OriginFieldDatasetSeed:
+    # SyntheticStereoDataset requires a single shared object_points array, so we
+    # restrict to corners visible in EVERY frame. Frames with partial board
+    # coverage are restricted to this global intersection.
+    global_common: set[int] = set(observations.frame_common_ids[0])
+    for cids in observations.frame_common_ids[1:]:
+        global_common = global_common.intersection(cids)
+    global_ids = sorted(global_common)
+    if len(global_ids) < int(min_common_corners):
+        raise RuntimeError(
+            f"only {len(global_ids)} corners visible in every frame; need {min_common_corners}. "
+            "Try reducing min_common_corners or adding more frames with full board coverage."
+        )
+
+    object_points_3d = chess3[np.asarray(global_ids, dtype=np.int32)].astype(np.float64)
+    board_poses: list[np.ndarray] = []
+    left_pixels: list[np.ndarray] = []
+    right_pixels: list[np.ndarray] = []
+
+    for i in range(len(observations.frame_common_ids)):
+        uv_l = np.stack([observations.frame_maps_left[i][c] for c in global_ids], axis=0).astype(np.float64)
+        uv_r = np.stack([observations.frame_maps_right[i][c] for c in global_ids], axis=0).astype(np.float64)
+        success, rvec, tvec = cv2_module.solvePnP(
+            object_points_3d.astype(np.float32).reshape(-1, 3),
+            uv_l.astype(np.float32).reshape(-1, 2),
+            pinhole_seed.K_left.astype(np.float32),
+            pinhole_seed.dist_left.astype(np.float32),
+        )
+        if not success:
+            continue
+        R_board, _ = cv2_module.Rodrigues(rvec)
+        T_board = np.eye(4, dtype=np.float64)
+        T_board[:3, :3] = np.asarray(R_board, dtype=np.float64)
+        T_board[:3, 3] = np.asarray(tvec, dtype=np.float64).reshape(3)
+        board_poses.append(T_board)
+        left_pixels.append(uv_l)
+        right_pixels.append(uv_r)
+
+    if not board_poses:
+        raise RuntimeError("solvePnP failed for all frames")
+
+    dataset = dataset_cls(
+        object_points=object_points_3d,
+        board_poses=board_poses,
+        left_pixels=left_pixels,
+        right_pixels=right_pixels,
+        K_left=pinhole_seed.K_left,
+        K_right=pinhole_seed.K_right,
+        T_left_world=np.eye(4, dtype=np.float64),
+        T_right_world=pinhole_seed.T_right_left.copy(),
+        image_size=observations.image_size,
+        oracle_left_params=None,
+        oracle_right_params=None,
+    )
+    return _OriginFieldDatasetSeed(dataset=dataset, board_poses=board_poses)
+
+
 def fit_opencv_stereo_from_image_pairs(
     *,
     image_pairs: Sequence[StereoImagePair | tuple[str | Path, str | Path]],
@@ -1546,70 +1617,22 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
         observations=observations,
         chess3=chess3,
     )
-
-    # SyntheticStereoDataset requires a single shared object_points array, so we
-    # restrict to corners visible in EVERY frame.  Frames with partial board
-    # coverage are restricted to this global intersection; corners unique to a
-    # subset of frames are dropped.
-    global_common: set[int] = set(observations.frame_common_ids[0])
-    for cids in observations.frame_common_ids[1:]:
-        global_common = global_common.intersection(cids)
-    global_ids = sorted(global_common)
-    if len(global_ids) < int(min_common_corners):
-        raise RuntimeError(
-            f"only {len(global_ids)} corners visible in every frame; need {min_common_corners}. "
-            "Try reducing min_common_corners or adding more frames with full board coverage."
-        )
-
-    object_points_3d = chess3[np.asarray(global_ids, dtype=np.int32)].astype(np.float64)
-    board_poses: list[np.ndarray] = []
-    left_pixels: list[np.ndarray] = []
-    right_pixels: list[np.ndarray] = []
-
-    for i in range(len(observations.frame_common_ids)):
-        uv_l = np.stack([observations.frame_maps_left[i][c] for c in global_ids], axis=0).astype(np.float64)
-        uv_r = np.stack([observations.frame_maps_right[i][c] for c in global_ids], axis=0).astype(np.float64)
-        obj_pts_f = object_points_3d.astype(np.float32).reshape(-1, 3)
-        success, rvec, tvec = cv2.solvePnP(
-            obj_pts_f,
-            uv_l.astype(np.float32).reshape(-1, 2),
-            pinhole_seed.K_left.astype(np.float32),
-            pinhole_seed.dist_left.astype(np.float32),
-        )
-        if not success:
-            continue
-        R_board, _ = cv2.Rodrigues(rvec)
-        T_board = np.eye(4, dtype=np.float64)
-        T_board[:3, :3] = np.asarray(R_board, dtype=np.float64)
-        T_board[:3, 3] = np.asarray(tvec, dtype=np.float64).reshape(3)
-        board_poses.append(T_board)
-        left_pixels.append(uv_l)
-        right_pixels.append(uv_r)
-
-    if not board_poses:
-        raise RuntimeError("solvePnP failed for all frames")
-
-    dataset = SyntheticStereoDataset(
-        object_points=object_points_3d,
-        board_poses=board_poses,
-        left_pixels=left_pixels,
-        right_pixels=right_pixels,
-        K_left=pinhole_seed.K_left,
-        K_right=pinhole_seed.K_right,
-        T_left_world=np.eye(4, dtype=np.float64),
-        T_right_world=pinhole_seed.T_right_left.copy(),
-        image_size=observations.image_size,
-        oracle_left_params=None,
-        oracle_right_params=None,
+    dataset_seed = _build_origin_field_dataset_seed(
+        cv2_module=cv2,
+        dataset_cls=SyntheticStereoDataset,
+        observations=observations,
+        pinhole_seed=pinhole_seed,
+        chess3=chess3,
+        min_common_corners=min_common_corners,
     )
 
     config = ZernikeOriginFieldConfig(image_size=observations.image_size, max_order=int(max_order))
     return fit_stereo_zernike_origin_field(
-        observations=dataset,
+        observations=dataset_seed.dataset,
         K_left=pinhole_seed.K_left,
         K_right=pinhole_seed.K_right,
         T_right_left_initial=pinhole_seed.T_right_left,
-        board_poses_initial=board_poses,
+        board_poses_initial=dataset_seed.board_poses,
         config_left=config,
         config_right=config,
         regularization=float(regularization),
