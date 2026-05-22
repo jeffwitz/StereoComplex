@@ -130,6 +130,14 @@ class _OriginFieldImageObservations:
 
 
 @dataclass(frozen=True)
+class _OriginFieldPinholeSeed:
+    K_left: np.ndarray
+    K_right: np.ndarray
+    dist_left: np.ndarray
+    T_right_left: np.ndarray
+
+
+@dataclass(frozen=True)
 class StereoCentralRayFieldFitReport:
     image_width_px: int
     image_height_px: int
@@ -937,6 +945,84 @@ def _collect_origin_field_image_observations(
     )
 
 
+def _calibrate_origin_field_pinhole_seed(
+    *,
+    cv2_module: Any,
+    observations: _OriginFieldImageObservations,
+    chess3: np.ndarray,
+) -> _OriginFieldPinholeSeed:
+    if len(observations.obj_left) < 2 or len(observations.obj_right) < 2:
+        raise RuntimeError("not enough frames for mono calibration (need ≥ 2 per side)")
+
+    criteria = (
+        cv2_module.TERM_CRITERIA_EPS + cv2_module.TERM_CRITERIA_MAX_ITER,
+        200,
+        1e-9,
+    )
+    _, K_left_cv, dist_left_cv, _, _ = cv2_module.calibrateCamera(
+        observations.obj_left,
+        observations.img_left_cv,
+        observations.image_size,
+        None,
+        None,
+        flags=0,
+        criteria=criteria,
+    )
+    _, K_right_cv, dist_right_cv, _, _ = cv2_module.calibrateCamera(
+        observations.obj_right,
+        observations.img_right_cv,
+        observations.image_size,
+        None,
+        None,
+        flags=0,
+        criteria=criteria,
+    )
+
+    obj_stereo = [
+        chess3[np.asarray(cids, dtype=np.int32)].astype(np.float32).reshape(-1, 3)
+        for cids in observations.frame_common_ids
+    ]
+    img_stereo_l = [
+        np.stack([observations.frame_maps_left[i][c] for c in observations.frame_common_ids[i]], axis=0).astype(
+            np.float32
+        )
+        for i in range(len(observations.frame_common_ids))
+    ]
+    img_stereo_r = [
+        np.stack([observations.frame_maps_right[i][c] for c in observations.frame_common_ids[i]], axis=0).astype(
+            np.float32
+        )
+        for i in range(len(observations.frame_common_ids))
+    ]
+
+    _, K_left_cv, dist_left_cv, K_right_cv, _dist_right_cv, R_rl, t_rl, _, _ = cv2_module.stereoCalibrate(
+        obj_stereo,
+        img_stereo_l,
+        img_stereo_r,
+        K_left_cv,
+        dist_left_cv,
+        K_right_cv,
+        dist_right_cv,
+        observations.image_size,
+        criteria=criteria,
+        flags=cv2_module.CALIB_FIX_INTRINSIC,
+    )
+
+    R_rl_arr = np.asarray(R_rl, dtype=np.float64)
+    t_rl_arr = np.asarray(t_rl, dtype=np.float64).reshape(3)
+    T_right_left = np.eye(4, dtype=np.float64)
+    T_right_left[:3, :3] = R_rl_arr
+    T_right_left[:3, 3] = t_rl_arr
+    return _OriginFieldPinholeSeed(
+        K_left=np.asarray(K_left_cv, dtype=np.float64),
+        K_right=np.asarray(K_right_cv, dtype=np.float64),
+        # Distortion coefficients seed solvePnP but are intentionally not forwarded to
+        # the Zernike BA: the origin field O(u,v) absorbs non-pinhole behaviour directly.
+        dist_left=np.asarray(dist_left_cv, dtype=np.float64).reshape(-1),
+        T_right_left=T_right_left,
+    )
+
+
 def fit_opencv_stereo_from_image_pairs(
     *,
     image_pairs: Sequence[StereoImagePair | tuple[str | Path, str | Path]],
@@ -1455,53 +1541,11 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
         huber_c=huber_c,
         iters=iters,
     )
-    if len(observations.obj_left) < 2 or len(observations.obj_right) < 2:
-        raise RuntimeError("not enough frames for mono calibration (need ≥ 2 per side)")
-
-    _, K_left_cv, dist_left_cv, _, _ = cv2.calibrateCamera(
-        observations.obj_left, observations.img_left_cv, observations.image_size, None, None, flags=0,
-        criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 1e-9),
+    pinhole_seed = _calibrate_origin_field_pinhole_seed(
+        cv2_module=cv2,
+        observations=observations,
+        chess3=chess3,
     )
-    _, K_right_cv, dist_right_cv, _, _ = cv2.calibrateCamera(
-        observations.obj_right, observations.img_right_cv, observations.image_size, None, None, flags=0,
-        criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 1e-9),
-    )
-
-    obj_stereo = [
-        chess3[np.asarray(cids, dtype=np.int32)].astype(np.float32).reshape(-1, 3)
-        for cids in observations.frame_common_ids
-    ]
-    img_stereo_l = [
-        np.stack([observations.frame_maps_left[i][c] for c in observations.frame_common_ids[i]], axis=0).astype(
-            np.float32
-        )
-        for i in range(len(observations.frame_common_ids))
-    ]
-    img_stereo_r = [
-        np.stack([observations.frame_maps_right[i][c] for c in observations.frame_common_ids[i]], axis=0).astype(
-            np.float32
-        )
-        for i in range(len(observations.frame_common_ids))
-    ]
-
-    _, K_left_cv, dist_left_cv, K_right_cv, dist_right_cv, R_rl, t_rl, _, _ = cv2.stereoCalibrate(
-        obj_stereo, img_stereo_l, img_stereo_r,
-        K_left_cv, dist_left_cv, K_right_cv, dist_right_cv,
-        observations.image_size,
-        criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, 1e-9),
-        flags=cv2.CALIB_FIX_INTRINSIC,
-    )
-    K_left = np.asarray(K_left_cv, dtype=np.float64)
-    K_right = np.asarray(K_right_cv, dtype=np.float64)
-    # Distortion coefficients seed solvePnP but are intentionally not forwarded to
-    # the Zernike BA: the origin field O(u,v) absorbs non-pinhole behaviour directly.
-    dist_left = np.asarray(dist_left_cv, dtype=np.float64).reshape(-1)
-    R_rl_arr = np.asarray(R_rl, dtype=np.float64)
-    t_rl_arr = np.asarray(t_rl, dtype=np.float64).reshape(3)
-
-    T_right_left = np.eye(4, dtype=np.float64)
-    T_right_left[:3, :3] = R_rl_arr
-    T_right_left[:3, 3] = t_rl_arr
 
     # SyntheticStereoDataset requires a single shared object_points array, so we
     # restrict to corners visible in EVERY frame.  Frames with partial board
@@ -1529,8 +1573,8 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
         success, rvec, tvec = cv2.solvePnP(
             obj_pts_f,
             uv_l.astype(np.float32).reshape(-1, 2),
-            K_left.astype(np.float32),
-            dist_left.astype(np.float32),
+            pinhole_seed.K_left.astype(np.float32),
+            pinhole_seed.dist_left.astype(np.float32),
         )
         if not success:
             continue
@@ -1550,10 +1594,10 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
         board_poses=board_poses,
         left_pixels=left_pixels,
         right_pixels=right_pixels,
-        K_left=K_left,
-        K_right=K_right,
+        K_left=pinhole_seed.K_left,
+        K_right=pinhole_seed.K_right,
         T_left_world=np.eye(4, dtype=np.float64),
-        T_right_world=T_right_left.copy(),
+        T_right_world=pinhole_seed.T_right_left.copy(),
         image_size=observations.image_size,
         oracle_left_params=None,
         oracle_right_params=None,
@@ -1562,9 +1606,9 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
     config = ZernikeOriginFieldConfig(image_size=observations.image_size, max_order=int(max_order))
     return fit_stereo_zernike_origin_field(
         observations=dataset,
-        K_left=K_left,
-        K_right=K_right,
-        T_right_left_initial=T_right_left,
+        K_left=pinhole_seed.K_left,
+        K_right=pinhole_seed.K_right,
+        T_right_left_initial=pinhole_seed.T_right_left,
         board_poses_initial=board_poses,
         config_left=config,
         config_right=config,
