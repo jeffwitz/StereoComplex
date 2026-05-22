@@ -50,6 +50,16 @@ def test_n_camera_calibration_result_reports_channel_count() -> None:
     assert result.stereo_result is None
 
 
+def test_advanced_api_exports_n_camera_building_blocks() -> None:
+    import stereocomplex.advanced as adv
+
+    assert hasattr(adv, "MultiCameraCharucoObservationSet")
+    assert hasattr(adv, "MultiCameraOracle")
+    assert hasattr(adv, "build_pinhole_n_camera_oracle")
+    assert hasattr(adv, "simulate_charuco_observations_from_camera_fields")
+    assert hasattr(adv, "fit_zernike_rayfields_from_multi_camera_observations")
+
+
 @pytest.mark.slow
 def test_refine_charuco_corners_accepts_detection_dataclass() -> None:
     import stereocomplex as sc
