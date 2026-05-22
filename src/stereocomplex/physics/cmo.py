@@ -29,14 +29,29 @@ Array = np.ndarray
 
 
 def normalize_vectors(v: Array, eps: float = 1e-15) -> Array:
-    """Normalize vectors along the last axis."""
+    """Normalize an array of vectors to unit length along the last axis.
+
+    Parameters
+    ----------
+    v : ndarray, shape (..., D)
+        Stack of vectors; the last axis holds the vector components.
+    eps : float
+        Lower bound on the divisor norm, so a (near-)zero vector stays finite
+        instead of producing a division by zero.
+
+    Returns
+    -------
+    ndarray, shape (..., D)
+        Each vector divided by its Euclidean norm (or by ``eps`` when that
+        norm is smaller than ``eps``).
+    """
     arr = np.asarray(v, dtype=np.float64)
     n = np.linalg.norm(arr, axis=-1, keepdims=True)
     return arr / np.maximum(n, float(eps))
 
 
 def rotx(a: float) -> Array:
-    """Active rotation matrix about the world X axis (right-hand rule)."""
+    """Active 3x3 rotation matrix about the world X axis (right-hand rule); ``a`` in radians."""
     ca, sa = math.cos(float(a)), math.sin(float(a))
     return np.array(
         [[1.0, 0.0, 0.0], [0.0, ca, -sa], [0.0, sa, ca]],
@@ -45,7 +60,7 @@ def rotx(a: float) -> Array:
 
 
 def roty(a: float) -> Array:
-    """Active rotation matrix about the world Y axis (right-hand rule)."""
+    """Active 3x3 rotation matrix about the world Y axis (right-hand rule); ``a`` in radians."""
     ca, sa = math.cos(float(a)), math.sin(float(a))
     return np.array(
         [[ca, 0.0, sa], [0.0, 1.0, 0.0], [-sa, 0.0, ca]],
@@ -54,7 +69,7 @@ def roty(a: float) -> Array:
 
 
 def rotz(a: float) -> Array:
-    """Active rotation matrix about the world Z axis (right-hand rule)."""
+    """Active 3x3 rotation matrix about the world Z axis (right-hand rule); ``a`` in radians."""
     ca, sa = math.cos(float(a)), math.sin(float(a))
     return np.array(
         [[ca, -sa, 0.0], [sa, ca, 0.0], [0.0, 0.0, 1.0]],
@@ -68,7 +83,23 @@ def pose_from_euler_xyz(
     rz: float,
     t_xyz: tuple[float, float, float],
 ) -> CMOPlanePose:
-    """Create a calibration-plane pose in the CMO/world frame."""
+    """Build a planar-target pose from intrinsic XYZ Euler angles and a translation.
+
+    The rotation is composed as ``R = Rz(rz) @ Ry(ry) @ Rx(rx)``: the board is
+    rotated first about X, then Y, then Z, all in the CMO/world frame.
+
+    Parameters
+    ----------
+    rx, ry, rz : float
+        Euler angles in radians about the world X, Y and Z axes.
+    t_xyz : tuple of 3 float
+        Target-origin position in the world frame, in millimetres.
+
+    Returns
+    -------
+    CMOPlanePose
+        Rigid pose mapping board-plane coordinates to the world frame.
+    """
     return CMOPlanePose(
         R=rotz(rz) @ roty(ry) @ rotx(rx),
         t=np.asarray(t_xyz, dtype=np.float64),
@@ -77,13 +108,38 @@ def pose_from_euler_xyz(
 
 @dataclass(frozen=True)
 class CMOPlanePose:
-    """Rigid pose of a planar target in the CMO/world frame."""
+    """Rigid pose (rotation + translation) of a planar calibration target.
+
+    The target is a plane: its points live at ``z = 0`` in the board-local
+    frame and are mapped to the CMO/world frame by ``x_world = R @ x_local + t``.
+
+    Attributes
+    ----------
+    R : ndarray, shape (3, 3)
+        Rotation from the board-local frame to the world frame.
+    t : ndarray, shape (3,)
+        Board-origin position in the world frame, in millimetres.
+    """
 
     R: Array
     t: Array
 
     def local_to_world(self, xy_plane_mm: Array) -> Array:
-        """Transform 2D board-plane coordinates (mm) to 3D world coordinates (mm)."""
+        """Map 2D board-plane points to 3D world coordinates.
+
+        The board-local Z coordinate is taken as 0 (the target is planar),
+        then the rigid pose ``x_world = R @ [x, y, 0] + t`` is applied.
+
+        Parameters
+        ----------
+        xy_plane_mm : ndarray, shape (N, 2) or (2,)
+            Board-plane coordinates in millimetres.
+
+        Returns
+        -------
+        ndarray, shape (N, 3)
+            World-frame coordinates in millimetres.
+        """
         xy = np.asarray(xy_plane_mm, dtype=np.float64).reshape(-1, 2)
         xyz_local = np.column_stack(
             [xy[:, 0], xy[:, 1], np.zeros(xy.shape[0], dtype=np.float64)]
@@ -94,11 +150,26 @@ class CMOPlanePose:
 
     @property
     def normal_world(self) -> Array:
-        """World-frame normal (Z axis) of the calibration plane."""
+        """World-frame unit normal of the target plane (its local +Z axis rotated by ``R``)."""
         return np.asarray(self.R, dtype=np.float64) @ np.array([0.0, 0.0, 1.0])
 
     def world_to_local(self, xyz_world: Array) -> Array:
-        """Transform 3D world coordinates back to local board frame."""
+        """Map 3D world coordinates back into the board-local frame.
+
+        Inverse of the rigid map in :meth:`local_to_world`:
+        ``x_local = R.T @ (x_world - t)``. For points lying on the target the
+        returned local Z is ~0.
+
+        Parameters
+        ----------
+        xyz_world : ndarray, shape (..., 3)
+            World-frame coordinates in millimetres.
+
+        Returns
+        -------
+        ndarray
+            Board-local coordinates in millimetres, same shape as the input.
+        """
         x = np.asarray(xyz_world, dtype=np.float64) - np.asarray(self.t, dtype=np.float64)
         shp = x.shape
         flat = x.reshape(-1, 3)
@@ -119,7 +190,17 @@ def _vector_to_pose(params: Array) -> CMOPlanePose:
 
 @dataclass(frozen=True)
 class CMOIntrinsics:
-    """Pixel intrinsics for one CMO channel."""
+    """Pinhole pixel intrinsics for a single CMO camera channel.
+
+    Attributes
+    ----------
+    width, height : int
+        Image size in pixels.
+    fx, fy : float
+        Focal length along the u and v axes, in pixels.
+    cx, cy : float
+        Principal point, in pixels.
+    """
 
     width: int
     height: int
@@ -136,7 +217,27 @@ class CMOIntrinsics:
         focal_mm: float,
         pitch_um: float,
     ) -> CMOIntrinsics:
-        """Build intrinsics from focal length (mm) and pixel pitch (um)."""
+        """Build intrinsics from a physical focal length and sensor pixel pitch.
+
+        The pixel focal length is ``f_px = focal_mm * 1000 / pitch_um`` (the
+        factor 1000 converts millimetres to micrometres). The principal point
+        is placed at the image centre ``((width - 1) / 2, (height - 1) / 2)``.
+
+        Parameters
+        ----------
+        width, height : int
+            Image size in pixels.
+        focal_mm : float
+            Lens focal length, in millimetres.
+        pitch_um : float
+            Sensor pixel pitch, in micrometres.
+
+        Returns
+        -------
+        CMOIntrinsics
+            Intrinsics with square pixels (``fx == fy``) and a centred
+            principal point.
+        """
         f_px = float(focal_mm) * 1000.0 / float(pitch_um)
         return cls(
             width=int(width),
@@ -148,14 +249,21 @@ class CMOIntrinsics:
         )
 
     def as_K(self) -> Array:
-        """Camera matrix K (3x3)."""
+        """Return the 3x3 pinhole camera matrix ``K = [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]``."""
         return np.array(
             [[self.fx, 0.0, self.cx], [0.0, self.fy, self.cy], [0.0, 0.0, 1.0]],
             dtype=np.float64,
         )
 
     def pixel_grid(self) -> tuple[Array, Array]:
-        """Pixel-centre meshgrid (u,v) for the full image."""
+        """Return the full-image meshgrid of integer pixel-centre coordinates.
+
+        Returns
+        -------
+        u, v : ndarray, shape (height, width)
+            Pixel column (u) and row (v) coordinates, built with
+            ``indexing="xy"``; pixel centres sit at integer coordinates.
+        """
         u, v = np.meshgrid(
             np.arange(int(self.width), dtype=np.float64),
             np.arange(int(self.height), dtype=np.float64),
@@ -164,13 +272,42 @@ class CMOIntrinsics:
         return u, v
 
     def pixel_to_norm(self, u: Array, v: Array) -> tuple[Array, Array]:
-        """Convert pixel coords to normalised image coords (unitless)."""
+        """Convert pixel coordinates to normalised image coordinates.
+
+        Applies the inverse intrinsics ``x = (u - cx) / fx`` and
+        ``y = (v - cy) / fy``. The result is dimensionless: for an ideal
+        pinhole it equals the tangent of the ray angle.
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates.
+
+        Returns
+        -------
+        x, y : ndarray
+            Normalised image coordinates (unitless), same shape as the inputs.
+        """
         return (np.asarray(u, dtype=np.float64) - self.cx) / self.fx, (
             np.asarray(v, dtype=np.float64) - self.cy
         ) / self.fy
 
     def norm_to_pixel(self, x: Array, y: Array) -> Array:
-        """Convert normalised coords to pixel coords, shape (N,2)."""
+        """Convert normalised image coordinates back to pixel coordinates.
+
+        Applies the intrinsics ``u = fx * x + cx`` and ``v = fy * y + cy`` —
+        the inverse of :meth:`pixel_to_norm`.
+
+        Parameters
+        ----------
+        x, y : ndarray
+            Normalised (unitless) image coordinates.
+
+        Returns
+        -------
+        ndarray, shape (..., 2)
+            Pixel coordinates stacked on the last axis.
+        """
         u = self.fx * np.asarray(x, dtype=np.float64) + self.cx
         v = self.fy * np.asarray(y, dtype=np.float64) + self.cy
         return np.stack([u, v], axis=-1)
@@ -178,7 +315,18 @@ class CMOIntrinsics:
 
 @dataclass(frozen=True)
 class BrownConrady:
-    """OpenCV-like radial/tangential distortion in normalized coordinates."""
+    """Brown-Conrady radial + tangential lens distortion in normalised coordinates.
+
+    Uses the same coefficient convention as OpenCV. Distortion acts on
+    normalised (focal-length-relative) coordinates, not on pixels.
+
+    Attributes
+    ----------
+    k1, k2, k3 : float
+        Radial distortion coefficients.
+    p1, p2 : float
+        Tangential (decentering) distortion coefficients.
+    """
 
     k1: float = 0.0
     k2: float = 0.0
@@ -187,11 +335,44 @@ class BrownConrady:
     k3: float = 0.0
 
     def distort(self, x: Array, y: Array) -> tuple[Array, Array]:
-        """Apply Brown-Conrady distortion (k1-k3 radial, p1-p2 tangential)."""
+        """Apply Brown-Conrady distortion to normalised image coordinates.
+
+        Parameters
+        ----------
+        x, y : ndarray
+            Undistorted normalised coordinates (unitless).
+
+        Returns
+        -------
+        xd, yd : ndarray
+            Distorted normalised coordinates, same shape as the inputs.
+
+        References
+        ----------
+        D. C. Brown, "Decentering distortion of lenses", Photogrammetric
+        Engineering 32(3), 444-462, 1966.
+        """
         return brown_conrady_distort_normalized(x, y, self.k1, self.k2, self.p1, self.p2, self.k3)
 
     def undistort(self, xd: Array, yd: Array, iterations: int = 10) -> tuple[Array, Array]:
-        """Iteratively remove Brown-Conrady distortion."""
+        """Remove Brown-Conrady distortion by fixed-point iteration.
+
+        The Brown-Conrady model has no closed-form inverse; the undistorted
+        coordinate is recovered by iterating from ``(x, y) = (xd, yd)`` and
+        subtracting the modelled distortion each step.
+
+        Parameters
+        ----------
+        xd, yd : ndarray
+            Distorted normalised coordinates (unitless).
+        iterations : int
+            Number of fixed-point iterations; 5-10 suffices for typical lenses.
+
+        Returns
+        -------
+        x, y : ndarray
+            Undistorted normalised coordinates, same shape as the inputs.
+        """
         return undistort_brown_normalized(
             xd,
             yd,
@@ -206,13 +387,42 @@ class BrownConrady:
 
 @dataclass(frozen=True)
 class PolynomialRayAberration:
-    """Small polynomial angular perturbation in normalized ray coordinates."""
+    """Low-order polynomial perturbation of a ray's normalised direction.
+
+    Models residual aberrations the Brown-Conrady term does not capture, as a
+    cubic polynomial in the normalised image coordinates ``(x, y)``. Each of
+    the two output components carries its own sparse coefficient dictionary.
+
+    Attributes
+    ----------
+    coeff_x, coeff_y : dict[str, float]
+        Maps a monomial name to its coefficient, for the x and y direction
+        perturbation respectively. Allowed monomials: ``1, x, y, x2, xy, y2,
+        x3, x2y, xy2, y3``. Absent terms are treated as zero.
+    """
 
     coeff_x: dict[str, float] = field(default_factory=dict)
     coeff_y: dict[str, float] = field(default_factory=dict)
 
     def delta(self, x: Array, y: Array) -> tuple[Array, Array]:
-        """Polynomial ray-direction perturbation (dx,dy) at (x,y)."""
+        """Evaluate the polynomial direction perturbation at normalised coordinates.
+
+        Parameters
+        ----------
+        x, y : ndarray
+            Normalised image coordinates (unitless).
+
+        Returns
+        -------
+        dx, dy : ndarray
+            Additive perturbation of the normalised ray direction, same shape
+            as the inputs.
+
+        Raises
+        ------
+        ValueError
+            If a coefficient dictionary contains an unknown monomial name.
+        """
         x_arr = np.asarray(x, dtype=np.float64)
         y_arr = np.asarray(y, dtype=np.float64)
         terms = {
@@ -240,7 +450,22 @@ class PolynomialRayAberration:
         return dx, dy
 
     def add(self, other: PolynomialRayAberration) -> PolynomialRayAberration:
-        """Add coefficients of another aberration (same level required)."""
+        """Return the coefficient-wise sum of this aberration and ``other``.
+
+        Coefficients present in only one operand are kept; coefficients present
+        in both are added. Used to compose a per-channel aberration on top of a
+        shared one.
+
+        Parameters
+        ----------
+        other : PolynomialRayAberration
+            Aberration whose coefficients are added to this one.
+
+        Returns
+        -------
+        PolynomialRayAberration
+            New instance holding the merged coefficients.
+        """
         coeff_x = dict(self.coeff_x)
         coeff_y = dict(self.coeff_y)
         for key, value in other.coeff_x.items():
@@ -252,13 +477,45 @@ class PolynomialRayAberration:
 
 @dataclass(frozen=True)
 class SensorWarp:
-    """Low-order image-plane deformation in pixels."""
+    """Low-order polynomial deformation of the image plane, expressed in pixels.
+
+    Models small sensor-mounting / readout geometry errors as a cubic
+    polynomial in image coordinates normalised by the principal-point offset.
+
+    Attributes
+    ----------
+    du_coeff_px, dv_coeff_px : dict[str, float]
+        Maps a monomial name to its coefficient (in pixels) for the u and v
+        pixel offset. Allowed monomials: ``1, x, y, x2, xy, y2, x3, x2y, xy2,
+        y3``. Absent terms are treated as zero.
+    """
 
     du_coeff_px: dict[str, float] = field(default_factory=dict)
     dv_coeff_px: dict[str, float] = field(default_factory=dict)
 
     def delta_px(self, uv: Array, intr: CMOIntrinsics) -> Array:
-        """Sensor-plane warp offset in pixels at given pixel coordinates."""
+        """Evaluate the sensor-plane warp offset, in pixels, at given pixels.
+
+        The polynomial is evaluated in coordinates normalised by the principal
+        point: ``x = (u - cx) / max(|cx|, 1)`` and likewise for ``y``.
+
+        Parameters
+        ----------
+        uv : ndarray, shape (..., 2)
+            Pixel coordinates.
+        intr : CMOIntrinsics
+            Intrinsics supplying the principal point used for normalisation.
+
+        Returns
+        -------
+        ndarray, shape (..., 2)
+            Pixel offset ``(du, dv)`` to add to ``uv``.
+
+        Raises
+        ------
+        ValueError
+            If a coefficient dictionary contains an unknown monomial name.
+        """
         arr = np.asarray(uv, dtype=np.float64)
         u = arr[..., 0]
         v = arr[..., 1]
@@ -291,7 +548,20 @@ class SensorWarp:
 
 @dataclass(frozen=True)
 class Vignetting:
-    """Simple multiplicative pupil/sensor shading model."""
+    """Multiplicative radial shading (vignetting) of the rendered image.
+
+    Brightness falls off quadratically from a (possibly shifted) centre and is
+    clamped to a floor so it never reaches zero.
+
+    Attributes
+    ----------
+    strength : float
+        Quadratic fall-off rate; 0 disables vignetting.
+    floor : float
+        Minimum gain (0-1), reached at the image corners.
+    x_shift, y_shift : float
+        Shift of the vignetting centre, in principal-point-normalised units.
+    """
 
     strength: float = 0.0
     floor: float = 0.25
@@ -299,7 +569,21 @@ class Vignetting:
     y_shift: float = 0.0
 
     def gain(self, intr: CMOIntrinsics) -> Array:
-        """Pixel-wise vignetting gain map (0-1) for the full image."""
+        """Compute the per-pixel multiplicative vignetting gain map.
+
+        The gain is ``1 - strength * (x^2 + y^2)`` in principal-point-normalised
+        coordinates, clamped to ``[floor, 1]``.
+
+        Parameters
+        ----------
+        intr : CMOIntrinsics
+            Intrinsics defining the image size and principal point.
+
+        Returns
+        -------
+        ndarray, shape (height, width)
+            Multiplicative gain in ``[floor, 1]`` to apply to the image.
+        """
         u, v = intr.pixel_grid()
         x = (u - intr.cx) / max(abs(intr.cx), 1.0) - self.x_shift
         y = (v - intr.cy) / max(abs(intr.cy), 1.0) - self.y_shift
@@ -309,7 +593,31 @@ class Vignetting:
 
 @dataclass(frozen=True)
 class CMOChannelSpec:
-    """One effective CMO stereo channel."""
+    """One effective CMO stereo channel: sub-pupil, intrinsics and per-channel optics.
+
+    "Effective" means the channel is described by a single sub-pupil (optical
+    centre) plus image-formation terms — the per-camera view of a shared
+    compact-mirror-objective (CMO) stereo head, not a literal lens model.
+
+    Attributes
+    ----------
+    name : {"left", "right"}
+        Channel identifier.
+    intrinsics : CMOIntrinsics
+        Pixel intrinsics of this channel.
+    origin_world_mm : tuple of 3 float
+        Sub-pupil (optical centre) position in the world frame, in millimetres.
+    R_cam_to_world : ndarray, shape (3, 3)
+        Rotation from the channel camera frame to the world frame.
+    distortion : BrownConrady
+        Per-channel radial/tangential distortion.
+    differential_aberration : PolynomialRayAberration
+        Per-channel polynomial ray perturbation, added on top of the shared one.
+    sensor_warp : SensorWarp
+        Per-channel image-plane deformation.
+    vignetting : Vignetting
+        Per-channel radial shading.
+    """
 
     name: Literal["left", "right"]
     intrinsics: CMOIntrinsics
@@ -324,13 +632,22 @@ class CMOChannelSpec:
 
     @property
     def origin(self) -> Array:
-        """Optical centre (sub-pupil) in world coordinates (mm)."""
+        """Sub-pupil (optical centre) position as a length-3 array, in millimetres."""
         return np.asarray(self.origin_world_mm, dtype=np.float64)
 
 
 @dataclass(frozen=True)
 class CMOStereoSpec:
-    """Full CMO stereo model with common and differential ray aberrations."""
+    """Full CMO stereo model: two channels plus a shared ray aberration.
+
+    Attributes
+    ----------
+    left, right : CMOChannelSpec
+        The two effective channels.
+    common_aberration : PolynomialRayAberration
+        Ray aberration shared by both channels, added to each channel's own
+        differential aberration.
+    """
 
     left: CMOChannelSpec
     right: CMOChannelSpec
@@ -348,7 +665,32 @@ class CMOStereoSpec:
         left_distortion: BrownConrady | None = None,
         right_distortion: BrownConrady | None = None,
     ) -> CMOStereoSpec:
-        """Default stereo spec: symmetric channels, centred on screen."""
+        """Build a symmetric default CMO stereo spec, both channels facing the screen.
+
+        The two channels share identical intrinsics and sit symmetrically on
+        the world X axis at +/- ``baseline_mm`` / 2; mild opposite-sign
+        vignetting is applied to each.
+
+        Parameters
+        ----------
+        width, height : int
+            Image size in pixels.
+        focal_mm : float
+            Lens focal length, in millimetres.
+        pitch_um : float
+            Sensor pixel pitch, in micrometres.
+        baseline_mm : float
+            Distance between the two sub-pupils, in millimetres.
+        common_aberration : PolynomialRayAberration, optional
+            Shared ray aberration; defaults to none.
+        left_distortion, right_distortion : BrownConrady, optional
+            Per-channel distortion; default to none.
+
+        Returns
+        -------
+        CMOStereoSpec
+            Symmetric stereo specification.
+        """
         intr = CMOIntrinsics.from_focal_and_pitch(width, height, focal_mm, pitch_um)
         b2 = 0.5 * float(baseline_mm)
         return cls(
@@ -370,13 +712,27 @@ class CMOStereoSpec:
         )
 
     def channels(self) -> tuple[CMOChannelSpec, CMOChannelSpec]:
-        """All channels in this stereo spec (left then right)."""
+        """Return the two channels as the tuple ``(left, right)``."""
         return self.left, self.right
 
 
 @dataclass(frozen=True)
 class CMOChannelRayField:
-    """Physical CMO channel rayfield compatible with ray-space fitting tools."""
+    """Physical CMO channel exposed as a rayfield for ray-space tools.
+
+    Wraps a fixed :class:`CMOChannelSpec` behind the rayfield interface
+    (``ray``, ``parameter_vector``, ...). This wrapper exposes **no** free
+    parameters — it is a forward model, not a fittable one.
+
+    Attributes
+    ----------
+    channel : CMOChannelSpec
+        The channel whose optics define the rayfield.
+    common_aberration : PolynomialRayAberration
+        Shared aberration added to the channel's differential aberration.
+    name : str
+        Model identifier used by model-selection reports.
+    """
 
     channel: CMOChannelSpec
     common_aberration: PolynomialRayAberration = field(default_factory=PolynomialRayAberration)
@@ -393,7 +749,28 @@ class CMOChannelRayField:
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs) -> CMOChannelRayField:
-        """Reconstruct from parameter vector (no-op, zero params)."""
+        """Rebuild the rayfield from an (empty) parameter vector.
+
+        This model has no free parameters, so ``x`` must be empty; the channel
+        itself is supplied through keyword arguments.
+
+        Parameters
+        ----------
+        x : ndarray
+            Must be empty (size 0).
+        **kwargs
+            Must include ``channel`` (CMOChannelSpec); may include
+            ``common_aberration`` (PolynomialRayAberration).
+
+        Returns
+        -------
+        CMOChannelRayField
+
+        Raises
+        ------
+        ValueError
+            If ``x`` is non-empty.
+        """
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size:
             raise ValueError("CMOChannelRayField expects zero parameters")
@@ -407,7 +784,29 @@ class CMOChannelRayField:
         return {}
 
     def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
-        """Compute ray for a pixel in this channel."""
+        """Compute the 3D ray (origin, direction) for each pixel of this channel.
+
+        Pipeline: invert the sensor warp to recover ideal pixels, convert to
+        normalised coordinates, undistort (Brown-Conrady), apply the combined
+        common + differential polynomial aberration, lift to a camera-frame
+        direction ``[x, y, 1]`` and normalise, then rotate into the world
+        frame. Every ray shares the same sub-pupil origin (the channel is
+        central).
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates (broadcast against each other).
+
+        Returns
+        -------
+        origins : ndarray, shape (..., 3)
+            Ray origin (the channel sub-pupil) in world millimetres —
+            identical for every pixel.
+        directions : ndarray, shape (..., 3)
+            Unit ray directions in the world frame, same leading shape as the
+            inputs.
+        """
         uu, vv = np.broadcast_arrays(
             np.asarray(u, dtype=np.float64), np.asarray(v, dtype=np.float64)
         )
@@ -458,16 +857,26 @@ class NonCentralPolynomialChannelModel:
 
     @property
     def n_parameters(self) -> int:
-        """Total number of free parameters for model selection."""
+        """Free-parameter count: 8 (3 origin + 5 distortion) + 2 per aberration term."""
         return 8 + 2 * len(self.aberration_terms)
 
     @classmethod
     def default_terms(cls) -> tuple[str, ...]:
-        """Parameter names in canonical order for packing/unpacking."""
+        """Return the default polynomial aberration monomials, in packing order."""
         return ("x", "y", "x2", "xy", "y2")
 
     def parameter_vector(self) -> Array:
-        """All parameters packed into a flat vector for optimisation."""
+        """Pack all free parameters into a flat optimisation vector.
+
+        Layout: ``[origin_x, origin_y, origin_z (mm), k1, k2, p1, p2, k3,
+        aberration_coeff_x..., aberration_coeff_y...]``. Each aberration block
+        follows ``aberration_terms`` order and holds ``len(aberration_terms)``
+        entries.
+
+        Returns
+        -------
+        ndarray, shape (8 + 2 * len(aberration_terms),)
+        """
         cx = self._coeff_array(self.aberration_coeff_x)
         cy = self._coeff_array(self.aberration_coeff_y)
         return np.concatenate(
@@ -492,7 +901,28 @@ class NonCentralPolynomialChannelModel:
 
     @classmethod
     def from_parameter_vector(cls, x: Array, **kwargs) -> NonCentralPolynomialChannelModel:
-        """Reconstruct spec from a parameter vector."""
+        """Rebuild the model from a flat parameter vector.
+
+        Inverse of :meth:`parameter_vector`; see it for the parameter layout.
+
+        Parameters
+        ----------
+        x : ndarray, shape (8 + 2 * n_terms,)
+            Flattened parameter vector.
+        **kwargs
+            Must include ``K`` (3x3 intrinsics) and the image size as
+            ``cmo_image_size`` or ``image_size`` (a ``(width, height)`` pair).
+            May include ``aberration_terms``.
+
+        Returns
+        -------
+        NonCentralPolynomialChannelModel
+
+        Raises
+        ------
+        ValueError
+            If the image size is missing or ``x`` has the wrong length.
+        """
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         terms = tuple(kwargs.get("aberration_terms", cls.default_terms()))
         image_size = kwargs.get("cmo_image_size", kwargs.get("image_size"))
@@ -518,7 +948,16 @@ class NonCentralPolynomialChannelModel:
         )
 
     def parameter_dict(self) -> dict[str, float]:
-        """All parameters as a dict keyed by channel and name."""
+        """Return all free parameters as a flat ``{name: value}`` dictionary.
+
+        Origin entries are in millimetres; distortion entries are
+        dimensionless; aberration entries are keyed ``aberr_x_<term>`` and
+        ``aberr_y_<term>``.
+
+        Returns
+        -------
+        dict[str, float]
+        """
         params = {
             "origin_x_mm": float(self.origin_x_mm),
             "origin_y_mm": float(self.origin_y_mm),
@@ -540,7 +979,21 @@ class NonCentralPolynomialChannelModel:
         return params
 
     def ray(self, u: Array, v: Array) -> tuple[Array, Array]:
-        """Compute ray (origin, direction) for a channel and pixel."""
+        """Compute the 3D ray (origin, direction) for each pixel.
+
+        Assembles a transient :class:`CMOChannelSpec` from the model's free
+        parameters and delegates to :meth:`CMOChannelRayField.ray`.
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates.
+
+        Returns
+        -------
+        origins, directions : ndarray, shape (..., 3)
+            Ray origin (mm, world frame) and unit direction for each pixel.
+        """
         intr = self._intrinsics()
         channel = CMOChannelSpec(
             name="left",
@@ -594,10 +1047,28 @@ def polynomial_channel_parameters_from_spec(
     common_aberration: PolynomialRayAberration | None = None,
     aberration_terms: tuple[str, ...] | None = None,
 ) -> Array:
-    """Return the effective `NonCentralPolynomialChannelModel` vector for a channel.
+    """Convert a `CMOChannelSpec` into a `NonCentralPolynomialChannelModel` vector.
 
-    The fittable CMO model is per-channel. Its polynomial aberration is the sum
-    of common CMO aberration and channel differential aberration.
+    The fittable CMO surrogate is per-channel: its polynomial aberration is the
+    sum of the shared (common) CMO aberration and the channel's differential
+    aberration. This packs that effective channel into the flat vector the
+    surrogate model optimises.
+
+    Parameters
+    ----------
+    channel : CMOChannelSpec
+        Channel to convert.
+    common_aberration : PolynomialRayAberration, optional
+        Shared aberration; defaults to none.
+    aberration_terms : tuple of str, optional
+        Monomials to keep; defaults to
+        ``NonCentralPolynomialChannelModel.default_terms()``.
+
+    Returns
+    -------
+    ndarray, shape (8 + 2 * len(aberration_terms),)
+        Parameter vector in
+        :meth:`NonCentralPolynomialChannelModel.parameter_vector` layout.
     """
     terms = tuple(aberration_terms or NonCentralPolynomialChannelModel.default_terms())
     effective = (
@@ -624,7 +1095,29 @@ def polynomial_channel_parameters_from_spec(
 
 @dataclass(frozen=True)
 class CMORayfieldBundleAdjustmentResult:
-    """Result of fitting effective CMO channels and board poses from rayfields."""
+    """Result of jointly fitting effective CMO channels and board poses.
+
+    Attributes
+    ----------
+    left_model, right_model : NonCentralPolynomialChannelModel
+        Fitted per-channel surrogate models.
+    poses : list of CMOPlanePose
+        Fitted board pose, one per frame.
+    success : bool
+        Whether the optimiser reported convergence.
+    message : str
+        Optimiser status message.
+    n_observations : int
+        Number of scalar residuals used in the fit.
+    incidence_rms_mm, incidence_p95_mm : float
+        RMS and 95th-percentile point-to-ray incidence error, in millimetres.
+    left_rayfield_rms_mm, right_rayfield_rms_mm : float
+        RMS deviation from the measured Zernike rayfield, per channel, in mm.
+    parameter_vector : ndarray
+        Concatenated fitted ``[left, right]`` model parameters.
+    pose_vectors : ndarray
+        Fitted pose parameters, 6 per frame (rotation vector + translation).
+    """
 
     left_model: NonCentralPolynomialChannelModel
     right_model: NonCentralPolynomialChannelModel
@@ -640,7 +1133,14 @@ class CMORayfieldBundleAdjustmentResult:
     pose_vectors: Array
 
     def parameter_summary(self) -> dict[str, dict[str, float]]:
-        """Human-readable string listing all model parameters with units."""
+        """Return the fitted left/right model parameters as nested dictionaries.
+
+        Returns
+        -------
+        dict[str, dict[str, float]]
+            ``{"left": {...}, "right": {...}}`` — each inner dict is the
+            channel's :meth:`NonCentralPolynomialChannelModel.parameter_dict`.
+        """
         return {
             "left": self.left_model.parameter_dict(),
             "right": self.right_model.parameter_dict(),
@@ -668,11 +1168,57 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
     max_nfev: int = 800,
     robust_loss: str = "huber",
 ) -> CMORayfieldBundleAdjustmentResult:
-    """Fit effective CMO channel parameters and board poses from measured rayfields.
+    """Jointly fit effective CMO channel parameters and per-frame board poses.
 
-    The measured Zernike rayfields provide the pixel-to-line observations. The
-    CMO model is constrained by two terms: ChArUco point-to-line incidence and
-    a ray-space anchor to the measured left/right Zernike fields.
+    The measured left/right Zernike rayfields supply the pixel-to-line
+    observations. The fit minimises two coupled residual terms:
+
+    - **incidence**: each ChArUco object point must lie on the back-projected
+      ray of its observed pixel (point-to-line distance);
+    - **rayfield anchor**: the CMO model rays must stay close to the measured
+      Zernike rayfield, sampled on two depth planes.
+
+    A robust loss down-weights outliers.
+
+    Parameters
+    ----------
+    left_field, right_field : ZernikeRayField
+        Measured rayfields providing the per-channel ray anchor.
+    K : ndarray, shape (3, 3)
+        Shared pinhole intrinsics used to seed the surrogate channels.
+    image_size : tuple of 2 int
+        Image ``(width, height)`` in pixels.
+    object_points : ndarray or list of ndarray
+        ChArUco corner coordinates in board millimetres — one ``(M, 2)`` array
+        per frame, or a single ``(M, 2)`` array shared by all frames.
+    left_pixels, right_pixels : list of ndarray
+        Observed corner pixels per frame, one ``(M, 2)`` array each.
+    pose_initials : list of CMOPlanePose
+        Initial board pose, one per frame.
+    initial_left_parameters, initial_right_parameters : ndarray, optional
+        Initial per-channel parameter vectors; default to zeros.
+    parameter_bounds : tuple of (ndarray, ndarray), optional
+        Lower/upper bounds for the per-channel parameters; sensible defaults
+        are used when omitted.
+    aberration_terms : tuple of str, optional
+        Polynomial aberration monomials to fit.
+    z_planes : tuple of 2 float
+        The two depth planes (mm) on which the rayfield anchor is evaluated.
+    incidence_weight : float
+        Weight of the point-to-ray incidence residual.
+    rayfield_weight : float
+        Weight of the rayfield-anchor residual.
+    pose_regularization : float
+        L2 penalty pulling poses toward their initial values.
+    max_nfev : int
+        Maximum optimiser function evaluations.
+    robust_loss : str
+        SciPy ``least_squares`` loss name (e.g. ``"huber"``, ``"linear"``).
+
+    Returns
+    -------
+    CMORayfieldBundleAdjustmentResult
+        Fitted models, poses, and incidence / rayfield diagnostics.
     """
     from scipy.optimize import least_squares  # type: ignore
     from stereocomplex.physics.parallel_plate_fit import rayfield_two_plane_residuals
@@ -836,7 +1382,21 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
 
 @dataclass(frozen=True)
 class CMOPlaneTargetSpec:
-    """Textured planar target used by the CMO image generator."""
+    """Textured planar calibration target used by the CMO image generator.
+
+    Attributes
+    ----------
+    squares_x, squares_y : int
+        Number of board squares along each axis.
+    square_size_mm : float
+        Edge length of one square, in millimetres.
+    pixels_per_square : int
+        Texture resolution: rendered pixels per board square.
+    pattern : {"checker", "charuco"}
+        Target pattern; "charuco" needs OpenCV aruco support.
+    marker_size_ratio : float
+        ChArUco marker size as a fraction of the square size.
+    """
 
     squares_x: int = 11
     squares_y: int = 7
@@ -856,7 +1416,18 @@ class CMOPlaneTargetSpec:
         return float(self.squares_y) * float(self.square_size_mm)
 
     def inner_corners_local_mm(self) -> tuple[Array, Array]:
-        """Inner ChArUco corner positions in board-local mm."""
+        """Return the board's inner-corner ids and their board-local coordinates.
+
+        Inner corners are the ``(squares_x - 1) * (squares_y - 1)`` chessboard
+        vertices, centred on the board origin.
+
+        Returns
+        -------
+        ids : ndarray of int32, shape (M,)
+            Corner indices, row-major.
+        xy : ndarray of float64, shape (M, 2)
+            Corner coordinates in board-local millimetres.
+        """
         xs = -0.5 * self.width_mm + self.square_size_mm * np.arange(1, self.squares_x)
         ys = -0.5 * self.height_mm + self.square_size_mm * np.arange(1, self.squares_y)
         xx, yy = np.meshgrid(xs, ys, indexing="xy")
@@ -865,7 +1436,22 @@ class CMOPlaneTargetSpec:
         return ids, xy
 
     def make_texture_u8(self) -> Array:
-        """Generate synthetic speckle texture for ChArUco board rendering."""
+        """Render the target's pattern as an 8-bit grayscale texture image.
+
+        For ``pattern="charuco"`` an OpenCV ChArUco board is generated (needs
+        ``cv2.aruco``); for ``pattern="checker"`` a plain checkerboard is drawn.
+
+        Returns
+        -------
+        ndarray of uint8, shape (squares_y * pixels_per_square, squares_x * pixels_per_square)
+            Grayscale texture image.
+
+        Raises
+        ------
+        RuntimeError
+            If a ChArUco texture is requested but OpenCV aruco support is
+            missing, or texture generation otherwise fails.
+        """
         if self.pattern == "charuco":
             if cv2 is None or not hasattr(cv2, "aruco"):
                 raise RuntimeError("CMO ChArUco texture generation requires OpenCV aruco support")
@@ -912,7 +1498,20 @@ def rays_from_cmo_pixels(
     channel: CMOChannelSpec,
     common_aberration: PolynomialRayAberration,
 ) -> tuple[Array, Array]:
-    """Return dense per-pixel CMO rays in world coordinates."""
+    """Compute the dense per-pixel CMO rayfield of a channel, in world coordinates.
+
+    Parameters
+    ----------
+    channel : CMOChannelSpec
+        Channel whose optics define the rays.
+    common_aberration : PolynomialRayAberration
+        Shared aberration added to the channel's differential aberration.
+
+    Returns
+    -------
+    origins, directions : ndarray, shape (H, W, 3)
+        Per-pixel ray origin (mm) and unit direction in the world frame.
+    """
     u, v = channel.intrinsics.pixel_grid()
     return CMOChannelRayField(channel, common_aberration).ray(u, v)
 
@@ -922,7 +1521,27 @@ def intersect_rays_with_plane(
     directions: Array,
     pose: CMOPlanePose,
 ) -> tuple[Array, Array]:
-    """Intersect a dense rayfield with a plane."""
+    """Intersect a dense rayfield with a planar target.
+
+    Solves, per ray, for ``tau`` such that ``origin + tau * direction`` lies on
+    the plane through ``pose.t`` with normal ``pose.normal_world``.
+
+    Parameters
+    ----------
+    origins, directions : ndarray, shape (..., 3)
+        Ray origins (mm) and directions in the world frame.
+    pose : CMOPlanePose
+        Pose of the target plane.
+
+    Returns
+    -------
+    X : ndarray, shape (..., 3)
+        Intersection points in world millimetres (NaN where the ray is
+        parallel to the plane).
+    valid : ndarray of bool, shape (...)
+        True where the intersection is finite and in front of the ray origin
+        (``tau > 0``).
+    """
     n = pose.normal_world
     denom = directions @ n
     numer = (np.asarray(pose.t, dtype=np.float64) - origins) @ n
@@ -939,7 +1558,30 @@ def sample_cmo_target_texture(
     inside: Array,
     interpolation: Literal["nearest", "linear", "cubic", "lanczos4"] = "linear",
 ) -> Array:
-    """Sample a target texture at target-local metric coordinates."""
+    """Sample a target texture at board-local metric coordinates.
+
+    Board-local millimetre coordinates are mapped to texture pixel coordinates,
+    then resampled (via ``cv2.remap`` when OpenCV is available, else
+    nearest-neighbour). Samples outside ``inside`` are set to 0.
+
+    Parameters
+    ----------
+    target : CMOPlaneTargetSpec
+        Target geometry (supplies the board width/height in mm).
+    texture_u8 : ndarray of uint8, shape (Ht, Wt)
+        Texture image to sample.
+    local_xy_mm : ndarray, shape (..., 2)
+        Board-local coordinates, in millimetres.
+    inside : ndarray of bool, shape (...)
+        Mask of samples that fall on the physical target.
+    interpolation : {"nearest", "linear", "cubic", "lanczos4"}
+        Resampling kernel.
+
+    Returns
+    -------
+    ndarray of uint8
+        Sampled grayscale values, 0 outside ``inside``.
+    """
     Ht, Wt = texture_u8.shape
     x = local_xy_mm[..., 0]
     y = local_xy_mm[..., 1]
@@ -970,7 +1612,25 @@ def sample_cmo_target_texture(
 
 
 def apply_sensor_warp(img_u8: Array, warp: SensorWarp, intr: CMOIntrinsics) -> Array:
-    """Apply a small image-plane deformation by inverse mapping."""
+    """Apply a sensor-plane deformation to an image by inverse mapping.
+
+    Each output pixel is sampled from ``(u, v) - SensorWarp.delta_px`` of the
+    input. A no-op when the warp has no coefficients or OpenCV is unavailable.
+
+    Parameters
+    ----------
+    img_u8 : ndarray of uint8
+        Input grayscale image.
+    warp : SensorWarp
+        Image-plane deformation to apply.
+    intr : CMOIntrinsics
+        Intrinsics defining the image grid and principal point.
+
+    Returns
+    -------
+    ndarray of uint8
+        Warped image, same shape as the input.
+    """
     if not warp.du_coeff_px and not warp.dv_coeff_px:
         return img_u8
     if cv2 is None:
@@ -1005,7 +1665,26 @@ def apply_blur_noise(
     noise_std_gray: float,
     rng: np.random.Generator,
 ) -> Array:
-    """Simulate acquisition defects: Gaussian blur + Gaussian noise."""
+    """Simulate acquisition defects: Gaussian blur followed by Gaussian noise.
+
+    Parameters
+    ----------
+    img_u8 : ndarray of uint8
+        Clean rendered image.
+    blur_sigma_px : float
+        Gaussian blur standard deviation, in pixels; 0 disables blur (also a
+        no-op when OpenCV is unavailable).
+    noise_std_gray : float
+        Standard deviation of the additive Gaussian noise, in gray levels;
+        0 disables noise.
+    rng : numpy.random.Generator
+        Random generator used to draw the noise.
+
+    Returns
+    -------
+    ndarray of uint8
+        Degraded image.
+    """
     out = img_u8
     if blur_sigma_px > 0.0 and cv2 is not None:
         sigma = float(blur_sigma_px)
@@ -1030,7 +1709,42 @@ def render_cmo_channel_image(
     noise_std_gray: float = 0.0,
     rng: np.random.Generator | None = None,
 ) -> Array:
-    """Render one CMO channel by pixel -> physical ray -> target plane sampling."""
+    """Render one CMO channel image: pixel -> physical ray -> target-plane sampling.
+
+    For every pixel the channel's physical ray is traced, intersected with the
+    posed target plane, and the target texture is sampled at the hit point.
+    Pixels that miss the target get ``background_gray``; vignetting, then
+    optional blur and noise, are applied last.
+
+    Parameters
+    ----------
+    cmo : CMOStereoSpec
+        Stereo model (supplies the shared common aberration).
+    channel : CMOChannelSpec
+        Channel to render.
+    target : CMOPlaneTargetSpec
+        Planar target geometry.
+    pose : CMOPlanePose
+        Pose of the target in the world frame.
+    texture_u8 : ndarray of uint8
+        Target texture, e.g. from :meth:`CMOPlaneTargetSpec.make_texture_u8`.
+    interpolation : {"nearest", "linear", "cubic", "lanczos4"}
+        Texture resampling kernel.
+    background_gray : int
+        Gray level (0-255) for pixels that miss the target.
+    blur_sigma_px : float
+        Gaussian blur sigma in pixels (0 disables).
+    noise_std_gray : float
+        Gaussian noise standard deviation in gray levels (0 disables).
+    rng : numpy.random.Generator, optional
+        Random generator for the noise; a default-seeded one is used if
+        omitted.
+
+    Returns
+    -------
+    ndarray of uint8, shape (height, width)
+        The rendered channel image.
+    """
     rng = rng or np.random.default_rng(0)
     origins, directions = rays_from_cmo_pixels(channel, cmo.common_aberration)
     X_world, valid = intersect_rays_with_plane(origins, directions, pose)
@@ -1056,7 +1770,27 @@ def project_cmo_points_approx(
     common_aberration: PolynomialRayAberration,
     xyz_world_mm: Array,
 ) -> Array:
-    """Approximate sparse forward projection for CMO target ground truth."""
+    """First-order (pinhole-like) forward projection of world points into a channel.
+
+    Transforms points into the channel camera frame, applies the perspective
+    divide, the polynomial aberration, Brown-Conrady distortion and the sensor
+    warp. This is an *approximation* — it ignores the non-central sub-pupil
+    geometry — used mainly to seed the exact :func:`project_cmo_points`.
+
+    Parameters
+    ----------
+    channel : CMOChannelSpec
+        Target channel.
+    common_aberration : PolynomialRayAberration
+        Shared aberration added to the channel's differential aberration.
+    xyz_world_mm : ndarray, shape (N, 3)
+        World points to project, in millimetres.
+
+    Returns
+    -------
+    ndarray, shape (N, 2)
+        Pixel coordinates; rows behind the camera (``z <= 0``) are NaN.
+    """
     R = np.asarray(channel.R_cam_to_world, dtype=np.float64)
     p_world = np.asarray(xyz_world_mm, dtype=np.float64) - channel.origin[None, :]
     p_cam = (R.T @ p_world.T).T
@@ -1079,11 +1813,28 @@ def project_cmo_points(
     *,
     max_nfev: int = 40,
 ) -> Array:
-    """Project sparse world points by fitting the shared CMO pixel-to-line model.
+    """Project world points by inverting the channel's pixel-to-ray model.
 
-    This is the sparse counterpart of the renderer's pixel -> ray -> plane
-    model. The first-order projection is only used as the optimizer
-    initialization; the returned pixel minimizes point-to-ray distance.
+    The exact sparse counterpart of the renderer's pixel -> ray -> plane model:
+    for each point, the pixel whose CMO ray passes closest to the point
+    (minimum point-to-ray / Plücker distance) is found by least squares.
+    :func:`project_cmo_points_approx` provides the optimiser initialisation.
+
+    Parameters
+    ----------
+    channel : CMOChannelSpec
+        Target channel.
+    common_aberration : PolynomialRayAberration
+        Shared aberration added to the channel's differential aberration.
+    xyz_world_mm : ndarray, shape (N, 3)
+        World points to project, in millimetres.
+    max_nfev : int
+        Maximum optimiser function evaluations per point.
+
+    Returns
+    -------
+    ndarray, shape (N, 2)
+        Sub-pixel pixel coordinates minimising point-to-ray distance.
     """
     from scipy.optimize import least_squares  # type: ignore
 
@@ -1128,7 +1879,28 @@ def project_cmo_target_corners(
     target: CMOPlaneTargetSpec,
     pose: CMOPlanePose,
 ) -> dict[str, Array]:
-    """Project target inner corners into both CMO channels."""
+    """Project the target's inner corners into both CMO channels.
+
+    Inner corners are placed in the world frame via ``pose`` and projected with
+    :func:`project_cmo_points`; only corners visible (in bounds) in **both**
+    channels are kept.
+
+    Parameters
+    ----------
+    cmo : CMOStereoSpec
+        Stereo model.
+    target : CMOPlaneTargetSpec
+        Planar target geometry.
+    pose : CMOPlanePose
+        Pose of the target in the world frame.
+
+    Returns
+    -------
+    dict
+        Keys: ``corner_id`` (ndarray int), ``XYZ_world_mm`` (N, 3 float32),
+        ``uv_left_px`` and ``uv_right_px`` (N, 2 float32) — restricted to
+        corners visible in both channels.
+    """
     ids, xy = target.inner_corners_local_mm()
     xyz = pose.local_to_world(xy)
     uv_left = project_cmo_points(cmo.left, cmo.common_aberration, xyz)
@@ -1167,7 +1939,22 @@ def _jsonable_dataclass(obj):
 
 
 def save_gray(path: Path, img_u8: Array) -> None:
-    """Save a float64 array as 8-bit grayscale PNG."""
+    """Write a grayscale image to disk as a PNG.
+
+    Uses Pillow when available, otherwise OpenCV.
+
+    Parameters
+    ----------
+    path : Path
+        Destination file path; parent directories are created as needed.
+    img_u8 : ndarray of uint8
+        Grayscale image to save.
+
+    Raises
+    ------
+    RuntimeError
+        If neither Pillow nor OpenCV is available, or the write fails.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     if Image is not None:
         Image.fromarray(img_u8).save(path)
@@ -1190,7 +1977,37 @@ def generate_cmo_plane_dataset(
     noise_std_gray: float = 2.0,
     seed: int = 0,
 ) -> None:
-    """Generate a CMO stereo planar-target dataset from the physics ray model."""
+    """Render and write a full CMO stereo planar-target dataset to disk.
+
+    For each pose, both channels are rendered with the CMO physics model and
+    the target inner corners are projected to ground-truth pixels. The output
+    directory receives ``left/`` and ``right/`` PNG folders, ``meta.json``,
+    ``frames.jsonl`` and ``gt_charuco_corners.npz``.
+
+    Parameters
+    ----------
+    out_dir : Path
+        Output directory; created if missing.
+    cmo : CMOStereoSpec
+        Stereo CMO model used for rendering and ground-truth projection.
+    target : CMOPlaneTargetSpec
+        Planar target geometry.
+    poses : list of CMOPlanePose
+        One target pose per frame.
+    image_format : {"png"}
+        Output image format (only PNG is supported).
+    blur_sigma_px : float
+        Gaussian blur sigma in pixels applied to the rendered images.
+    noise_std_gray : float
+        Gaussian noise standard deviation, in gray levels.
+    seed : int
+        Seed for the noise random generator.
+
+    Raises
+    ------
+    ValueError
+        If ``image_format`` is not "png".
+    """
     if image_format != "png":
         raise ValueError("Only png is implemented")
     rng = np.random.default_rng(seed)
@@ -1277,7 +2094,22 @@ def generate_cmo_plane_dataset(
 
 
 def make_reference_cmo_scenario() -> tuple[CMOStereoSpec, CMOPlaneTargetSpec, list[CMOPlanePose]]:
-    """Reference CMO scenario with common aberration and channel asymmetries."""
+    """Build a canonical CMO test scenario: stereo model, target and poses.
+
+    Returns a fixed, reproducible setup — a symmetric CMO stereo head carrying
+    a shared aberration plus per-channel distortion / aberration asymmetries, a
+    ChArUco planar target, and a list of target poses — used as a known-truth
+    case for tests and demonstrations.
+
+    Returns
+    -------
+    cmo : CMOStereoSpec
+        The stereo CMO model.
+    target : CMOPlaneTargetSpec
+        The planar ChArUco target.
+    poses : list of CMOPlanePose
+        Target poses spanning the working volume.
+    """
     common = PolynomialRayAberration(
         coeff_x={"x2": +2.0e-4, "y2": -1.5e-4},
         coeff_y={"xy": +1.0e-4},
