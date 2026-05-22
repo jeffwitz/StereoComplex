@@ -112,17 +112,29 @@ non-trivial private ones.
 Highest-priority file `physics/cmo_physical.py`: **100 %** (53/53 public
 functions documented).
 
-A good docstring here is teaching material, not a type echo:
+A good docstring here is teaching material, not a type echo. **`physics/cmo_physical.py`
+is the reference exemplar** — match the depth of its `from_parameter_vector` and
+`n_parameters` docstrings (full parameter layout, indices, shapes, units,
+named conventions).
 
 - Lead with **what the function is for and why**, in scientific terms (the
   geometry / optics / estimation problem it solves) — not a restatement of the
   signature.
-- Numpydoc-ish `Parameters` / `Returns`, each with its **unit** (mm, px, rad)
-  and **physical meaning**, not just its type.
+- A bare **one-line docstring is acceptable only for genuinely trivial
+  functions** (simple accessor, property, `rotx`/`roty`/`rotz`). Any function
+  with non-trivial arguments or a structured return value **requires**
+  numpydoc-ish `Parameters` / `Returns` sections — each entry with its **unit**
+  (mm, px, rad), its **shape** if an array, and its **physical meaning**, not
+  just its type.
 - For any algorithmic function, **cite the source**: paper DOI / arXiv, or the
   governing equation.
 - Spell out non-obvious constraints, gauges or degeneracies (e.g. the
   `f_obj` / `telecentric_offset` degeneracy) — the things that surprise a reader.
+
+The stopping criterion is **not** the coverage percentage — it is "a
+non-Python-expert scientist can use the function from its docstring alone". A
+one-line pass that reaches 100 % but leaves substantive functions shallow does
+**not** satisfy this objective.
 
 Rules:
 
@@ -132,6 +144,9 @@ Rules:
 - Priority order — the hardest-to-read scientific core first: `physics/cmo*.py`,
   `ray3d/`, `benchmarks/rayfield_from_observations.py`,
   `physics/model_selection.py`.
+- **Rework needed:** `cmo.py` and `rayfields/zernike_origin_field.py` reached
+  100 % count with one-line docstrings — their non-trivial functions must be
+  brought to the depth required above.
 - Do **not** refactor / split files for this; readability comes from the
   docstrings, not from moving code around.
 
