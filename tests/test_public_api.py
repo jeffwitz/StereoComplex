@@ -10,7 +10,10 @@ def test_public_api_exports() -> None:
     import stereocomplex as sc
 
     # Tier 1 — user entry points
+    assert hasattr(sc, "calibrate")
+    assert hasattr(sc, "CameraSetup")
     assert hasattr(sc, "CharucoBoardSpec")
+    assert hasattr(sc, "NCameraCalibrationResult")
     assert hasattr(sc, "PhysicalModelSpec")
     assert hasattr(sc, "StereoCentralRayFieldModel")
     assert hasattr(sc, "StereoImagePair")
@@ -38,12 +41,23 @@ def test_public_api_exports() -> None:
     assert hasattr(sc, "StereoZernikeOriginFieldFitResult")
 
 
+def test_n_camera_calibration_result_reports_channel_count() -> None:
+    import stereocomplex as sc
+
+    result = sc.NCameraCalibrationResult(channel_names=("left", "right"))
+
+    assert result.n_channels == 2
+    assert result.stereo_result is None
+
+
 @pytest.mark.slow
 def test_refine_charuco_corners_accepts_detection_dataclass() -> None:
     import stereocomplex as sc
 
     scene_dir = Path("dataset/v0_png/train/scene_0000")
-    board = sc.CharucoBoardSpec.from_meta(json.loads((scene_dir / "meta.json").read_text(encoding="utf-8")))
+    board = sc.CharucoBoardSpec.from_meta(
+        json.loads((scene_dir / "meta.json").read_text(encoding="utf-8"))
+    )
     detections = sc.detect_charuco_corners(image=scene_dir / "left" / "000000.png", board=board)
     assert detections is not None
     refined = sc.refine_charuco_corners(
@@ -57,11 +71,9 @@ def test_refine_charuco_corners_accepts_detection_dataclass() -> None:
 def test_experimental_origin_field_api_smoke() -> None:
     from stereocomplex.physics import PhysicalModelSpec
     from stereocomplex.rayfields import ZernikeOriginFieldConfig
-    from stereocomplex.physics import (
-        CentralPinholeModel,
-        CentralBrownConradyModel,
-        select_physical_model_from_rayfield,
-    )
+    from stereocomplex.physics import CentralPinholeModel
 
     assert ZernikeOriginFieldConfig(image_size=(640, 480)).max_order == 4
-    assert PhysicalModelSpec("test", CentralPinholeModel, __import__("numpy").zeros(0)).name == "test"
+    assert (
+        PhysicalModelSpec("test", CentralPinholeModel, __import__("numpy").zeros(0)).name == "test"
+    )
