@@ -1,6 +1,12 @@
 # Tutorial: From zero to CMO calibration in 15 minutes
 
-This tutorial takes you from installing StereoComplex to obtaining a compact
+Each notebook now includes an **Open in Colab** badge at the top.
+Click it to launch a pre‑configured environment in your browser.
+The first cell (clearly marked) handles installation automatically —
+no local setup needed.
+
+If you already have a local install, simply ignore the Colab
+install cell and run the notebook as usual.
 physical calibration of a Common Main Objective stereo microscope.  You will
 learn the three layers of the library (Ray2D, Central 3D, Non-Central 3D) by
 using them, not by reading about them.
