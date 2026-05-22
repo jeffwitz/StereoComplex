@@ -196,24 +196,28 @@ scripts 07 and 08.
   :doc:`RECONSTRUCTION_API`,
   :doc:`RAYFIELD3D_RECONSTRUCTION`,
   :doc:`RAYFIELD_VIRTUAL_RECTIFY`.
-- Non-central and optical model identification:
+- Non-central and optical models:
   :doc:`NONCENTRAL_FROM_IMAGES`,
   :doc:`IDENTIFY_MY_OPTICS`,
   :doc:`CMO_MODEL_SELECTION`,
   :doc:`DIRECT_VS_RAYFIELD_INVERSION`,
+  :doc:`DIRECT_VS_RAYFIELD_CDC`,
   :doc:`PARALLEL_PLATE_ORIGIN_FIELD`.
-- Real-data CMO validation:
+- Real-data CMO case study:
   :doc:`REAL_CMO_PYCASO_RAYFIELD`,
   :doc:`CMO_PHYSICAL_MODEL`,
   :doc:`PYCASO_Z_SWEEP`.
-- Project status:
+- Validation and benchmarks:
   :doc:`VALIDATION_STATUS`,
+  :doc:`COMPRESSION_RECONSTRUCTION`,
+  :doc:`ROBUSTNESS_SWEEP`,
   :doc:`ROADMAP`.
 - Reference:
+  :doc:`api`,
   :doc:`PUBLIC_API`,
   :doc:`ARCHITECTURE`,
-  :doc:`DATASET_SPEC`,
   :doc:`CONVENTIONS`,
+  :doc:`DATASET_SPEC`,
   :doc:`ALTERNATIVES_POSITIONING`,
   :doc:`LICENSE`.
 
@@ -231,7 +235,7 @@ scripts 07 and 08.
 
 .. toctree::
    :maxdepth: 2
-   :caption: ChArUco / Ray-field
+   :caption: ChArUco and 2D ray-field
    :hidden:
 
    CHARUCO_IDENTIFICATION
@@ -239,7 +243,7 @@ scripts 07 and 08.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Ray-based calibration / 3D
+   :caption: Ray-based calibration and 3D
    :hidden:
 
    STEREO_RECONSTRUCTION
@@ -249,16 +253,15 @@ scripts 07 and 08.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Non-central / optical models
+   :caption: Non-central and optical models
    :hidden:
 
    NONCENTRAL_FROM_IMAGES
    IDENTIFY_MY_OPTICS
    CMO_MODEL_SELECTION
    DIRECT_VS_RAYFIELD_INVERSION
+   DIRECT_VS_RAYFIELD_CDC
    PARALLEL_PLATE_ORIGIN_FIELD
-   COMPRESSION_RECONSTRUCTION
-   ROBUSTNESS_SWEEP
 
 .. toctree::
    :maxdepth: 2
@@ -271,10 +274,12 @@ scripts 07 and 08.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Project status
+   :caption: Validation and benchmarks
    :hidden:
 
    VALIDATION_STATUS
+   COMPRESSION_RECONSTRUCTION
+   ROBUSTNESS_SWEEP
    ROADMAP
 
 .. toctree::
@@ -282,9 +287,10 @@ scripts 07 and 08.
    :caption: Reference
    :hidden:
 
+   api
    PUBLIC_API
    ARCHITECTURE
-   DATASET_SPEC
    CONVENTIONS
+   DATASET_SPEC
    ALTERNATIVES_POSITIONING
    LICENSE

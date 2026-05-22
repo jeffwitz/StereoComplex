@@ -11,13 +11,22 @@ from stereocomplex.core.model_compact.zernike import zernike_modes
 
 @dataclass(frozen=True)
 class StereoCentralRayFieldModel:
-    """
-    Stereo model for reconstruction with a *central* ray-field per camera.
+    """Stereo reconstruction model with a central ray-field per camera.
 
-    Convention:
-    - left camera frame is the reference frame
-    - right camera pose is expressed as X_R = R_RL X_L + t_RL
-      therefore the right camera center in left frame is C_R = -R_RL^T t_RL
+    The left camera frame is the reference frame. The right camera pose is
+    expressed as ``X_R = R_RL @ X_L + t_RL``, so the right camera centre in the
+    left frame is ``C_R = -R_RL.T @ t_RL``.
+
+    Attributes
+    ----------
+    image_width_px, image_height_px : int
+        Image size in pixels.
+    left, right : CentralRayFieldZernike
+        Per-camera central ray-field models.
+    R_RL : ndarray, shape (3, 3)
+        Rotation of the right camera relative to the left.
+    t_RL : ndarray, shape (3,)
+        Translation of the right camera relative to the left, in millimetres.
     """
 
     image_width_px: int
