@@ -15,6 +15,21 @@ calibration on a shared calibration target.
 - Do not use `main` / `origin/main` as the reference branch for this work unless
   JFW explicitly asks for a release/backport.
 
+### Colab branch hack — TEMPORARY
+
+`origin/main` is stale (missing most notebooks, including
+`00_getting_started.ipynb`), so Colab links to `blob/main/...` 404. Until the
+next `develop` → `main` merge, **all Colab references point to `develop`**:
+
+- badge URLs in `docs/TUTORIAL.md` (`blob/develop/...`);
+- the `git clone --depth 1 --branch develop ...` line in the setup cell (cell 0)
+  of every `examples/notebooks/*.ipynb`;
+- `examples/notebooks/add_colab_badges.py`.
+
+**At the next `develop` → `main` merge, deactivate this hack**: switch those
+three places back from `develop` to `main` (once `main` actually carries the
+notebooks). Until then, share `blob/develop/` Colab URLs.
+
 ## CMO paper status — DONE
 
 26 pages, 31 refs, submitted-ready. No further changes to `paper/cmo/`.
