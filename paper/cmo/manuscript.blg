@@ -1,0 +1,49 @@
+This is BibTeX, Version 0.99d (TeX Live 2023/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: manuscript.aux
+The style file: plain.bst
+Database file #1: references.bib
+Warning--entry type for "stereocomplex" isn't style-file defined
+--line 175 of file references.bib
+You've used 34 entries,
+            2118 wiz_defined-function locations,
+            704 strings with 8862 characters,
+and the built_in function-call counts, 12368 in all, are:
+= -- 1253
+> -- 475
+< -- 10
++ -- 196
+- -- 154
+* -- 834
+:= -- 1933
+add.period$ -- 99
+call.type$ -- 34
+change.case$ -- 177
+chr.to.int$ -- 0
+cite$ -- 34
+duplicate$ -- 486
+empty$ -- 1041
+format.name$ -- 154
+if$ -- 2651
+int.to.chr$ -- 0
+int.to.str$ -- 34
+missing$ -- 33
+newline$ -- 170
+num.names$ -- 68
+pop$ -- 190
+preamble$ -- 1
+purify$ -- 144
+quote$ -- 0
+skip$ -- 383
+stack$ -- 0
+substring$ -- 1000
+swap$ -- 136
+text.length$ -- 10
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 132
+warning$ -- 0
+while$ -- 134
+width$ -- 36
+write$ -- 366
+(There was 1 warning)

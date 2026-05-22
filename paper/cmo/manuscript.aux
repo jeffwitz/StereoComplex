@@ -1,0 +1,183 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{inoue1997}
+\citation{sanderson2019}
+\citation{opencv}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\citation{grossberg2001}
+\citation{sturm2004}
+\citation{schops2020}
+\citation{schreier2004}
+\citation{zhang2006_microdic}
+\citation{liu2018_generic_microscope}
+\citation{stereocomplex}
+\citation{zernike1934}
+\citation{noll1976}
+\citation{schops2020}
+\citation{garrido2014}
+\citation{romero2018}
+\citation{pycaso2023}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces CMO stereo microscope optical layout. Two off-axis sub-pupils share a single main objective. Chief rays converge toward the object plane through different effective origins---not through a single common centre.}}{2}{figure.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:cmo}{{1}{2}{CMO stereo microscope optical layout. Two off-axis sub-pupils share a single main objective. Chief rays converge toward the object plane through different effective origins---not through a single common centre}{figure.caption.1}{}}
+\citation{zhang2000}
+\citation{brown1966}
+\citation{opencv}
+\citation{bouguet2008}
+\citation{mei2007}
+\citation{kannala2006}
+\citation{scaramuzza2006}
+\citation{grossberg2001}
+\citation{sturm2004}
+\citation{ramalingam2017}
+\citation{miraldo2013}
+\citation{soloff1997}
+\citation{camposeco2016}
+\citation{ramalingam2010}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Pipeline overview. The two-stage decomposition separates rayfield measurement (Ray2D preprocessing + Zernike BA) from physical model identification (ray-space BIC selection). The Ray2D stage is purely 2D and does not impose a 3D camera model.}}{3}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:pipeline}{{2}{3}{Pipeline overview. The two-stage decomposition separates rayfield measurement (Ray2D preprocessing + Zernike BA) from physical model identification (ray-space BIC selection). The Ray2D stage is purely 2D and does not impose a 3D camera model}{figure.caption.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{3}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Generic and Non-Central Camera Calibration}{3}{subsection.2.1}\protected@file@percent }
+\citation{schops2020}
+\citation{schreier2004}
+\citation{zhang2006_microdic}
+\citation{liu2018_generic_microscope}
+\citation{akaike1974}
+\citation{schwarz1978}
+\citation{strecha2008}
+\citation{plucker1865}
+\citation{bartoli2005}
+\citation{triggs1999}
+\citation{zernike1934}
+\citation{noll1976}
+\citation{schops2020}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Stereo Microscope Calibration}{4}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Model Selection in Camera Calibration}{4}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Pl\"ucker Coordinates and Line-Based Geometry}{4}{subsection.2.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Residual-Guided Model Construction}{4}{subsection.2.5}\protected@file@percent }
+\citation{schwarz1978}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Zernike order selection by BIC. Pixel RMS decreases monotonically with more parameters (from \SI {0.47}{px} at 57~params to \SI {0.41}{px} at 141~params), but BIC penalises complexity. The BIC minimum is at O(1)+d(3) (93~params, BIC~= $-5093$, RMS~= \SI {0.41}{px}), though O(0)+d(2) (57~params, BIC~= $-4522$) is within $\sim $10\,\% in RMS at 40\,\% fewer parameters. The O(0)+d(2) model (57~params, \SI {0.47}{px}) is selected for physical model construction because it is internally consistent with the rigid-sub-pupil CMO assumption, achieves \SI {90}{\percent } of the noise-floor accuracy at nearly half the parameters of the BIC minimum, and the marginal improvement above d(2) falls within corner detection noise.}}{5}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:bic_order}{{3}{5}{Zernike order selection by BIC. Pixel RMS decreases monotonically with more parameters (from \SI {0.47}{px} at 57~params to \SI {0.41}{px} at 141~params), but BIC penalises complexity. The BIC minimum is at O(1)+d(3) (93~params, BIC~= $-5093$, RMS~= \SI {0.41}{px}), though O(0)+d(2) (57~params, BIC~= $-4522$) is within $\sim $10\,\% in RMS at 40\,\% fewer parameters. The O(0)+d(2) model (57~params, \SI {0.47}{px}) is selected for physical model construction because it is internally consistent with the rigid-sub-pupil CMO assumption, achieves \SI {90}{\percent } of the noise-floor accuracy at nearly half the parameters of the BIC minimum, and the marginal improvement above d(2) falls within corner detection noise}{figure.caption.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Method}{5}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Zernike Order Selection by BIC}{5}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:bic_order}{{3.1}{5}{Zernike Order Selection by BIC}{subsection.3.1}{}}
+\citation{zernike1934}
+\citation{noll1976}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Zernike order sweep: pixel RMS and BIC.}}{6}{table.caption.4}\protected@file@percent }
+\newlabel{tab:order_sweep}{{1}{6}{Zernike order sweep: pixel RMS and BIC}{table.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Per-Pixel Ray-Field and Transverse Gauge}{6}{subsection.3.2}\protected@file@percent }
+\citation{zhang2000}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Ray-Space Bundle Adjustment}{7}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}The Zernike Rayfield as Observable}{7}{subsection.3.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces 3D reconstruction of the effective sub-pupils from the Zernike rayfield. $O_L$ and $O_R$ are read from the centre-pixel rayfield. The chief rays converge at the working plane ($WD = \SI {64.7}{mm}$). The baseline $b=\|O_R-O_L\|=\SI {24.9}{mm}$ is an effective rayfield descriptor in the selected gauge and reference scale.}}{8}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:subpupil}{{4}{8}{3D reconstruction of the effective sub-pupils from the Zernike rayfield. $O_L$ and $O_R$ are read from the centre-pixel rayfield. The chief rays converge at the working plane ($WD = \SI {64.7}{mm}$). The baseline $b=\|O_R-O_L\|=\SI {24.9}{mm}$ is an effective rayfield descriptor in the selected gauge and reference scale}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Physical Model Construction by Residual Analysis}{8}{subsection.3.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.1}Perspective CMO (Baseline)}{8}{subsubsection.3.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.2}Telecentric CMO}{8}{subsubsection.3.5.2}\protected@file@percent }
+\citation{plucker1865}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Comparison of $d_y(u,v)$ profiles across the sensor. The Zernike rayfield (measured) shows a nearly constant $d_y$ (range $0.079$), while the perspective CMO model predicts a $3\times $ larger linear gradient (range $0.232$). The telecentric model reproduces the measured profile almost exactly.}}{9}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:dy}{{5}{9}{Comparison of $d_y(u,v)$ profiles across the sensor. The Zernike rayfield (measured) shows a nearly constant $d_y$ (range $0.079$), while the perspective CMO model predicts a $3\times $ larger linear gradient (range $0.232$). The telecentric model reproduces the measured profile almost exactly}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.3}Residual Analysis}{9}{subsubsection.3.5.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Residual evolution across model stages. Direction error $\Delta d$ (degrees) between the Zernike rayfield (reference) and each candidate model, evaluated on a $31\times 31$ pixel grid. \textbf  {Left:} Perspective CMO --- large structured error (RMS \SI {23.6}{\degree }, max \SI {27.7}{\degree }), dominated by a strong $d_y$ gradient. \textbf  {Centre:} Telecentric CMO --- RMS drops to \SI {0.27}{\degree } (two orders of magnitude), but the residual is still $Z_0^0$-dominated (global piston), revealing the missing SE(3) arm alignment. \textbf  {Right:} CMO + SE(3) --- RMS drops to \SI {0.003}{\degree }, near the noise floor. The residual heatmap at each stage directly tells the user \emph  {what} is wrong and \emph  {where} to look next.}}{10}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:residuals}{{6}{10}{Residual evolution across model stages. Direction error $\Delta d$ (degrees) between the Zernike rayfield (reference) and each candidate model, evaluated on a $31\times 31$ pixel grid. \textbf {Left:} Perspective CMO --- large structured error (RMS \SI {23.6}{\degree }, max \SI {27.7}{\degree }), dominated by a strong $d_y$ gradient. \textbf {Centre:} Telecentric CMO --- RMS drops to \SI {0.27}{\degree } (two orders of magnitude), but the residual is still $Z_0^0$-dominated (global piston), revealing the missing SE(3) arm alignment. \textbf {Right:} CMO + SE(3) --- RMS drops to \SI {0.003}{\degree }, near the noise floor. The residual heatmap at each stage directly tells the user \emph {what} is wrong and \emph {where} to look next}{figure.caption.7}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.4}Testing Alternative Hypotheses}{10}{subsubsection.3.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.5}Residual-Guided Hypothesis Construction}{10}{subsubsection.3.5.5}\protected@file@percent }
+\citation{schwarz1978}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.5.6}Per-Channel SE(3) Arm Alignment}{11}{subsubsection.3.5.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Model Selection}{11}{subsection.3.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.7}Why Direct Bundle Adjustment is Ill-Conditioned for Non-Central Optics}{11}{subsection.3.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Pareto frontier of the gauge-regularized Zernike sweep. Pixel RMS vs.\ $Z_0$ direction drift for varying regularization strengths $\sigma _{Z_0},\sigma _{Z_1}$. The near-vertical Pareto curve confirms that after double TPS preprocessing, even the unregularized full-pose fit has negligible gauge drift ($0.023^\circ $). Regularization is unnecessary when 2D corners are sufficiently clean.}}{12}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:pareto}{{7}{12}{Pareto frontier of the gauge-regularized Zernike sweep. Pixel RMS vs.\ $Z_0$ direction drift for varying regularization strengths $\sigma _{Z_0},\sigma _{Z_1}$. The near-vertical Pareto curve confirms that after double TPS preprocessing, even the unregularized full-pose fit has negligible gauge drift ($0.023^\circ $). Regularization is unnecessary when 2D corners are sufficiently clean}{figure.caption.8}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.7.1}Conditioning of the Joint Estimation Problem}{12}{subsubsection.3.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.7.2}Empirical Coupling Values}{12}{subsubsection.3.7.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Singular value spectra of the optics information matrix $\mathcal  {I}_{\theta \theta }$ (direct BA), its Schur complement $\mathcal  {I}_{\theta |\eta }$ after marginalising poses, and the rayfield BA (pose-free). The trailing singular values of $\mathcal  {I}_{\theta \theta }$ collapse in the Schur complement, indicating that the last $\sim $8 optical parameters are nearly unobservable when poses are jointly estimated. The rayfield BA eliminates this coupling by design.}}{13}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:schur}{{8}{13}{Singular value spectra of the optics information matrix $\mathcal {I}_{\theta \theta }$ (direct BA), its Schur complement $\mathcal {I}_{\theta |\eta }$ after marginalising poses, and the rayfield BA (pose-free). The trailing singular values of $\mathcal {I}_{\theta \theta }$ collapse in the Schur complement, indicating that the last $\sim $8 optical parameters are nearly unobservable when poses are jointly estimated. The rayfield BA eliminates this coupling by design}{figure.caption.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.8}Corner Bundle Adjustment}{13}{subsection.3.8}\protected@file@percent }
+\citation{garrido2014}
+\citation{romero2018}
+\citation{pycaso2023}
+\citation{bookstein1989}
+\citation{stereocomplex}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Results}{14}{section.4}\protected@file@percent }
+\newlabel{sec:results}{{4}{14}{Results}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Data Sources}{14}{subsection.4.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Data sources for results reported in this paper. Real data: 10 Pycaso stereo pairs. Synthetic oracles: StereoComplex \texttt  {model\_selection\_oracles.py}. Method: analytical and numerical diagnostics independent of data source.}}{14}{table.caption.10}\protected@file@percent }
+\newlabel{tab:data_sources}{{2}{14}{Data sources for results reported in this paper. Real data: 10 Pycaso stereo pairs. Synthetic oracles: StereoComplex \texttt {model\_selection\_oracles.py}. Method: analytical and numerical diagnostics independent of data source}{table.caption.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Dataset and Pipeline}{14}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Pose Count Sensitivity}{14}{subsection.4.3}\protected@file@percent }
+\citation{pycaso2023}
+\citation{schops2020}
+\citation{pan2022}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Pose sweep: pixel RMS and CMO descriptor stability vs.\ number of frames.}}{15}{table.caption.11}\protected@file@percent }
+\newlabel{tab:pose_sweep}{{3}{15}{Pose sweep: pixel RMS and CMO descriptor stability vs.\ number of frames}{table.caption.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}OpenCV Tuning Does Not Recover}{15}{subsection.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Geometric Descriptor Validation}{15}{subsection.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Comparison with Generic Methods}{15}{subsection.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}Internal Validation}{16}{subsection.4.7}\protected@file@percent }
+\newlabel{sec:validation}{{4.7}{16}{Internal Validation}{subsection.4.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8}Application Sanity Check: Specimen Reconstruction}{16}{subsection.4.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Dense specimen reconstruction. Top row: left image, horizontal disparity field, valid mask (92.7\,\% coverage). Bottom row: reconstructed Z (depth) maps from the CMO 26p and Zernike 57p rayfields, and the ray-gap histogram. Both models produce nearly identical ray gaps (median \SI {0.001}{mm}), confirming rayfield coherence. The CMO 26p surface is smoother (Z roughness 0.072~mm) than the Zernike (0.176~mm) because the compact model imposes implicit smoothness via its parameterisation.}}{17}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:specimen}{{9}{17}{Dense specimen reconstruction. Top row: left image, horizontal disparity field, valid mask (92.7\,\% coverage). Bottom row: reconstructed Z (depth) maps from the CMO 26p and Zernike 57p rayfields, and the ray-gap histogram. Both models produce nearly identical ray gaps (median \SI {0.001}{mm}), confirming rayfield coherence. The CMO 26p surface is smoother (Z roughness 0.072~mm) than the Zernike (0.176~mm) because the compact model imposes implicit smoothness via its parameterisation}{figure.caption.12}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Rigid-gauge removal: Zernike vs CMO surface comparison. Top row: CMO and Zernike surfaces after plane-normalization (relief only). $ Delta Z$ raw and plane-normalized residuals. Bottom row: $ Delta Z$ before SE(3) alignment (dominated by an affine ramp, $R^2=0.995$), the fitted affine plane, and the residual histogram. After SE(3)+plane removal, the median 3D residual drops from \SI {3.8}{mm} to \SI {0.06}{mm} — a \SI {98.5}{\percent } reduction. The interpretation is Case~A: the Zernike and CMO reconstructions differ primarily by a global reference-frame gauge, not by a genuine non-rigid rayfield discrepancy.}}{18}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:rigid_removal}{{10}{18}{Rigid-gauge removal: Zernike vs CMO surface comparison. Top row: CMO and Zernike surfaces after plane-normalization (relief only). $\\Delta Z$ raw and plane-normalized residuals. Bottom row: $\\Delta Z$ before SE(3) alignment (dominated by an affine ramp, $R^2=0.995$), the fitted affine plane, and the residual histogram. After SE(3)+plane removal, the median 3D residual drops from \SI {3.8}{mm} to \SI {0.06}{mm} — a \SI {98.5}{\percent } reduction. The interpretation is Case~A: the Zernike and CMO reconstructions differ primarily by a global reference-frame gauge, not by a genuine non-rigid rayfield discrepancy}{figure.caption.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.9}Model Performance}{19}{subsection.4.9}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Model comparison on Pycaso CMO data. The 26-parameter CMO+SE(3) model is the compact physical reference.}}{19}{table.caption.14}\protected@file@percent }
+\newlabel{tab:models}{{4}{19}{Model comparison on Pycaso CMO data. The 26-parameter CMO+SE(3) model is the compact physical reference}{table.caption.14}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Two-panel BIC bar chart. (a) Ray-space BIC: the CMO telecentric family achieves the lowest BIC by a decisive margin ($>\num {40000}$~points). (b) Operational usability score with a \SI {1.5}{px} reprojection guard: models exceeding the threshold are marked as REJECTED (shown in grey/orange); only the 26p SE(3)-aligned model passes the guard (shown in green).}}{19}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:bicbars}{{11}{19}{Two-panel BIC bar chart. (a) Ray-space BIC: the CMO telecentric family achieves the lowest BIC by a decisive margin ($>\num {40000}$~points). (b) Operational usability score with a \SI {1.5}{px} reprojection guard: models exceeding the threshold are marked as REJECTED (shown in grey/orange); only the 26p SE(3)-aligned model passes the guard (shown in green)}{figure.caption.15}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.10}BIC Model Selection}{19}{subsection.4.10}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces BIC model selection on the Zernike rayfield. Models above 1.5~px reprojection are REJECTED by the operational guard.}}{19}{table.caption.16}\protected@file@percent }
+\newlabel{tab:bic}{{5}{19}{BIC model selection on the Zernike rayfield. Models above 1.5~px reprojection are REJECTED by the operational guard}{table.caption.16}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.11}Geometric Descriptors}{20}{subsection.4.11}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces CMO-consistent geometric descriptors read directly from the Zernike rayfield at the centre pixel.}}{20}{table.caption.17}\protected@file@percent }
+\newlabel{tab:descriptors}{{6}{20}{CMO-consistent geometric descriptors read directly from the Zernike rayfield at the centre pixel}{table.caption.17}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.12}SE(3) Ablation}{20}{subsection.4.12}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces SE(3) arm alignment ablation. Per-arm DOFs are individually necessary.}}{20}{table.caption.18}\protected@file@percent }
+\newlabel{tab:ablation}{{7}{20}{SE(3) arm alignment ablation. Per-arm DOFs are individually necessary}{table.caption.18}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{20}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}The Rayfield as Diagnostic Instrument}{20}{subsection.5.1}\protected@file@percent }
+\citation{stereocomplex}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Limitations}{21}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:limitations}{{5.2}{21}{Limitations}{subsection.5.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Generalisability}{21}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Why the Two-Stage Decomposition Works}{21}{subsection.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{22}{section.6}\protected@file@percent }
+\bibstyle{plain}
+\bibdata{references}
+\bibcite{akaike1974}{1}
+\bibcite{bartoli2005}{2}
+\bibcite{bookstein1989}{3}
+\bibcite{bouguet2008}{4}
+\bibcite{brown1966}{5}
+\bibcite{camposeco2016}{6}
+\bibcite{pycaso2023}{7}
+\bibcite{garrido2014}{8}
+\bibcite{grossberg2001}{9}
+\bibcite{inoue1997}{10}
+\bibcite{kannala2006}{11}
+\bibcite{liu2018_generic_microscope}{12}
+\bibcite{mei2007}{13}
+\bibcite{miraldo2013}{14}
+\bibcite{noll1976}{15}
+\bibcite{opencv}{16}
+\bibcite{pan2022}{17}
+\bibcite{plucker1865}{18}
+\bibcite{ramalingam2017}{19}
+\bibcite{ramalingam2010}{20}
+\bibcite{romero2018}{21}
+\bibcite{sanderson2019}{22}
+\bibcite{scaramuzza2006}{23}
+\bibcite{schops2020}{24}
+\bibcite{schreier2004}{25}
+\bibcite{schwarz1978}{26}
+\bibcite{soloff1997}{27}
+\bibcite{strecha2008}{28}
+\bibcite{sturm2004}{29}
+\bibcite{triggs1999}{30}
+\bibcite{stereocomplex}{31}
+\bibcite{zernike1934}{32}
+\bibcite{zhang2006_microdic}{33}
+\bibcite{zhang2000}{34}
+\gdef \@abspage@last{26}

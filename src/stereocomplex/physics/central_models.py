@@ -50,7 +50,8 @@ class CentralPinholeModel:
         if abs(uv_h[2]) < 1e-12:
             return np.full(2, np.nan), False
         u, v = uv_h[0] / uv_h[2], uv_h[1] / uv_h[2]
-        W = 2 * K[0, 2]; H = 2 * K[1, 2]
+        W = 2 * K[0, 2]
+        H = 2 * K[1, 2]
         return np.array([u, v]), bool(0 <= u <= W - 1 and 0 <= v <= H - 1)
 
 
@@ -175,7 +176,8 @@ class CentralBrownConradyModel:
         )
         u = float(xd[0] * K[0, 0] + K[0, 2])
         v = float(yd[0] * K[1, 1] + K[1, 2])
-        W = 2 * K[0, 2]; H = 2 * K[1, 2]
+        W = 2 * K[0, 2]
+        H = 2 * K[1, 2]
         return np.array([u, v]), bool(0 <= u <= W - 1 and 0 <= v <= H - 1)
 
 

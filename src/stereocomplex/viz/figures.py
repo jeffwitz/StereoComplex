@@ -12,13 +12,8 @@ import numpy as np
 from stereocomplex.viz.primitives import (
     annotate_math,
     draw_dimension,
-    draw_lens,
-    draw_optical_axis,
-    draw_ray,
-    draw_sensor,
-    draw_specimen,
 )
-from stereocomplex.viz.style import COLORS, LINEWIDTHS
+from stereocomplex.viz.style import COLORS
 
 
 def diagram_pinhole_stereo(
@@ -58,7 +53,7 @@ def diagram_pinhole_stereo(
             linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
 
     # ---- camera centres + sensor dots ----
-    for O, ch, name in [(OL, "left", "O_L"), (OR, "right", "O_R")]:
+    for O, ch, name in [(OL, "left", "O_L"), (OR, "right", "O_R")]:  # noqa: E741
         ax.scatter(*O, s=80, color=COLORS[ch], edgecolors="white",
                    linewidth=1.0, zorder=15)
         ox = -14 if ch == "left" else 6
@@ -76,7 +71,7 @@ def diagram_pinhole_stereo(
     annotate_math(ax, sp, "X", offset=(4, -8))
 
     # ---- chief rays ----
-    for O, ch in [(OL, "left"), (OR, "right")]:
+    for O, ch in [(OL, "left"), (OR, "right")]:  # noqa: E741
         ax.plot([O[0], sp[0]], [O[1], sp[1]], color=COLORS[ch],
                 linewidth=2.2, solid_capstyle="round", zorder=5)
 
@@ -293,7 +288,7 @@ def diagram_greenough(
     ax.plot([0, 0], [sp[1] - 10, z_top + 5], color=COLORS["axis"],
             linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
 
-    for ch, O, theta in [("left", OL, theta_L), ("right", OR, theta_R)]:
+    for ch, O, theta in [("left", OL, theta_L), ("right", OR, theta_R)]:  # noqa: E741
         # u_down points toward the specimen, u_up toward the sensor
         u_down = np.array([math.sin(theta), -math.cos(theta)])
         u_up = -u_down
