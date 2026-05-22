@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from stereocomplex.benchmarks.model_selection_oracles import (
+    MultiCameraOracle,
     StereoOracle,
     build_all_oracles,
     build_brown_oracle,
@@ -13,6 +14,7 @@ from stereocomplex.benchmarks.model_selection_oracles import (
     build_exotic_zernike_oracle,
     build_greenough_oracle,
     build_pinhole_oracle,
+    build_pinhole_n_camera_oracle,
     build_plate_oracle,
 )
 
@@ -54,18 +56,38 @@ def test_cmo_oracle_has_identifiable_quantities():
 
 def test_cmo_oracle_K_matches_angular_scale():
     o = build_cmo_oracle()
-    expected_fx = o.ground_truth_parameters["f_tube_mm"] / o.ground_truth_parameters["pixel_pitch_mm"]
+    expected_fx = (
+        o.ground_truth_parameters["f_tube_mm"] / o.ground_truth_parameters["pixel_pitch_mm"]
+    )
     assert abs(o.K_left[0, 0] - expected_fx) < 1e-9
 
 
-@pytest.mark.parametrize("builder", [
-    build_pinhole_oracle,
-    build_brown_oracle,
-    build_plate_oracle,
-    build_cmo_oracle,
-    build_greenough_oracle,
-    build_exotic_zernike_oracle,
-])
+def test_pinhole_n_camera_oracle_builds_four_named_channels():
+    oracle = build_pinhole_n_camera_oracle()
+
+    assert isinstance(oracle, MultiCameraOracle)
+    assert oracle.n_channels == 4
+    assert oracle.channel_names == ("cam0", "cam1", "cam2", "cam3")
+    for name in oracle.channel_names:
+        u = np.array([oracle.image_size[0] / 2])
+        v = np.array([oracle.image_size[1] / 2])
+        origin, direction = oracle.field(name).ray(u, v)
+        assert oracle.K(name).shape == (3, 3)
+        assert origin.shape == direction.shape == (1, 3)
+        assert np.allclose(np.linalg.norm(direction, axis=1), 1.0)
+
+
+@pytest.mark.parametrize(
+    "builder",
+    [
+        build_pinhole_oracle,
+        build_brown_oracle,
+        build_plate_oracle,
+        build_cmo_oracle,
+        build_greenough_oracle,
+        build_exotic_zernike_oracle,
+    ],
+)
 def test_each_oracle_builder_returns_stereo_oracle(builder):
     o = builder()
     assert isinstance(o, StereoOracle)

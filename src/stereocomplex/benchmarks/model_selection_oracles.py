@@ -74,6 +74,40 @@ class StereoOracle:
             object.__setattr__(self, "ground_truth_parameters", {})
 
 
+@dataclass(frozen=True)
+class MultiCameraOracle:
+    """Synthetic N-camera rayfield rig used by N-camera validation tests."""
+
+    name: str
+    expected_winner: str
+    fields_by_channel: dict[str, Any]
+    intrinsics_by_channel: dict[str, np.ndarray]
+    image_size: tuple[int, int]
+    ground_truth_parameters: dict[str, Any] = None  # type: ignore[assignment]
+
+    def __post_init__(self):
+        if not self.fields_by_channel:
+            raise ValueError("at least one channel is required")
+        if set(self.fields_by_channel) != set(self.intrinsics_by_channel):
+            raise ValueError("fields and intrinsics must use the same channel names")
+        if self.ground_truth_parameters is None:
+            object.__setattr__(self, "ground_truth_parameters", {})
+
+    @property
+    def channel_names(self) -> tuple[str, ...]:
+        return tuple(self.fields_by_channel)
+
+    @property
+    def n_channels(self) -> int:
+        return len(self.fields_by_channel)
+
+    def field(self, channel: str):
+        return self.fields_by_channel[channel]
+
+    def K(self, channel: str) -> np.ndarray:
+        return self.intrinsics_by_channel[channel]
+
+
 # ── default image size used by most oracles ──────────────────────────
 _IMAGE_SIZE = (160, 120)
 _SEED = 42
@@ -83,8 +117,7 @@ def build_pinhole_oracle(image_size=_IMAGE_SIZE) -> StereoOracle:
     """Symmetric central pinhole stereo pair."""
     w, h = image_size
     cx, cy = (w - 1) / 2, (h - 1) / 2
-    K = np.array([[200.0, 0.0, cx], [0.0, 200.0, cy], [0.0, 0.0, 1.0]],
-                 dtype=np.float64)
+    K = np.array([[200.0, 0.0, cx], [0.0, 200.0, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
     return StereoOracle(
         name="central pinhole",
         expected_winner="central_pinhole",
@@ -96,19 +129,42 @@ def build_pinhole_oracle(image_size=_IMAGE_SIZE) -> StereoOracle:
     )
 
 
+def build_pinhole_n_camera_oracle(
+    image_size=_IMAGE_SIZE,
+    channel_names: tuple[str, ...] = ("cam0", "cam1", "cam2", "cam3"),
+) -> MultiCameraOracle:
+    """Central pinhole N-camera rig with known per-channel intrinsics."""
+    if not channel_names:
+        raise ValueError("at least one channel is required")
+    w, h = image_size
+    cx, cy = (w - 1) / 2, (h - 1) / 2
+    fields: dict[str, Any] = {}
+    intrinsics: dict[str, np.ndarray] = {}
+    for idx, name in enumerate(channel_names):
+        focal = 190.0 + 10.0 * float(idx)
+        K = np.array([[focal, 0.0, cx], [0.0, focal, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
+        fields[name] = CentralPinholeModel(K=K)
+        intrinsics[name] = K
+    return MultiCameraOracle(
+        name=f"central pinhole x{len(channel_names)}",
+        expected_winner="central_pinhole",
+        fields_by_channel=fields,
+        intrinsics_by_channel=intrinsics,
+        image_size=image_size,
+        ground_truth_parameters={"channel_names": channel_names},
+    )
+
+
 def build_brown_oracle(image_size=_IMAGE_SIZE) -> StereoOracle:
     """Central Brown-Conrady stereo pair with moderate distortion."""
     w, h = image_size
     cx, cy = (w - 1) / 2, (h - 1) / 2
-    K = np.array([[200.0, 0.0, cx], [0.0, 200.0, cy], [0.0, 0.0, 1.0]],
-                 dtype=np.float64)
+    K = np.array([[200.0, 0.0, cx], [0.0, 200.0, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
     return StereoOracle(
         name="central Brown-Conrady",
         expected_winner="central_brown_conrady",
-        left_field=CentralBrownConradyModel(K=K, k1=-0.08, k2=0.03,
-                                             p1=1e-3, p2=-1e-3, k3=0.0),
-        right_field=CentralBrownConradyModel(K=K, k1=-0.06, k2=0.02,
-                                              p1=-5e-4, p2=8e-4, k3=0.0),
+        left_field=CentralBrownConradyModel(K=K, k1=-0.08, k2=0.03, p1=1e-3, p2=-1e-3, k3=0.0),
+        right_field=CentralBrownConradyModel(K=K, k1=-0.06, k2=0.02, p1=-5e-4, p2=8e-4, k3=0.0),
         K_left=K,
         K_right=K,
         image_size=image_size,
@@ -120,13 +176,20 @@ def build_plate_oracle(image_size=_IMAGE_SIZE) -> StereoOracle:
     """Pinhole + inclined parallel plate with 2 mm thickness."""
     w, h = image_size
     cx, cy = (w - 1) / 2, (h - 1) / 2
-    K = np.array([[200.0, 0.0, cx], [0.0, 200.0, cy], [0.0, 0.0, 1.0]],
-                 dtype=np.float64)
+    K = np.array([[200.0, 0.0, cx], [0.0, 200.0, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
     left_params = PinholeParallelPlateFitParams(
-        alpha_deg=5.0, beta_deg=-3.0, thickness_mm=2.0, eta=1.5, d1_mm=80.0,
+        alpha_deg=5.0,
+        beta_deg=-3.0,
+        thickness_mm=2.0,
+        eta=1.5,
+        d1_mm=80.0,
     )
     right_params = PinholeParallelPlateFitParams(
-        alpha_deg=-5.0, beta_deg=2.0, thickness_mm=2.0, eta=1.5, d1_mm=80.0,
+        alpha_deg=-5.0,
+        beta_deg=2.0,
+        thickness_mm=2.0,
+        eta=1.5,
+        d1_mm=80.0,
     )
     return StereoOracle(
         name="inclined parallel plate",
@@ -137,7 +200,9 @@ def build_plate_oracle(image_size=_IMAGE_SIZE) -> StereoOracle:
         K_right=K,
         image_size=image_size,
         ground_truth_parameters={
-            "alpha_deg_L": 5.0, "beta_deg_L": -3.0, "thickness_mm": 2.0,
+            "alpha_deg_L": 5.0,
+            "beta_deg_L": -3.0,
+            "thickness_mm": 2.0,
         },
     )
 
@@ -147,15 +212,19 @@ def build_cmo_oracle(image_size=_IMAGE_SIZE) -> StereoOracle:
     w, h = image_size
     cx, cy = (w - 1) / 2, (h - 1) / 2
     truth = CMOPhysicalStereoModel(
-        f_obj_mm=80.0, working_distance_mm=120.0, b_mm=8.0,
-        f_tube_mm=50.0, cx_principal_px=cx, cy_principal_px=cy,
-        pixel_pitch_mm=0.05, image_size=image_size,
+        f_obj_mm=80.0,
+        working_distance_mm=120.0,
+        b_mm=8.0,
+        f_tube_mm=50.0,
+        cx_principal_px=cx,
+        cy_principal_px=cy,
+        pixel_pitch_mm=0.05,
+        image_size=image_size,
         distortion_left=(-0.04, 0.01, 2.0e-4, -1.0e-4, 0.0),
         distortion_right=(-0.035, 0.008, -2.0e-4, 1.0e-4, 0.0),
     )
     fx = truth.f_tube_mm / truth.pixel_pitch_mm
-    K = np.array([[fx, 0.0, cx], [0.0, fx, cy], [0.0, 0.0, 1.0]],
-                 dtype=np.float64)
+    K = np.array([[fx, 0.0, cx], [0.0, fx, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
     return StereoOracle(
         name="CMO shared-rig",
         expected_winner="cmo_physical_shared",
@@ -166,8 +235,11 @@ def build_cmo_oracle(image_size=_IMAGE_SIZE) -> StereoOracle:
         image_size=image_size,
         pixel_pitch_mm=truth.pixel_pitch_mm,
         ground_truth_parameters={
-            "f_obj_mm": 80.0, "working_distance_mm": 120.0,
-            "b_mm": 8.0, "f_tube_mm": 50.0, "pixel_pitch_mm": 0.05,
+            "f_obj_mm": 80.0,
+            "working_distance_mm": 120.0,
+            "b_mm": 8.0,
+            "f_tube_mm": 50.0,
+            "pixel_pitch_mm": 0.05,
         },
     )
 
@@ -176,17 +248,13 @@ def build_greenough_oracle(image_size=_IMAGE_SIZE) -> StereoOracle:
     """Greenough stereo: two independent central Brown-Conrady channels."""
     w, h = image_size
     cx, cy = (w - 1) / 2, (h - 1) / 2
-    K_L = np.array([[210.0, 0.0, cx], [0.0, 210.0, cy], [0.0, 0.0, 1.0]],
-                   dtype=np.float64)
-    K_R = np.array([[195.0, 0.0, cx], [0.0, 195.0, cy], [0.0, 0.0, 1.0]],
-                   dtype=np.float64)
+    K_L = np.array([[210.0, 0.0, cx], [0.0, 210.0, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
+    K_R = np.array([[195.0, 0.0, cx], [0.0, 195.0, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
     return StereoOracle(
         name="Greenough (Brown-Conrady ×2)",
         expected_winner="central_brown_conrady",
-        left_field=CentralBrownConradyModel(K=K_L, k1=-0.08, k2=0.03,
-                                             p1=1e-3, p2=-1e-3, k3=0.0),
-        right_field=CentralBrownConradyModel(K=K_R, k1=-0.06, k2=0.02,
-                                              p1=-5e-4, p2=8e-4, k3=0.0),
+        left_field=CentralBrownConradyModel(K=K_L, k1=-0.08, k2=0.03, p1=1e-3, p2=-1e-3, k3=0.0),
+        right_field=CentralBrownConradyModel(K=K_R, k1=-0.06, k2=0.02, p1=-5e-4, p2=8e-4, k3=0.0),
         K_left=K_L,
         K_right=K_R,
         image_size=image_size,
@@ -198,23 +266,28 @@ def build_exotic_zernike_oracle(image_size=_IMAGE_SIZE, seed=_SEED) -> StereoOra
     w, h = image_size
     cx, cy = (w - 1) / 2, (h - 1) / 2
     rng = np.random.default_rng(seed)
-    K = np.array([[200.0, 0.0, cx], [0.0, 200.0, cy], [0.0, 0.0, 1.0]],
-                 dtype=np.float64)
+    K = np.array([[200.0, 0.0, cx], [0.0, 200.0, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
     config = ZernikeOriginFieldConfig(image_size=image_size, max_order=3)
     n_modes = len(config.modes())
     return StereoOracle(
         name="uncatalogued Zernike",
         expected_winner="zernike_compact",
-        left_field=ZernikeRayField(K=K, config=config,
-                                    coefficients=ZernikeRayFieldCoefficients(
-                                        origin_coeffs=rng.normal(scale=0.08, size=(n_modes, 3)),
-                                        direction_coeffs=rng.normal(scale=0.003, size=(n_modes, 3)),
-                                    )),
-        right_field=ZernikeRayField(K=K, config=config,
-                                     coefficients=ZernikeRayFieldCoefficients(
-                                         origin_coeffs=rng.normal(scale=0.08, size=(n_modes, 3)),
-                                         direction_coeffs=rng.normal(scale=0.003, size=(n_modes, 3)),
-                                     )),
+        left_field=ZernikeRayField(
+            K=K,
+            config=config,
+            coefficients=ZernikeRayFieldCoefficients(
+                origin_coeffs=rng.normal(scale=0.08, size=(n_modes, 3)),
+                direction_coeffs=rng.normal(scale=0.003, size=(n_modes, 3)),
+            ),
+        ),
+        right_field=ZernikeRayField(
+            K=K,
+            config=config,
+            coefficients=ZernikeRayFieldCoefficients(
+                origin_coeffs=rng.normal(scale=0.08, size=(n_modes, 3)),
+                direction_coeffs=rng.normal(scale=0.003, size=(n_modes, 3)),
+            ),
+        ),
         K_left=K,
         K_right=K,
         image_size=image_size,
