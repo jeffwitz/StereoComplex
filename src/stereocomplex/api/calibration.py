@@ -710,6 +710,38 @@ def _rig_from_poses(
     return rot_mean, t_mean, C_R_in_L
 
 
+def _init_pose_guesses_from_observations(
+    *,
+    runtime: _CharucoRuntime,
+    observations: dict[int, FrameObservations],
+    image_size: tuple[int, int],
+) -> tuple[dict[int, np.ndarray], dict[int, np.ndarray]]:
+    homographies: list[np.ndarray] = []
+    for fr_obs in observations.values():
+        obj_xy = np.asarray(fr_obs.P_board_mm, dtype=np.float64)[:, :2]
+        uv = np.asarray(fr_obs.uv_px, dtype=np.float64)
+        if obj_xy.shape[0] < 6:
+            continue
+        H, _mask = runtime.cv2.findHomography(
+            obj_xy, uv, method=runtime.cv2.RANSAC, ransacReprojThreshold=3.0
+        )
+        if H is None:
+            continue
+        homographies.append(np.asarray(H, dtype=np.float64))
+    K0 = _estimate_K0_from_homographies(homographies=homographies, image_size=image_size)
+
+    rvecs0: dict[int, np.ndarray] = {}
+    tvecs0: dict[int, np.ndarray] = {}
+    for fid, fr_obs in observations.items():
+        obj_xy = np.asarray(fr_obs.P_board_mm, dtype=np.float64)[:, :2]
+        uv = np.asarray(fr_obs.uv_px, dtype=np.float64)
+        init = _init_pose_from_homography(runtime.cv2, obj_xy_mm=obj_xy, uv_px=uv, K0=K0)
+        if init is None:
+            continue
+        rvecs0[fid], tvecs0[fid] = init
+    return rvecs0, tvecs0
+
+
 def _ray_fit_health_metrics(
     *,
     model: StereoCentralRayFieldModel,
@@ -1105,34 +1137,12 @@ def fit_stereo_central_rayfield_from_image_pairs(
         raise RuntimeError("no usable stereo frames after ChArUco detection/refinement")
     assert image_size is not None
 
-    def _init_poses(side: str) -> tuple[dict[int, np.ndarray], dict[int, np.ndarray]]:
-        homographies: list[np.ndarray] = []
-        for fr_obs in obs_by_side[side].values():
-            obj_xy = np.asarray(fr_obs.P_board_mm, dtype=np.float64)[:, :2]
-            uv = np.asarray(fr_obs.uv_px, dtype=np.float64)
-            if obj_xy.shape[0] < 6:
-                continue
-            H, _mask = runtime.cv2.findHomography(
-                obj_xy, uv, method=runtime.cv2.RANSAC, ransacReprojThreshold=3.0
-            )
-            if H is None:
-                continue
-            homographies.append(np.asarray(H, dtype=np.float64))
-        K0 = _estimate_K0_from_homographies(homographies=homographies, image_size=image_size)
-
-        rvecs0: dict[int, np.ndarray] = {}
-        tvecs0: dict[int, np.ndarray] = {}
-        for fid, fr_obs in obs_by_side[side].items():
-            obj_xy = np.asarray(fr_obs.P_board_mm, dtype=np.float64)[:, :2]
-            uv = np.asarray(fr_obs.uv_px, dtype=np.float64)
-            init = _init_pose_from_homography(runtime.cv2, obj_xy_mm=obj_xy, uv_px=uv, K0=K0)
-            if init is None:
-                continue
-            rvecs0[fid], tvecs0[fid] = init
-        return rvecs0, tvecs0
-
-    rvecs0_L, tvecs0_L = _init_poses("left")
-    rvecs0_R, tvecs0_R = _init_poses("right")
+    rvecs0_L, tvecs0_L = _init_pose_guesses_from_observations(
+        runtime=runtime, observations=obs_by_side["left"], image_size=image_size
+    )
+    rvecs0_R, tvecs0_R = _init_pose_guesses_from_observations(
+        runtime=runtime, observations=obs_by_side["right"], image_size=image_size
+    )
     common = sorted(set(rvecs0_L).intersection(rvecs0_R).intersection(obs_by_side["left"]).intersection(obs_by_side["right"]))
     if len(common) < 2:
         raise RuntimeError("not enough frames with initialized poses")
