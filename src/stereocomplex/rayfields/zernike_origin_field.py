@@ -49,6 +49,51 @@ class ZernikeRayFieldCoefficients:
     direction_coeffs: np.ndarray
 
 
+@dataclass(frozen=True)
+class ZernikeRayFieldChannel:
+    """Named camera channel carrying one Zernike rayfield."""
+
+    name: str
+    field: "ZernikeRayField"
+
+
+@dataclass(frozen=True)
+class MultiCameraZernikeRayField:
+    """Ordered collection of named Zernike rayfields for N-camera calibration."""
+
+    channels: tuple[ZernikeRayFieldChannel, ...]
+
+    def __post_init__(self) -> None:
+        if not self.channels:
+            raise ValueError("at least one channel is required")
+        names = [channel.name for channel in self.channels]
+        if any(not name for name in names):
+            raise ValueError("channel names must be non-empty")
+        if len(set(names)) != len(names):
+            raise ValueError("channel names must be unique")
+
+    @classmethod
+    def from_fields(cls, fields: dict[str, "ZernikeRayField"]) -> "MultiCameraZernikeRayField":
+        return cls(tuple(ZernikeRayFieldChannel(name=name, field=field) for name, field in fields.items()))
+
+    @property
+    def names(self) -> tuple[str, ...]:
+        return tuple(channel.name for channel in self.channels)
+
+    @property
+    def n_channels(self) -> int:
+        return len(self.channels)
+
+    def channel(self, name: str) -> "ZernikeRayField":
+        for channel in self.channels:
+            if channel.name == name:
+                return channel.field
+        raise KeyError(name)
+
+    def ray(self, name: str, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        return self.channel(name).ray(u, v)
+
+
 class ZernikeOriginField:
     """
     Generic non-central ray model with pinhole directions and a Zernike origin field.

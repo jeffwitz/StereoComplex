@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from stereocomplex.rayfields.zernike_origin_field import (
+    MultiCameraZernikeRayField,
     ZernikeOriginField,
     ZernikeOriginFieldConfig,
     ZernikeRayField,
@@ -55,3 +56,20 @@ def test_ray_field_identifies_direction_perturbations():
     _origin, direction = field.ray(u, v)
     assert np.allclose(np.linalg.norm(direction, axis=1), 1.0)
     assert not np.allclose(direction, base.direction(u, v))
+
+
+def test_multi_camera_zernike_rayfield_dispatches_by_name():
+    K = np.array([[500.0, 0.0, 320.0], [0.0, 520.0, 240.0], [0.0, 0.0, 1.0]])
+    config = ZernikeOriginFieldConfig(image_size=(640, 480), max_order=1)
+    left = ZernikeRayField(K, config)
+    right = ZernikeRayField(K, config)
+    rig = MultiCameraZernikeRayField.from_fields({"left": left, "right": right})
+
+    u = np.array([50.0, 320.0])
+    v = np.array([40.0, 240.0])
+    origin, direction = rig.ray("right", u, v)
+
+    assert rig.names == ("left", "right")
+    assert rig.n_channels == 2
+    assert np.allclose(origin, right.origin(u, v))
+    assert np.allclose(direction, right.direction(u, v))
