@@ -70,6 +70,66 @@ class OpticalModelSelectionReport:
         ]
 
 
+@dataclass(frozen=True)
+class MultiChannelOpticalModelSelectionReport:
+    channel_reports: dict[str, OpticalModelSelectionReport]
+    best_by_bic: str
+    bic_by_model: dict[str, float]
+
+    @property
+    def channel_names(self) -> tuple[str, ...]:
+        return tuple(self.channel_reports)
+
+    @property
+    def n_channels(self) -> int:
+        return len(self.channel_reports)
+
+    def rows(self) -> list[dict[str, float | int | str | bool]]:
+        return [
+            {
+                "model": model,
+                "bic": bic,
+                "selected_bic": model == self.best_by_bic,
+                "n_channels": self.n_channels,
+            }
+            for model, bic in sorted(self.bic_by_model.items())
+        ]
+
+
+def aggregate_model_selection_reports(
+    channel_reports: dict[str, OpticalModelSelectionReport],
+) -> MultiChannelOpticalModelSelectionReport:
+    """Aggregate per-channel model-selection reports by summing BIC values."""
+    if not channel_reports:
+        raise ValueError("at least one channel report is required")
+
+    common_models: set[str] | None = None
+    for report in channel_reports.values():
+        names = {candidate.model_name for candidate in report.candidates}
+        common_models = names if common_models is None else common_models.intersection(names)
+    if not common_models:
+        raise ValueError("channel reports do not share any candidate model names")
+
+    bic_by_model: dict[str, float] = {}
+    for model_name in sorted(common_models):
+        bic_by_model[model_name] = float(
+            sum(
+                next(
+                    candidate.bic
+                    for candidate in report.candidates
+                    if candidate.model_name == model_name
+                )
+                for report in channel_reports.values()
+            )
+        )
+    best_by_bic = min(bic_by_model, key=bic_by_model.__getitem__)
+    return MultiChannelOpticalModelSelectionReport(
+        channel_reports=channel_reports,
+        best_by_bic=best_by_bic,
+        bic_by_model=bic_by_model,
+    )
+
+
 def reprojection_guard_penalty(
     px_rms: float,
     *,
@@ -157,7 +217,9 @@ def _residual_norm_stats(residuals: np.ndarray) -> tuple[float, float, float]:
     )
 
 
-def _aic_bic(rss: float, n_residual_scalars: int, n_observations: int, p: int) -> tuple[float, float]:
+def _aic_bic(
+    rss: float, n_residual_scalars: int, n_observations: int, p: int
+) -> tuple[float, float]:
     """Return Gaussian AIC/BIC for the weighted ray-space objective.
 
     The likelihood term uses the scalar residual count because the two-plane
@@ -206,12 +268,13 @@ def default_physical_model_specs(*, include_telecentric: bool = False) -> list[P
     ]
     if include_telecentric:
         from stereocomplex.physics.cmo_physical import CMOTelecentricChannelModel  # noqa: PLC0415
+
         specs.append(
             PhysicalModelSpec(
                 name="cmo_telecentric",
                 model_class=CMOTelecentricChannelModel,
                 initial_parameters=np.array(
-                    [62.0, 65.0, 25.0, 1024., 1024., 62.0, 0.2, 0.06, 0.0, 0.0],
+                    [62.0, 65.0, 25.0, 1024.0, 1024.0, 62.0, 0.2, 0.06, 0.0, 0.0],
                     dtype=np.float64,
                 ),
                 model_kwargs={"pixel_pitch_mm": 0.0055},
@@ -220,7 +283,9 @@ def default_physical_model_specs(*, include_telecentric: bool = False) -> list[P
     return specs
 
 
-def _make_model(model_class: type, x: np.ndarray, K: np.ndarray, model_kwargs: dict[str, Any]) -> PhysicalRayFieldModel:
+def _make_model(
+    model_class: type, x: np.ndarray, K: np.ndarray, model_kwargs: dict[str, Any]
+) -> PhysicalRayFieldModel:
     if hasattr(model_class, "from_parameter_vector"):
         return model_class.from_parameter_vector(x, K=K, **model_kwargs)
     return model_class(K=K, **model_kwargs)
@@ -331,7 +396,8 @@ def fit_physical_model_to_rayfield(
     def combined_residuals(x: np.ndarray) -> np.ndarray:
         model = model_at(x)
         blocks = [
-            float(support_weight) * rayfield_two_plane_residuals(target_field, model, support, z_planes=z_planes),
+            float(support_weight)
+            * rayfield_two_plane_residuals(target_field, model, support, z_planes=z_planes),
         ]
         if include_full_grid:
             blocks.append(
@@ -382,8 +448,12 @@ def fit_physical_model_to_rayfield(
         full_rms = _residual_norm_stats(
             rayfield_two_plane_residuals(target_field, fitted_model, full_pixels, z_planes=z_planes)
         )[0]
-    parameter_dict = fitted_model.parameter_dict() if hasattr(fitted_model, "parameter_dict") else {}
-    model_name = name if name is not None else str(getattr(fitted_model, "name", model_class.__name__))
+    parameter_dict = (
+        fitted_model.parameter_dict() if hasattr(fitted_model, "parameter_dict") else {}
+    )
+    model_name = (
+        name if name is not None else str(getattr(fitted_model, "name", model_class.__name__))
+    )
     return PhysicalModelFitResult(
         model_name=model_name,
         model=fitted_model,
@@ -446,7 +516,10 @@ def select_physical_model_from_rayfield(
                 if pixel_pitch is None:
                     raise ValueError("pixel_pitch_mm is required for stereo-shared CMO selection")
 
-                if spec.model_class is CMOPhysicalStereoModel or spec.model_class.__name__ == "CMOPhysicalStereoModel":
+                if (
+                    spec.model_class is CMOPhysicalStereoModel
+                    or spec.model_class.__name__ == "CMOPhysicalStereoModel"
+                ):
                     result = _as_shared_cmo_selection_result(
                         spec.name,
                         fit_cmo_physical_stereo_model_to_rayfields(
@@ -457,16 +530,22 @@ def select_physical_model_from_rayfield(
                             bounds=spec.bounds,
                             pixel_pitch_mm=float(pixel_pitch),
                             z_planes=z_planes,
-                        grid_shape=grid_shape,
-                        support_pixels_left=support_pixels,
-                        support_pixels_right=support_pixels_right,
-                        support_weight=support_weight,
-                        full_grid_weight=full_grid_weight,
-                        max_nfev=max_nfev,
-                    ),
-                )
-                elif spec.model_class.__name__ in ("CMOTelecentricStereoModel", "CMOTelecentricChannelModel"):
-                    from stereocomplex.physics.cmo_physical import fit_cmo_telecentric_model_to_rayfields  # noqa: PLC0415
+                            grid_shape=grid_shape,
+                            support_pixels_left=support_pixels,
+                            support_pixels_right=support_pixels_right,
+                            support_weight=support_weight,
+                            full_grid_weight=full_grid_weight,
+                            max_nfev=max_nfev,
+                        ),
+                    )
+                elif spec.model_class.__name__ in (
+                    "CMOTelecentricStereoModel",
+                    "CMOTelecentricChannelModel",
+                ):
+                    from stereocomplex.physics.cmo_physical import (
+                        fit_cmo_telecentric_model_to_rayfields,
+                    )  # noqa: PLC0415
+
                     result = _as_shared_cmo_selection_result(
                         spec.name,
                         fit_cmo_telecentric_model_to_rayfields(
@@ -482,7 +561,9 @@ def select_physical_model_from_rayfield(
                         ),
                     )
                 else:
-                    raise NotImplementedError(f"stereo-shared dispatch is not implemented for {spec.model_class}")
+                    raise NotImplementedError(
+                        f"stereo-shared dispatch is not implemented for {spec.model_class}"
+                    )
             elif stereo_mode:
                 left = fit_physical_model_to_rayfield(
                     model_class=spec.model_class,

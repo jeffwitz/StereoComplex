@@ -53,8 +53,10 @@ from stereocomplex.physics.cmo_physical import (
 )
 from stereocomplex.physics.model_selection import (
     OpticalModelSelectionReport,
+    MultiChannelOpticalModelSelectionReport,
     PhysicalModelFitResult,
     PhysicalModelSpec,
+    aggregate_model_selection_reports,
     default_physical_model_specs,
     fit_physical_model_to_rayfield,
     reprojection_guard_penalty,
@@ -93,6 +95,7 @@ __all__ = [
     "CMOStereoSpec",
     "CentralBrownConradyModel",
     "CentralPinholeModel",
+    "MultiChannelOpticalModelSelectionReport",
     "OpticalModelSelectionReport",
     "ParallelPlateFromRayfieldFitResult",
     "PhysicalModelFitResult",
@@ -105,6 +108,7 @@ __all__ = [
     "Vignetting",
     "apply_blur_noise",
     "apply_sensor_warp",
+    "aggregate_model_selection_reports",
     "brown_conrady_distort_normalized",
     "polynomial_channel_parameters_from_spec",
     "default_physical_model_specs",

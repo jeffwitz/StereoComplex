@@ -7,14 +7,22 @@ from stereocomplex.advanced import fit_physical_model_to_rayfield
 from stereocomplex.physics import (
     CentralBrownConradyModel,
     CentralPinholeModel,
+    OpticalModelSelectionReport,
     PinholeParallelPlateFitParams,
     PinholeParallelPlateModel,
-    PhysicalModelSpec,
+    PhysicalModelFitResult,
+    aggregate_model_selection_reports,
     select_physical_model_from_rayfield,
 )
-from stereocomplex.physics.central_models import brown_conrady_distort_normalized, undistort_brown_normalized
+from stereocomplex.physics.central_models import (
+    brown_conrady_distort_normalized,
+    undistort_brown_normalized,
+)
 from stereocomplex.physics.parallel_plate_fit import rayfield_two_plane_residuals
-from stereocomplex.synthetic.parallel_plate import ParallelPlateSyntheticParams, parallel_plate_ray_from_pixel
+from stereocomplex.synthetic.parallel_plate import (
+    ParallelPlateSyntheticParams,
+    parallel_plate_ray_from_pixel,
+)
 
 
 class _OracleField:
@@ -28,6 +36,55 @@ class _OracleField:
 
 def _camera_matrix() -> np.ndarray:
     return np.array([[620.0, 0.0, 319.5], [0.0, 620.0, 239.5], [0.0, 0.0, 1.0]], dtype=np.float64)
+
+
+def _fit_result(name: str, bic: float) -> PhysicalModelFitResult:
+    K = _camera_matrix()
+    return PhysicalModelFitResult(
+        model_name=name,
+        model=CentralPinholeModel(K),
+        success=True,
+        message="ok",
+        n_parameters=0,
+        n_samples=1,
+        n_residual_scalars=1,
+        rss=1.0,
+        rms_mm=1.0,
+        median_mm=1.0,
+        p95_mm=1.0,
+        support_rms_mm=1.0,
+        full_grid_rms_mm=1.0,
+        aic=float(bic),
+        bic=float(bic),
+        parameter_vector=np.zeros(0),
+        parameter_dict={},
+    )
+
+
+def test_multi_channel_model_selection_sums_bic_by_candidate_name():
+    left = OpticalModelSelectionReport(
+        target_name="left",
+        candidates=[_fit_result("pinhole", 10.0), _fit_result("brown", 8.0)],
+        best_by_aic="brown",
+        best_by_bic="brown",
+        best_by_rms="brown",
+        warnings=[],
+    )
+    right = OpticalModelSelectionReport(
+        target_name="right",
+        candidates=[_fit_result("pinhole", 2.0), _fit_result("brown", 12.0)],
+        best_by_aic="pinhole",
+        best_by_bic="pinhole",
+        best_by_rms="pinhole",
+        warnings=[],
+    )
+
+    report = aggregate_model_selection_reports({"left": left, "right": right})
+
+    assert report.channel_names == ("left", "right")
+    assert report.n_channels == 2
+    assert report.bic_by_model == {"brown": 20.0, "pinhole": 12.0}
+    assert report.best_by_bic == "pinhole"
 
 
 def test_physical_candidates_share_ray_interface():
@@ -62,7 +119,9 @@ def test_brown_zero_coefficients_matches_pinhole_by_ray_planes():
 @pytest.mark.slow
 def test_ray_space_selection_prefers_plate_over_central_brown_on_plate_oracle():
     K = _camera_matrix()
-    truth = ParallelPlateSyntheticParams(eta=1.5, thickness=8.0, alpha_deg=12.0, beta_deg=5.0, d1=80.0)
+    truth = ParallelPlateSyntheticParams(
+        eta=1.5, thickness=8.0, alpha_deg=12.0, beta_deg=5.0, d1=80.0
+    )
     oracle = _OracleField(K, truth)
 
     report = select_physical_model_from_rayfield(
