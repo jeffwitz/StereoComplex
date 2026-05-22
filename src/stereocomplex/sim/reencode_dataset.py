@@ -102,7 +102,7 @@ def _reencode_image(src: Path, dst: Path, opts: ReencodeOptions) -> None:
     q = int(opts.quality)
     q = max(0, min(100, q))
     with Image.open(src) as im:
-        im = im.convert("L")
+        im = im.convert("L")  # noqa: PLW2901
         if fmt == "png":
             im.save(dst)
             return

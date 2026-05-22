@@ -245,7 +245,7 @@ def make_parallel_plate_wide_coverage_dataset(noise_std_px: float = 0.0) -> Synt
     # the plate model clips that column to u=0, corrupting the observation.
     # The left camera sees u_left ∈ [~2, ~370] px — fills the [0, ~86] gap
     # that paired stereo cannot reach (u_min_paired ≈ 86 px at z=650 mm).
-    # right_pixels is an empty (0×2) sentinel; fit_stereo_zernike_origin_field
+    # right_pixels is an empty (0x2) sentinel; fit_stereo_zernike_origin_field
     # skips right-camera residuals for frames where right_pixels.shape[0] == 0.
     left_only_pose = make_transform(t=np.array([-138.0, 0.0, 650.0]))
     left_only_ds = generate_parallel_plate_stereo_dataset(
@@ -291,8 +291,8 @@ def make_parallel_plate_extended_dataset(noise_std_px: float = 0.0) -> Synthetic
     """
     10-frame dataset for hold-out generalization validation.
 
-    Frames 0–7 (``EXTENDED_TRAIN_FRAMES``) are used for fitting.
-    Frames 8–9 (``EXTENDED_HOLDOUT_FRAMES``) are reserved for held-out evaluation
+    Frames 0-7 (``EXTENDED_TRAIN_FRAMES``) are used for fitting.
+    Frames 8-9 (``EXTENDED_HOLDOUT_FRAMES``) are reserved for held-out evaluation
     and must never enter the BA.  Same oracle as `make_default_parallel_plate_dataset`.
     """
     image_size = (640, 480)
@@ -383,7 +383,7 @@ def make_default_parallel_plate_charuco_dataset(
         make_transform(R=_rot_y(4.0) @ _rot_x(12.0), t=np.array([-36.0, 12.0, 740.0])),
         make_transform(R=_rot_y(0.0) @ _rot_x(-8.0), t=np.array([6.0, 28.0, 820.0])),
         # Edge-coverage poses — board partially outside image so that the union of
-        # observations spans the full 640×480 pixel area, eliminating extrapolation
+        # observations spans the full 640x480 pixel area, eliminating extrapolation
         # at image edges for the Zernike fit.  Corner poses are intentionally
         # omitted: combining extreme X and Y offsets simultaneously pushes too many
         # ArUco markers outside the image, preventing ChArUco corner identification.

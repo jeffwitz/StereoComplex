@@ -274,7 +274,7 @@ def fit_direct_model_from_observations(
     pose_start = np.cumsum([0] + meas_per_pose)
 
     n_meas = uL_all.size
-    n_scalar = 2 * n_meas * 2  # 2 channels × 2 coordinates per measurement
+    n_scalar = 2 * n_meas * 2  # 2 channels x 2 coordinates per measurement
     n_obs = n_meas  # independent pixel observations per channel
 
     # --- model factory ---

@@ -10,8 +10,8 @@ from stereocomplex.api._calibration_charuco import (
     _CharucoRuntime,
     _build_charuco_runtime,
     _detect_refined_stereo_pair,
-    build_charuco_board as build_charuco_board,
-    detect_charuco_corners as detect_charuco_corners,
+    build_charuco_board,
+    detect_charuco_corners,
 )
 from stereocomplex.api._calibration_images import (
     _ensure_gray_u8,
@@ -54,7 +54,7 @@ def _estimate_K0_from_homographies(
 
     Hs: list[np.ndarray] = []
     for H in homographies:
-        H = np.asarray(H, dtype=np.float64).reshape(3, 3)
+        H = np.asarray(H, dtype=np.float64).reshape(3, 3)  # noqa: PLW2901
         if not np.all(np.isfinite(H)):
             continue
         if abs(float(H[2, 2])) < 1e-12:

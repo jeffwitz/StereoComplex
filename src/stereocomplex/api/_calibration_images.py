@@ -18,7 +18,7 @@ def _load_frames(scene_dir: Path) -> list[dict]:
     frames_path = scene_dir / "frames.jsonl"
     frames: list[dict] = []
     for line in frames_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
+        line = line.strip()  # noqa: PLW2901
         if not line:
             continue
         frames.append(json.loads(line))

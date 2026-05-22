@@ -260,12 +260,12 @@ def fit_zernike_rayfield_from_charuco_observations(
         ]
     )
     # Bound Zernike coefficients to prevent origin-from-object-plane degeneracy.
-    # Origin coefficients: ±20 mm in Z (sub-pupil is < 10 mm from axis).
+    # Origin coefficients: ±20 mm in Z (sub-pupil is < 10 mm from axis).
     # Direction coefficients: ±0.5 dimensionless (small correction to pinhole).
     n_half = n_zernike // 2  # = n_modes * 3
     origin_bounds_lo = np.full(n_half, -np.inf)
     origin_bounds_hi = np.full(n_half, np.inf)
-    # Pin Z components (indices 2, 5, 8, ... within each half) to ±20 mm
+    # Pin Z components (indices 2, 5, 8, ... within each half) to ±20 mm
     for j in range(2, n_half, 3):
         origin_bounds_lo[j] = -20.0
         origin_bounds_hi[j] = 20.0

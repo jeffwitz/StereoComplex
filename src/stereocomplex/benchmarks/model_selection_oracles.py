@@ -49,7 +49,7 @@ class StereoOracle:
     right_field :
         Same for the right channel.
     K_left, K_right : np.ndarray
-        3×3 intrinsic matrices for the left and right channels.
+        3x3 intrinsic matrices for the left and right channels.
     image_size : tuple[int, int]
         ``(width, height)`` in pixels.
     pixel_pitch_mm : float | None
@@ -251,7 +251,7 @@ def build_greenough_oracle(image_size=_IMAGE_SIZE) -> StereoOracle:
     K_L = np.array([[210.0, 0.0, cx], [0.0, 210.0, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
     K_R = np.array([[195.0, 0.0, cx], [0.0, 195.0, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
     return StereoOracle(
-        name="Greenough (Brown-Conrady ×2)",
+        name="Greenough (Brown-Conrady x2)",
         expected_winner="central_brown_conrady",
         left_field=CentralBrownConradyModel(K=K_L, k1=-0.08, k2=0.03, p1=1e-3, p2=-1e-3, k3=0.0),
         right_field=CentralBrownConradyModel(K=K_R, k1=-0.06, k2=0.02, p1=-5e-4, p2=8e-4, k3=0.0),

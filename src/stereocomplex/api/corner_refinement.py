@@ -98,7 +98,7 @@ def refine_charuco_corners(
         o = id_to_obj2.get(int(mid))
         if o is None:
             continue
-        mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
+        mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)  # noqa: PLW2901
         if mc.shape != (4, 2) or o.shape != (4, 2):
             continue
         obj_pts.append(o)
