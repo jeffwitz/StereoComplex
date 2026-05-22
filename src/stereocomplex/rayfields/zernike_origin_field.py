@@ -20,19 +20,52 @@ def _project_transverse(v: np.ndarray, d: np.ndarray) -> np.ndarray:
 
 @dataclass(frozen=True)
 class ZernikeOriginFieldConfig:
+    """Configuration of a Zernike origin / ray field: domain, order and gauge.
+
+    Attributes
+    ----------
+    image_size : tuple of 2 int
+        Image ``(width, height)`` in pixels; defines the disk over which the
+        Zernike polynomials are evaluated.
+    max_order : int
+        Maximum Zernike radial order; sets the number of modes.
+    normalization : str
+        Zernike normalisation scheme. Only ``"diagonal_disk"`` is supported:
+        pixel coordinates are mapped to the unit disk via the image diagonal.
+    enforce_transverse_gauge : bool
+        If True, the origin field is projected transverse to the ray direction
+        (``O . d = 0``) at evaluation time, removing the redundant longitudinal
+        degree of freedom along each ray.
+    """
+
     image_size: tuple[int, int]
     max_order: int = 4
     normalization: str = "diagonal_disk"
     enforce_transverse_gauge: bool = True
 
     def modes(self) -> tuple[ZernikeMode, ...]:
-        """Zernike mode descriptors for this configuration."""
+        """Return the Zernike mode descriptors selected by ``max_order``.
+
+        Returns
+        -------
+        tuple of ZernikeMode
+            One descriptor (radial order n, azimuthal order m, parity) per
+            polynomial, in canonical order — this is the column order of the
+            design matrix returned by :meth:`ZernikeOriginField.basis`.
+        """
         return tuple(zernike_modes(int(self.max_order)))
 
 
 @dataclass(frozen=True)
 class ZernikeOriginFieldCoefficients:
-    """Zernike coefficients shaped `(n_terms, 3)` in millimetres."""
+    """Zernike coefficients of an origin field ``O(u, v)``.
+
+    Attributes
+    ----------
+    coeffs : ndarray, shape (n_modes, 3)
+        One 3-vector per Zernike mode, in millimetres; the origin field is
+        ``basis(u, v) @ coeffs``.
+    """
 
     coeffs: np.ndarray
 
@@ -52,7 +85,15 @@ class ZernikeRayFieldCoefficients:
 
 @dataclass(frozen=True)
 class ZernikeRayFieldChannel:
-    """Named camera channel carrying one Zernike rayfield."""
+    """One named camera channel of a multi-camera Zernike rayfield.
+
+    Attributes
+    ----------
+    name : str
+        Channel identifier (e.g. ``"left"``, ``"cam0"``).
+    field : ZernikeRayField
+        The channel's fitted rayfield.
+    """
 
     name: str
     field: ZernikeRayField
@@ -60,7 +101,17 @@ class ZernikeRayFieldChannel:
 
 @dataclass(frozen=True)
 class MultiCameraZernikeRayField:
-    """Ordered collection of named Zernike rayfields for N-camera calibration."""
+    """Ordered collection of named Zernike rayfields, one per camera.
+
+    Container for an N-camera calibration result: each camera contributes one
+    :class:`ZernikeRayField`, addressed by name. Channel names must be unique
+    and non-empty.
+
+    Attributes
+    ----------
+    channels : tuple of ZernikeRayFieldChannel
+        The per-camera rayfields, in a fixed order.
+    """
 
     channels: tuple[ZernikeRayFieldChannel, ...]
 
@@ -75,7 +126,17 @@ class MultiCameraZernikeRayField:
 
     @classmethod
     def from_fields(cls, fields: dict[str, ZernikeRayField]) -> MultiCameraZernikeRayField:
-        """Factory from a dict of named ZernikeRayField objects."""
+        """Build a multi-camera rayfield from a mapping of named rayfields.
+
+        Parameters
+        ----------
+        fields : dict[str, ZernikeRayField]
+            Rayfield per channel name; iteration order fixes the channel order.
+
+        Returns
+        -------
+        MultiCameraZernikeRayField
+        """
         return cls(
             tuple(ZernikeRayFieldChannel(name=name, field=field) for name, field in fields.items())
         )
@@ -86,7 +147,29 @@ class MultiCameraZernikeRayField:
         intrinsics_by_channel: dict[str, np.ndarray],
         configs_by_channel: dict[str, ZernikeOriginFieldConfig],
     ) -> MultiCameraZernikeRayField:
-        """Factory from intrinsics and configs, validating channel membership."""
+        """Build zero-initialised rayfields for a set of cameras.
+
+        Creates one :class:`ZernikeRayField` per channel from its intrinsics
+        and Zernike configuration, with all coefficients at zero (i.e. the
+        plain pinhole model). The two mappings must cover exactly the same
+        set of channel names.
+
+        Parameters
+        ----------
+        intrinsics_by_channel : dict[str, ndarray]
+            3x3 pinhole intrinsic matrix per channel.
+        configs_by_channel : dict[str, ZernikeOriginFieldConfig]
+            Zernike field configuration per channel.
+
+        Returns
+        -------
+        MultiCameraZernikeRayField
+
+        Raises
+        ------
+        ValueError
+            If the two mappings do not cover the same set of channel names.
+        """
         intrinsics_names = set(intrinsics_by_channel)
         config_names = set(configs_by_channel)
         missing_configs = sorted(intrinsics_names - config_names)
@@ -115,14 +198,42 @@ class MultiCameraZernikeRayField:
         return len(self.channels)
 
     def channel(self, name: str) -> ZernikeRayField:
-        """Look up the rayfield for a named channel."""
+        """Return the rayfield of the named channel.
+
+        Parameters
+        ----------
+        name : str
+            Channel name.
+
+        Returns
+        -------
+        ZernikeRayField
+
+        Raises
+        ------
+        KeyError
+            If no channel has that name.
+        """
         for channel in self.channels:
             if channel.name == name:
                 return channel.field
         raise KeyError(name)
 
     def ray(self, name: str, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Compute ray (origin, direction) for a pixel."""
+        """Compute the 3D ray for a pixel in a named channel.
+
+        Parameters
+        ----------
+        name : str
+            Channel name.
+        u, v : ndarray
+            Pixel coordinates.
+
+        Returns
+        -------
+        origin, direction : ndarray, shape (N, 3)
+            Ray origin (mm) and unit direction per pixel, in the channel frame.
+        """
         return self.channel(name).ray(u, v)
 
 
@@ -140,6 +251,23 @@ class ZernikeOriginField:
         config: ZernikeOriginFieldConfig,
         coefficients: ZernikeOriginFieldCoefficients | None = None,
     ):
+        """Build an origin-field rayfield from intrinsics and a Zernike config.
+
+        Parameters
+        ----------
+        K : ndarray, shape (3, 3)
+            Pinhole intrinsic matrix; defines the reference ray directions.
+        config : ZernikeOriginFieldConfig
+            Zernike domain, order and gauge settings.
+        coefficients : ZernikeOriginFieldCoefficients, optional
+            Origin-field coefficients; default to zeros (a pure pinhole model).
+
+        Raises
+        ------
+        ValueError
+            If the configuration normalisation is unsupported, or the
+            coefficient array does not have shape ``(n_modes, 3)``.
+        """
         if config.normalization != "diagonal_disk":
             raise ValueError("only normalization='diagonal_disk' is currently supported")
         self.K = np.asarray(K, dtype=np.float64).reshape(3, 3)
@@ -155,11 +283,31 @@ class ZernikeOriginField:
 
     @property
     def coeffs(self) -> np.ndarray:
-        """Zernike coefficients for the rayfield."""
+        """Origin-field Zernike coefficients, shape ``(n_modes, 3)``, in millimetres."""
         return self.coefficients.coeffs
 
     def basis(self, u: np.ndarray, v: np.ndarray) -> np.ndarray:
-        """Return the Zernike design matrix for pixel arrays flattened to `(N,)`."""
+        """Evaluate the Zernike design matrix at the given pixels.
+
+        Pixel coordinates are mapped to the unit disk (via the image diagonal),
+        then every Zernike mode is evaluated to form one column of the matrix.
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates (broadcast against each other).
+
+        Returns
+        -------
+        ndarray, shape (N, n_modes)
+            Design matrix ``A``; ``A @ coeffs`` gives the field sampled at the
+            ``N`` flattened pixels.
+
+        Raises
+        ------
+        ValueError
+            If the configured image is not larger than one pixel per axis.
+        """
         u_arr = np.asarray(u, dtype=np.float64)
         v_arr = np.asarray(v, dtype=np.float64)
         u_flat, v_flat = np.broadcast_arrays(u_arr, v_arr)
@@ -176,22 +324,75 @@ class ZernikeOriginField:
         return A
 
     def direction(self, u: np.ndarray, v: np.ndarray) -> np.ndarray:
-        """Return normalized pinhole directions `d_pinhole(u,v)`."""
+        """Return the unit pinhole ray directions at the given pixels.
+
+        In this model the origin field carries the non-central behaviour;
+        directions are the plain pinhole rays from the intrinsic matrix ``K``.
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates.
+
+        Returns
+        -------
+        ndarray, shape (N, 3)
+            Unit ray directions.
+        """
         return pinhole_ray_from_pixel(u, v, self.K).reshape(-1, 3)
 
     def raw_origin(self, u: np.ndarray, v: np.ndarray) -> np.ndarray:
-        """Return the unconstrained Zernike origin field."""
+        """Return the Zernike origin field before the transverse gauge is applied.
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates.
+
+        Returns
+        -------
+        ndarray, shape (N, 3)
+            Origin field ``basis(u, v) @ coeffs``, in millimetres.
+        """
         return self.basis(u, v) @ self.coeffs
 
     def origin(self, u: np.ndarray, v: np.ndarray) -> np.ndarray:
-        """Return the canonical origin field, optionally transverse to the ray direction."""
+        """Return the origin field ``O(u, v)``, with the transverse gauge applied.
+
+        When ``config.enforce_transverse_gauge`` is set, the raw Zernike origin
+        is projected perpendicular to the ray direction (``O . d = 0``),
+        removing the redundant longitudinal displacement along each ray.
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates.
+
+        Returns
+        -------
+        ndarray, shape (N, 3)
+            Ray origin per pixel, in millimetres.
+        """
         O_raw = self.raw_origin(u, v)
         if not self.config.enforce_transverse_gauge:
             return O_raw
         return _project_transverse(O_raw, self.direction(u, v))
 
     def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Return `(O(u,v), d(u,v))`, both shaped `(N,3)`."""
+        """Return the rays ``(O(u, v), d(u, v))`` for the given pixels.
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates.
+
+        Returns
+        -------
+        origin : ndarray, shape (N, 3)
+            Ray origin per pixel (mm), gauge-projected when configured.
+        direction : ndarray, shape (N, 3)
+            Unit pinhole ray direction per pixel.
+        """
         return self.origin(u, v), self.direction(u, v)
 
 
@@ -215,6 +416,23 @@ class ZernikeRayField(ZernikeOriginField):
         config: ZernikeOriginFieldConfig,
         coefficients: ZernikeRayFieldCoefficients | None = None,
     ):
+        """Build a rayfield with both a Zernike origin field and a direction field.
+
+        Parameters
+        ----------
+        K : ndarray, shape (3, 3)
+            Pinhole intrinsic matrix; defines the reference directions ``d0``.
+        config : ZernikeOriginFieldConfig
+            Zernike domain, order and gauge settings.
+        coefficients : ZernikeRayFieldCoefficients, optional
+            Origin and direction coefficients; default to zeros (pinhole model).
+
+        Raises
+        ------
+        ValueError
+            If the direction coefficients do not match the origin coefficient
+            shape ``(n_modes, 3)``.
+        """
         if coefficients is None:
             super().__init__(K, config)
             direction_coeffs = np.zeros_like(self.coeffs)
@@ -238,21 +456,50 @@ class ZernikeRayField(ZernikeOriginField):
 
     @property
     def origin_coeffs(self) -> np.ndarray:
-        """Zernike coefficients for the origin field O(u,v) in mm."""
+        """Origin-field Zernike coefficients ``O(u, v)``, shape ``(n_modes, 3)``, in mm."""
         return self.rayfield_coefficients.origin_coeffs
 
     @property
     def direction_coeffs(self) -> np.ndarray:
-        """Zernike coefficients for the direction perturbation."""
+        """Direction-perturbation Zernike coefficients, shape ``(n_modes, 3)``, dimensionless."""
         return self.rayfield_coefficients.direction_coeffs
 
     def direction_delta(self, u: np.ndarray, v: np.ndarray) -> np.ndarray:
-        """Return the transverse direction perturbation before normalization."""
+        """Return the transverse direction perturbation, before renormalisation.
+
+        The raw Zernike direction field is projected perpendicular to the
+        pinhole direction ``d0``, so the perturbation cannot change the ray
+        scale — only its tilt.
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates.
+
+        Returns
+        -------
+        ndarray, shape (N, 3)
+            Additive direction perturbation, transverse to ``d0``.
+        """
         d0 = super().direction(u, v)
         return _project_transverse(self.basis(u, v) @ self.direction_coeffs, d0)
 
     def direction(self, u: np.ndarray, v: np.ndarray) -> np.ndarray:
-        """Return normalized fitted directions."""
+        """Return the unit fitted ray directions.
+
+        The pinhole direction ``d0`` plus the transverse Zernike perturbation,
+        then renormalised: ``d = normalize(d0 + direction_delta(u, v))``.
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates.
+
+        Returns
+        -------
+        ndarray, shape (N, 3)
+            Unit ray directions.
+        """
         d0 = super().direction(u, v)
         d = d0 + self.direction_delta(u, v)
         return d / np.linalg.norm(d, axis=1, keepdims=True)
@@ -300,12 +547,26 @@ class ZernikeCandidate:
 
     @property
     def n_parameters(self) -> int:
-        """Total number of free parameters for model selection."""
+        """Raw free-parameter count: ``n_modes * 6`` with directions, ``* 3`` without.
+
+        This is the raw coefficient count. The transverse gauge removes one
+        redundant degree of freedom per mode, so the *effective* count is
+        slightly lower — see the class docstring.
+        """
         n_modes = len(self.config.modes())
         return n_modes * 6 if self.fit_directions else n_modes * 3
 
     def parameter_vector(self) -> np.ndarray:
-        """All parameters packed into a flat vector for optimisation."""
+        """Pack the Zernike coefficients into a flat optimisation vector.
+
+        Layout: the ``(n_modes, 3)`` origin coefficients flattened, followed —
+        when ``fit_directions`` is set — by the ``(n_modes, 3)`` direction
+        coefficients.
+
+        Returns
+        -------
+        ndarray, shape (n_modes * 6,) or (n_modes * 3,)
+        """
         if self.fit_directions:
             return np.concatenate(
                 [
@@ -317,7 +578,28 @@ class ZernikeCandidate:
 
     @classmethod
     def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> ZernikeCandidate:
-        """Reconstruct rayfield from a parameter vector."""
+        """Rebuild a candidate from a flat parameter vector.
+
+        Inverse of :meth:`parameter_vector`; see it for the layout.
+
+        Parameters
+        ----------
+        x : ndarray
+            Flat coefficient vector.
+        **kwargs
+            Must include ``config`` (ZernikeOriginFieldConfig) and ``K``
+            (3x3 intrinsics); may include ``fit_directions`` (default True).
+
+        Returns
+        -------
+        ZernikeCandidate
+
+        Raises
+        ------
+        ValueError
+            If the length of ``x`` does not match the mode count and the
+            ``fit_directions`` setting.
+        """
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         config = kwargs["config"]
         fit_directions = bool(kwargs.get("fit_directions", True))
@@ -350,7 +632,17 @@ class ZernikeCandidate:
         )
 
     def parameter_dict(self) -> dict[str, float]:
-        """All parameters as a dict keyed by channel and parameter name."""
+        """Return all coefficients as a flat ``{name: value}`` dictionary.
+
+        Keys encode the mode index and its ``(n, m, kind)`` descriptor,
+        suffixed by the component: ``_Ox/_Oy/_Oz`` for the origin field (mm)
+        and, when directions are fitted, ``_dx/_dy/_dz`` for the direction
+        perturbation (dimensionless).
+
+        Returns
+        -------
+        dict[str, float]
+        """
         d: dict[str, float] = {}
         for j, mode in enumerate(self.config.modes()):
             key = f"z{j:02d}_n{mode.n}_m{mode.m}_{mode.kind}"
@@ -364,7 +656,22 @@ class ZernikeCandidate:
         return d
 
     def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Compute ray (origin, direction) for a pixel."""
+        """Compute the 3D ray ``(origin, direction)`` for the given pixels.
+
+        Builds the underlying :class:`ZernikeRayField` (or
+        :class:`ZernikeOriginField` when ``fit_directions`` is False) from the
+        candidate coefficients and evaluates it.
+
+        Parameters
+        ----------
+        u, v : ndarray
+            Pixel coordinates.
+
+        Returns
+        -------
+        origin, direction : ndarray, shape (N, 3)
+            Ray origin (mm) and unit direction per pixel.
+        """
         if self.fit_directions:
             field = ZernikeRayField(K=self.K, config=self.config, coefficients=self.coefficients)
         else:
