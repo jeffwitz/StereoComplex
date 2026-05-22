@@ -14,7 +14,8 @@ Ray2D is a 2D correction of board-plane observations. It is not itself a 3D non-
 
 ## Recommended first step
 
-Start with notebook 00:
+Start with notebook 00 — [open it directly in Google Colab](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/00_getting_started.ipynb),
+or run it locally (see the *Notebook walkthroughs* section below):
 
 ```text
 examples/notebooks/00_getting_started.ipynb
@@ -112,22 +113,33 @@ Read:
 
 ## Notebook walkthroughs
 
-Use the notebook overview page for the complete teaching sequence:
+The ten numbered notebooks are the guided teaching sequence; see
+:doc:`NOTEBOOKS` for the detailed overview.
 
-- :doc:`NOTEBOOKS`
+**Run them locally** — install the notebook extras, then launch JupyterLab.
+Each notebook's first cell moves to the repository root on its own, so the
+relative `dataset/` paths resolve wherever JupyterLab is started:
+
+```bash
+.venv/bin/python -m pip install -e '.[notebooks]'
+.venv/bin/jupyter lab examples/notebooks
+```
+
+**Run them on Google Colab** — click a link below. The first cell installs
+StereoComplex automatically; no local setup is needed.
 
 Recommended order:
 
-1. `00_getting_started.ipynb` — OpenCV-to-StereoComplex onboarding.
-2. `01_ray2d_vs_opencv.ipynb` — why Ray2D improves ChArUco observations.
-3. `02_ray3d.ipynb` — central 3D ray-field reconstruction prototype.
-4. `03_rayfield_virtual_rectification.ipynb` — bridge back to dense stereo.
-5. `04_parallel_plate_origin_field.ipynb` — non-central synthetic oracle.
-6. `05_noncentral_calibration_from_images.ipynb` — practical non-central image-folder path.
-7. `06_cmo_model_selection.ipynb` — physical model selection on CMO-like optics.
-8. `07_model_selection_matrix.py` — 6-oracle classification matrix.
-9. `08_direct_vs_rayfield_inversion.py` — direct vs rayfield-mediated inversion.
-10. `09_pycaso_real_data.ipynb` — real Pycaso CMO case study.
+1. [`00_getting_started.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/00_getting_started.ipynb) — OpenCV-to-StereoComplex onboarding.
+2. [`01_ray2d_vs_opencv.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/01_ray2d_vs_opencv.ipynb) — why Ray2D improves ChArUco observations.
+3. [`02_ray3d.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/02_ray3d.ipynb) — central 3D ray-field reconstruction prototype.
+4. [`03_rayfield_virtual_rectification.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/03_rayfield_virtual_rectification.ipynb) — bridge back to dense stereo.
+5. [`04_parallel_plate_origin_field.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/04_parallel_plate_origin_field.ipynb) — non-central synthetic oracle.
+6. [`05_noncentral_calibration_from_images.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/05_noncentral_calibration_from_images.ipynb) — practical non-central image-folder path.
+7. [`06_cmo_model_selection.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/06_cmo_model_selection.ipynb) — physical model selection on CMO-like optics.
+8. [`07_model_selection_matrix.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/07_model_selection_matrix.ipynb) — 6-oracle classification matrix.
+9. [`08_direct_vs_rayfield_inversion.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/08_direct_vs_rayfield_inversion.ipynb) — direct vs rayfield-mediated inversion.
+10. [`09_pycaso_real_data.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/09_pycaso_real_data.ipynb) — real Pycaso CMO case study.
 
 ## Quickstart for your own stereo folders
 
