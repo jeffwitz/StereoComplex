@@ -1355,15 +1355,7 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
     from stereocomplex.rayfields.zernike_origin_field import ZernikeOriginFieldConfig  # noqa: PLC0415
     from stereocomplex.synthetic.parallel_plate import SyntheticStereoDataset  # noqa: PLC0415
 
-    left_paths = _sorted_image_paths(Path(left_dir))
-    right_paths = _sorted_image_paths(Path(right_dir))
-    if not left_paths or not right_paths:
-        raise FileNotFoundError("no images found in left_dir/right_dir")
-    if len(left_paths) != len(right_paths):
-        raise ValueError("left_dir and right_dir must contain the same number of images")
-    if max_pairs and max_pairs > 0:
-        left_paths = left_paths[: int(max_pairs)]
-        right_paths = right_paths[: int(max_pairs)]
+    pairs = _image_pairs_from_dirs(left_dir, right_dir, max_pairs=max_pairs)
 
     runtime = _build_charuco_runtime(board)
     chess3 = np.asarray(runtime.board.getChessboardCorners(), dtype=np.float64)
@@ -1377,9 +1369,9 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
     obj_right: list[np.ndarray] = []
     img_right_cv: list[np.ndarray] = []
 
-    for left_path, right_path in zip(left_paths, right_paths, strict=True):
-        img_l = _ensure_gray_u8(left_path)
-        img_r = _ensure_gray_u8(right_path)
+    for pair in pairs:
+        img_l = _ensure_gray_u8(pair.left_path)
+        img_r = _ensure_gray_u8(pair.right_path)
         if image_size is None:
             image_size = (int(img_l.shape[1]), int(img_l.shape[0]))
         if img_l.shape != img_r.shape or (int(img_l.shape[1]), int(img_l.shape[0])) != image_size:
