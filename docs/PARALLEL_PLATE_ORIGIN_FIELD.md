@@ -121,6 +121,31 @@ O_c(u,v)=\left(I-dd^T\right)O_\mathrm{raw}(u,v),
 O_c(u,v)\cdot d(u,v)=0.
 ```
 
+**Why Zernike?**  A rayfield is a smooth vector-valued function on the
+sensor domain. Any low-order smooth basis — Legendre, Chebyshev,
+B-splines — could represent it compactly.  Zernike polynomials are
+chosen not for an optical analogy (they were designed for wavefront
+phase, not for ray origins or directions) but for a structural reason:
+**polar separability**.
+
+Zernike modes separate radial order :math:`n` from angular frequency
+:math:`m`.  This matters because the dominant symmetries of a stereo
+system are *angular*, not Cartesian:
+
+- :math:`m=0` (rotationally symmetric modes) captures what is common to
+  both optical channels — objective lens aberrations, field curvature.
+- :math:`m=1` (dipolar modes) captures left/right asymmetry — the
+  signature of off-axis sub-pupils and per-arm misalignments.
+- Higher :math:`m` captures quadrupole and finer angular structure.
+
+On a Cartesian basis those same patterns would be spread across many
+coefficients — you could fit equally well, but you could not *read* the
+physics from the coefficient vector.
+
+The sensor is rectangular and the pupil is circular; Zernike privileges
+the pupil geometry.  The normalisation below maps the sensor rectangle
+onto the unit disk, accepting that the corners carry no information.
+
 The Zernike field is defined on normalized image coordinates. With
 
 ```{math}
