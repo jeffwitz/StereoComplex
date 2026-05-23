@@ -474,6 +474,10 @@ def _plot_specimen_grid(
         ax_xy.scatter(rec.X, rec.Y, s=1, c=rec.Z, cmap="viridis",
                       vmin=vmin, vmax=vmax)
         ax_xy.set_aspect("equal")
+        # Z-map and scatter share the OpenCV convention where Y_world
+        # follows image v (downward).  Matplotlib defaults to Y-up, so
+        # invert the scatter's Y axis to match the Z-map origin="upper".
+        ax_xy.invert_yaxis()
         w, h = rec.image_extent_xy_mm
         ax_xy.set_title(
             f"XY footprint = {w:.2f} x {h:.2f} mm\n"
