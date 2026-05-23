@@ -670,8 +670,8 @@ unregularised BA, and two regularised variants (isotropic Tikhonov and
 Schur-complement prior).  The shared colour scale makes surface roughness
 directly comparable across models.*
 
-| Model | Z MAD (surface roughness) | Median ray gap | Magnification vs 18.75 mm coin |
-|---|---|---|---:|---:|
+| Model | Z MAD | Median ray gap | Magnification vs 18.75 mm coin |
+|---|---:|---:|---:|
 | Zernike rayfield (57 p) | 0.194 mm | 0.0011 mm | 0.1968 |
 | CMO 26 p (rayfield init) | 0.073 mm | **0.0224 mm** | 0.1904 |
 | CMO 26 p — BA unregularised | 0.030 mm | 0.0011 mm | 0.1931 |
