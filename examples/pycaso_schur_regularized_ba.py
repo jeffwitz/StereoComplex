@@ -618,6 +618,8 @@ def run_schur_sweep(args: argparse.Namespace) -> int:
             weak_threshold=args.weak_threshold,
             damping_pose=args.damping_pose,
             fd_method=args.fd_method, fd_rel_step=args.rel_step,
+            fisher_before=fisher,
+            compute_fisher_after=False,
         )
         row = {
             "alpha": alpha,

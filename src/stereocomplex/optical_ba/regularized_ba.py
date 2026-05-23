@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 import numpy as np
 from scipy.optimize import least_squares  # type: ignore[import-untyped]
 
-from stereocomplex.optical_ba.fisher import build_fisher_blocks
+from stereocomplex.optical_ba.fisher import FisherBlocks, build_fisher_blocks
 from stereocomplex.optical_ba.residuals import (
     N_POSE_PER_FRAME,
     N_THETA,
@@ -406,6 +406,8 @@ def run_schur_regularized_optical_ba(
     bounds: tuple[np.ndarray, np.ndarray] | None = None,
     weak_threshold: float = 1e-3,
     damping_pose: float = 1e-8,
+    fisher_before: FisherBlocks | None = None,
+    compute_fisher_after: bool = True,
     fd_method: str = "central",
     fd_rel_step: float = 1e-6,
 ) -> OpticalBAResult:
@@ -452,16 +454,20 @@ def run_schur_regularized_optical_ba(
         return np.concatenate([data_res, prior_res])
 
     # "Before" Schur diagnostic at theta0 (data residuals only, no prior).
+    # Accept a pre-computed FisherBlocks from the caller (e.g. a sweep that
+    # already built the diagnostic to construct the SchurPrior) to avoid
+    # redundant finite-difference work.
     data_only_fun = lambda x: point_to_ray_residuals_cmo_se3(x, observations)  # noqa: E731
-    fisher_before = build_fisher_blocks(
-        residual_fun=data_only_fun,
-        theta0=theta0,
-        pose0=pose0,
-        theta_scales=theta_scales,
-        pose_scales=pose_scales,
-        rel_step=fd_rel_step,
-        method=fd_method,
-    )
+    if fisher_before is None:
+        fisher_before = build_fisher_blocks(
+            residual_fun=data_only_fun,
+            theta0=theta0,
+            pose0=pose0,
+            theta_scales=theta_scales,
+            pose_scales=pose_scales,
+            rel_step=fd_rel_step,
+            method=fd_method,
+        )
     P_strong, P_weak, coupling_before = _weak_strong_projectors(
         fisher_before,
         damping_pose=damping_pose,
@@ -494,21 +500,24 @@ def run_schur_regularized_optical_ba(
     rms_mm = _residual_rms_mm(r_data)
     rms_px, p50_px, p95_px = _residual_px_stats(r_data, fx_ref_px, mean_z)
 
-    fisher_after = build_fisher_blocks(
-        residual_fun=data_only_fun,
-        theta0=theta_final,
-        pose0=pose_final,
-        theta_scales=theta_scales,
-        pose_scales=pose_scales,
-        rel_step=fd_rel_step,
-        method=fd_method,
-    )
-    _, _, coupling_after = _weak_strong_projectors(
-        fisher_after,
-        damping_pose=damping_pose,
-        weak_threshold=weak_threshold,
-        theta_scales=theta_scales,
-    )
+    if compute_fisher_after:
+        fisher_after = build_fisher_blocks(
+            residual_fun=data_only_fun,
+            theta0=theta_final,
+            pose0=pose_final,
+            theta_scales=theta_scales,
+            pose_scales=pose_scales,
+            rel_step=fd_rel_step,
+            method=fd_method,
+        )
+        _, _, coupling_after = _weak_strong_projectors(
+            fisher_after,
+            damping_pose=damping_pose,
+            weak_threshold=weak_threshold,
+            theta_scales=theta_scales,
+        )
+    else:
+        coupling_after = float("nan")
 
     delta_scaled = (theta_final - theta0) / theta_scales
     drift_total = float(np.linalg.norm(delta_scaled))
