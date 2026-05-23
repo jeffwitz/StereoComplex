@@ -114,7 +114,7 @@ def transform_vectors_cv_to_phys(V: np.ndarray) -> np.ndarray:
 
 
 def transform_rays_cv_to_phys(
-    O: np.ndarray,
+    O: np.ndarray,  # noqa: E741  — canonical optical-origin symbol
     d: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Convert rays from OpenCV frame to physical Y-up frame.
@@ -145,7 +145,7 @@ def transform_vectors_phys_to_cv(V: np.ndarray) -> np.ndarray:
 
 
 def transform_rays_phys_to_cv(
-    O: np.ndarray,
+    O: np.ndarray,  # noqa: E741  — canonical optical-origin symbol
     d: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Convert rays from physical Y-up frame to OpenCV frame (inverse)."""

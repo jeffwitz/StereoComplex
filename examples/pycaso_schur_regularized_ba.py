@@ -633,7 +633,7 @@ def run_schur_sweep(args: argparse.Namespace) -> int:
             "weak_mode_drift_norm": result.weak_mode_drift_norm,
             "strong_mode_drift_norm": result.strong_mode_drift_norm,
             "coupling_before": result.schur_coupling_before,
-            "coupling_after": result.schur_coupling_after,
+            "coupling_after": None,  # skipped (compute_fisher_after=False in sweep)
             "descriptors": result.descriptors,
         }
         rows.append(row)
