@@ -831,6 +831,10 @@ class CMOTelecentricStereoModel:
     name: str = "cmo_telecentric"
     is_stereo_shared: bool = True
 
+    # All .ray() methods return rays in the internal OpenCV frame
+    # (u → +X, v → +Y, Z forward).  See core/conventions.py.
+    frame_convention: str = "opencv_y_down"
+
     @property
     def n_parameters(self) -> int:
         """Number of free parameters in the flattened vector.

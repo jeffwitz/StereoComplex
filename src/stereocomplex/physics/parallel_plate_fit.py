@@ -154,7 +154,15 @@ def rayfield_two_plane_residuals(
     pixels: np.ndarray,
     z_planes: tuple[float, float] = (100.0, 1000.0),
 ) -> np.ndarray:
-    """Compare two rayfields by intersections with two reference z-planes."""
+    """Compare two rayfields by intersections with two reference z-planes.
+
+    Both *field_a* and *field_b* must declare ``frame_convention =
+    "opencv_y_down"`` (the internal StereoComplex convention).  A
+    ``ValueError`` is raised if either declares a different convention.
+    """
+    from stereocomplex.core.conventions import check_frame_convention
+
+    check_frame_convention(field_a, field_b, label="rayfield_two_plane_residuals")
     px = np.asarray(pixels, dtype=np.float64).reshape(-1, 2)
     Oa, da = _eval_rayfield(field_a, px[:, 0], px[:, 1])
     Ob, db = _eval_rayfield(field_b, px[:, 0], px[:, 1])

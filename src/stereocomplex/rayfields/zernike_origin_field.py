@@ -280,6 +280,9 @@ class ZernikeOriginField:
         if coeffs.shape != (len(self.modes), 3):
             raise ValueError(f"coeffs must have shape {(len(self.modes), 3)}")
         self.coefficients = ZernikeOriginFieldCoefficients(coeffs=coeffs)
+        # Rays are returned in the internal OpenCV frame
+        # (u → +X, v → +Y, Z forward).  See core/conventions.py.
+        self.frame_convention: str = "opencv_y_down"
 
     @property
     def coeffs(self) -> np.ndarray:
