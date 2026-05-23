@@ -1398,12 +1398,20 @@ def fit_cmo_telecentric_model_to_rayfields(
             )
         return np.concatenate(blocks)
 
-    # Bounds: physically reasonable ranges, extended for larger parameter vectors
+    # Bounds: physically reasonable ranges, extended for larger parameter vectors.
+    # cx / cy are constrained to the central half of the sensor so the affine
+    # model cannot push the principal point to a corner and compensate with sign
+    # flips in the slope / shear parameters — that degenerate solution inverts
+    # the world-frame Y axis relative to the Zernike reference.
+    cx_center, cy_center = 0.5 * image_size[0], 0.5 * image_size[1]
+    pp_margin = 0.25 * min(image_size)
     lower = np.array(
-        [1.0, 1.0, 0.0, -np.inf, -np.inf, 1.0, 0.0, -0.3, -10.0, -10.0], dtype=np.float64
+        [1.0, 1.0, 0.0, cx_center - pp_margin, cy_center - pp_margin,
+         1.0, 0.0, -0.3, -10.0, -10.0], dtype=np.float64
     )
     upper = np.array(
-        [500.0, 1000.0, 200.0, np.inf, np.inf, 500.0, 0.5, 0.3, 10.0, 10.0], dtype=np.float64
+        [500.0, 1000.0, 200.0, cx_center + pp_margin, cy_center + pp_margin,
+         500.0, 0.5, 0.3, 10.0, 10.0], dtype=np.float64
     )
     if x0.size >= 12:
         lower = np.concatenate([lower, [-10.0, -10.0]])

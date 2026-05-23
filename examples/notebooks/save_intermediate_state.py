@@ -177,9 +177,14 @@ def apply_se3(O, d, rv, t):
     R = Rotation.from_rotvec(rv).as_matrix()
     return (R @ O.T).T + t[None, :], _normalize((R @ d.T).T)
 
-x0_tel = np.array([f_obj_est, WD_est, b_est, 1024., 1024., f_obj_est, theta_fixed, dcL[0,1], 0.,0.,0.,0.,0.,0.], dtype=np.float64)
-lo_tel = np.array([1.,1.,0.,0.,0.,20.,0.,-0.3,-10.,-10.,-10.,-10.,-10.,-10.], dtype=np.float64)
-hi_tel = np.array([500.,1000.,200.,2048.,2048.,200.,0.5,0.3,10.,10.,10.,10.,10.,10.], dtype=np.float64)
+cx_center, cy_center = 0.5 * W, 0.5 * H
+pp_margin = 0.25 * min(W, H)
+x0_tel = np.array([f_obj_est, WD_est, b_est, cx_center, cy_center,
+                   f_obj_est, theta_fixed, dcL[0,1], 0.,0.,0.,0.,0.,0.], dtype=np.float64)
+lo_tel = np.array([1.,1.,0., cx_center - pp_margin, cy_center - pp_margin,
+                   20.,0.,-0.3,-10.,-10.,-10.,-10.,-10.,-10.], dtype=np.float64)
+hi_tel = np.array([500.,1000.,200., cx_center + pp_margin, cy_center + pp_margin,
+                   200.,0.5,0.3,10.,10.,10.,10.,10.,10.], dtype=np.float64)
 rot_lo = np.full(3, -0.08); rot_hi = np.full(3, 0.08); trans_lo = np.full(3, -3.0); trans_hi = np.full(3, 3.0)
 
 def res_rf(x):

@@ -89,24 +89,35 @@ class OpticalBAResult:
     diagnostics: dict[str, float] = field(default_factory=dict)
 
 
-# Sensible default bounds for the 26-parameter CMO + arm vector, matching the
-# values used by examples/notebooks/refine_26p_on_corners.py. These are wide
-# enough to leave the optimiser plenty of room, narrow enough to keep the
-# search in a physically meaningful region.
-_TEL_BOUNDS_LO = np.array(
-    [1.0, 1.0, 0.0, 0.0, 0.0, 20.0, 0.0, -0.3, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0]
-)
-_TEL_BOUNDS_HI = np.array(
-    [500.0, 1000.0, 200.0, 2048.0, 2048.0, 200.0, 0.5, 0.3, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
-)
+def _tel_bounds(image_size: tuple[int, int]) -> tuple[np.ndarray, np.ndarray]:
+    """``(lo, hi)`` bounds for the 14-param telecentric CMO vector.
+
+    The principal-point entries (indices 3 and 4) are constrained to the
+    central half of the sensor so the affine model cannot push the
+    principal point to a corner and compensate with sign flips in the
+    slope / shear parameters — that degenerate solution inverts the
+    world-frame Y axis.
+    """
+    cx_center = 0.5 * image_size[0]
+    cy_center = 0.5 * image_size[1]
+    margin = 0.25 * min(image_size)
+    lo = np.array(
+        [1.0, 1.0, 0.0, cx_center - margin, cy_center - margin,
+         20.0, 0.0, -0.3, -10.0, -10.0, -10.0, -10.0, -10.0, -10.0]
+    )
+    hi = np.array(
+        [500.0, 1000.0, 200.0, cx_center + margin, cy_center + margin,
+         200.0, 0.5, 0.3, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+    )
+    return lo, hi
+
+
 _ARM_BOUNDS_LO = np.concatenate([np.full(3, -0.08), np.full(3, -3.0),
                                   np.full(3, -0.08), np.full(3, -3.0)])
 _ARM_BOUNDS_HI = np.concatenate([np.full(3, 0.08), np.full(3, 3.0),
                                   np.full(3, 0.08), np.full(3, 3.0)])
-_THETA_BOUNDS_LO = np.concatenate([_TEL_BOUNDS_LO, _ARM_BOUNDS_LO])
-_THETA_BOUNDS_HI = np.concatenate([_TEL_BOUNDS_HI, _ARM_BOUNDS_HI])
 
-# Per-frame pose bounds. The rotation vector is left unbounded — the
+# Per-frame pose bounds.  The rotation vector is left unbounded — the
 # Rodrigues parameterisation is not unique near 180° rotations, which the
 # Pycaso boards (facing the camera, ~175° around the X axis) sit close to.
 # Constraining the rotvec there would clip the initial guess catastrophically.
@@ -114,12 +125,17 @@ _POSE_BOUNDS_LO = np.full(6, -np.inf)
 _POSE_BOUNDS_HI = np.full(6, +np.inf)
 
 
-def default_bounds(n_frames: int) -> tuple[np.ndarray, np.ndarray]:
+def default_bounds(
+    n_frames: int, image_size: tuple[int, int]
+) -> tuple[np.ndarray, np.ndarray]:
     """Default ``(lo, hi)`` bounds for the full ``[theta, pose]`` vector."""
+    tel_lo, tel_hi = _tel_bounds(image_size)
+    theta_lo = np.concatenate([tel_lo, _ARM_BOUNDS_LO])
+    theta_hi = np.concatenate([tel_hi, _ARM_BOUNDS_HI])
     pose_lo = np.tile(_POSE_BOUNDS_LO, n_frames)
     pose_hi = np.tile(_POSE_BOUNDS_HI, n_frames)
-    lo = np.concatenate([_THETA_BOUNDS_LO, pose_lo])
-    hi = np.concatenate([_THETA_BOUNDS_HI, pose_hi])
+    lo = np.concatenate([theta_lo, pose_lo])
+    hi = np.concatenate([theta_hi, pose_hi])
     return lo, hi
 
 
@@ -269,7 +285,7 @@ def run_optical_ba(
     n_frames = observations.n_frames
     theta_scales, pose_scales = default_parameter_scales(n_frames)
     if bounds is None:
-        bounds = default_bounds(n_frames)
+        bounds = default_bounds(n_frames, observations.image_size)
 
     def residual_fun(x: np.ndarray) -> np.ndarray:
         return point_to_ray_residuals_cmo_se3(x, observations)
