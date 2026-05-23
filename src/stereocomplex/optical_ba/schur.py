@@ -255,8 +255,15 @@ def diagnose_schur_modes(
     else:
         weak_idx = np.where(eigvals < weak_threshold * lambda_max)[0].astype(np.int64)
         rank_eff = int(np.sum(eigvals >= weak_threshold * lambda_max))
-        lambda_min_eff = max(float(eigvals[-1]), np.finfo(np.float64).tiny)
-        cond = lambda_max / lambda_min_eff
+        lambda_min = float(eigvals[-1])
+        # When the smallest eigenvalue is below the machine-relative floor of
+        # lambda_max (or negative from numerical noise on a rank-deficient
+        # Schur), the condition number is effectively infinite. Reporting it
+        # as +inf is safer than dividing by a vanishing tiny.
+        if lambda_min <= lambda_max * np.finfo(np.float64).eps:
+            cond = float("inf")
+        else:
+            cond = lambda_max / lambda_min
 
     coupling = coupling_norm_schur(
         I_tt, I_tp, I_pp, damping_pose=damping_pose, pinv_rcond=pinv_rcond

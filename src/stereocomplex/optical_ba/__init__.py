@@ -18,6 +18,11 @@ from stereocomplex.optical_ba.fisher import (
     build_fisher_blocks,
     finite_difference_jacobian_scaled,
 )
+from stereocomplex.optical_ba.residuals import (
+    PycasoCMOObservations,
+    default_parameter_scales,
+    point_to_ray_residuals_cmo_se3,
+)
 from stereocomplex.optical_ba.schur import (
     SchurDiagnostic,
     coupling_norm_schur,
@@ -27,10 +32,13 @@ from stereocomplex.optical_ba.schur import (
 
 __all__ = [
     "FisherBlocks",
+    "PycasoCMOObservations",
     "SchurDiagnostic",
     "build_fisher_blocks",
     "coupling_norm_schur",
+    "default_parameter_scales",
     "diagnose_schur_modes",
     "finite_difference_jacobian_scaled",
+    "point_to_ray_residuals_cmo_se3",
     "schur_complement_theta",
 ]
