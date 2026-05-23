@@ -34,19 +34,31 @@ from stereocomplex.optical_ba.schur import (
     diagnose_schur_modes,
     schur_complement_theta,
 )
+from stereocomplex.optical_ba.specimen import (
+    EUR_2_CENT_DIAMETER_MM,
+    SpecimenReconstruction,
+    load_zernike_baseline,
+    magnification_ratio,
+    reconstruct_with_cmo_se3,
+)
 
 __all__ = [
+    "EUR_2_CENT_DIAMETER_MM",
     "FisherBlocks",
     "OpticalBAResult",
     "PycasoCMOObservations",
     "SchurDiagnostic",
+    "SpecimenReconstruction",
     "build_fisher_blocks",
     "coupling_norm_schur",
     "default_bounds",
     "default_parameter_scales",
     "diagnose_schur_modes",
     "finite_difference_jacobian_scaled",
+    "load_zernike_baseline",
+    "magnification_ratio",
     "point_to_ray_residuals_cmo_se3",
+    "reconstruct_with_cmo_se3",
     "run_optical_ba",
     "schur_complement_theta",
 ]

@@ -36,11 +36,16 @@ SRC = ROOT / "src"
 sys.path.insert(0, str(SRC))
 
 from stereocomplex.optical_ba import (  # noqa: E402  (sys.path tweak above)
+    EUR_2_CENT_DIAMETER_MM,
     PycasoCMOObservations,
+    SpecimenReconstruction,
     build_fisher_blocks,
     default_parameter_scales,
     diagnose_schur_modes,
+    load_zernike_baseline,
+    magnification_ratio,
     point_to_ray_residuals_cmo_se3,
+    reconstruct_with_cmo_se3,
     run_optical_ba,
 )
 
@@ -287,6 +292,160 @@ def _sweep_pose_damping(
     return rows
 
 
+def _reconstruct_and_plot_specimens(
+    theta_initial: np.ndarray,
+    theta_final: np.ndarray,
+    *,
+    variant_label: str,
+    out_dir: Path,
+    correspondences_path: Path,
+    zernike_baseline_path: Path,
+) -> dict:
+    """Reconstruct the Pycaso coin with three model variants and plot them.
+
+    Variants compared:
+
+    1. Zernike rayfield (57p) — loaded from the published checkpoint.
+    2. CMO 26p at the rayfield-derived initialisation ``theta_initial``.
+    3. CMO 26p after the current BA, ``theta_final``, labelled ``variant_label``.
+
+    All three Z maps are rendered on a shared colour scale; the figure
+    title makes the magnification ratio of every variant explicit so the
+    rayfield-vs-CMO scale gap is visible at a glance.
+    """
+    recs: list[SpecimenReconstruction] = [
+        load_zernike_baseline(zernike_baseline_path),
+        reconstruct_with_cmo_se3(
+            theta_initial,
+            correspondences_path=correspondences_path,
+            variant="cmo_26p_initial",
+        ),
+        reconstruct_with_cmo_se3(
+            theta_final,
+            correspondences_path=correspondences_path,
+            variant=variant_label,
+        ),
+    ]
+
+    # Save per-variant point clouds for follow-up analysis.
+    for rec in recs:
+        np.savez_compressed(
+            out_dir / f"specimen_{rec.variant}.npz",
+            X=rec.X.astype(np.float32), Y=rec.Y.astype(np.float32),
+            Z=rec.Z.astype(np.float32), gap_mm=rec.gap_mm.astype(np.float32),
+        )
+
+    metrics = {
+        rec.variant: {
+            "median_z_mm": rec.median_z_mm,
+            "z_mad_mm": rec.z_mad_mm,
+            "median_gap_mm": rec.median_gap_mm,
+            "image_extent_xy_mm": [rec.image_extent_xy_mm[0], rec.image_extent_xy_mm[1]],
+            "magnification_vs_eur_2c": magnification_ratio(rec, EUR_2_CENT_DIAMETER_MM),
+            "n_points": int(rec.X.size),
+        }
+        for rec in recs
+    }
+    metrics["nominal_diameter_mm"] = float(EUR_2_CENT_DIAMETER_MM)
+    (out_dir / f"specimen_comparison_{variant_label}.json").write_text(
+        json.dumps(metrics, indent=2), encoding="utf-8"
+    )
+    _plot_specimen_grid(recs, correspondences_path,
+                        out_dir / f"specimen_comparison_{variant_label}.png")
+
+    print("  specimen comparison vs 2-cent euro (18.75 mm):")
+    for rec in recs:
+        ratio = magnification_ratio(rec, EUR_2_CENT_DIAMETER_MM)
+        w, h = rec.image_extent_xy_mm
+        print(f"    {rec.variant:30s} extent={w:6.2f}x{h:6.2f} mm  "
+              f"ratio={ratio:.4f}  Z_med={rec.median_z_mm:+.3f} mm  "
+              f"Z_MAD={rec.z_mad_mm:.4f} mm  gap_med={rec.median_gap_mm:.4f} mm")
+    return metrics
+
+
+def _plot_specimen_grid(
+    recs: list,
+    correspondences_path: Path,
+    out_path: Path,
+) -> None:
+    """3-column comparison: Z map, XY footprint, ray-gap histogram per variant."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    data = np.load(correspondences_path)
+    roi = [int(x) for x in data["roi"]]
+    roi_x0, roi_x1, roi_y0, roi_y1 = roi
+    h_roi, w_roi = (roi_y1 - roi_y0), (roi_x1 - roi_x0)
+    uL = np.asarray(data["uL"], dtype=np.float64)
+    vL = np.asarray(data["vL"], dtype=np.float64)
+    n_corr = uL.size
+    for rec in recs:
+        if rec.valid_mask.size != n_corr:
+            raise ValueError(
+                f"variant {rec.variant!r} valid_mask has {rec.valid_mask.size} "
+                f"entries, expected {n_corr} (same as correspondences)"
+            )
+
+    ui_full = (uL - roi_x0).astype(np.int64)
+    vi_full = (vL - roi_y0).astype(np.int64)
+
+    # Shared Z colour scale across variants — pick the union percentile range.
+    all_z = np.concatenate([rec.Z for rec in recs])
+    vmin = float(np.percentile(all_z, 5))
+    vmax = float(np.percentile(all_z, 95))
+
+    n_var = len(recs)
+    fig, axes = plt.subplots(n_var, 3, figsize=(15, 4 * n_var))
+    if n_var == 1:
+        axes = np.atleast_2d(axes)
+
+    for row, rec in enumerate(recs):
+        z_map = np.full((h_roi, w_roi), np.nan, dtype=np.float64)
+        z_map[vi_full[rec.valid_mask], ui_full[rec.valid_mask]] = rec.Z
+        ax_z, ax_xy, ax_gap = axes[row]
+
+        im = ax_z.imshow(z_map, cmap="viridis", origin="lower",
+                         vmin=vmin, vmax=vmax)
+        ax_z.set_title(
+            f"{rec.variant}\nZ med = {rec.median_z_mm:+.3f} mm  "
+            f"Z MAD = {rec.z_mad_mm:.4f} mm"
+        )
+        ax_z.set_xlabel("u-ROI (px)")
+        ax_z.set_ylabel("v-ROI (px)")
+        fig.colorbar(im, ax=ax_z, label="Z (mm)")
+
+        ratio = magnification_ratio(rec, EUR_2_CENT_DIAMETER_MM)
+        ax_xy.scatter(rec.X, rec.Y, s=1, c=rec.Z, cmap="viridis",
+                      vmin=vmin, vmax=vmax)
+        ax_xy.set_aspect("equal", adjustable="datalim")
+        w, h = rec.image_extent_xy_mm
+        ax_xy.set_title(
+            f"XY footprint = {w:.2f} x {h:.2f} mm\n"
+            f"magnification ratio vs 18.75 mm coin = {ratio:.4f}"
+        )
+        ax_xy.set_xlabel("X (mm)")
+        ax_xy.set_ylabel("Y (mm)")
+
+        ax_gap.hist(rec.gap_mm, bins=80, range=(0.0, max(0.2, 6 * rec.median_gap_mm)),
+                    color="steelblue", alpha=0.85)
+        ax_gap.axvline(rec.median_gap_mm, color="red", lw=1,
+                       label=f"median = {rec.median_gap_mm:.4f} mm")
+        ax_gap.set_title("Ray-pair gap distribution")
+        ax_gap.set_xlabel("gap (mm)")
+        ax_gap.set_ylabel("count")
+        ax_gap.legend(loc="upper right", fontsize=9)
+
+    fig.suptitle(
+        f"Pycaso 2-cent coin reconstruction across variants (n_corr={n_corr})",
+        fontsize=13, fontweight="bold",
+    )
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
 def run_ba(args: argparse.Namespace) -> int:
     """CDC Step 2: direct (unregularised) optical BA on the Pycaso checkpoint."""
     input_path = Path(args.input)
@@ -356,6 +515,24 @@ def run_ba(args: argparse.Namespace) -> int:
     json_path = out_dir / "optical_ba_unregularized.json"
     json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(f"  wrote {json_path}")
+
+    if args.with_specimen:
+        correspondences_path = Path(args.correspondences)
+        zernike_path = Path(args.zernike_baseline)
+        if not correspondences_path.is_file() or not zernike_path.is_file():
+            print(f"  [specimen] skipping — missing {correspondences_path} "
+                  f"or {zernike_path}")
+        else:
+            _reconstruct_and_plot_specimens(
+                theta_initial=theta0,
+                theta_final=result.theta,
+                variant_label="cmo_26p_ba_unregularized",
+                out_dir=out_dir,
+                correspondences_path=correspondences_path,
+                zernike_baseline_path=zernike_path,
+            )
+            print(f"  wrote specimen comparison "
+                  f"{out_dir / 'specimen_comparison_cmo_26p_ba_unregularized.png'}")
     return 0
 
 
@@ -425,6 +602,14 @@ def main(argv: list[str] | None = None) -> int:
                         help="robust-loss transition scale in mm (--mode ba)")
     parser.add_argument("--max-nfev", type=int, default=200,
                         help="maximum residual evaluations for the BA (--mode ba)")
+    parser.add_argument("--with-specimen", action="store_true",
+                        help="also reconstruct the 2-cent coin and emit a comparison figure")
+    parser.add_argument("--correspondences",
+                        default="docs/assets/pycaso_real_data/specimen_correspondences.npz",
+                        help="path to the DIS-flow correspondences npz")
+    parser.add_argument("--zernike-baseline",
+                        default="docs/assets/pycaso_real_data/specimen_reconstruction_zernike.npz",
+                        help="path to the published Zernike rayfield reconstruction npz")
 
     args = parser.parse_args(argv)
     if args.mode == "diagnostic":
