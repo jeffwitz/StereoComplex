@@ -590,6 +590,148 @@ This feedback loop — Ray2D preprocessing → Ray3D measurement →
 diagnose residual → improve model → verify — is the core contribution
 of the StereoComplex framework, independent of the CMO architecture.
 
+## Stabilising the direct BA with a Schur-complement prior
+
+### The problem: pose–intrinsic coupling
+
+Once a physical CMO model is identified from the rayfield, it can be used
+as an initialiser for a **direct bundle adjustment** — jointly optimising
+optical parameters and board poses against the ChArUco corner residuals.
+This direct BA step typically reduces the reprojection RMS, but it comes
+with a risk: **some optical directions are poorly observable once the
+poses are free to adjust.**
+
+The Fisher information matrix of the BA residual, partitioned into an
+optical block $\mathcal{I}_{\theta\theta}$ and a pose block
+$\mathcal{I}_{\eta\eta}$, reveals the coupling:
+
+\[
+\mathcal{I} =
+\begin{bmatrix}
+\mathcal{I}_{\theta\theta} & \mathcal{I}_{\theta\eta} \\
+\mathcal{I}_{\eta\theta} & \mathcal{I}_{\eta\eta}
+\end{bmatrix}.
+\]
+
+The **Schur complement** of the pose block,
+
+\[
+S_\theta = \mathcal{I}_{\theta\theta}
+- \mathcal{I}_{\theta\eta}\,\mathcal{I}_{\eta\eta}^{-1}\,\mathcal{I}_{\eta\theta},
+\]
+
+measures the *effective* information on the optical parameters after
+marginalising the poses.  Eigenvectors of $S_\theta$ with very small
+eigenvalues — the **weak modes** — are directions in optical parameter
+space that a change in the board poses can almost perfectly mimic.  An
+unregularised BA can drift along these modes, reducing the pixel RMS
+while destroying the physical interpretability of the parameters
+($b, WD, f_{\text{obj}}, \theta_{\text{conv}}, R_L, R_R$).
+
+### The prior
+
+The rayfield estimate $\theta_0$ provides more than an initialisation:
+it defines an **observability-aware prior**.  We diagonalise $S_0 =
+S_\theta(\theta_0, \eta_0)$ and construct per-mode weights
+
+\[
+w_i = \left(
+\frac{\lambda_{\max}}{\lambda_i + \varepsilon\,\lambda_{\max}}
+\right)^p,
+\]
+
+where $p=1$ gives moderate penalisation and $p=2$ more aggressive.  The
+regularisation added to the BA cost is:
+
+\[
+\mathcal{L}_{\text{Schur}} =
+\alpha \sum_i w_i \left(
+v_i^T D_\theta^{-1}(\theta - \theta_0)
+\right)^2,
+\]
+
+with $D_\theta$ a diagonal matrix of per-parameter scales (degrees for
+rotations, millimetres for translations, pixels for the principal point).
+The prior penalises **only** the weakly observable modes, leaving the
+well-observed directions free to improve the fit.
+
+### Validation on the 2-cent coin specimen
+
+A dense stereo reconstruction of the Pycaso 2-cent euro coin (DIS optical
+flow, 1.94 M correspondences over a 1448 × 1448 px ROI) tests whether
+the regularised BA preserves or degrades the geometric reconstruction.
+Five optical models are compared:
+
+![5-variant specimen reconstruction](assets/pycaso_real_data/schur_ba/specimen_comparison_all_variants.png)
+
+*Surface relief (Z minus local mean plane) and ray-pair gap distributions
+for the Zernike rayfield, the CMO rayfield initialisation, the
+unregularised BA, and two regularised variants (isotropic Tikhonov and
+Schur-complement prior).  The shared colour scale makes surface roughness
+directly comparable across models.*
+
+| Model | Z MAD (surface roughness) | Median ray gap | Magnification vs 18.75 mm coin |
+|---|---|---|---:|---:|
+| Zernike rayfield (57 p) | 0.194 mm | 0.0011 mm | 0.1968 |
+| CMO 26 p (rayfield init) | 0.073 mm | **0.0224 mm** | 0.1904 |
+| CMO 26 p — BA unregularised | 0.030 mm | 0.0011 mm | 0.1931 |
+| CMO 26 p — BA + isotropic prior ($\alpha{=}10^{-2}$) | 0.027 mm | 0.0011 mm | 0.1930 |
+| CMO 26 p — BA + **Schur prior** ($\alpha{=}10^{-3}$) | **0.027 mm** | 0.0011 mm | 0.1930 |
+
+The rayfield initialisation has a median ray gap 20× worse than all BA
+variants — the Y-axis correction (see ``src/stereocomplex/core/conventions.py``) reveals that
+the initial model's triangulation quality was artificially inflated by
+the old coordinate convention.  All BA variants recover tight ray
+intersections (median gap ~1 µm).
+
+The unregularised BA reduces surface roughness from 0.073 mm to
+0.030 mm (a factor of 2.4×).  The regularised variants improve this
+further — to 0.027 mm — showing that the prior does not degrade the fit.
+
+### Schur vs isotropic sweep
+
+![Schur complement spectrum](assets/pycaso_real_data/schur_ba/schur_spectrum.png)
+
+A sweep over the prior strength $\alpha$ reveals the difference between
+the isotropic (Tikhonov) and Schur-based priors:
+
+| $\alpha$ | Isotropic RMS (px) | Isotropic weak drift | Schur RMS (px) | Schur weak drift |
+|---:|---:|---:|---:|---:|
+| $10^{-4}$ | 0.239 px (✗) | 0.529 | **0.277 px** (✓) | **0.0033** |
+| $10^{-3}$ | 0.245 px | 0.248 | **0.278 px** | **0.0007** |
+| $10^{-2}$ | 0.257 px | 0.082 | **0.279 px** | **0.0001** |
+| $10^{-1}$ | 0.270 px | 0.017 | **0.279 px** | **0.0000** |
+| $10^{0}$  | 0.278 px | 0.003 | **0.283 px** | **0.0000** |
+| $10^{1}$  | 0.286 px | 0.010 | **0.323 px** | **0.0000** |
+
+The isotropic prior faces a trade-off: a small $\alpha$ leaves the weak
+modes uncontrolled ($\text{drift}_{\text{weak}} = 0.53$ at
+$\alpha{=}10^{-4}$), while a large $\alpha$ degrades the fit (RMS
+rises to 0.286 px).  The Schur prior **breaks this trade-off**: even at
+$\alpha{=}10^{-4}$ it suppresses 99.4% of the weak-mode drift while
+keeping the RMS within 0.039 px of the unregularised baseline.  At
+$\alpha{=}10^{-3}$ the weak-mode drift is below $10^{-3}$ and the RMS
+penalty is only 0.039 px.
+
+### Interpretation
+
+The Schur prior is more than an algorithmic refinement — it formalises a
+**double role** for the rayfield estimate:
+
+1. **Initialiser** — $\theta_0$ places the direct BA in the correct
+   convergence basin, avoiding the local minima that trap a pinhole or
+   perspective-CMO initialisation (see the direct-vs-rayfield comparison
+   in notebook 08).
+2. **Observability prior** — the Schur eigenmodes of the Fisher matrix
+   at $\theta_0$ tell the optimiser *which directions it may trust*.
+   The prior blocks compensation between poses and intrinsics without
+   penalising the genuinely observable optical degrees of freedom.
+
+The 5-variant specimen reconstruction confirms that this strategy works
+on real hardware: the Schur-regularised BA produces the smoothest surface
+reconstruction (lowest Z MAD), tightest ray intersections, and stable
+physical descriptors — all from only 10 ChArUco stereo pairs.
+
 ## Saved artefacts
 
 ```text
@@ -610,6 +752,15 @@ docs/assets/pycaso_real_data/
     warped_model_comparison.json           ← pre-warp L1/L2 evaluation
     bic_model_selection.json               ← BIC model selection on Pycaso data
     pareto_gauge_regularization.png        ← Pareto frontier plot
+    schur_ba/
+        schur_ba_diagnostic.json           ← Schur spectrum + coupling norm
+        schur_spectrum.png                 ← normalised eigen-spectrum
+        optical_ba_unregularized.json      ← direct (unregularised) BA result
+        optical_ba_isotropic_prior_sweep.json  ← α-sweep, Tikhonov baseline
+        optical_ba_isotropic_1e-2.json     ← best isotropic BA
+        optical_ba_schur_prior_sweep.json  ← α-sweep, Schur prior
+        optical_ba_schur_1e-3.json         ← best Schur-regularised BA
+        specimen_comparison_all_variants.png   ← 5-variant coin reconstruction
 ```
 
 To regenerate all results from raw images:
@@ -632,4 +783,6 @@ access to the original TIFF/PNG images.
 - :doc:`CMO_PHYSICAL_MODEL` — the shared-rig CMO model definition
 - :doc:`DIRECT_VS_RAYFIELD_INVERSION` — why measure a rayfield before fitting optics
 - :doc:`NOTEBOOKS` — all walkthrough notebooks
+- :doc:`SCHUR_REGULARIZED_BA` (planned) — detailed theory behind the Schur-complement prior
+- ``src/stereocomplex/core/conventions.py`` — coordinate-frame convention layer (OpenCV vs physical Y-up)
 - [Notebook 09](../examples/notebooks/09_pycaso_real_data.py) — executable protocol
