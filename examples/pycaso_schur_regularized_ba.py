@@ -46,6 +46,24 @@ from stereocomplex.optical_ba import (  # noqa: E402  (sys.path tweak above)
 PIXEL_PITCH_MM = 0.0055  # Pycaso sensor
 
 
+# Physical names of the 26 optical parameters, in the order produced by
+# CMOTelecentricStereoModel.parameter_vector (with shared_slopes=False,
+# shared_shear=True, the layout used by refine_26p_on_corners.py) followed
+# by the 12 per-arm SE(3) parameters.
+THETA_LABELS = (
+    # 14 telecentric CMO parameters
+    "f_obj_mm", "working_distance_mm", "b_mm",
+    "cx_principal_px", "cy_principal_px",
+    "f_angular_mm", "theta_convergence_half_rad",
+    "d_y_common",
+    "s_x_L", "s_y_L", "s_x_R", "s_y_R",
+    "rho_x_shared", "rho_y_shared",
+    # 12 per-arm SE(3) parameters
+    "rv_L_x", "rv_L_y", "rv_L_z", "t_L_x_mm", "t_L_y_mm", "t_L_z_mm",
+    "rv_R_x", "rv_R_y", "rv_R_z", "t_R_x_mm", "t_R_y_mm", "t_R_z_mm",
+)
+
+
 def _pack_poses(opt_R: np.ndarray, opt_t: np.ndarray) -> np.ndarray:
     """Pack per-frame ``(R, t)`` into a flat ``(rotvec, tvec)`` vector."""
     n = opt_R.shape[0]
@@ -135,6 +153,28 @@ def run_diagnostic(args: argparse.Namespace) -> int:
     print(f"  effective rank: {diag.rank_effective} / {diag.eigvals.size}")
     print(f"  condition number: {diag.condition_number:.3e}")
 
+    # Inspect the strong-mode subspace (CDC sanity check before Step 2):
+    # which physical directions do the rank_effective eigenvectors represent?
+    strong_modes = _describe_strong_modes(diag, top_components=4)
+    print("  strong-mode physical content (top 4 components, absolute):")
+    for entry in strong_modes:
+        comp_str = ", ".join(f"{name}={w:+.2f}" for name, w in entry["components"])
+        print(f"    mode {entry['index']:2d}  lambda={entry['eigenvalue']:.3e}  | {comp_str}")
+
+    # Sweep the pose damping (CDC §11.2): the diagnostic must be insensitive
+    # to lambda for a reliable observability conclusion.
+    damping_sweep = _sweep_pose_damping(
+        fisher,
+        damping_values=(1e-10, 1e-8, 1e-6, 1e-4, 1e-2),
+        weak_threshold=args.weak_threshold,
+    )
+    print("  damping-pose sweep:")
+    print(f"    {'lambda':>10s}  {'c':>8s}  {'rank_eff':>9s}  "
+          f"{'top5_subspace_overlap':>22s}")
+    for row in damping_sweep:
+        print(f"    {row['damping_pose']:10.0e}  {row['coupling_norm']:8.4f}  "
+              f"{row['rank_effective']:9d}  {row['top5_subspace_overlap']:22.4f}")
+
     diagnostic_payload = {
         "input": str(input_path),
         "n_frames": int(n_frames),
@@ -159,6 +199,9 @@ def run_diagnostic(args: argparse.Namespace) -> int:
         "condition_number_is_finite": bool(np.isfinite(diag.condition_number)),
         "theta_scales": theta_scales.tolist(),
         "pose_scales_per_frame": pose_scales[:6].tolist(),
+        "theta_labels": list(THETA_LABELS),
+        "strong_modes": strong_modes,
+        "damping_pose_sweep": damping_sweep,
     }
 
     json_path = out_dir / "schur_ba_diagnostic.json"
@@ -173,6 +216,66 @@ def run_diagnostic(args: argparse.Namespace) -> int:
     )
     print(f"  wrote {out_dir / 'schur_spectrum.png'}")
     return 0
+
+
+def _describe_strong_modes(diag, top_components: int = 4) -> list[dict]:
+    """Return the top-K components of each strong eigenvector with labels.
+
+    For each mode with ``i < diag.rank_effective``, pick the ``top_components``
+    parameter entries with the largest absolute weight in
+    ``diag.eigvecs[:, i]``. Helps tell whether the strong modes correspond to
+    interpretable physical directions (e.g. ``f_obj + working_distance``).
+    """
+    out: list[dict] = []
+    for i in range(diag.rank_effective):
+        v = diag.eigvecs[:, i]
+        order = np.argsort(np.abs(v))[::-1][:top_components]
+        comps = [(THETA_LABELS[k], float(v[k])) for k in order]
+        out.append({
+            "index": int(i),
+            "eigenvalue": float(diag.eigvals[i]),
+            "components": comps,
+        })
+    return out
+
+
+def _sweep_pose_damping(
+    fisher,
+    damping_values: tuple[float, ...],
+    weak_threshold: float,
+) -> list[dict]:
+    """Re-evaluate the Schur diagnostic across pose-damping values (CDC §11.2).
+
+    Returns one record per damping value with the coupling norm, the
+    effective rank, and the principal-angle overlap between the top-5
+    eigenspace at that damping and the reference one (the smallest
+    damping). A stable diagnostic has overlaps close to 1 across the range.
+    """
+    from stereocomplex.optical_ba.schur import diagnose_schur_modes  # noqa: PLC0415
+
+    diags = [
+        diagnose_schur_modes(
+            fisher.I_tt, fisher.I_tp, fisher.I_pp,
+            damping_pose=lam, weak_threshold=weak_threshold,
+        )
+        for lam in damping_values
+    ]
+    # Reference: smallest damping value (least biased Schur).
+    ref_idx = int(np.argmin(damping_values))
+    V_ref = diags[ref_idx].eigvecs[:, :5]
+    rows: list[dict] = []
+    for lam, d in zip(damping_values, diags, strict=True):
+        V = d.eigvecs[:, :5]
+        # Squared principal-angle overlap = ||V_ref^T V||_F^2 / 5 in [0, 1].
+        overlap = float(np.linalg.norm(V_ref.T @ V, ord="fro") ** 2 / 5.0)
+        rows.append({
+            "damping_pose": float(lam),
+            "coupling_norm": float(d.coupling_norm),
+            "rank_effective": int(d.rank_effective),
+            "top5_subspace_overlap": overlap,
+            "eigvals_top5": [float(v) for v in d.eigvals[:5]],
+        })
+    return rows
 
 
 def _plot_schur_spectrum(eigvals: np.ndarray, weak_idx: np.ndarray,
