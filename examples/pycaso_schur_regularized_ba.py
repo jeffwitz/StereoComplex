@@ -41,6 +41,7 @@ from stereocomplex.optical_ba import (  # noqa: E402  (sys.path tweak above)
     default_parameter_scales,
     diagnose_schur_modes,
     point_to_ray_residuals_cmo_se3,
+    run_optical_ba,
 )
 
 PIXEL_PITCH_MM = 0.0055  # Pycaso sensor
@@ -92,11 +93,10 @@ def _residual_rms_px(residuals: np.ndarray, observations: PycasoCMOObservations,
     return rms_mm, rms_px
 
 
-def run_diagnostic(args: argparse.Namespace) -> int:
-    input_path = Path(args.input)
-    out_dir = Path(args.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
+def _load_checkpoint(input_path: Path) -> tuple[
+    PycasoCMOObservations, np.ndarray, np.ndarray, np.ndarray, float
+]:
+    """Load the Pycaso checkpoint into the shapes the script needs."""
     data = np.load(input_path, allow_pickle=True)
     obs = PycasoCMOObservations(
         obj_pts=np.asarray(data["obj_pts"], dtype=np.float64),
@@ -109,6 +109,15 @@ def run_diagnostic(args: argparse.Namespace) -> int:
     opt_R = np.asarray(data["opt_R"], dtype=np.float64)
     opt_t = np.asarray(data["opt_t"], dtype=np.float64)
     fx_ref = float(data["FX"])
+    return obs, theta0, opt_R, opt_t, fx_ref
+
+
+def run_diagnostic(args: argparse.Namespace) -> int:
+    input_path = Path(args.input)
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    obs, theta0, opt_R, opt_t, fx_ref = _load_checkpoint(input_path)
     pose0 = _pack_poses(opt_R, opt_t)
     n_frames = obs.n_frames
 
@@ -278,6 +287,78 @@ def _sweep_pose_damping(
     return rows
 
 
+def run_ba(args: argparse.Namespace) -> int:
+    """CDC Step 2: direct (unregularised) optical BA on the Pycaso checkpoint."""
+    input_path = Path(args.input)
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    obs, theta0, opt_R, opt_t, fx_ref = _load_checkpoint(input_path)
+    pose0 = _pack_poses(opt_R, opt_t)
+    print(f"Pycaso direct BA — frames={obs.n_frames}, corners={obs.n_corners}, "
+          f"theta(26), eta({pose0.size}), f_scale={args.f_scale_mm} mm, "
+          f"loss={args.loss}, max_nfev={args.max_nfev}")
+
+    result = run_optical_ba(
+        theta0=theta0,
+        pose0=pose0,
+        observations=obs,
+        fx_ref_px=fx_ref,
+        loss=args.loss,
+        f_scale_mm=args.f_scale_mm,
+        max_nfev=args.max_nfev,
+        weak_threshold=args.weak_threshold,
+        damping_pose=args.damping_pose,
+        fd_method=args.fd_method,
+        fd_rel_step=args.rel_step,
+    )
+
+    print(f"  optimiser: success={result.success}, nfev={result.nfev}, "
+          f"message={result.message!r}")
+    print(f"  RMS         init={result.diagnostics['rms_mm_initial']:.5f} mm  "
+          f"final={result.rms_mm:.5f} mm  (~{result.rms_px_equivalent:.3f} px)")
+    print(f"  P50/P95 px  {result.p50_px_equivalent:.3f} / {result.p95_px_equivalent:.3f}")
+    print(f"  coupling c  before={result.schur_coupling_before:.4f}  "
+          f"after={result.schur_coupling_after:.4f}")
+    print(f"  drift       total={result.theta_drift_norm:.4f}  "
+          f"weak={result.weak_mode_drift_norm:.4f}  "
+          f"strong={result.strong_mode_drift_norm:.4f}")
+    print("  descriptors:")
+    for k, v in result.descriptors.items():
+        print(f"    {k:30s} {v:+.6f}")
+
+    payload = {
+        "input": str(input_path),
+        "method": "unregularized_direct_ba",
+        "loss": args.loss,
+        "f_scale_mm": args.f_scale_mm,
+        "max_nfev": args.max_nfev,
+        "weak_threshold": args.weak_threshold,
+        "damping_pose": args.damping_pose,
+        "success": result.success,
+        "nfev": result.nfev,
+        "message": result.message,
+        "rms_mm_initial": result.diagnostics["rms_mm_initial"],
+        "rms_mm_final": result.rms_mm,
+        "rms_px_equivalent_final": result.rms_px_equivalent,
+        "p50_px_equivalent_final": result.p50_px_equivalent,
+        "p95_px_equivalent_final": result.p95_px_equivalent,
+        "schur_coupling_before": result.schur_coupling_before,
+        "schur_coupling_after": result.schur_coupling_after,
+        "theta_drift_norm": result.theta_drift_norm,
+        "weak_mode_drift_norm": result.weak_mode_drift_norm,
+        "strong_mode_drift_norm": result.strong_mode_drift_norm,
+        "descriptors_final": result.descriptors,
+        "theta_final": result.theta.tolist(),
+        "theta_initial": theta0.tolist(),
+        "diagnostics": result.diagnostics,
+    }
+    json_path = out_dir / "optical_ba_unregularized.json"
+    json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    print(f"  wrote {json_path}")
+    return 0
+
+
 def _plot_schur_spectrum(eigvals: np.ndarray, weak_idx: np.ndarray,
                          weak_threshold: float, out_path: Path) -> None:
     """Save a normalised Schur eigen-spectrum plot."""
@@ -325,9 +406,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--mode",
-        choices=("diagnostic",),
+        choices=("diagnostic", "ba"),
         default="diagnostic",
-        help="which CDC step to run (only 'diagnostic' is implemented for now)",
+        help="which CDC step to run (diagnostic = Step 1, ba = Step 2 direct BA)",
     )
     parser.add_argument("--rel-step", type=float, default=1e-6,
                         help="FD relative step in scaled parameter space")
@@ -337,10 +418,19 @@ def main(argv: list[str] | None = None) -> int:
                         help="Tikhonov damping added to the pose block before inversion")
     parser.add_argument("--weak-threshold", type=float, default=1e-3,
                         help="weak-mode threshold (relative to the largest eigenvalue)")
+    # --mode ba only
+    parser.add_argument("--loss", default="soft_l1",
+                        help="robust loss for least_squares (--mode ba)")
+    parser.add_argument("--f-scale-mm", type=float, default=0.005,
+                        help="robust-loss transition scale in mm (--mode ba)")
+    parser.add_argument("--max-nfev", type=int, default=200,
+                        help="maximum residual evaluations for the BA (--mode ba)")
 
     args = parser.parse_args(argv)
     if args.mode == "diagnostic":
         return run_diagnostic(args)
+    if args.mode == "ba":
+        return run_ba(args)
     parser.error(f"mode {args.mode!r} is not implemented yet")
     return 2
 
