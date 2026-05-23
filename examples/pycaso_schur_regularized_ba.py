@@ -438,10 +438,17 @@ def _plot_specimen_grid(
     ui_full = (uL - roi_x0).astype(np.int64)
     vi_full = (vL - roi_y0).astype(np.int64)
 
-    # Shared Z colour scale across variants — pick the union percentile range.
-    all_z = np.concatenate([rec.Z for rec in recs])
-    vmin = float(np.percentile(all_z, 5))
-    vmax = float(np.percentile(all_z, 95))
+    # Detrend each variant by its best-fit mean plane so the Z-map and
+    # scatter show surface relief (deviation from the local plane) rather
+    # than absolute working distance — all rows share the same colour scale.
+    z_rel = []
+    for rec in recs:
+        A = np.column_stack([rec.X, rec.Y, np.ones_like(rec.X)])
+        a, b, c = np.linalg.lstsq(A, rec.Z, rcond=None)[0]
+        z_rel.append(rec.Z - (a * rec.X + b * rec.Y + c))
+    all_z_rel = np.concatenate(z_rel)
+    z_limit = float(np.percentile(np.abs(all_z_rel), 98))
+    vmin, vmax = -z_limit, z_limit
 
     # Shared ray-gap range: median gaps are ~1e-3 mm on Pycaso, so a fixed
     # 0.2 mm window crushes everything into the first bin. Use the worst
@@ -457,21 +464,20 @@ def _plot_specimen_grid(
 
     for row, rec in enumerate(recs):
         z_map = np.full((h_roi, w_roi), np.nan, dtype=np.float64)
-        z_map[vi_full[rec.valid_mask], ui_full[rec.valid_mask]] = rec.Z
+        z_map[vi_full[rec.valid_mask], ui_full[rec.valid_mask]] = z_rel[row]
         ax_z, ax_xy, ax_gap = axes[row]
 
         im = ax_z.imshow(z_map, cmap="viridis", origin="upper",
                          vmin=vmin, vmax=vmax)
         ax_z.set_title(
-            f"{rec.variant}\nZ med = {rec.median_z_mm:+.3f} mm  "
-            f"Z MAD = {rec.z_mad_mm:.4f} mm"
+            f"{rec.variant}\nZ MAD = {rec.z_mad_mm:.4f} mm"
         )
         ax_z.set_xlabel("u-ROI (px)")
         ax_z.set_ylabel("v-ROI (px)")
-        fig.colorbar(im, ax=ax_z, label="Z (mm)")
+        fig.colorbar(im, ax=ax_z, label="Z − mean plane (mm)")
 
         ratio = magnification_ratio(rec, EUR_2_CENT_DIAMETER_MM)
-        ax_xy.scatter(rec.X, rec.Y, s=1, c=rec.Z, cmap="viridis",
+        ax_xy.scatter(rec.X, rec.Y, s=1, c=z_rel[row], cmap="viridis",
                       vmin=vmin, vmax=vmax)
         ax_xy.set_aspect("equal")
         # Z-map and scatter share the OpenCV convention where Y_world
@@ -497,7 +503,8 @@ def _plot_specimen_grid(
         ax_gap.legend(loc="upper right", fontsize=9)
 
     fig.suptitle(
-        f"Pycaso 2-cent coin reconstruction across variants (n_corr={n_corr})",
+        f"Pycaso 2-cent coin — surface relief (Z − mean plane) across variants  "
+        f"(n_corr={n_corr})",
         fontsize=13, fontweight="bold",
     )
     fig.tight_layout()
