@@ -7,6 +7,8 @@ import pytest
 
 from stereocomplex.core.conventions import (
     check_frame_convention,
+    image_to_phys_xy,
+    phys_to_image_xy,
     pixel_to_normalized_opencv,
     pixel_to_normalized_physical_y_up,
     transform_points_cv_to_phys,
@@ -112,6 +114,35 @@ def test_check_frame_convention_missing_attribute_is_ok():
     a = _DummyModel("opencv_y_down")
     b = _DummyModel()  # no frame_convention attribute
     check_frame_convention(a, b)  # should not raise (attribute missing is not a mismatch)
+
+
+# ── image ↔ physical coordinate conversions ──────────────────
+
+
+def test_phys_to_image_xy_converts_y_sign():
+    K = np.array([[1000, 0, 500], [0, 1000, 500], [0, 0, 1]], dtype=float)
+    Z = np.array([1.0])
+    u, v = phys_to_image_xy(np.array([0.0]), np.array([0.1]), Z, K)
+    # Y_up = +0.1 → Y_cv = -0.1 → v = cy + fy*(-0.1)/Z = 500 - 100 = 400
+    assert abs(v[0] - 400.0) < 0.01
+
+
+def test_image_to_phys_xy_converts_y_sign():
+    K = np.array([[1000, 0, 500], [0, 1000, 500], [0, 0, 1]], dtype=float)
+    Z = np.array([1.0])
+    X, Y = image_to_phys_xy(np.array([600]), np.array([400]), Z, K)
+    # v=400 → Y_cv = (400-500)/1000 = -0.1 → Y_phys = +0.1
+    assert abs(Y[0] - 0.1) < 0.001
+
+
+def test_phys_image_roundtrip():
+    K = np.array([[1000, 0, 500], [0, 1000, 500], [0, 0, 1]], dtype=float)
+    Z = np.array([2.5])
+    X0, Y0 = np.array([0.1]), np.array([-0.05])
+    u, v = phys_to_image_xy(X0, Y0, Z, K)
+    X1, Y1 = image_to_phys_xy(u, v, Z, K)
+    np.testing.assert_allclose(X0, X1, atol=1e-12)
+    np.testing.assert_allclose(Y0, Y1, atol=1e-12)
 
 
 # ── key models declare the internal convention ──────────────

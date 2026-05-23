@@ -460,7 +460,7 @@ def _plot_specimen_grid(
         z_map[vi_full[rec.valid_mask], ui_full[rec.valid_mask]] = rec.Z
         ax_z, ax_xy, ax_gap = axes[row]
 
-        im = ax_z.imshow(z_map, cmap="viridis", origin="lower",
+        im = ax_z.imshow(z_map, cmap="viridis", origin="upper",
                          vmin=vmin, vmax=vmax)
         ax_z.set_title(
             f"{rec.variant}\nZ med = {rec.median_z_mm:+.3f} mm  "

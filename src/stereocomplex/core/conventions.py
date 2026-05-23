@@ -155,6 +155,77 @@ def transform_rays_phys_to_cv(
 # ── convention assertion ────────────────────────────────────
 
 
+# ── image ↔ physical coordinate conversions ──────────────────
+
+
+def phys_to_image_xy(
+    X_phys: np.ndarray,
+    Y_phys: np.ndarray,
+    Z: np.ndarray,
+    K: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Project 3-D physical points to image pixel coordinates.
+
+    Uses the standard pinhole projection with the given intrinsic matrix
+    *K*.  This is the explicit conversion boundary between the physical
+    world frame (X right, Y up, Z forward) and the image frame (u right,
+    v down).
+
+    Parameters
+    ----------
+    X_phys, Y_phys, Z : ndarray
+        Point coordinates in the physical Y-up frame (mm).
+    K : ndarray, shape (3, 3)
+        Camera intrinsic matrix.
+
+    Returns
+    -------
+    u, v : ndarray
+        Pixel coordinates (image frame, origin at top-left).
+    """
+    K = np.asarray(K, dtype=np.float64).reshape(3, 3)
+    X_cv = np.asarray(X_phys, dtype=np.float64)
+    Y_cv = -np.asarray(Y_phys, dtype=np.float64)  # Y-up → Y-down
+    Z_arr = np.asarray(Z, dtype=np.float64)
+    u = K[0, 0] * X_cv / Z_arr + K[0, 2]
+    v = K[1, 1] * Y_cv / Z_arr + K[1, 2]
+    return u, v
+
+
+def image_to_phys_xy(
+    u: np.ndarray,
+    v: np.ndarray,
+    Z: np.ndarray,
+    K: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Back-project image pixel coordinates to physical 3-D points.
+
+    Parameters
+    ----------
+    u, v : ndarray
+        Pixel coordinates.
+    Z : ndarray
+        Depth at each point (mm).
+    K : ndarray, shape (3, 3)
+        Camera intrinsic matrix.
+
+    Returns
+    -------
+    X_phys, Y_phys : ndarray
+        Point coordinates in the physical Y-up frame (mm).
+    """
+    K = np.asarray(K, dtype=np.float64).reshape(3, 3)
+    u_arr = np.asarray(u, dtype=np.float64)
+    v_arr = np.asarray(v, dtype=np.float64)
+    Z_arr = np.asarray(Z, dtype=np.float64)
+    X_cv = (u_arr - K[0, 2]) * Z_arr / K[0, 0]
+    Y_cv = (v_arr - K[1, 2]) * Z_arr / K[1, 1]
+    return X_cv, -Y_cv  # Y-down → Y-up
+
+
+# ── convention assertion ────────────────────────────────────
+
+
 def check_frame_convention(
     *objects,
     expected: FrameConvention = "opencv_y_down",
