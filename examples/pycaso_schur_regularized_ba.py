@@ -292,6 +292,44 @@ def _sweep_pose_damping(
     return rows
 
 
+def _align_cmo_to_zernike_frame(
+    cmo_rec: SpecimenReconstruction,
+    zer_rec: SpecimenReconstruction,
+) -> SpecimenReconstruction:
+    """Correct the CMO reconstruction's world Y axis to match the Zernike frame.
+
+    The CMO telecentric model internally uses ``cy_principal_px`` at the
+    bottom edge of the image (pixel coordinate v = H), which combined with
+    negative ``rho_y`` / ``s_y`` parameters inverts the v → Y mapping
+    relative to the Zernike rayfield.  The small per-arm SE(3) rotation
+    (~2°) cannot correct a sign flip, so the CMO point cloud leaves the
+    model with its Y axis mirrored.
+
+    We apply the simplest correction that preserves the point-cloud shape:
+    a Y reflection about the CMO centroid followed by the translation that
+    re-centres on the Zernike Y centroid.  The X and Z axes are left
+    unchanged because their observational sign conventions already match
+    (u → X has the same sign in both models).
+    """
+    y_offset = float(np.mean(zer_rec.Y) + np.mean(cmo_rec.Y))
+    Y_corr = -cmo_rec.Y + y_offset
+    return SpecimenReconstruction(
+        X=cmo_rec.X,
+        Y=Y_corr,
+        Z=cmo_rec.Z,
+        gap_mm=cmo_rec.gap_mm,
+        valid_mask=cmo_rec.valid_mask,
+        image_extent_xy_mm=(
+            float(cmo_rec.X.max() - cmo_rec.X.min()),
+            float(Y_corr.max() - Y_corr.min()),
+        ),
+        median_z_mm=cmo_rec.median_z_mm,
+        z_mad_mm=cmo_rec.z_mad_mm,
+        median_gap_mm=cmo_rec.median_gap_mm,
+        variant=cmo_rec.variant,
+    )
+
+
 def _reconstruct_and_plot_specimens(
     theta_initial: np.ndarray,
     theta_final: np.ndarray,
@@ -312,20 +350,29 @@ def _reconstruct_and_plot_specimens(
     All three Z maps are rendered on a shared colour scale; the figure
     title makes the magnification ratio of every variant explicit so the
     rayfield-vs-CMO scale gap is visible at a glance.
+
+    CMO reconstructions are produced in the CMO model's internal frame
+    (``cy_principal_px`` at the image bottom edge creates a sign convention
+    that differs from the Zernike reference frame).  A per-axis correction
+    brings them into the Zernike world frame so the XY-scatter and Z-map
+    columns share a consistent orientation.
     """
-    recs: list[SpecimenReconstruction] = [
-        load_zernike_baseline(zernike_baseline_path),
-        reconstruct_with_cmo_se3(
-            theta_initial,
-            correspondences_path=correspondences_path,
-            variant="cmo_26p_initial",
-        ),
-        reconstruct_with_cmo_se3(
-            theta_final,
-            correspondences_path=correspondences_path,
-            variant=variant_label,
-        ),
-    ]
+    rec_zer = load_zernike_baseline(zernike_baseline_path)
+    rec_cmo_init = reconstruct_with_cmo_se3(
+        theta_initial,
+        correspondences_path=correspondences_path,
+        variant="cmo_26p_initial",
+    )
+    rec_cmo_ba = reconstruct_with_cmo_se3(
+        theta_final,
+        correspondences_path=correspondences_path,
+        variant=variant_label,
+    )
+
+    rec_cmo_init = _align_cmo_to_zernike_frame(rec_cmo_init, rec_zer)
+    rec_cmo_ba = _align_cmo_to_zernike_frame(rec_cmo_ba, rec_zer)
+
+    recs: list[SpecimenReconstruction] = [rec_zer, rec_cmo_init, rec_cmo_ba]
 
     # Save per-variant point clouds for follow-up analysis.
     for rec in recs:
@@ -396,6 +443,13 @@ def _plot_specimen_grid(
     vmin = float(np.percentile(all_z, 5))
     vmax = float(np.percentile(all_z, 95))
 
+    # Shared ray-gap range: median gaps are ~1e-3 mm on Pycaso, so a fixed
+    # 0.2 mm window crushes everything into the first bin. Use the worst
+    # variant's 99-th percentile (with a small buffer) so the histogram tails
+    # are readable AND comparable across rows.
+    gap_p99_max = max(float(np.percentile(rec.gap_mm, 99)) for rec in recs)
+    gap_upper = max(1.1 * gap_p99_max, 1e-4)
+
     n_var = len(recs)
     fig, axes = plt.subplots(n_var, 3, figsize=(15, 4 * n_var))
     if n_var == 1:
@@ -419,7 +473,7 @@ def _plot_specimen_grid(
         ratio = magnification_ratio(rec, EUR_2_CENT_DIAMETER_MM)
         ax_xy.scatter(rec.X, rec.Y, s=1, c=rec.Z, cmap="viridis",
                       vmin=vmin, vmax=vmax)
-        ax_xy.set_aspect("equal", adjustable="datalim")
+        ax_xy.set_aspect("equal")
         w, h = rec.image_extent_xy_mm
         ax_xy.set_title(
             f"XY footprint = {w:.2f} x {h:.2f} mm\n"
@@ -428,13 +482,14 @@ def _plot_specimen_grid(
         ax_xy.set_xlabel("X (mm)")
         ax_xy.set_ylabel("Y (mm)")
 
-        ax_gap.hist(rec.gap_mm, bins=80, range=(0.0, max(0.2, 6 * rec.median_gap_mm)),
+        ax_gap.hist(rec.gap_mm, bins=80, range=(0.0, gap_upper),
                     color="steelblue", alpha=0.85)
         ax_gap.axvline(rec.median_gap_mm, color="red", lw=1,
                        label=f"median = {rec.median_gap_mm:.4f} mm")
-        ax_gap.set_title("Ray-pair gap distribution")
+        ax_gap.set_yscale("log")
+        ax_gap.set_title(f"Ray-pair gap (log y, shared range 0–{gap_upper:.4f} mm)")
         ax_gap.set_xlabel("gap (mm)")
-        ax_gap.set_ylabel("count")
+        ax_gap.set_ylabel("count (log)")
         ax_gap.legend(loc="upper right", fontsize=9)
 
     fig.suptitle(
