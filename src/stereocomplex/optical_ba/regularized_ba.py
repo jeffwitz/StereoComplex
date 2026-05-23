@@ -28,6 +28,7 @@ from stereocomplex.optical_ba.residuals import (
     default_parameter_scales,
     point_to_ray_residuals_cmo_se3,
 )
+from stereocomplex.optical_ba.priors import SchurPrior, schur_prior_residuals
 from stereocomplex.optical_ba.schur import diagnose_schur_modes
 
 
@@ -371,6 +372,165 @@ def run_optical_ba(
         "damping_pose": float(damping_pose),
         "mean_abs_t_z_mm": mean_z,
     }
+
+    return OpticalBAResult(
+        theta=theta_final,
+        pose_vec=pose_final,
+        success=bool(sol.success),
+        message=str(sol.message),
+        nfev=int(sol.nfev),
+        rms_mm=rms_mm,
+        rms_px_equivalent=rms_px,
+        p50_px_equivalent=p50_px,
+        p95_px_equivalent=p95_px,
+        schur_coupling_before=coupling_before,
+        schur_coupling_after=coupling_after,
+        theta_drift_norm=drift_total,
+        weak_mode_drift_norm=drift_weak,
+        strong_mode_drift_norm=drift_strong,
+        descriptors=descriptors,
+        diagnostics=diagnostics,
+    )
+
+
+def run_schur_regularized_optical_ba(
+    *,
+    theta0: np.ndarray,
+    pose0: np.ndarray,
+    observations: PycasoCMOObservations,
+    fx_ref_px: float,
+    prior,
+    loss: str = "soft_l1",
+    f_scale_mm: float = 0.005,
+    max_nfev: int = 200,
+    bounds: tuple[np.ndarray, np.ndarray] | None = None,
+    weak_threshold: float = 1e-3,
+    damping_pose: float = 1e-8,
+    fd_method: str = "central",
+    fd_rel_step: float = 1e-6,
+) -> OpticalBAResult:
+    """Run an optical BA with Schur-based or isotropic regularisation.
+
+    Identical to :func:`run_optical_ba` except that the residual vector
+    is augmented with prior residuals obtained from *prior* (a
+    :class:`~stereocomplex.optical_ba.priors.SchurPrior` or any object
+    with a compatible ``schur_prior_residuals``-style interface).
+
+    The *prior* is treated as a black-box callable: the function calls
+    ``prior(theta)`` and expects an array of penalty residuals back.
+    This works for both :class:`SchurPrior` (via
+    :func:`~stereocomplex.optical_ba.priors.schur_prior_residuals`) and
+    a simple isotropic lambda.
+
+    Parameters
+    ----------
+    prior : callable
+        ``prior(theta) -> ndarray`` returning the regularisation
+        residuals to append to the data residual.
+    All other parameters are identical to :func:`run_optical_ba`.
+    """
+    theta0 = np.asarray(theta0, dtype=np.float64).reshape(-1)
+    pose0 = np.asarray(pose0, dtype=np.float64).reshape(-1)
+    if theta0.size != N_THETA:
+        raise ValueError(f"theta0 must have {N_THETA} entries, got {theta0.size}")
+    if pose0.size != N_POSE_PER_FRAME * observations.n_frames:
+        raise ValueError("pose0 size inconsistent with observations.n_frames")
+
+    n_frames = observations.n_frames
+    theta_scales, pose_scales = default_parameter_scales(n_frames)
+    if bounds is None:
+        bounds = default_bounds(n_frames, observations.image_size)
+
+    if isinstance(prior, SchurPrior):
+        prior_fn = lambda th: schur_prior_residuals(th, prior)  # noqa: E731
+    else:
+        prior_fn = prior  # assume callable
+
+    def residual_fun(x: np.ndarray) -> np.ndarray:
+        data_res = point_to_ray_residuals_cmo_se3(x, observations)
+        prior_res = prior_fn(x[:N_THETA])
+        return np.concatenate([data_res, prior_res])
+
+    # "Before" Schur diagnostic at theta0 (data residuals only, no prior).
+    data_only_fun = lambda x: point_to_ray_residuals_cmo_se3(x, observations)  # noqa: E731
+    fisher_before = build_fisher_blocks(
+        residual_fun=data_only_fun,
+        theta0=theta0,
+        pose0=pose0,
+        theta_scales=theta_scales,
+        pose_scales=pose_scales,
+        rel_step=fd_rel_step,
+        method=fd_method,
+    )
+    P_strong, P_weak, coupling_before = _weak_strong_projectors(
+        fisher_before,
+        damping_pose=damping_pose,
+        weak_threshold=weak_threshold,
+        theta_scales=theta_scales,
+    )
+
+    x0 = np.concatenate([theta0, pose0])
+    lo, hi = bounds
+    eps = 1e-6
+    x0 = np.clip(x0, np.where(np.isfinite(lo), lo + eps, lo),
+                 np.where(np.isfinite(hi), hi - eps, hi))
+    sol = least_squares(
+        residual_fun,
+        x0=x0,
+        bounds=bounds,
+        loss=loss,
+        f_scale=float(f_scale_mm),
+        max_nfev=int(max_nfev),
+        xtol=1e-10,
+        ftol=1e-10,
+        gtol=1e-10,
+    )
+
+    theta_final = sol.x[:N_THETA]
+    pose_final = sol.x[N_THETA:]
+    r_data = point_to_ray_residuals_cmo_se3(sol.x, observations)
+
+    mean_z = float(np.mean(np.abs(pose_final.reshape(n_frames, 6)[:, 5])))
+    rms_mm = _residual_rms_mm(r_data)
+    rms_px, p50_px, p95_px = _residual_px_stats(r_data, fx_ref_px, mean_z)
+
+    fisher_after = build_fisher_blocks(
+        residual_fun=data_only_fun,
+        theta0=theta_final,
+        pose0=pose_final,
+        theta_scales=theta_scales,
+        pose_scales=pose_scales,
+        rel_step=fd_rel_step,
+        method=fd_method,
+    )
+    _, _, coupling_after = _weak_strong_projectors(
+        fisher_after,
+        damping_pose=damping_pose,
+        weak_threshold=weak_threshold,
+        theta_scales=theta_scales,
+    )
+
+    delta_scaled = (theta_final - theta0) / theta_scales
+    drift_total = float(np.linalg.norm(delta_scaled))
+    drift_weak = float(np.linalg.norm(P_weak @ delta_scaled))
+    drift_strong = float(np.linalg.norm(P_strong @ delta_scaled))
+
+    descriptors = _descriptors_from_theta(theta_final)
+
+    diagnostics = {
+        "rms_mm_initial": _residual_rms_mm(point_to_ray_residuals_cmo_se3(x0, observations)),
+        "cost_final": float(sol.cost),
+        "f_scale_mm": float(f_scale_mm),
+        "loss": str(loss),
+        "weak_threshold": float(weak_threshold),
+        "damping_pose": float(damping_pose),
+        "mean_abs_t_z_mm": mean_z,
+    }
+    if isinstance(prior, SchurPrior):
+        diagnostics["prior_alpha"] = float(prior.alpha)
+        diagnostics["prior_power"] = float(prior.power)
+        diagnostics["prior_epsilon"] = float(prior.epsilon)
+        diagnostics["prior_weak_only"] = bool(prior.weak_only)
 
     return OpticalBAResult(
         theta=theta_final,

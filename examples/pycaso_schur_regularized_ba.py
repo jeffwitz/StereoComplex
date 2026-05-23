@@ -6,9 +6,9 @@ Implements Step 1 of ``CdC_BA_optique_Schur_CMO_Pycaso.md``: load the
 the point-to-ray residual at that point, and report the Schur complement
 on the optical block (eigen-spectrum, weak directions, coupling norm).
 
-Only the ``--mode diagnostic`` path is implemented here; subsequent CDC
-steps (unregularised BA, isotropic prior, Schur prior, bootstrap) will be
-added incrementally.
+Implemented CDC steps: ``diagnostic`` (Step 1), ``ba`` (Step 2),
+``isotropic-sweep`` (Step 3), ``schur-sweep`` (Step 4).
+Bootstrap (Step 5) is not yet implemented.
 
 Usage
 -----
@@ -47,6 +47,7 @@ from stereocomplex.optical_ba import (  # noqa: E402  (sys.path tweak above)
     point_to_ray_residuals_cmo_se3,
     reconstruct_with_cmo_se3,
     run_optical_ba,
+    run_schur_regularized_optical_ba,
 )
 
 PIXEL_PITCH_MM = 0.0055  # Pycaso sensor
@@ -512,6 +513,139 @@ def _plot_specimen_grid(
     plt.close(fig)
 
 
+def _sweep_alphas(arg_value: str) -> list[float]:
+    """Parse a comma-separated alpha list, e.g. ``1e-4,1e-3,0.01,0.1,1,10``."""
+    return [float(s.strip()) for s in arg_value.split(",")]
+
+
+def run_isotropic_sweep(args: argparse.Namespace) -> int:
+    """CDC Step 3: isotropic (Tikhonov) prior sweep over *alpha*."""
+    from stereocomplex.optical_ba.priors import isotropic_prior_residuals
+
+    input_path = Path(args.input)
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    obs, theta0, opt_R, opt_t, fx_ref = _load_checkpoint(input_path)
+    pose0 = _pack_poses(opt_R, opt_t)
+    theta_scales, pose_scales = default_parameter_scales(obs.n_frames)
+
+    alphas = _sweep_alphas(args.alpha_list)
+    rows: list[dict] = []
+    print(f"Isotropic prior sweep — {len(alphas)} alpha values, "
+          f"loss={args.loss}, max_nfev={args.max_nfev}")
+
+    for alpha in alphas:
+        prior_fn = lambda th: isotropic_prior_residuals(  # noqa: E731
+            th, theta0, theta_scales, alpha
+        )
+        result = run_schur_regularized_optical_ba(
+            theta0=theta0, pose0=pose0, observations=obs,
+            fx_ref_px=fx_ref, prior=prior_fn,
+            loss=args.loss, f_scale_mm=args.f_scale_mm,
+            max_nfev=args.max_nfev,
+            weak_threshold=args.weak_threshold,
+            damping_pose=args.damping_pose,
+            fd_method=args.fd_method, fd_rel_step=args.rel_step,
+        )
+        row = {
+            "alpha": alpha,
+            "success": result.success,
+            "nfev": result.nfev,
+            "rms_mm_final": result.rms_mm,
+            "rms_px_equivalent_final": result.rms_px_equivalent,
+            "theta_drift_norm": result.theta_drift_norm,
+            "weak_mode_drift_norm": result.weak_mode_drift_norm,
+            "strong_mode_drift_norm": result.strong_mode_drift_norm,
+            "coupling_before": result.schur_coupling_before,
+            "coupling_after": result.schur_coupling_after,
+            "descriptors": result.descriptors,
+        }
+        rows.append(row)
+        print(f"  alpha={alpha:.1e}  RMS={result.rms_px_equivalent:.3f} px  "
+              f"drift_weak={result.weak_mode_drift_norm:.4f}  "
+              f"nfev={result.nfev}  ok={result.success}")
+
+    (out_dir / "optical_ba_isotropic_prior_sweep.json").write_text(
+        json.dumps(rows, indent=2), encoding="utf-8"
+    )
+    print(f"  wrote {out_dir / 'optical_ba_isotropic_prior_sweep.json'}")
+    return 0
+
+
+def run_schur_sweep(args: argparse.Namespace) -> int:
+    """CDC Step 4: Schur-prior regularised BA sweep over *alpha*."""
+    from stereocomplex.optical_ba.priors import SchurPrior
+
+    input_path = Path(args.input)
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    obs, theta0, opt_R, opt_t, fx_ref = _load_checkpoint(input_path)
+    pose0 = _pack_poses(opt_R, opt_t)
+    theta_scales, pose_scales = default_parameter_scales(obs.n_frames)
+
+    # Build the "before" Schur diagnostic to seed the prior.
+    data_fun = lambda x: point_to_ray_residuals_cmo_se3(x, obs)  # noqa: E731
+    fisher = build_fisher_blocks(
+        residual_fun=data_fun, theta0=theta0, pose0=pose0,
+        theta_scales=theta_scales, pose_scales=pose_scales,
+        rel_step=args.rel_step, method=args.fd_method,
+    )
+    diag = diagnose_schur_modes(
+        fisher.I_tt, fisher.I_tp, fisher.I_pp,
+        weak_threshold=args.weak_threshold,
+        damping_pose=args.damping_pose,
+    )
+
+    alphas = _sweep_alphas(args.alpha_list)
+    rows: list[dict] = []
+    print(f"Schur prior sweep — {len(alphas)} alpha values, "
+          f"power={args.schur_power}, eps={args.schur_epsilon}, "
+          f"loss={args.loss}, max_nfev={args.max_nfev}")
+
+    for alpha in alphas:
+        prior = SchurPrior(
+            theta0=theta0, eigvals=diag.eigvals, eigvecs=diag.eigvecs,
+            theta_scales=theta_scales, alpha=alpha,
+            power=args.schur_power, epsilon=args.schur_epsilon,
+        )
+        result = run_schur_regularized_optical_ba(
+            theta0=theta0, pose0=pose0, observations=obs,
+            fx_ref_px=fx_ref, prior=prior,
+            loss=args.loss, f_scale_mm=args.f_scale_mm,
+            max_nfev=args.max_nfev,
+            weak_threshold=args.weak_threshold,
+            damping_pose=args.damping_pose,
+            fd_method=args.fd_method, fd_rel_step=args.rel_step,
+        )
+        row = {
+            "alpha": alpha,
+            "power": args.schur_power,
+            "epsilon": args.schur_epsilon,
+            "success": result.success,
+            "nfev": result.nfev,
+            "rms_mm_final": result.rms_mm,
+            "rms_px_equivalent_final": result.rms_px_equivalent,
+            "theta_drift_norm": result.theta_drift_norm,
+            "weak_mode_drift_norm": result.weak_mode_drift_norm,
+            "strong_mode_drift_norm": result.strong_mode_drift_norm,
+            "coupling_before": result.schur_coupling_before,
+            "coupling_after": result.schur_coupling_after,
+            "descriptors": result.descriptors,
+        }
+        rows.append(row)
+        print(f"  alpha={alpha:.1e}  RMS={result.rms_px_equivalent:.3f} px  "
+              f"drift_weak={result.weak_mode_drift_norm:.4f}  "
+              f"nfev={result.nfev}  ok={result.success}")
+
+    (out_dir / "optical_ba_schur_prior_sweep.json").write_text(
+        json.dumps(rows, indent=2), encoding="utf-8"
+    )
+    print(f"  wrote {out_dir / 'optical_ba_schur_prior_sweep.json'}")
+    return 0
+
+
 def run_ba(args: argparse.Namespace) -> int:
     """CDC Step 2: direct (unregularised) optical BA on the Pycaso checkpoint."""
     input_path = Path(args.input)
@@ -649,7 +783,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--mode",
-        choices=("diagnostic", "ba"),
+        choices=("diagnostic", "ba", "isotropic-sweep", "schur-sweep"),
         default="diagnostic",
         help="which CDC step to run (diagnostic = Step 1, ba = Step 2 direct BA)",
     )
@@ -661,13 +795,20 @@ def main(argv: list[str] | None = None) -> int:
                         help="Tikhonov damping added to the pose block before inversion")
     parser.add_argument("--weak-threshold", type=float, default=1e-3,
                         help="weak-mode threshold (relative to the largest eigenvalue)")
-    # --mode ba only
+    # --mode ba / isotropic-sweep / schur-sweep
     parser.add_argument("--loss", default="soft_l1",
-                        help="robust loss for least_squares (--mode ba)")
+                        help="robust loss for least_squares (BA modes)")
     parser.add_argument("--f-scale-mm", type=float, default=0.005,
-                        help="robust-loss transition scale in mm (--mode ba)")
+                        help="robust-loss transition scale in mm (BA modes)")
     parser.add_argument("--max-nfev", type=int, default=200,
-                        help="maximum residual evaluations for the BA (--mode ba)")
+                        help="maximum residual evaluations for the BA (BA modes)")
+    # --mode isotropic-sweep / schur-sweep
+    parser.add_argument("--alpha-list", default="1e-4,1e-3,1e-2,1e-1,1,10",
+                        help="comma-separated alpha values for the sweep")
+    parser.add_argument("--schur-power", type=float, default=1.0,
+                        help="eigenvalue-weight exponent for --mode schur-sweep")
+    parser.add_argument("--schur-epsilon", type=float, default=1e-6,
+                        help="regularisation floor for --mode schur-sweep")
     parser.add_argument("--with-specimen", action="store_true",
                         help="also reconstruct the 2-cent coin and emit a comparison figure")
     parser.add_argument("--correspondences",
@@ -682,6 +823,10 @@ def main(argv: list[str] | None = None) -> int:
         return run_diagnostic(args)
     if args.mode == "ba":
         return run_ba(args)
+    if args.mode == "isotropic-sweep":
+        return run_isotropic_sweep(args)
+    if args.mode == "schur-sweep":
+        return run_schur_sweep(args)
     parser.error(f"mode {args.mode!r} is not implemented yet")
     return 2
 
