@@ -125,6 +125,7 @@ class PycasoSoloffStereoModel:
         degree: int = 3,
         ridge: float = 0.0,
     ) -> PycasoSoloffStereoModel:
+        """Fit a Soloff polynomial to the Pycaso calibration data."""
         XYZ_mm = np.asarray(XYZ_mm, dtype=np.float64).reshape(-1, 3)
         uv_left_px = np.asarray(uv_left_px, dtype=np.float64).reshape(-1, 2)
         uv_right_px = np.asarray(uv_right_px, dtype=np.float64).reshape(-1, 2)
@@ -286,6 +287,7 @@ class PycasoSoloffStereoModel:
             x0 = self.initial_guess(uv_left_px[i], uv_right_px[i])
 
             def fun(x, obs=obs):
+                """Residual function for Soloff optimisation."""
                 return self._predict_all(x) - obs
 
             def jac(x):

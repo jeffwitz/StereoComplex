@@ -137,6 +137,7 @@ def compare_charuco_methods(
 
 
 def write_latex_table(report: dict[str, object], out_path: Path, caption: str, label: str) -> None:
+    """Write comparison results as a LaTeX booktabs table."""
     def esc(s: str) -> str:
         # Minimal LaTeX escaping for captions/labels (not for full LaTeX content).
         return (
@@ -183,4 +184,5 @@ def write_latex_table(report: dict[str, object], out_path: Path, caption: str, l
 
 
 def write_report_json(report: dict[str, object], out_path: Path) -> None:
+    """Write comparison results as a JSON report."""
     out_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")

@@ -41,6 +41,7 @@ def detect_image_features(
     img: np.ndarray,
     method: str,
 ) -> tuple[ImageFeatures | None, int]:
+    """Detect ArUco markers and ChArUco corners in an image."""
     if charuco_detector is not None:
         charuco_corners, charuco_ids, marker_corners, marker_ids = charuco_detector.detectBoard(img)
         if method_requires_markers(method):

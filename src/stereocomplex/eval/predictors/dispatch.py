@@ -21,6 +21,7 @@ from stereocomplex.eval.predictors.warps import (
 
 
 def marker_correspondences(charuco_board, marker_ids, marker_corners, *, ndim: int = 2):
+    """Pair detected ArUco marker corners with board object points."""
     if marker_ids is None or marker_corners is None or len(marker_ids) == 0:
         return None
     return build_marker_correspondences(charuco_board, marker_ids, marker_corners, ndim=ndim)
@@ -29,6 +30,7 @@ def marker_correspondences(charuco_board, marker_ids, marker_corners, *, ndim: i
 def predict_marker_warp(
     method: str, obj_pts: np.ndarray, img_pts: np.ndarray, chess: np.ndarray
 ) -> np.ndarray:
+    """Predict board-plane coordinates from a marker warp model."""
     predictors = {
         "kfield": predict_points_affine_field,
         "rayfield": predict_points_rayfield,
@@ -50,6 +52,7 @@ def predict_charuco_points(
     camera_matrix: np.ndarray | None,
     dist_coeffs: np.ndarray | None,
 ) -> tuple[np.ndarray, np.ndarray] | None:
+    """Predict ChArUco corner positions from marker correspondences."""
     if method == "mls":
         method = "mls_affine"
 
