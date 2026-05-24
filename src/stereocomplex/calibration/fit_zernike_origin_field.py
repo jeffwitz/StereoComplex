@@ -267,7 +267,23 @@ def fit_stereo_zernike_origin_field(
         left_direction: np.ndarray,
         right_direction: np.ndarray,
     ):
-        """Build left and right ZernikeRayField from coefficient arrays."""
+        """Build left and right ZernikeRayField from coefficient arrays.
+
+        Uses closure variables ``config_left``, ``config_right``,
+        ``K_left``, ``K_right``, and ``optimize_directions`` set by the
+        enclosing fit function.
+
+        Parameters
+        ----------
+        left_origin : ndarray
+            Left-channel origin coefficients, shape (n_terms, 3), in mm.
+        right_origin : ndarray
+            Right-channel origin coefficients.
+        left_direction : ndarray
+            Left-channel direction coefficients, shape (n_terms, 3), unitless.
+        right_direction : ndarray
+            Right-channel direction coefficients.
+        """
         if optimize_directions:
             left = ZernikeRayField(
                 K_left,
