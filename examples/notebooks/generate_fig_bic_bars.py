@@ -4,9 +4,11 @@
 Two panels:
 
 - (a) Ray-space BIC: candidate physical models ordered by BIC score.
-- (b) Operational BIC with the 1.5 px reprojection guard: models
-  exceeding the guard are marked REJECTED; only the 26p CMO+SE(3)
-  model passes.
+- (b) Usability-filtered selection with the 1.5 px reprojection guard:
+  models exceeding the guard are marked REJECTED; only the 26p
+  CMO+SE(3) model passes. The score is an engineering usability filter
+  (BIC plus a hard 1.5 px reprojection penalty), **not** a
+  likelihood-derived BIC variant — see the paper's §3.4.
 
 All inputs and display names are read from the manifest in
 ``docs/assets/cmo_paper/figure12_bic_bars/``. Emits both PDF (paper) and
@@ -95,8 +97,8 @@ def render(manifest: dict, manifest_root: Path, out_dir: Path) -> None:
                      "OK", va="center", ha="center", fontsize=9,
                      color="white", fontweight="bold")
 
-    ax2.set_xlabel("Operational BIC (usable)")
-    ax2.set_title(f"(b) Operational BIC ({guard_px:.1f} px guard)")
+    ax2.set_xlabel("Usability score")
+    ax2.set_title(f"(b) Usability-filtered selection ({guard_px:.1f} px reprojection guard)")
     ax2.grid(axis="x", alpha=0.3)
 
     fig.suptitle("Model selection: BIC comparison",
