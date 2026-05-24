@@ -1,0 +1,10 @@
+{
+  "title": "Zernike order selection by BIC (Figure 3 of the CMO paper)",
+  "sweep_json": "../../pycaso_real_data/zernike_order_sweep.json",
+  "n_frames": 10,
+  "n_corners": 165,
+  "n_channels": 2,
+  "n_coords_per_point": 2,
+  "selected_label": "O(0)+d(2)",
+  "figure_size": [9, 6]
+}
