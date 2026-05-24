@@ -30,9 +30,45 @@ next `develop` → `main` merge, **all Colab references point to `develop`**:
 three places back from `develop` to `main` (once `main` actually carries the
 notebooks). Until then, share `blob/develop/` Colab URLs.
 
-## CMO paper status — DONE
+## CMO paper status — major revision in progress
 
-26 pages, 31 refs, submitted-ready. No further changes to `paper/cmo/`.
+The manuscript's scientific core is sound, but a reviewer-style audit
+identified several blocking issues that must be fixed before a serious
+submission. **Remove this whole section once everything below is DONE.**
+
+### Issues identified
+
+| # | Issue | Severity | Effort | Status |
+|---|---|---|---|---|
+| 1 | Numerical consistency audit across all figures, tables, captions, and inline citations | High | 1 d | TODO |
+| 2 | Figure 4 (`subpupil_3d`) caption says sub-pupils are read from the **Zernike rayfield** (`b=24.9 mm`), but the script reconstructs them from the **CMO 26p model** (`b=6.1 mm`). Fix the script source. | High | 0.5 d | TODO |
+| 3 | BA RMS narrative mixes two metrics: 1.06/0.88/~0.98 px are 2-D pixel reprojection errors, while the 0.241 "px" of Section 3.8 / Table 2 is a point-to-ray transverse distance in mm converted via `fx/Z`. Currently presented as if directly comparable. | High | 0.5 d (needs JFW arbitration on the narrative) | TODO |
+| 4 | Rename "operational BIC" → `usability-filtered model selection` (or `operational usability score`) everywhere. The current label suggests a statistical criterion; it is an engineering filter (hard 1.5 px guard + 10⁶ penalty). | Medium | 0.25 d | TODO |
+| 5 | Propagate "effective descriptors in a chosen gauge" wording wherever the manuscript cites a baseline `b`, working distance `WD`, focal length `f_obj`, or convergence half-angle (`θ`). They are not absolute mechanical measurements. | Medium | 0.5 d | TODO |
+| 6 | Section 3.8 (Schur prior) — destabilises the central narrative because it introduces a "better RMS" (0.241) in a different metric. Either restructure the narrative around two BA layers, or move to appendix / split into a follow-up paper. | High | needs JFW arbitration | TODO |
+| 7 | Add a non-central baseline on the same Pycaso dataset (Soloff polynomial 4-5 params, or rayfield Zernike max_order=4) so the comparison is not only against OpenCV-central, which is trivially expected to fail. | Medium | 1-2 d | TODO |
+| 8 | Add at least a minimal external validation: known Z translation, inclined plane, gauge block, or certified 3-D object. The current internal validation is honest but limits the claim. Not strictly blocking for *some* journals, blocking for top-tier metrology venues. | High | depends on what is available | TODO |
+
+### Synthesis (for whoever picks this up)
+
+- **What works**: the scientific argument (rayfield as diagnostic +
+  residual-guided model construction), the residual-direction cascade
+  (23.6° → 0.27° → 0.003°), and the 26p CMO+SE(3) compact model.
+- **What breaks reader trust**: numerical inconsistencies between
+  figures, tables, and text — exactly the kind of thing that triggers
+  reviewer pushback even when the science is fine.
+- **What is missing scientifically**: an external 3-D validation and a
+  non-central baseline; Section 3.8 destabilises the central message
+  by introducing a metric that is not the 2-D reprojection used
+  elsewhere.
+
+Items 1, 2, 4, 5, 7 can be done without JFW arbitration. Items 3 and 6
+require a narrative decision (which RMS story stays in the body; where
+Section 3.8 goes). Item 8 requires identifying available external
+references.
+
+The work proceeds in commit-per-item style on `develop` so a fresh
+session can resume from `git log` if the current one runs out of tokens.
 
 ## Current global status
 
