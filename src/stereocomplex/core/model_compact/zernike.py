@@ -97,7 +97,26 @@ def _radial_poly(n: int, m: int, r: np.ndarray) -> np.ndarray:
 
 
 def eval_real_zernike(mode: ZernikeMode, r: np.ndarray, theta: np.ndarray) -> np.ndarray:
-    """Evaluate real-valued Zernike polynomials at (rho, theta)."""
+    """Evaluate real-valued Zernike polynomials at given polar coordinates.
+
+    Uses the Noll indexing scheme.  Returns the value of Z_n^m(rho, theta)
+    for each mode, where rho is the normalised radial coordinate (0 at centre,
+    1 at the edge of the unit disk) and theta is the azimuthal angle in radians.
+
+    Parameters
+    ----------
+    rho : ndarray
+        Normalised radial coordinates, in [0, 1].
+    theta : ndarray
+        Azimuthal angles in radians, same shape as rho.
+    n : int
+        Radial order of the Zernike polynomial.
+
+    Returns
+    -------
+    ndarray
+        Zernike polynomial values, same shape as rho.
+    """
     r = np.asarray(r, dtype=np.float64)
     theta = np.asarray(theta, dtype=np.float64)
     R = _radial_poly(mode.n, mode.m, r)
