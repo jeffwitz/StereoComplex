@@ -14,6 +14,9 @@
 \usepackage{float}
 \usepackage{placeins}
 \usepackage{microtype}
+% Allow LaTeX a bit more room to break difficult lines (long monospaced
+% paths, inline equations) before declaring an overfull \hbox.
+\setlength{\emergencystretch}{2em}
 \usepackage{url}
 \usepackage{setspace}
 \onehalfspacing
@@ -545,19 +548,20 @@ Table~\ref{tab:data_sources} clarifies which results come from real Pycaso calib
 \centering
 \caption{Data sources for results reported in this paper. Real data: 10 Pycaso stereo pairs. Synthetic oracles: StereoComplex \texttt{model\_selection\_oracles.py}. Method: analytical and numerical diagnostics independent of data source.}
 \label{tab:data_sources}
+\small
 \begin{tabular}{lll}
 \toprule
 Result category & Source & Examples \\
 \midrule
-\textbf{Real data} & Pycaso CMO images & Zernike rayfield fit (0.47~px), CMO+SE(3) model (1.06~px), \\
-& (10 stereo pairs) & geometric descriptors ($b$, $WD$, $\theta$), pose sweep, \\
-& & cross-validation, bootstrap, fx sensitivity \\
+\textbf{Real data} & Pycaso CMO images & Zernike fit (0.47~px), CMO+SE(3) (1.06~px), \\
+& (10 stereo pairs) & descriptors ($b$, $WD$, $\theta$), pose sweep, \\
+& & cross-validation, bootstrap, $f_x$ sensitivity \\
 \midrule
-\textbf{Synthetic oracles} & StereoComplex simulator & Direct vs.\ rayfield inversion (coupling $c=0.81$), \\
-& (noiseless) & ray-space BIC model selection, oracle parameter recovery \\
+\textbf{Synthetic oracles} & StereoComplex simulator & Direct vs.\ rayfield inversion ($c=0.81$), \\
+& (noiseless) & ray-space BIC, oracle parameter recovery \\
 \midrule
 \textbf{Methodological} & Analytical / numerical & BIC formula, Pl\"ucker residual decomposition, \\
-& diagnostics & SE(3) ablation, Schur complement derivation \\
+& diagnostics & SE(3) ablation, Schur derivation \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -922,7 +926,8 @@ The author thanks Claude (Anthropic) and ChatGPT (OpenAI) for assistance with co
   \item StereoComplex: \url{https://github.com/jeffwitz/StereoComplex} (Code: GPL-2.0-or-later. Documentation: CC BY-SA 4.0.)
   \item Pycaso dataset: \url{https://github.com/LaboratoireMecaniqueLille/Pycaso}
   \item All generated artefacts: \texttt{docs/assets/pycaso\_real\_data/}
-  \item Intermediate state (restart without raw images): \texttt{docs/assets/pycaso\_real\_data/intermediate\_state.npz}
+  \item Intermediate state (restart without raw images): \\
+        \texttt{docs/assets/\allowbreak{}pycaso\_real\_data/\allowbreak{}intermediate\_state.npz}
 \end{itemize}
 
 % ======================================================================
