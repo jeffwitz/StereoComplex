@@ -358,7 +358,45 @@ def simulate_charuco_observations_from_camera_fields(
     max_pose_attempts: int = 200,
     pose_jitter_deg: float = 5.0,
 ) -> MultiCameraCharucoObservationSet:
-    """Simulate ChArUco observations for an arbitrary named camera set."""
+    """Simulate ChArUco observations for an arbitrary set of named camera rayfields.
+
+    Generates synthetic board poses, projects ChArUco corners through each
+    camera's rayfield, and adds optional noise and dropout.  Useful for
+    validating multi-camera calibration pipelines against known ground truth.
+
+    Parameters
+    ----------
+    fields_by_channel : dict[str, object]
+        Camera rayfields keyed by channel name.  Each camera must implement
+        ``ray(u, v) -> (origin, direction)``.
+    squares_x, squares_y : int
+        ChArUco board dimensions in squares.
+    square_size_mm : float
+        Side length of one square in millimetres.
+    n_poses : int
+        Number of random board poses to generate.
+    z_distance_mm : float
+        Mean distance from camera to board in millimetres.
+    image_size : (int, int)
+        Sensor dimensions in pixels (width, height).
+    noise_std_px : float
+        Standard deviation of additive Gaussian pixel noise.
+    dropout_rate : float
+        Fraction of corners randomly dropped (0.0 = none).
+    seed : int
+        RNG seed for reproducible poses and noise.
+    min_corners_per_frame : int
+        Minimum required visible corners per frame (resamples if fewer).
+    max_pose_attempts : int
+        Maximum random pose attempts before failing.
+    pose_jitter_deg : float
+        Random pose perturbation amplitude in degrees.
+
+    Returns
+    -------
+    MultiCameraCharucoObservationSet
+        Named tuple with per-channel corner observations and ground-truth data.
+    """
     if not fields_by_channel:
         raise ValueError("at least one camera field is required")
 

@@ -440,7 +440,33 @@ def run_parallel_plate_origin_field_benchmark(
     pose_regularization: float = 0.0,
     rig_regularization: float = 0.0,
 ) -> BenchmarkReport:
-    """Run the full origin-field benchmark end-to-end."""
+    """Run the full origin-field benchmark end-to-end on the default parallel-plate dataset.
+
+    Generates data, fits a Zernike origin field, and compares central vs
+    non-central reconstruction accuracy.
+
+    Parameters
+    ----------
+    max_order : int
+        Maximum Zernike radial order for the origin field fit.
+    noise_std_px : float
+        Pixel noise standard deviation added to the synthetic observations.
+    optimize_directions : bool
+        If True, jointly optimise ray directions in the BA.
+    optimize_board_poses : bool
+        If True, refine board poses during BA.
+    optimize_stereo_extrinsics : bool
+        If True, refine the stereo rig transform during BA.
+    pose_regularization : float
+        Regularisation weight for pose parameters.
+    rig_regularization : float
+        Regularisation weight for the stereo rig transform.
+
+    Returns
+    -------
+    BenchmarkReport
+        Named tuple with reconstruction comparison and diagnostics.
+    """
     dataset = make_default_parallel_plate_dataset(noise_std_px=noise_std_px)
     dataset_clean = make_default_parallel_plate_dataset(noise_std_px=0.0)
     config_left = ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=max_order)
