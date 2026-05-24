@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """Pipeline diagram (Figure 2 of the CMO paper).
 
-Two-stage decomposition flowchart. All editable text/numbers live in
-``docs/assets/cmo_paper/figure2_pipeline/pipeline.json`` — this script only
-defines the layout. Both PDF (paper) and PNG (docs) are produced.
+Vertical two-stage decomposition flowchart: INPUT at the top flows down
+through Stage 1 (Rayfield Measurement, 2 steps) and Stage 2 (Physical
+Model Identification, 2 steps) to OUTPUT at the bottom. Stacking the
+steps vertically gives each box room enough that the per-step text
+stays legible in print.
+
+All editable text/numbers live in
+``docs/assets/cmo_paper/figure2_pipeline/pipeline.json`` — this script
+only defines the layout. Both PDF (paper) and PNG (docs) are produced.
 """
 
 from __future__ import annotations
@@ -23,104 +29,130 @@ OUT = Path("paper/cmo/figures")
 plt.rcParams.update({
     "font.family": "serif",
     "font.serif": ["DejaVu Serif", "Times New Roman"],
-    "font.size": 10,
+    "font.size": 12,
 })
 
 
 def _step_box(ax, x, y, w, h, step, edge):
     rect = mpatches.FancyBboxPatch(
-        (x, y), w, h, boxstyle="round,pad=0.04",
-        facecolor="white", edgecolor=edge, linewidth=1.4,
+        (x, y), w, h, boxstyle="round,pad=0.05",
+        facecolor="white", edgecolor=edge, linewidth=1.6,
     )
     ax.add_patch(rect)
-    ax.text(x + w / 2, y + h - 0.22, step["title"],
-            ha="center", va="top", fontsize=10, fontweight="bold")
+    ax.text(x + w / 2, y + h - 0.18, step["title"],
+            ha="center", va="top", fontsize=13, fontweight="bold")
     detail = "\n".join(step["lines"])
     ax.text(x + w / 2, y + h / 2 - 0.18, detail,
-            ha="center", va="center", fontsize=8.5, color="#333333")
+            ha="center", va="center", fontsize=11, color="#333333")
 
 
-def _arrow(ax, x_from, x_to, y, label):
-    ax.annotate("", xy=(x_to, y), xytext=(x_from, y),
-                arrowprops=dict(arrowstyle="->", color="#555555", lw=1.6))
-    ax.text((x_from + x_to) / 2, y + 0.28, label,
-            ha="center", va="bottom", fontsize=8, color="#444444")
+def _down_arrow(ax, x, y_from, y_to, label):
+    ax.annotate("", xy=(x, y_to), xytext=(x, y_from),
+                arrowprops=dict(arrowstyle="->", color="#555555", lw=1.8))
+    ax.text(x + 0.18, (y_from + y_to) / 2, label,
+            ha="left", va="center", fontsize=10,
+            color="#444444", style="italic")
 
 
 def render(data: dict, out_pdf: Path, out_png: Path) -> None:
-    fig_w, fig_h = 16.0, 4.6
+    fig_w, fig_h = 9.0, 16.5
     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
     ax.set_xlim(0, fig_w)
     ax.set_ylim(0, fig_h)
     ax.axis("off")
 
-    ax.text(fig_w / 2, fig_h - 0.25, data["title"],
-            ha="center", va="top", fontsize=13, fontweight="bold")
-    ax.text(fig_w / 2, fig_h - 0.7, data["subtitle"],
-            ha="center", va="top", fontsize=9.5, color="#555555", style="italic")
+    ax.text(fig_w / 2, fig_h - 0.35, data["title"],
+            ha="center", va="top", fontsize=15, fontweight="bold")
+    ax.text(fig_w / 2, fig_h - 1.0, data["subtitle"],
+            ha="center", va="top", fontsize=11,
+            color="#555555", style="italic")
 
-    io_w = 1.6
-    step_w, step_h = 2.7, 1.6
-    step_gap = 0.55
-    stage_pad_x, stage_pad_y = 0.30, 0.45
-    y_center = 1.65
-    y_step = y_center - step_h / 2
+    step_w = 5.6
+    step_h = 1.45
+    arrow_gap = 0.7
+    stage_pad = 0.45
+    x_center = fig_w / 2.0
+    x_step = x_center - step_w / 2.0
 
-    stage_w = 2 * step_w + step_gap + 2 * stage_pad_x
-    gap_stages = 0.85
-    total_w = io_w + 0.3 + stage_w + gap_stages + stage_w + 0.3 + io_w
-    x0 = (fig_w - total_w) / 2.0
+    io_w = 3.6
+    io_h = 0.9
+    x_io = x_center - io_w / 2.0
 
-    # INPUT block
-    ax.text(x0 + io_w / 2, y_center + 0.55, data["input"]["label"],
-            ha="center", va="bottom", fontsize=10, fontweight="bold", color="#555555")
-    ax.text(x0 + io_w / 2, y_center + 0.35, "\n".join(data["input"]["lines"]),
-            ha="center", va="top", fontsize=8.5, color="#555555")
+    y_cursor = fig_h - 1.8
 
-    x_cursor = x0 + io_w + 0.3
-    step_x_coords: list[float] = []
+    # INPUT box
+    rect_in = mpatches.FancyBboxPatch(
+        (x_io, y_cursor - io_h), io_w, io_h,
+        boxstyle="round,pad=0.05",
+        facecolor="#f4f4f4", edgecolor="#777777", linewidth=1.4,
+    )
+    ax.add_patch(rect_in)
+    ax.text(x_center, y_cursor - 0.20, data["input"]["label"],
+            ha="center", va="top", fontsize=11, fontweight="bold",
+            color="#555555")
+    ax.text(x_center, y_cursor - 0.40,
+            "  ".join(data["input"]["lines"]),
+            ha="center", va="top", fontsize=10, color="#555555")
+    y_cursor -= io_h
+
+    labels = ["refined pixel\ncorrespondences"] + list(data["arrow_labels"])
+    label_idx = 0
 
     for stage in data["stages"]:
+        _down_arrow(ax, x_center, y_cursor - 0.05,
+                    y_cursor - arrow_gap + 0.05, labels[label_idx])
+        label_idx += 1
+        y_cursor -= arrow_gap
+
+        stage_h = 2 * step_h + arrow_gap + 2 * stage_pad
         rect = mpatches.FancyBboxPatch(
-            (x_cursor, y_step - stage_pad_y), stage_w, step_h + 2 * stage_pad_y,
-            boxstyle="round,pad=0.05", facecolor=stage["fill"],
-            edgecolor=stage["edge"], linewidth=1.5,
+            (x_step - stage_pad, y_cursor - stage_h),
+            step_w + 2 * stage_pad, stage_h,
+            boxstyle="round,pad=0.05",
+            facecolor=stage["fill"], edgecolor=stage["edge"], linewidth=1.6,
         )
         ax.add_patch(rect)
-        ax.text(x_cursor + stage_w / 2, y_step + step_h + stage_pad_y - 0.12,
-                stage["name"], ha="center", va="top",
-                fontsize=10.5, fontweight="bold", color=stage["edge"])
+        ax.text(x_center, y_cursor - 0.22, stage["name"],
+                ha="center", va="top",
+                fontsize=13, fontweight="bold", color=stage["edge"])
 
-        x_s1 = x_cursor + stage_pad_x
-        x_s2 = x_s1 + step_w + step_gap
-        _step_box(ax, x_s1, y_step, step_w, step_h, stage["steps"][0], stage["edge"])
-        _step_box(ax, x_s2, y_step, step_w, step_h, stage["steps"][1], stage["edge"])
-        step_x_coords.extend([x_s1, x_s1 + step_w, x_s2, x_s2 + step_w])
+        y_step1_top = y_cursor - stage_pad - 0.35
+        _step_box(ax, x_step, y_step1_top - step_h, step_w, step_h,
+                  stage["steps"][0], stage["edge"])
 
-        x_cursor += stage_w + gap_stages
+        y_arrow_top = y_step1_top - step_h - 0.05
+        y_arrow_bot = y_arrow_top - arrow_gap + 0.4
+        _down_arrow(ax, x_center, y_arrow_top, y_arrow_bot, labels[label_idx])
+        label_idx += 1
 
-    # OUTPUT block
-    x_out = x_cursor - gap_stages + 0.3
-    ax.text(x_out + io_w / 2, y_center + 0.55, data["output"]["label"],
-            ha="center", va="bottom", fontsize=10, fontweight="bold", color="#2a7a3b")
-    ax.text(x_out + io_w / 2, y_center + 0.35, "\n".join(data["output"]["lines"]),
-            ha="center", va="top", fontsize=8.5, color="#2a7a3b")
+        y_step2_top = y_arrow_bot - 0.05
+        _step_box(ax, x_step, y_step2_top - step_h, step_w, step_h,
+                  stage["steps"][1], stage["edge"])
 
-    arrow_pairs = [
-        (x0 + io_w, step_x_coords[0]),        # INPUT  → step 1.1
-        (step_x_coords[1], step_x_coords[2]), # step 1.1 → step 1.2
-        (step_x_coords[3], step_x_coords[4]), # step 1.2 → step 2.1
-        (step_x_coords[5], step_x_coords[6]), # step 2.1 → step 2.2
-        (step_x_coords[7], x_out),            # step 2.2 → OUTPUT
-    ]
-    labels = ["pixels"] + data["arrow_labels"] + ["calibrated\nrays"]
-    for (x_from, x_to), label in zip(arrow_pairs, labels):
-        _arrow(ax, x_from + 0.05, x_to - 0.05, y_center, label)
+        y_cursor = y_step2_top - step_h - stage_pad - 0.2
+
+    _down_arrow(ax, x_center, y_cursor - 0.05,
+                y_cursor - arrow_gap + 0.05, "calibrated rays")
+
+    # OUTPUT box
+    rect_out = mpatches.FancyBboxPatch(
+        (x_io, y_cursor - arrow_gap - io_h), io_w, io_h,
+        boxstyle="round,pad=0.05",
+        facecolor="#eaf6ec", edgecolor="#2a7a3b", linewidth=1.6,
+    )
+    ax.add_patch(rect_out)
+    ax.text(x_center, y_cursor - arrow_gap - 0.20, data["output"]["label"],
+            ha="center", va="top", fontsize=11, fontweight="bold",
+            color="#2a7a3b")
+    ax.text(x_center, y_cursor - arrow_gap - 0.40,
+            "  ".join(data["output"]["lines"]),
+            ha="center", va="top", fontsize=10, color="#2a7a3b")
 
     fig.tight_layout(pad=0.3)
     out_pdf.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_pdf, format="pdf", bbox_inches="tight", facecolor="white")
-    fig.savefig(out_png, format="png", dpi=200, bbox_inches="tight", facecolor="white")
+    fig.savefig(out_png, format="png", dpi=200, bbox_inches="tight",
+                facecolor="white")
     plt.close(fig)
 
 
