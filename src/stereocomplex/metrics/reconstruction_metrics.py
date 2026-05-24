@@ -15,6 +15,8 @@ from stereocomplex.synthetic.parallel_plate import (
 
 @dataclass(frozen=True)
 class ReconstructionResult:
+    """Triangulated 3-D points and ray-gap validity diagnostics."""
+
     points_3d: np.ndarray
     ray_gap: np.ndarray
     valid_mask: np.ndarray
@@ -22,6 +24,8 @@ class ReconstructionResult:
 
 @dataclass(frozen=True)
 class ReconstructionErrorReport:
+    """Aggregate 3-D reconstruction errors in millimetres."""
+
     rms_3d: float
     median_3d: float
     p95_3d: float
@@ -37,6 +41,8 @@ class ReconstructionErrorReport:
 
 @dataclass(frozen=True)
 class ReconstructionComparisonReport:
+    """Central-vs-origin-field reconstruction comparison summary."""
+
     central: ReconstructionErrorReport
     with_origin_field: ReconstructionErrorReport
     improvement_rms_factor: float
@@ -46,6 +52,8 @@ class ReconstructionComparisonReport:
 
 @dataclass(frozen=True)
 class OracleReconstructionFloorReport:
+    """Noise-free and observed-pixel oracle reconstruction floors."""
+
     oracle_clean_pixels: ReconstructionErrorReport
     oracle_observed_pixels: ReconstructionErrorReport
 

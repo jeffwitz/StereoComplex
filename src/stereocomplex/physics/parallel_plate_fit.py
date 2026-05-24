@@ -28,6 +28,8 @@ class PinholeParallelPlateFitParams:
 
 @dataclass(frozen=True)
 class ParallelPlateFromRayfieldFitResult:
+    """Parallel-plate physical fit and rayfield residual diagnostics."""
+
     params: PinholeParallelPlateFitParams
     success: bool
     message: str

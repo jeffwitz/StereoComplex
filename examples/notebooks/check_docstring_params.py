@@ -98,6 +98,14 @@ def _has_non_none_return(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     return not (isinstance(node.returns, ast.Constant) and node.returns.value is None)
 
 
+def _is_dataclass(node: ast.ClassDef) -> bool:
+    return any(
+        (isinstance(d, ast.Name) and d.id == "dataclass")
+        or (isinstance(d, ast.Call) and isinstance(d.func, ast.Name) and d.func.id == "dataclass")
+        for d in node.decorator_list
+    )
+
+
 def check_file(path: str) -> list[str]:
     with open(path, encoding="utf-8") as f:
         source = f.read()
@@ -105,6 +113,16 @@ def check_file(path: str) -> list[str]:
     errors: list[str] = []
 
     for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            if (
+                _is_dataclass(node)
+                and not node.name.startswith("_")
+                and node.name.endswith(("Result", "Report"))
+                and ast.get_docstring(node) is None
+            ):
+                errors.append(f"{path}:{node.lineno} {node.name} dataclass needs a docstring")
+            continue
+
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         doc = ast.get_docstring(node)

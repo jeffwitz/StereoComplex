@@ -38,6 +38,8 @@ from stereocomplex.api.calibration import CharucoBoardSpec
 
 @dataclass(frozen=True)
 class BenchmarkReport:
+    """Synthetic parallel-plate origin-field benchmark outputs."""
+
     fit_result: StereoZernikeOriginFieldFitResult
     reconstruction_comparison: ReconstructionComparisonReport
     oracle_floor: OracleReconstructionFloorReport
@@ -47,6 +49,8 @@ class BenchmarkReport:
 
 @dataclass(frozen=True)
 class RenderedImageBenchmarkReport:
+    """Rendered-image parallel-plate benchmark outputs and metadata."""
+
     fit_result: StereoZernikeOriginFieldFitResult
     reconstruction_comparison: ReconstructionComparisonReport
     oracle_detected: ReconstructionErrorReport

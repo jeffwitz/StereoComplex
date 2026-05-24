@@ -25,6 +25,8 @@ class StereoFrameObservations:
 
 @dataclass(frozen=True)
 class CentralStereoRayFieldBAResult:
+    """Result of stereo central rayfield bundle adjustment."""
+
     nmax: int
     u0_px: float
     v0_px: float

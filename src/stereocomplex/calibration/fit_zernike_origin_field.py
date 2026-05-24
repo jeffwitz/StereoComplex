@@ -19,6 +19,8 @@ from stereocomplex.synthetic.parallel_plate import SyntheticStereoDataset, trans
 
 @dataclass(frozen=True)
 class StereoZernikeOriginFieldFitResult:
+    """Fitted stereo Zernike origin fields and residual diagnostics."""
+
     left_field: ZernikeOriginField
     right_field: ZernikeOriginField
     stereo_transform: np.ndarray

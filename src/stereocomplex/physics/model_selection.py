@@ -26,6 +26,8 @@ class PhysicalModelSpec:
 
 @dataclass(frozen=True)
 class PhysicalModelFitResult:
+    """Fit metrics and optimal parameters for one physical rayfield model."""
+
     model_name: str
     model: PhysicalRayFieldModel
     success: bool
@@ -47,6 +49,8 @@ class PhysicalModelFitResult:
 
 @dataclass(frozen=True)
 class OpticalModelSelectionReport:
+    """AIC/BIC/RMS comparison across fitted optical model candidates."""
+
     target_name: str
     candidates: list[PhysicalModelFitResult]
     best_by_aic: str
@@ -73,6 +77,8 @@ class OpticalModelSelectionReport:
 
 @dataclass(frozen=True)
 class MultiChannelOpticalModelSelectionReport:
+    """Aggregated model-selection report across named camera channels."""
+
     channel_reports: dict[str, OpticalModelSelectionReport]
     best_by_bic: str
     bic_by_model: dict[str, float]

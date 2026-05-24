@@ -153,6 +153,8 @@ class CameraSetup:
 
 @dataclass(frozen=True)
 class NCameraCalibrationResult:
+    """Public calibration result for named camera sets."""
+
     channel_names: tuple[str, ...]
     stereo_result: StereoCentralRayFieldFitResult | None = None
 
@@ -200,6 +202,8 @@ class _OriginFieldDatasetSeed:
 
 @dataclass(frozen=True)
 class StereoCentralRayFieldFitReport:
+    """Quality metrics for a fitted stereo central rayfield calibration."""
+
     image_width_px: int
     image_height_px: int
     n_input_pairs: int
@@ -222,12 +226,16 @@ class StereoCentralRayFieldFitReport:
 
 @dataclass(frozen=True)
 class StereoCentralRayFieldFitResult:
+    """Fitted stereo central rayfield model plus calibration report."""
+
     model: StereoCentralRayFieldModel
     report: StereoCentralRayFieldFitReport
 
 
 @dataclass(frozen=True)
 class StereoOpenCVCalibrationReport:
+    """Frame counts and RMS metrics for OpenCV stereo calibration."""
+
     image_width_px: int
     image_height_px: int
     n_input_pairs: int
@@ -246,6 +254,8 @@ class StereoOpenCVCalibrationReport:
 
 @dataclass(frozen=True)
 class StereoOpenCVCalibrationResult:
+    """OpenCV stereo intrinsics, distortion, rig transform and report."""
+
     K_left: np.ndarray
     dist_left: np.ndarray
     K_right: np.ndarray

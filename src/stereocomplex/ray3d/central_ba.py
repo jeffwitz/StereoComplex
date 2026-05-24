@@ -23,6 +23,8 @@ class FrameObservations:
 
 @dataclass(frozen=True)
 class CentralRayFieldBAResult:
+    """Result of single-camera central rayfield bundle adjustment."""
+
     nmax: int
     u0_px: float
     v0_px: float
