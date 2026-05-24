@@ -4,18 +4,15 @@
   "input": {
     "label": "INPUT",
     "lines": [
-      "10 ChArUco",
-      "stereo pairs",
-      "(165 corners",
-      "× 10 frames)"
+      "10 ChArUco stereo pairs",
+      "165 corners × 10 frames"
     ]
   },
   "output": {
     "label": "OUTPUT",
     "lines": [
-      "26-param",
-      "CMO + SE(3)",
-      "(1.06 px RMS)"
+      "26-param CMO + SE(3)",
+      "1.06 px RMS"
     ]
   },
   "stages": [
