@@ -16,15 +16,15 @@ hypothesis) plus the shared pixel correspondences:
 
 - `docs/assets/pycaso_real_data/specimen_correspondences.npz` — DIS
   optical-flow pixel pairs + ROI bounds.
-- `docs/assets/pycaso_real_data/schur_ba/specimen_zernike_rayfield_57p.npz`
+- `docs/assets/pycaso_real_data/schur_ba/specimen_zernike_rayfield_57p.npz` (available on Zenodo: https://doi.org/10.5281/zenodo.20369312)
   — Zernike rayfield reference (57 modes, transverse gauge).
-- `docs/assets/pycaso_real_data/schur_ba/specimen_cmo_26p_initial.npz`
+- `docs/assets/pycaso_real_data/schur_ba/specimen_cmo_26p_initial.npz` (available on Zenodo: https://doi.org/10.5281/zenodo.20369312)
   — CMO 26p from the rayfield-derived initialisation, no BA.
-- `docs/assets/pycaso_real_data/schur_ba/specimen_cmo_26p_ba_unregularized.npz`
+- `docs/assets/pycaso_real_data/schur_ba/specimen_cmo_26p_ba_unregularized.npz` (available on Zenodo: https://doi.org/10.5281/zenodo.20369312)
   — unregularised direct BA (Step 2 of the Schur CDC).
-- `docs/assets/pycaso_real_data/schur_ba/specimen_cmo_26p_ba_iso_a1e-2.npz`
+- `docs/assets/pycaso_real_data/schur_ba/specimen_cmo_26p_ba_iso_a1e-2.npz` (available on Zenodo: https://doi.org/10.5281/zenodo.20369312)
   — isotropic (Tikhonov) prior BA at α = 1e-2.
-- `docs/assets/pycaso_real_data/schur_ba/specimen_cmo_26p_ba_schur_a1e-3.npz`
+- `docs/assets/pycaso_real_data/schur_ba/specimen_cmo_26p_ba_schur_a1e-3.npz` (available on Zenodo: https://doi.org/10.5281/zenodo.20369312)
   — Schur-eigenmode prior BA at α = 1e-3.
 
 The four CMO `.npz` files are produced by

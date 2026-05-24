@@ -80,7 +80,7 @@ conventions.
 
 | Artefact | Size | Strategy |
 |---|---|---|
-| `docs/assets/pycaso_real_data/schur_ba/*.npz` | 140 MB (6 files × ~24 MB) | Candidate for Zenodo — regeneration artefacts, not primary data |
+| `docs/assets/pycaso_real_data/schur_ba/*.npz` (available on Zenodo: https://doi.org/10.5281/zenodo.20369312) | 140 MB (6 files × ~24 MB) | Archived on Zenodo — DOI: 10.5281/zenodo.20369312 — regeneration artefacts, not primary data |
 | `docs/assets/pycaso_real_data/specimen_*.npz` | 51 MB (3 files) | Keep (needed for paper figure reproduction) |
 | `paper/cmo/figures/` | 15 MB | Keep (vector PDF versions are 2 MB, PNGs are paper legacy) |
 | `paper/cmo/manuscript.pdf` | 8 MB | Keep (submission artefact) |
@@ -89,11 +89,11 @@ conventions.
 | `dataset/` | 2 MB | Keep (needed for notebook walkthroughs) |
 | `src/` | <1 MB | Keep |
 
-**Recommendation:** move `docs/assets/pycaso_real_data/schur_ba/` to Zenodo
+**Recommendation:** move `docs/assets/pycaso_real_data/schur_ba/` (available on Zenodo: https://doi.org/10.5281/zenodo.20369312) to Zenodo
 (140 MB would be removed) and add the DOI to the paper's data-availability
 statement.  The 6 large NPZ files are Schur-BA snapshots reproducible from the
 smaller `specimen_correspondences.npz` (12 MB) + the fitting code.  After
-removal, the repo would be ~94 MB.
+removal, the repo would be ~94 MB (after Zenodo archival).
 
 ## Pending before merge to main
 
