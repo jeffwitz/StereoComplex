@@ -322,7 +322,83 @@ des charges — implement directly from it. It is the main next technical
 milestone; until it ships, any N-camera result is scaffolding, not validated
 N-camera calibration.
 
-**Goal.** Generalize the stereo ray-to-point bundle adjustment to `N` named
+#### Phase 2.0 — Multi-camera virtual scene & view-graph (pre-requisite)
+
+**Status: specification written, not implemented.**
+
+Before a true N-camera BA can be validated, the codebase needs the ability to
+generate realistic multi-camera observations where the view-graph is non-trivial:
+some cameras see some poses, not all see all.  Stereo (2 cameras, 100 % overlap)
+is a degenerate case — the real value of Phase 2 is handling 4+ cameras with
+partial overlap.
+
+**1. The view-graph problem.**
+
+Given `C` cameras placed around a scene and `P` board poses sampled in the
+scene volume, the **view-graph** is a bipartite graph `G = (Cameras, Poses, E)`
+where an edge `(c, p)` exists iff camera `c` sees board pose `p`.
+
+A pose is *visible* from a camera when:
+- the board centre is in front of the camera (`Z > 0` in camera frame),
+- the board projects inside the image bounds (at least 4 corners visible),
+- the board normal faces the camera (angle < 90°),
+- the projected ChArUco corners are not too small / too large (pixel extent in
+  `[20, 500]` px).
+
+**2. Key properties the generated graph MUST satisfy.**
+
+- **Overlap:** every camera pair intended to share a rig constraint must have at
+  least `min_shared_poses` poses visible from both.
+- **Connectivity:** the camera-pose graph must be connected (otherwise some
+  cameras cannot be extrinsically calibrated).
+- **Balanced:** no camera sees all poses while another sees none.
+- **Reproducible:** seeded RNG, fixed board/extrinsics → deterministic graph.
+
+**3. Components to implement.**
+
+| Component | Responsibility |
+|---|---|
+| `VirtualScene` | Data class holding N cameras (intrinsics + SE(3) pose), board geometry, board volume (Z range), image size. |
+| `PoseSampler` | Generates random board poses inside the scene volume. Default: uniform in the AABB, random axis-angle orientation. Must accept `rng` for reproducibility. |
+| `FrustumChecker` | For a given pose + camera, returns `(visible: bool, n_corners: int, pixel_extent: float)`. Computes the 4 ChArUco board corners, projects them, and checks frustum constraints (see §1 above). |
+| `view_graph(scene, n_poses, min_shared, rng)` | Samples poses, builds the bipartite graph, rejects poses that don't satisfy overlap/connectivity constraints. Returns `MultiCameraCharucoObservationSet` (or a new container if needed). |
+| `view_graph_summary(graph)` | Diagnostic: prints overlap matrix `C×C`, per-camera coverage histogram, connectivity check. |
+
+**4. Acceptance tests (run on 4-camera pinhole rig, 90° spacing).**
+
+- `test_view_graph_connected`: 20 poses → graph is 1-connected component.
+- `test_view_graph_overlap`: every adjacent camera pair shares ≥ 3 poses.
+- `test_view_graph_balanced`: min coverage ≥ 0.5 × max coverage.
+- `test_view_graph_deterministic`: same seed → identical observations.
+
+**5. API sketch.**
+
+```python
+from stereocomplex.synthetic.virtual_scene import VirtualScene, view_graph
+
+scene = VirtualScene(
+    cameras={
+        "cam0": ("pinhole", K_4k, T0_world),
+        "cam1": ("pinhole", K_4k, T1_world),
+        "cam2": ("pinhole", K_4k, T2_world),
+        "cam3": ("pinhole", K_4k, T3_world),
+    },
+    board=CharucoBoardSpec(squares_x=7, squares_y=5, square_size_mm=24),
+    z_range_mm=(200, 800),
+    image_size=(4000, 3000),
+)
+
+obs = view_graph(scene, n_poses=30, min_shared=3, rng=np.random.default_rng(42))
+# → MultiCameraCharucoObservationSet ready for Phase 2 BA
+```
+
+**6. Out of scope for Phase 2.0.**
+
+- Non-pinhole cameras (plate, CMO) — accept central rayfield `.ray()` interface.
+- Image rendering — use the existing `simulate_charuco_observations_from_camera_fields`.
+- Realistic occlusions, lighting, depth-of-field.
+
+#### Phase 2.1 — Joint N-rayfield BA
 channels, so `fit_zernike_rayfields_from_multi_camera_observations(...)` becomes
 a true N-camera optimizer instead of a `left/right`-only wrapper.
 
