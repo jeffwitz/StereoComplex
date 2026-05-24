@@ -494,6 +494,8 @@ An isotropic (Tikhonov) prior $\mathcal{L}_{\text{iso}} = \alpha \|D_\theta^{-1}
 \cmidrule(lr){1-3} \cmidrule(lr){4-6}
 $\alpha$ & RMS (px) & $\Delta_{\text{weak}}$ & $\alpha$ & RMS (px) & $\Delta_{\text{weak}}$ \\
 \midrule
+$0$ & 0.241 ($\checkmark$) & 0.934 & $0$ & 0.241 ($\checkmark$) & 0.934 \\
+\midrule
 $10^{-4}$ & 0.239 ($\times$) & 0.529 & $10^{-4}$ & 0.277 ($\checkmark$) & \textbf{0.0033} \\
 $10^{-3}$ & 0.245 & 0.248 & $10^{-3}$ & 0.278 & \textbf{0.0007} \\
 $10^{-2}$ & 0.257 & 0.082 & $10^{-2}$ & 0.279 & \textbf{0.0001} \\
@@ -504,8 +506,8 @@ $10^{1}$  & 0.286 & 0.010 & $10^{1}$  & 0.323 & \textbf{$<10^{-4}$} \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:prior_sweep} reports the results. The isotropic prior faces a classical trade-off: a small $\alpha$ leaves the weak modes uncontrolled ($\Delta_{\text{weak}} = 0.53$ at $\alpha{=}10^{-4}$, where the optimiser also fails to converge), while a large $\alpha$ degrades the fit (RMS rises to \SI{0.286}{px}).
-The Schur prior breaks this trade-off: even at $\alpha{=}10^{-4}$ it suppresses 99.4\% of the weak-mode drift while keeping the RMS within \SI{0.039}{px} of the unregularised baseline.
+Table~\ref{tab:prior_sweep} reports the results. The $\alpha{=}0$ row is the unregularised direct BA: it converges at \SI{0.241}{px} but at the cost of $\Delta_{\text{weak}} = 0.934$, i.e.\ essentially \emph{all} of the parameter drift lives in the weak Schur subspace---the optimiser exploits the poorly observable directions to chase the data residual. The isotropic prior faces a classical trade-off when trying to suppress that drift: a small $\alpha$ still leaves the weak modes loose ($\Delta_{\text{weak}} = 0.53$ at $\alpha{=}10^{-4}$, where the optimiser also fails to converge), while a large $\alpha$ degrades the fit (RMS rises to \SI{0.286}{px}).
+The Schur prior breaks this trade-off: even at $\alpha{=}10^{-4}$ it suppresses \SI{99.6}{\percent} of the weak-mode drift (\num{0.934} $\to$ \num{0.0033}, a $280\times$ reduction) while keeping the RMS within \SI{0.039}{px} of the unregularised baseline.
 At $\alpha{=}10^{-3}$ the weak-mode drift is below $10^{-3}$ and the RMS penalty is only \SI{0.039}{px}---the prior blocks the poorly observable directions while leaving the well-observed degrees of freedom free to improve the fit.
 At the strongest setting ($\alpha{=}10$), the Schur prior still converges, while the isotropic prior produces a higher RMS (\SI{0.286}{px} vs \SI{0.323}{px}) with residual weak drift (\num{0.010}).
 
