@@ -1,0 +1,70 @@
+{
+  "title": "Two-stage decomposition: measure rays first, identify optics second",
+  "subtitle": "Stage 1 stays in 2D (no 3D model assumption); Stage 2 identifies optics in ray space.",
+  "input": {
+    "label": "INPUT",
+    "lines": [
+      "10 ChArUco stereo pairs",
+      "165 corners × 10 frames"
+    ]
+  },
+  "output": {
+    "label": "OUTPUT",
+    "lines": [
+      "26-param CMO + SE(3)",
+      "1.06 px RMS"
+    ]
+  },
+  "stages": [
+    {
+      "name": "Stage 1 — Rayfield Measurement (2D)",
+      "fill": "#eef4ff",
+      "edge": "#2a55c7",
+      "steps": [
+        {
+          "title": "Ray2D Preprocessing",
+          "lines": [
+            "ChArUco detection",
+            "+ double TPS denoising"
+          ]
+        },
+        {
+          "title": "Zernike Rayfield BA",
+          "lines": [
+            "Per-pixel rays O(u,v), d(u,v)",
+            "57 modes, transverse gauge",
+            "0.47 px RMS"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Stage 2 — Physical Model Identification (3D)",
+      "fill": "#eaf6ec",
+      "edge": "#2a7a3b",
+      "steps": [
+        {
+          "title": "Ray-space BIC",
+          "lines": [
+            "Selection among",
+            "physical CMO families",
+            "ΔBIC > 40 000"
+          ]
+        },
+        {
+          "title": "CMO + SE(3) Fit",
+          "lines": [
+            "14 telecentric params",
+            "+ 12 per-arm SE(3)",
+            "26 params, 1.06 px RMS"
+          ]
+        }
+      ]
+    }
+  ],
+  "arrow_labels": [
+    "refined\ncorners (u, v)",
+    "Zernike rayfield\n(per-pixel rays)",
+    "CMO family\n+ seed params"
+  ]
+}

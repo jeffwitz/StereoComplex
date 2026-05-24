@@ -25,6 +25,8 @@ class StereoFrameObservations:
 
 @dataclass(frozen=True)
 class CentralStereoRayFieldBAResult:
+    """Result of stereo central rayfield bundle adjustment."""
+
     nmax: int
     u0_px: float
     v0_px: float
@@ -102,11 +104,10 @@ def fit_central_stereo_rayfield_ba(
     f_scale_mm: float = 1.0,
     max_nfev: int = 200,
 ) -> CentralStereoRayFieldBAResult:
-    """
-    Joint stereo bundle adjustment for a *central* ray-field in both cameras.
+    """Joint stereo bundle adjustment for a central ray-field in both cameras.
 
     Variables:
-      - Zernike coefficients for left/right x,y
+      - Zernike coefficients for left/right x, y
       - A single stereo rig transform (R_RL, t_RL) with P_R = R_RL P_L + t_RL
       - Per-frame board poses in left camera coordinates (R_i, t_i)
 
@@ -115,6 +116,41 @@ def fit_central_stereo_rayfield_ba(
       r_R = (I - d_R d_R^T) P_R
 
     where P_L = R_i P_board + t_i and P_R = R_RL P_L + t_RL.
+
+    Parameters
+    ----------
+    frames : dict[int, StereoFrameObservations]
+        Per-frame stereo observations keyed by frame index.
+    image_width_px, image_height_px : int
+        Sensor dimensions in pixels.
+    nmax : int
+        Maximum Zernike radial order.
+    rvecs0, tvecs0 : dict[int, ndarray]
+        Initial board pose estimates per frame (in left camera coordinates).
+    rig_rvec0, rig_tvec0 : ndarray
+        Initial stereo rig transform (right relative to left).
+    coeffs0_left_x, coeffs0_left_y : ndarray
+        Initial Zernike coefficients for the left camera.
+    coeffs0_right_x, coeffs0_right_y : ndarray
+        Initial Zernike coefficients for the right camera.
+    lam_coeff : float
+        Regularisation weight for Zernike coefficients.
+    lam_center : float
+        Regularisation weight for the camera centre.
+    lam_jacobian : float
+        Scale factor for analytical Jacobian contributions.
+    loss : str
+        Robust loss function for least_squares.
+    f_scale_mm : float
+        Scale parameter for robust loss, in millimetres.
+    max_nfev : int
+        Maximum function evaluations.
+
+    Returns
+    -------
+    CentralStereoRayFieldBAResult
+        Dataclass result object containing fitted left/right rayfield
+        coefficients, rig parameters, board poses, and diagnostics.
     """
     if not frames:
         raise ValueError("frames is empty")
@@ -124,7 +160,7 @@ def fit_central_stereo_rayfield_ba(
     u0, v0, radius = default_disk(int(image_width_px), int(image_height_px))
 
     # Stable parameter ordering.
-    fids = sorted(int(fid) for fid in frames.keys())
+    fids = sorted(int(fid) for fid in frames)
     for fid in fids:
         if fid not in rvecs0 or fid not in tvecs0:
             raise ValueError("missing initial pose for some frame")
@@ -168,9 +204,22 @@ def fit_central_stereo_rayfield_ba(
     from scipy.spatial.transform import Rotation as R  # type: ignore
 
     coeff0 = _pack_coeffs(coeffs0_left_x, coeffs0_left_y, coeffs0_right_x, coeffs0_right_y)
-    rig0 = np.concatenate([np.asarray(rig_rvec0, dtype=np.float64).reshape(3), np.asarray(rig_tvec0, dtype=np.float64).reshape(3)])
+    rig0 = np.concatenate(
+        [
+            np.asarray(rig_rvec0, dtype=np.float64).reshape(3),
+            np.asarray(rig_tvec0, dtype=np.float64).reshape(3),
+        ]
+    )
     poses0 = np.concatenate(
-        [np.concatenate([np.asarray(rvecs0[fid], dtype=np.float64).reshape(3), np.asarray(tvecs0[fid], dtype=np.float64).reshape(3)]) for fid in fids],
+        [
+            np.concatenate(
+                [
+                    np.asarray(rvecs0[fid], dtype=np.float64).reshape(3),
+                    np.asarray(tvecs0[fid], dtype=np.float64).reshape(3),
+                ]
+            )
+            for fid in fids
+        ],
         axis=0,
     )
     p0 = np.concatenate([coeff0, rig0, poses0], axis=0)
@@ -178,16 +227,27 @@ def fit_central_stereo_rayfield_ba(
     # Gauge constraints to reduce drift:
     # - center: x(u0,v0)=0, y(u0,v0)=0
     # - local Jacobian near center: d(x,y)/d(u,v) ~ diag(1/f0, 1/f0), cross terms ~ 0
-    A0 = zernike_design_matrix(np.array([u0]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius)[0]
+    A0 = zernike_design_matrix(
+        np.array([u0]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+    )[0]
     eps = 1.0
-    Au_p = zernike_design_matrix(np.array([u0 + eps]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius)[0]
-    Au_m = zernike_design_matrix(np.array([u0 - eps]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius)[0]
-    Av_p = zernike_design_matrix(np.array([u0]), np.array([v0 + eps]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius)[0]
-    Av_m = zernike_design_matrix(np.array([u0]), np.array([v0 - eps]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius)[0]
+    Au_p = zernike_design_matrix(
+        np.array([u0 + eps]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+    )[0]
+    Au_m = zernike_design_matrix(
+        np.array([u0 - eps]), np.array([v0]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+    )[0]
+    Av_p = zernike_design_matrix(
+        np.array([u0]), np.array([v0 + eps]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+    )[0]
+    Av_m = zernike_design_matrix(
+        np.array([u0]), np.array([v0 - eps]), nmax=int(nmax), u0_px=u0, v0_px=v0, radius_px=radius
+    )[0]
     f0_px = 1.5 * float(max(image_width_px, image_height_px))
     target = 1.0 / f0_px
 
     def fun(p: np.ndarray) -> np.ndarray:
+        """Residual function for central stereo bundle adjustment."""
         p = np.asarray(p, dtype=np.float64).reshape(-1)
         coeffs = p[: 4 * K]
         rig = p[4 * K : 4 * K + 6]
@@ -222,7 +282,9 @@ def fit_central_stereo_rayfield_ba(
             y0_L = float((A0 @ cLy).item())
             x0_R = float((A0 @ cRx).item())
             y0_R = float((A0 @ cRy).item())
-            res_parts.append(np.sqrt(lam_center) * np.array([x0_L, y0_L, x0_R, y0_R], dtype=np.float64))
+            res_parts.append(
+                np.sqrt(lam_center) * np.array([x0_L, y0_L, x0_R, y0_R], dtype=np.float64)
+            )
 
         if lam_jacobian > 0:
             # Finite-difference Jacobian at (u0,v0) in normalized coordinates.
@@ -257,7 +319,9 @@ def fit_central_stereo_rayfield_ba(
 
         return np.concatenate(res_parts, axis=0)
 
-    sol = least_squares(fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev))
+    sol = least_squares(
+        fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev)
+    )
 
     coeffs = sol.x[: 4 * K]
     rig = sol.x[4 * K : 4 * K + 6]
@@ -317,13 +381,41 @@ def fit_central_stereo_rayfield_coeffs_fixed(
     f_scale_mm: float = 1.0,
     max_nfev: int = 200,
 ) -> CentralStereoRayFieldBAResult:
-    """
-    Fit only the ray-field coefficients for both cameras, with fixed:
-      - stereo rig (R_RL, t_RL)
-      - per-frame board poses (R_i, t_i)
+    """Fit only the ray-field coefficients for both cameras, with fixed poses and rig.
 
     This is useful for controlled synthetic benchmarks (GT poses/rig),
     or when external metrology provides accurate poses.
+
+    Parameters
+    ----------
+    frames : dict[int, StereoFrameObservations]
+        Per-frame stereo observations.
+    image_width_px, image_height_px : int
+        Sensor dimensions in pixels.
+    nmax : int
+        Maximum Zernike radial order.
+    rvecs, tvecs : dict[int, ndarray]
+        Fixed board pose estimates per frame.
+    rig_rvec, rig_tvec : ndarray
+        Fixed stereo rig transform.
+    coeffs0_left_x, coeffs0_left_y : ndarray
+        Initial Zernike coefficients for left camera.
+    coeffs0_right_x, coeffs0_right_y : ndarray
+        Initial Zernike coefficients for right camera.
+    lam_coeff : float
+        Regularisation weight for coefficients.
+    loss : str
+        Robust loss function.
+    f_scale_mm : float
+        Scale parameter for robust loss, in mm.
+    max_nfev : int
+        Maximum function evaluations.
+
+    Returns
+    -------
+    CentralStereoRayFieldBAResult
+        Dataclass result object containing fitted left/right rayfield
+        coefficients with the supplied rig and board poses.
     """
     if not frames:
         raise ValueError("frames is empty")
@@ -333,7 +425,7 @@ def fit_central_stereo_rayfield_coeffs_fixed(
     u0, v0, radius = default_disk(int(image_width_px), int(image_height_px))
 
     # Stable ordering.
-    fids = sorted(int(fid) for fid in frames.keys())
+    fids = sorted(int(fid) for fid in frames)
     for fid in fids:
         if fid not in rvecs or fid not in tvecs:
             raise ValueError("missing pose for some frame")
@@ -382,6 +474,7 @@ def fit_central_stereo_rayfield_coeffs_fixed(
     R_RL = R.from_rotvec(rig_rvec).as_matrix()
 
     def fun(p: np.ndarray) -> np.ndarray:
+        """Residual function for central stereo bundle adjustment."""
         cLx, cLy, cRx, cRy = _unpack_coeffs(p, K)
         res_parts: list[np.ndarray] = []
         for fid in fids:
@@ -402,7 +495,9 @@ def fit_central_stereo_rayfield_coeffs_fixed(
             res_parts.append(np.sqrt(lam_coeff) * p)
         return np.concatenate(res_parts, axis=0)
 
-    sol = least_squares(fun, coeff0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev))
+    sol = least_squares(
+        fun, coeff0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev)
+    )
     cLx, cLy, cRx, cRy = _unpack_coeffs(sol.x, K)
 
     diag = {

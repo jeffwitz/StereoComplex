@@ -1,0 +1,26 @@
+{
+  "title": "Five-variant Pycaso 2-cent coin reconstruction (Figure 11 of the CMO paper)",
+  "correspondences": "../../pycaso_real_data/specimen_correspondences.npz",
+  "variants": [
+    {
+      "label": "zernike_rayfield_57p",
+      "npz": "../../pycaso_real_data/schur_ba/specimen_zernike_rayfield_57p.npz"
+    },
+    {
+      "label": "cmo_26p_initial",
+      "npz": "../../pycaso_real_data/schur_ba/specimen_cmo_26p_initial.npz"
+    },
+    {
+      "label": "cmo_26p_ba_unregularized",
+      "npz": "../../pycaso_real_data/schur_ba/specimen_cmo_26p_ba_unregularized.npz"
+    },
+    {
+      "label": "cmo_26p_ba_iso_a1e-2",
+      "npz": "../../pycaso_real_data/schur_ba/specimen_cmo_26p_ba_iso_a1e-2.npz"
+    },
+    {
+      "label": "cmo_26p_ba_schur_a1e-3",
+      "npz": "../../pycaso_real_data/schur_ba/specimen_cmo_26p_ba_schur_a1e-3.npz"
+    }
+  ]
+}

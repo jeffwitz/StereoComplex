@@ -1,0 +1,34 @@
+{
+  "left_fit": {
+    "alpha_deg": 13.00032167337423,
+    "beta_deg": 5.0001292969838405,
+    "thickness_mm": 15.999545309707639,
+    "rayfield_rms_support_mm": 0.00020343453458543856,
+    "rayfield_rms_full_mm": 0.0016178157378716636,
+    "parameter_error": {
+      "alpha_deg": 0.00032167337423061326,
+      "beta_deg": 0.00012929698384045452,
+      "thickness_mm": -0.0004546902923614482,
+      "eta": 0.0
+    }
+  },
+  "right_fit": {
+    "alpha_deg": 10.002077139892648,
+    "beta_deg": 7.000677752094454,
+    "thickness_mm": 13.998461107961955,
+    "rayfield_rms_support_mm": 0.0003117889883271815,
+    "rayfield_rms_full_mm": 0.005071900067916286,
+    "parameter_error": {
+      "alpha_deg": 0.0020771398926484608,
+      "beta_deg": 0.0006777520944538651,
+      "thickness_mm": -0.0015388920380452475,
+      "eta": 0.0
+    }
+  },
+  "plate_rms_3d_mm": 0.0006024181197729138,
+  "plate_median_3d_mm": 0.00038117091128024464,
+  "plate_p95_3d_mm": 0.0012532755865018717,
+  "plate_ray_gap_rms_mm": 5.7634500658597666e-05,
+  "left_plate_vs_oracle_plane_rms_mm": 8.980624290153522e-05,
+  "right_plate_vs_oracle_plane_rms_mm": 0.0003255245792355246
+}

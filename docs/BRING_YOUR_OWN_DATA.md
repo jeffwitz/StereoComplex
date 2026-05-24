@@ -10,6 +10,7 @@ to:
 
 - a baseline **OpenCV raw vs Ray2D + OpenCV** comparison,
 - a calibrated StereoComplex model,
+- optionally a non-central Zernike rayfield model (validated on real CMO hardware),
 - an exported `models/<name>/model.json + weights.npz`,
 - and then `model.triangulate(...)` in Python.
 
@@ -109,6 +110,46 @@ What this does:
 4. run the central stereo ray-field bundle adjustment,
 5. optionally export a reusable model directory.
 
+### Option C: fit a non-central rayfield (validated on real CMO)
+
+Use this when a central/pinhole model leaves systematic ray gaps or
+reconstruction bias, for example with protective glass, an inclined window, a
+thick optical stack, or a diopter-like setup.
+
+```python
+from pathlib import Path
+
+import stereocomplex as sc
+
+board = sc.CharucoBoardSpec(
+    squares_x=9,
+    squares_y=6,
+    square_size_mm=20.0,
+    marker_size_mm=15.0,
+    aruco_dictionary="DICT_4X4_50",
+)
+
+fit = sc.fit_stereo_zernike_origin_field_from_image_dirs(
+    left_dir=Path("my_data/left"),
+    right_dir=Path("my_data/right"),
+    board=board,
+    max_order=4,
+    method2d="rayfield_tps_robust",
+)
+
+print(fit.residual_rms)
+left_field = fit.left_field
+right_field = fit.right_field
+```
+
+This path fits a Zernike origin field `O(u,v)` initialized from an OpenCV stereo
+calibration. The model is validated on a real CMO microscope (notebook 09). As with any calibration, check results with diverse board poses,
+train/test pose splits, and support-aware rayfield metrics before deployment.
+
+For the practical walkthrough, see :doc:`NONCENTRAL_FROM_IMAGES`. For the
+controlled physical oracle and complete BA discussion, see
+:doc:`PARALLEL_PLATE_ORIGIN_FIELD`.
+
 ## Later: load and triangulate
 
 ```python
@@ -164,10 +205,7 @@ detections = sc.detect_charuco_corners(image="my_data/left/000000.png", board=bo
 refined_xy = sc.refine_charuco_corners(
     method="rayfield_tps_robust",
     board=board,
-    marker_ids=detections.marker_ids,
-    marker_corners=detections.marker_corners,
-    charuco_ids=detections.charuco_ids,
-    charuco_xy=detections.charuco_xy,
+    detections=detections,
 )
 ```
 
@@ -187,7 +225,10 @@ Do this first:
 1. run with `max_pairs=3` or `max_frames=3`,
 2. keep `nmax=4` or `nmax=6`,
 3. confirm that `result.report.n_initialized_frames >= 2`,
-4. save the model,
-5. only then increase the number of poses and the basis size.
+4. inspect `result.report.train_skew_p95_mm` and `result.report.train_point_to_ray_p95_mm`,
+5. save the model,
+6. only then increase the number of poses and the basis size.
 
-That gives you a fast sanity check before you spend time on a full calibration.
+`n_initialized_frames >= 2` only means that the optimizer could start. It is not a
+quality criterion. Large training skew or point-to-ray residuals mean the exported
+model may be reloadable but geometrically unusable.

@@ -97,6 +97,27 @@ def _radial_poly(n: int, m: int, r: np.ndarray) -> np.ndarray:
 
 
 def eval_real_zernike(mode: ZernikeMode, r: np.ndarray, theta: np.ndarray) -> np.ndarray:
+    """Evaluate real-valued Zernike polynomials at given polar coordinates.
+
+    Uses the Noll indexing scheme.  Returns the value of Z_n^m(rho, theta)
+    for each mode, where rho is the normalised radial coordinate (0 at centre,
+    1 at the edge of the unit disk) and theta is the azimuthal angle in radians.
+
+    Parameters
+    ----------
+    mode : ZernikeMode
+        Zernike mode descriptor carrying radial order, azimuthal order and
+        sine/cosine branch.
+    r : ndarray
+        Normalised radial coordinates, in [0, 1].
+    theta : ndarray
+        Azimuthal angles in radians, same shape as ``r``.
+
+    Returns
+    -------
+    ndarray
+        Zernike polynomial values, same shape as ``r``.
+    """
     r = np.asarray(r, dtype=np.float64)
     theta = np.asarray(theta, dtype=np.float64)
     R = _radial_poly(mode.n, mode.m, r)
@@ -114,8 +135,33 @@ def pixel_to_unit_disk(
     v0_px: float,
     radius_px: float,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Map pixels to unit-disk polar coordinates (r, theta) with a mask for r<=1.
+    """Map pixel coordinates to unit-disk polar coordinates for Zernike evaluation.
+
+    Pixels are centred at (u0_px, v0_px) and scaled by ``radius_px`` so that
+    the disk of that radius maps to rho = 1.  Pixels outside the disk produce
+    rho > 1.
+
+    Parameters
+    ----------
+    u_px : ndarray
+        Pixel x-coordinates.
+    v_px : ndarray
+        Pixel y-coordinates.
+    u0_px : float
+        x-coordinate of the disk centre in pixels.
+    v0_px : float
+        y-coordinate of the disk centre in pixels.
+    radius_px : float
+        Disk radius in pixels (must be > 0).
+
+    Returns
+    -------
+    r : ndarray
+        Normalised radial coordinates (0 at centre, 1 at the disk edge).
+    theta : ndarray
+        Azimuthal angles in radians.
+    mask : ndarray, bool
+        True where r <= 1 (inside the unit disk).
     """
     if radius_px <= 0:
         raise ValueError("radius_px must be > 0")
@@ -138,9 +184,35 @@ def zernike_design_matrix(
     v0_px: float,
     radius_px: float,
 ) -> tuple[np.ndarray, np.ndarray, list[ZernikeMode]]:
-    """
-    Build design matrix A (N,K) for real Zernike modes up to `nmax`.
-    Returns (A, mask, modes) where mask selects points inside the unit disk.
+    """Build the Zernike design matrix for a pixel grid.
+
+    Evaluates all real Zernike polynomials up to radial order ``nmax`` at the
+    unit-disk coordinates of each pixel.  Columns correspond to Zernike modes
+    in Noll order; rows correspond to pixels inside the unit disk.
+
+    Parameters
+    ----------
+    u_px : ndarray
+        Pixel x-coordinates.
+    v_px : ndarray
+        Pixel y-coordinates, same shape as u_px.
+    nmax : int
+        Maximum radial order (inclusive).  Produces K = (nmax+1)(nmax+2)/2 modes.
+    u0_px : float
+        x-coordinate of the unit-disk centre in pixels.
+    v0_px : float
+        y-coordinate of the unit-disk centre in pixels.
+    radius_px : float
+        Unit-disk radius in pixels.
+
+    Returns
+    -------
+    A : ndarray, shape (N_in, K)
+        Design matrix.  Row i, column j = mode j evaluated at pixel i.
+    mask : ndarray, bool
+        True where the pixel lies inside the unit disk.
+    modes : list of ZernikeMode
+        Zernike mode descriptors in Noll order (length K).
     """
     modes = zernike_modes(nmax)
     r, theta, mask = pixel_to_unit_disk(u_px, v_px, u0_px=u0_px, v0_px=v0_px, radius_px=radius_px)
@@ -150,4 +222,3 @@ def zernike_design_matrix(
     for k, mode in enumerate(modes):
         A[:, k] = eval_real_zernike(mode, r_in, th_in)
     return A, mask, modes
-

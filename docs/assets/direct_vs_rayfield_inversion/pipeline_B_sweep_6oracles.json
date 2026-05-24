@@ -1,0 +1,56 @@
+[
+  {
+    "oracle": "central pinhole",
+    "winner": "central_pinhole",
+    "expected": "central_pinhole",
+    "correct": true,
+    "winner_bic": -89524.50841560849,
+    "delta_bic": 53.75278407684527,
+    "elapsed_s": 3.558690071105957
+  },
+  {
+    "oracle": "central Brown-Conrady",
+    "winner": "central_brown_conrady",
+    "expected": "central_brown_conrady",
+    "correct": true,
+    "winner_bic": -82107.5778010118,
+    "delta_bic": 896.160786984663,
+    "elapsed_s": 13.946108102798462
+  },
+  {
+    "oracle": "inclined parallel plate",
+    "winner": "pinhole_parallel_plate",
+    "expected": "pinhole_parallel_plate",
+    "correct": true,
+    "winner_bic": -81918.30453291183,
+    "delta_bic": 58328.33560694086,
+    "elapsed_s": 13.928248643875122
+  },
+  {
+    "oracle": "CMO shared-rig",
+    "winner": "cmo_physical_shared",
+    "expected": "cmo_physical_shared",
+    "correct": true,
+    "winner_bic": -84236.58342056237,
+    "delta_bic": 62990.83516531678,
+    "elapsed_s": 11.784132242202759
+  },
+  {
+    "oracle": "Greenough (Brown-Conrady \u00d72)",
+    "winner": "central_brown_conrady",
+    "expected": "central_brown_conrady",
+    "correct": true,
+    "winner_bic": -81993.60000389273,
+    "delta_bic": 652.896480468029,
+    "elapsed_s": 17.857326984405518
+  },
+  {
+    "oracle": "uncatalogued Zernike",
+    "winner": "zernike_compact",
+    "expected": "zernike_compact",
+    "correct": true,
+    "winner_bic": -554.2628628895127,
+    "delta_bic": 1539.7863697764187,
+    "elapsed_s": 53.83954739570618
+  }
+]

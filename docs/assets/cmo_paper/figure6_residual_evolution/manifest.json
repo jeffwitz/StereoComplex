@@ -1,0 +1,9 @@
+{
+  "title": "Residual evolution across model stages (Figure 6 of the CMO paper)",
+  "intermediate_state": "../../pycaso_real_data/intermediate_state.npz",
+  "cache_file": "residual_evolution_data.npz",
+  "grid_size": 31,
+  "z_planes_mm": [50.0, 80.0],
+  "max_nfev_per_stage": 300,
+  "figure_size": [18, 6]
+}

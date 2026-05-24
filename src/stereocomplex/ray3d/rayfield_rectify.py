@@ -15,9 +15,7 @@ Notes
 """
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 import cv2
 import numpy as np
@@ -33,10 +31,10 @@ def _normalize(v: np.ndarray) -> np.ndarray:
 class RectifyParams:
     width: int
     height: int
-    fx: Optional[float] = None
-    fy: Optional[float] = None
-    cx: Optional[float] = None
-    cy: Optional[float] = None
+    fx: float | None = None
+    fy: float | None = None
+    cx: float | None = None
+    cy: float | None = None
     max_iters: int = 15
     eps_angle: float = 1e-6
     eps_step: float = 1e-3
@@ -49,8 +47,10 @@ class RectifyParams:
     lut_use: bool = True
 
 
-def _build_rect_axes(t_lr: np.ndarray, up_hint: np.ndarray = np.array([0, 1, 0], dtype=np.float64)) -> np.ndarray:
+def _build_rect_axes(t_lr: np.ndarray, up_hint: np.ndarray | None = None) -> np.ndarray:
     """Return R_rect (rect frame rows expressed in left cam frame)."""
+    if up_hint is None:
+        up_hint = np.array([0, 1, 0], dtype=np.float64)
     b = np.asarray(t_lr, dtype=np.float64).reshape(3)
     e1 = _normalize(b)
     u = up_hint.astype(np.float64).reshape(3)
@@ -62,14 +62,16 @@ def _build_rect_axes(t_lr: np.ndarray, up_hint: np.ndarray = np.array([0, 1, 0],
     return R_rect
 
 
-def _default_intrinsics(width: int, height: int) -> Tuple[float, float, float, float]:
+def _default_intrinsics(width: int, height: int) -> tuple[float, float, float, float]:
     cx = width * 0.5
     cy = height * 0.5
     fx = fy = 0.9 * width  # heuristic; wide-enough virtual FOV
     return fx, fy, cx, cy
 
 
-def _direction_field_from_model(ray_model, width: int, height: int, step: int) -> Tuple[np.ndarray, np.ndarray]:
+def _direction_field_from_model(
+    ray_model, width: int, height: int, step: int,
+) -> tuple[np.ndarray, np.ndarray]:
     """Coarse grid of directions for init. Returns dirs (Hc,Wc,3), coords (Hc,Wc,2)."""
     ys = np.arange(0, height, step, dtype=np.float64)
     xs = np.arange(0, width, step, dtype=np.float64)
@@ -84,7 +86,9 @@ def _direction_field_from_model(ray_model, width: int, height: int, step: int) -
     return dirs, coords
 
 
-def _build_direction_lut(ray_model, width: int, height: int, quant: int = 32) -> Tuple[np.ndarray, np.ndarray]:
+def _build_direction_lut(
+    ray_model, width: int, height: int, quant: int = 32,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Build a coarse inverse LUT: quantize directions on the unit sphere (theta,phi grid)
     and store one representative pixel (u,v) for each bin.
@@ -122,7 +126,10 @@ def _build_direction_lut(ray_model, width: int, height: int, quant: int = 32) ->
     return lut_dirs, lut_uv
 
 
-def _invert_direction_newton(ray_model, d_target: np.ndarray, init_uv: np.ndarray, max_iters: int, eps_angle: float, eps_step: float) -> Optional[np.ndarray]:
+def _invert_direction_newton(
+    ray_model, d_target: np.ndarray, init_uv: np.ndarray, max_iters: int,
+    eps_angle: float, eps_step: float,
+) -> np.ndarray | None:
     """Invert direction→pixel via Gauss-Newton with finite differences."""
     uv = init_uv.astype(np.float64).reshape(2)
     for _ in range(max_iters):
@@ -147,7 +154,9 @@ def _invert_direction_newton(ray_model, d_target: np.ndarray, init_uv: np.ndarra
     return None
 
 
-def _coarse_init(d_target: np.ndarray, dirs: np.ndarray, coords: np.ndarray, topk: int) -> np.ndarray:
+def _coarse_init(
+    d_target: np.ndarray, dirs: np.ndarray, coords: np.ndarray, topk: int,
+) -> np.ndarray:
     """Return best coarse coordinate by cosine similarity."""
     d_flat = dirs.reshape(-1, 3)
     c_flat = coords.reshape(-1, 2)
@@ -162,14 +171,28 @@ def build_virtual_rectify_maps(
     R_lr: np.ndarray,
     t_lr: np.ndarray,
     params: RectifyParams,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Build rectification remap LUTs (mapx/mapy) for left and right images.
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Build rectification remap LUTs (mapx/mapy) for left and right images.
+
+    Parameters
+    ----------
+    ray_model_L : RayFieldModel
+        Left-channel rayfield.
+    ray_model_R : RayFieldModel
+        Right-channel rayfield.
+    R_lr : ndarray, shape (3, 3)
+        Rotation from left to right camera frame.
+    t_lr : ndarray, shape (3,)
+        Translation from left to right camera frame.
+    params : RectifyParams
+        Rectification parameters (resolution, z-plane, etc.).
 
     Returns
     -------
-    mapx_L, mapy_L, mapx_R, mapy_R : float32 arrays (H', W')
-    R_rect : 3x3 rotation (rect frame rows in left frame)
+    mapx_L, mapy_L, mapx_R, mapy_R : ndarray, float32, shape (H', W')
+        Remap LUTs for cv2.remap.
+    R_rect : ndarray, shape (3, 3)
+        Rotation mapping the rectified frame rows into the left camera frame.
     """
     H, W = params.height, params.width
     fx = params.fx
@@ -187,14 +210,22 @@ def build_virtual_rectify_maps(
 
     # Coarse init grids (optional)
     if params.coarse_step > 0:
-        dirs_L, coords_L = _direction_field_from_model(ray_model_L, ray_model_L.width, ray_model_L.height, params.coarse_step)
-        dirs_R, coords_R = _direction_field_from_model(ray_model_R, ray_model_R.width, ray_model_R.height, params.coarse_step)
+        dirs_L, coords_L = _direction_field_from_model(
+            ray_model_L, ray_model_L.width, ray_model_L.height, params.coarse_step
+        )
+        dirs_R, coords_R = _direction_field_from_model(
+            ray_model_R, ray_model_R.width, ray_model_R.height, params.coarse_step
+        )
     else:
         dirs_L = coords_L = dirs_R = coords_R = None
     # Direction->pixel inverse LUT (optional)
     if params.lut_use:
-        lut_dirs_L, lut_uv_L = _build_direction_lut(ray_model_L, ray_model_L.width, ray_model_L.height, params.lut_quant)
-        lut_dirs_R, lut_uv_R = _build_direction_lut(ray_model_R, ray_model_R.width, ray_model_R.height, params.lut_quant)
+        lut_dirs_L, lut_uv_L = _build_direction_lut(
+            ray_model_L, ray_model_L.width, ray_model_L.height, params.lut_quant
+        )
+        lut_dirs_R, lut_uv_R = _build_direction_lut(
+            ray_model_R, ray_model_R.width, ray_model_R.height, params.lut_quant
+        )
     else:
         lut_dirs_L = lut_uv_L = lut_dirs_R = lut_uv_R = None
 
@@ -226,8 +257,12 @@ def build_virtual_rectify_maps(
             if init_L is None and dirs_L is not None:
                 init_L = _coarse_init(d_L, dirs_L, coords_L, params.coarse_topk)
             if init_L is None:
-                init_L = np.array([ray_model_L.width * 0.5, ray_model_L.height * 0.5], dtype=np.float64)
-            uv_L = _invert_direction_newton(ray_model_L, d_L, init_L, params.max_iters, params.eps_angle, params.eps_step)
+                init_L = np.array(
+                    [ray_model_L.width * 0.5, ray_model_L.height * 0.5], dtype=np.float64
+                )
+            uv_L = _invert_direction_newton(
+                ray_model_L, d_L, init_L, params.max_iters, params.eps_angle, params.eps_step
+            )
 
             # invert right
             init_R = None
@@ -242,8 +277,12 @@ def build_virtual_rectify_maps(
             if init_R is None and dirs_R is not None:
                 init_R = _coarse_init(d_R, dirs_R, coords_R, params.coarse_topk)
             if init_R is None:
-                init_R = np.array([ray_model_R.width * 0.5, ray_model_R.height * 0.5], dtype=np.float64)
-            uv_R = _invert_direction_newton(ray_model_R, d_R, init_R, params.max_iters, params.eps_angle, params.eps_step)
+                init_R = np.array(
+                    [ray_model_R.width * 0.5, ray_model_R.height * 0.5], dtype=np.float64
+                )
+            uv_R = _invert_direction_newton(
+                ray_model_R, d_R, init_R, params.max_iters, params.eps_angle, params.eps_step
+            )
 
             if uv_L is not None:
                 mapx_L[v, u] = uv_L[0]
@@ -255,12 +294,37 @@ def build_virtual_rectify_maps(
     return mapx_L, mapy_L, mapx_R, mapy_R, R_rect
 
 
-def rectify_pair(images: Tuple[np.ndarray, np.ndarray], maps: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], params: RectifyParams) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Apply precomputed remap to rectify a pair of images.
+def rectify_pair(
+    images: tuple[np.ndarray, np.ndarray],
+    maps: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    params: RectifyParams,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Apply precomputed remap to rectify a pair of images.
+
+    Parameters
+    ----------
+    images : (ndarray, ndarray)
+        Left and right grayscale images.
+    maps : (ndarray, ndarray, ndarray, ndarray)
+        Remap LUTs (mapx_L, mapy_L, mapx_R, mapy_R) from build_virtual_rectify_maps.
+    params : RectifyParams
+        Rectification parameters.
+
+    Returns
+    -------
+    (ndarray, ndarray)
+        Rectified left and right images.
     """
     I_L, I_R = images
     mapx_L, mapy_L, mapx_R, mapy_R = maps
-    I_L_rect = cv2.remap(I_L, mapx_L, mapy_L, interpolation=cv2.INTER_LINEAR, borderMode=params.border_mode, borderValue=params.border_value)
-    I_R_rect = cv2.remap(I_R, mapx_R, mapy_R, interpolation=cv2.INTER_LINEAR, borderMode=params.border_mode, borderValue=params.border_value)
+    I_L_rect = cv2.remap(
+        I_L, mapx_L, mapy_L,
+        interpolation=cv2.INTER_LINEAR, borderMode=params.border_mode,
+        borderValue=params.border_value,
+    )
+    I_R_rect = cv2.remap(
+        I_R, mapx_R, mapy_R,
+        interpolation=cv2.INTER_LINEAR, borderMode=params.border_mode,
+        borderValue=params.border_value,
+    )
     return I_L_rect, I_R_rect

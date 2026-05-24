@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
@@ -14,14 +13,16 @@ Side = Literal["left", "right"]
 
 
 def load_json(path: Path) -> dict[str, Any]:
+    """Load and parse a JSON file with error handling."""
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def load_frames(scene_dir: Path) -> list[dict[str, Any]]:
+    """Load frame metadata from a ChArUco frames file."""
     frames_path = scene_dir / "frames.jsonl"
     frames: list[dict[str, Any]] = []
     for line in frames_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
+        line = line.strip()  # noqa: PLW2901
         if not line:
             continue
         frames.append(json.loads(line))
@@ -29,13 +30,16 @@ def load_frames(scene_dir: Path) -> list[dict[str, Any]]:
 
 
 def build_charuco_from_meta(meta: dict[str, Any]):
+    """Build a CharucoBoardSpec from metadata dictionary."""
     import cv2  # type: ignore
-    import cv2.aruco as aruco  # type: ignore
+    from cv2 import aruco  # type: ignore
 
     board_meta = meta["board"]
     opencv_meta = meta.get("opencv", {})
     opencv_aruco = opencv_meta.get("aruco_detector", {}) if isinstance(opencv_meta, dict) else {}
-    opencv_charuco = opencv_meta.get("charuco_detector", {}) if isinstance(opencv_meta, dict) else {}
+    opencv_charuco = (
+        opencv_meta.get("charuco_detector", {}) if isinstance(opencv_meta, dict) else {}
+    )
     dict_name = str(board_meta.get("aruco_dictionary", "DICT_4X4_1000"))
     dict_id = getattr(aruco, dict_name, None)
     if dict_id is None:
@@ -50,7 +54,9 @@ def build_charuco_from_meta(meta: dict[str, Any]):
     if hasattr(aruco, "CharucoBoard"):
         board = aruco.CharucoBoard((squares_x, squares_y), square_size, marker_size, dictionary)
     elif hasattr(aruco, "CharucoBoard_create"):  # pragma: no cover
-        board = aruco.CharucoBoard_create(squares_x, squares_y, square_size, marker_size, dictionary)
+        board = aruco.CharucoBoard_create(
+            squares_x, squares_y, square_size, marker_size, dictionary
+        )
     else:  # pragma: no cover
         raise RuntimeError("cv2.aruco does not expose CharucoBoard APIs in this build.")
 
@@ -66,16 +72,24 @@ def build_charuco_from_meta(meta: dict[str, Any]):
         if "cornerRefinementWinSize" in opencv_aruco:
             detector_params.cornerRefinementWinSize = int(opencv_aruco["cornerRefinementWinSize"])
         if "cornerRefinementMaxIterations" in opencv_aruco:
-            detector_params.cornerRefinementMaxIterations = int(opencv_aruco["cornerRefinementMaxIterations"])
+            detector_params.cornerRefinementMaxIterations = int(
+                opencv_aruco["cornerRefinementMaxIterations"]
+            )
         if "cornerRefinementMinAccuracy" in opencv_aruco:
-            detector_params.cornerRefinementMinAccuracy = float(opencv_aruco["cornerRefinementMinAccuracy"])
+            detector_params.cornerRefinementMinAccuracy = float(
+                opencv_aruco["cornerRefinementMinAccuracy"]
+            )
 
     charuco_detector = None
     if hasattr(aruco, "CharucoDetector"):
         charuco_detector = aruco.CharucoDetector(board)
         if hasattr(charuco_detector, "setDetectorParameters"):
             charuco_detector.setDetectorParameters(detector_params)
-        if isinstance(opencv_charuco, dict) and hasattr(charuco_detector, "getCharucoParameters") and hasattr(charuco_detector, "setCharucoParameters"):
+        if (
+            isinstance(opencv_charuco, dict)
+            and hasattr(charuco_detector, "getCharucoParameters")
+            and hasattr(charuco_detector, "setCharucoParameters")
+        ):
             cp = charuco_detector.getCharucoParameters()
             if "checkMarkers" in opencv_charuco:
                 cp.checkMarkers = bool(opencv_charuco["checkMarkers"])
@@ -102,16 +116,50 @@ def detect_view(
     charuco_detector,
     img_gray: np.ndarray,
 ) -> CharucoDetections | None:
+    """Detect ChArUco corners in a single grayscale image.
+
+    Parameters
+    ----------
+    cv2 : module
+        OpenCV module (passed for import isolation).
+    aruco : module
+        OpenCV aruco submodule.
+    dictionary : aruco.Dictionary
+        ArUco marker dictionary.
+    board : aruco.CharucoBoard
+        ChArUco board geometry.
+    detector_params : aruco.DetectorParameters
+        ArUco marker detection parameters.
+    aruco_detector : aruco.ArucoDetector
+        Pre-configured ArUco detector.
+    charuco_detector : aruco.CharucoDetector or None
+        Pre-configured ChArUco detector.
+    img_gray : ndarray, uint8
+        Grayscale input image.
+
+    Returns
+    -------
+    CharucoDetections or None
+        Detected ChArUco corners and IDs, or None on failure.
+    """
     if charuco_detector is not None:
-        charuco_corners, charuco_ids, marker_corners, marker_ids = charuco_detector.detectBoard(img_gray)
+        charuco_corners, charuco_ids, marker_corners, marker_ids = (
+            charuco_detector.detectBoard(img_gray)
+        )
     else:
         if aruco_detector is not None:
             marker_corners, marker_ids, _rej = aruco_detector.detectMarkers(img_gray)
         else:  # pragma: no cover
-            marker_corners, marker_ids, _rej = aruco.detectMarkers(img_gray, dictionary, parameters=detector_params)
+            marker_corners, marker_ids, _rej = aruco.detectMarkers(
+                img_gray, dictionary, parameters=detector_params
+            )
 
         charuco_corners, charuco_ids = None, None
-        if hasattr(aruco, "interpolateCornersCharuco") and marker_ids is not None and len(marker_ids) > 0:
+        if (
+            hasattr(aruco, "interpolateCornersCharuco")
+            and marker_ids is not None
+            and len(marker_ids) > 0
+        ):
             ret = aruco.interpolateCornersCharuco(marker_corners, marker_ids, img_gray, board)
             if ret is not None and len(ret) >= 2:
                 if len(ret) == 3:
@@ -143,7 +191,10 @@ def detect_view(
 
 
 def _dict_from_ids_xy(ids: np.ndarray, xy: np.ndarray) -> dict[int, np.ndarray]:
-    return {int(i): np.asarray(p, dtype=np.float64) for i, p in zip(ids.tolist(), xy.tolist(), strict=True)}
+    return {
+        int(i): np.asarray(p, dtype=np.float64)
+        for i, p in zip(ids.tolist(), xy.tolist(), strict=True)
+    }
 
 
 def refine_dataset_scene(
@@ -157,6 +208,32 @@ def refine_dataset_scene(
     huber_c: float,
     iters: int,
 ) -> dict[str, Any]:
+    """Refine ChArUco corners for all frames in a dataset scene.
+
+    Parameters
+    ----------
+    dataset_root : Path
+        Root directory of the dataset.
+    split : str
+        Dataset split name ('train', 'val', 'test').
+    scene : str
+        Scene identifier.
+    method : str
+        Refinement method name.
+    max_frames : int
+        Maximum number of frames to process (0 = all).
+    tps_lam : float
+        TPS smoothing parameter.
+    huber_c : float
+        Huber loss threshold in pixels.
+    iters : int
+        Number of IRLS refinement iterations.
+
+    Returns
+    -------
+    dict
+        Refinement results keyed by frame.
+    """
     from stereocomplex.core.image_io import load_gray_u8
 
     scene_dir = Path(dataset_root) / str(split) / str(scene)
@@ -165,7 +242,9 @@ def refine_dataset_scene(
     if max_frames and max_frames > 0:
         frames = frames[: int(max_frames)]
 
-    cv2, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector = build_charuco_from_meta(meta)
+    cv2, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector = (
+        build_charuco_from_meta(meta)
+    )
 
     results: list[dict[str, Any]] = []
     for fr in frames:
@@ -174,7 +253,10 @@ def refine_dataset_scene(
         for side in ("left", "right"):
             img_path = scene_dir / side / str(fr[side])
             img = load_gray_u8(img_path)
-            det = detect_view(cv2, aruco, dictionary, board, detector_params, aruco_detector, charuco_detector, img)
+            det = detect_view(
+                cv2, aruco, dictionary, board, detector_params,
+                aruco_detector, charuco_detector, img
+            )
             if det is None:
                 continue
             refined_xy = refine_charuco_corners(
@@ -225,7 +307,7 @@ def make_calibration_npz(
     scene_dir = dataset_root / split / scene
     meta = load_json(scene_dir / "meta.json")
 
-    import cv2.aruco as aruco  # type: ignore
+    from cv2 import aruco  # type: ignore
 
     board_meta = meta["board"]
     dict_name = str(board_meta.get("aruco_dictionary", "DICT_4X4_1000"))
@@ -252,8 +334,14 @@ def make_calibration_npz(
             continue
         L = fr["left"]
         R = fr["right"]
-        mapL = _dict_from_ids_xy(np.asarray(L["charuco_ids"], dtype=np.int32), np.asarray(L["charuco_xy_refined"], dtype=np.float64))
-        mapR = _dict_from_ids_xy(np.asarray(R["charuco_ids"], dtype=np.int32), np.asarray(R["charuco_xy_refined"], dtype=np.float64))
+        mapL = _dict_from_ids_xy(
+            np.asarray(L["charuco_ids"], dtype=np.int32),
+            np.asarray(L["charuco_xy_refined"], dtype=np.float64),
+        )
+        mapR = _dict_from_ids_xy(
+            np.asarray(R["charuco_ids"], dtype=np.int32),
+            np.asarray(R["charuco_xy_refined"], dtype=np.float64),
+        )
         common = sorted(set(mapL).intersection(mapR))
         if len(common) < 6:
             continue
@@ -288,6 +376,31 @@ def run_refine_corners(
     out_json: Path,
     out_npz: Path | None,
 ) -> None:
+    """CLI entry point: refine ChArUco corners across a dataset scene.
+
+    Parameters
+    ----------
+    dataset_root : Path
+        Root directory of the dataset.
+    scene : str
+        Scene name (e.g. 'scene_0000').
+    method : str
+        Refinement method ('rayfield_tps_robust' by default).
+    max_frames : int, optional
+        Limit number of frames processed (all if None).
+    tps_lam : float
+        TPS smoothing parameter.
+    huber_c : float
+        Huber loss threshold in pixels.
+    iters : int
+        Number of IRLS iterations.
+    split : str
+        Dataset split ('train', 'val', 'test').
+    out_json : Path
+        Output JSON report path.
+    out_npz : Path, optional
+        Output NPZ calibration file path.
+    """
     refined = refine_dataset_scene(
         dataset_root=dataset_root,
         split=split,

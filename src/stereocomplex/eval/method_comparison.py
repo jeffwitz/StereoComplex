@@ -4,9 +4,12 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
-
-from stereocomplex.eval.charuco_detection import ErrorStats, collect_charuco_scene_errors, _stats_to_dict, _summarize
+from stereocomplex.eval.charuco_detection import (
+    ErrorStats,
+    collect_charuco_scene_errors,
+    _stats_to_dict,
+    _summarize,
+)
 
 
 @dataclass(frozen=True)
@@ -23,6 +26,26 @@ def compare_charuco_methods(
     tensor_sigma: float = 1.5,
     search_radius: int = 3,
 ) -> dict[str, object]:
+    """Compare multiple ChArUco corner detection methods across scenes and splits.
+
+    Parameters
+    ----------
+    dataset_root : Path
+        Root directory containing split subdirectories.
+    cases : list[MethodCase]
+        Detection methods to compare (each specifies a name, method, and refine).
+    splits : tuple[str, ...]
+        Dataset splits to evaluate (e.g. ``("train", "val")``).
+    tensor_sigma : float
+        Gaussian sigma for tensor-based refinement.
+    search_radius : int
+        Search window half-width for refinement.
+
+    Returns
+    -------
+    dict
+        Report with per-case aggregated and per-scene error statistics.
+    """
     dataset_root = dataset_root.resolve()
 
     report: dict[str, object] = {
@@ -76,8 +99,16 @@ def compare_charuco_methods(
                     {
                         "split": split,
                         "scene": scene_dir.name,
-                        "left": {"n_detected": int(L["n_detected"]), "n_matched": int(L["n_matched"]), **_stats_to_dict(stats_L)},
-                        "right": {"n_detected": int(R["n_detected"]), "n_matched": int(R["n_matched"]), **_stats_to_dict(stats_R)},
+                        "left": {
+                            "n_detected": int(L["n_detected"]),
+                            "n_matched": int(L["n_matched"]),
+                            **_stats_to_dict(stats_L),
+                        },
+                        "right": {
+                            "n_detected": int(R["n_detected"]),
+                            "n_matched": int(R["n_matched"]),
+                            **_stats_to_dict(stats_R),
+                        },
                     }
                 )
 
@@ -88,8 +119,16 @@ def compare_charuco_methods(
             "name": case.name,
             "method": case.method,
             "refine": case.refine,
-            "left": {"n_detected": int(n_det_L), "n_matched": int(n_match_L), **_stats_to_dict(stats_L_all)},
-            "right": {"n_detected": int(n_det_R), "n_matched": int(n_match_R), **_stats_to_dict(stats_R_all)},
+            "left": {
+                "n_detected": int(n_det_L),
+                "n_matched": int(n_match_L),
+                **_stats_to_dict(stats_L_all),
+            },
+            "right": {
+                "n_detected": int(n_det_R),
+                "n_matched": int(n_match_R),
+                **_stats_to_dict(stats_R_all),
+            },
             "scenes": scene_summaries,
         }
         report["cases"].append(entry)
@@ -98,7 +137,21 @@ def compare_charuco_methods(
 
 
 def write_latex_table(report: dict[str, object], out_path: Path, caption: str, label: str) -> None:
+    """Write comparison results as a LaTeX booktabs table.
+
+    Parameters
+    ----------
+    report : dict
+        Comparison report with per-method metrics.
+    out_path : Path
+        Output file path.
+    caption : str
+        LaTeX table caption.
+    label : str
+        LaTeX \\label value.
+    """
     def esc(s: str) -> str:
+        """Escape LaTeX special characters in a string."""
         # Minimal LaTeX escaping for captions/labels (not for full LaTeX content).
         return (
             s.replace("\\", "\\textbackslash{}")
@@ -131,7 +184,10 @@ def write_latex_table(report: dict[str, object], out_path: Path, caption: str, l
         rmsR = float(R["rms_px"])
         p95L = float(L["p95_px"])
         p95R = float(R["p95_px"])
-        lines.append(f"{c['name']} & {nL:d} & {rmsL:.3f} & {p95L:.3f} & {nR:d} & {rmsR:.3f} & {p95R:.3f}\\\\")
+        lines.append(
+            f"{c['name']} & {nL:d} & {rmsL:.3f} & {p95L:.3f}"
+            f" & {nR:d} & {rmsR:.3f} & {p95R:.3f}\\\\"
+        )
     lines.append("\\bottomrule")
     lines.append("\\end{tabular}")
     lines.append(f"\\caption{{{esc(caption)}}}")
@@ -141,4 +197,5 @@ def write_latex_table(report: dict[str, object], out_path: Path, caption: str, l
 
 
 def write_report_json(report: dict[str, object], out_path: Path) -> None:
+    """Write comparison results as a JSON report."""
     out_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")

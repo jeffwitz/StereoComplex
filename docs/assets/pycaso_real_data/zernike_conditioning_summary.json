@@ -1,0 +1,56 @@
+{
+  "description": "Zernike + poses conditioning diagnostic \u2014 summary",
+  "design_cond_B2": 4.762218763729637,
+  "design_cond_B4": 14.503107041318124,
+  "delta_d_rms_deg_L": 8.548737230128875,
+  "delta_d_rms_deg_R": 5.6062158487508755,
+  "delta_m_rms_mm_L": 9.691361716806309,
+  "delta_m_rms_mm_R": 6.336933574640975,
+  "top_delta_d_modes_L": [
+    {
+      "mode": "Z_0^0(m0)",
+      "pct": 89.7
+    },
+    {
+      "mode": "Z_1^1(sin)",
+      "pct": 5.9
+    },
+    {
+      "mode": "Z_1^1(cos)",
+      "pct": 4.4
+    }
+  ],
+  "top_delta_d_modes_R": [
+    {
+      "mode": "Z_0^0(m0)",
+      "pct": 77.2
+    },
+    {
+      "mode": "Z_1^1(sin)",
+      "pct": 12.4
+    },
+    {
+      "mode": "Z_1^1(cos)",
+      "pct": 9.5
+    }
+  ],
+  "indicator_deltas": {
+    "baseline_mm": 10.833,
+    "convergence_angle_deg": 10.338,
+    "dy_range_L": 0.135,
+    "dy_range_R": 0.144,
+    "subpupil_depth_mm": 2.875,
+    "dy_asymmetry": 0.003,
+    "dx_antisymmetry": 0.068,
+    "mean_dy_L": -0.063,
+    "mean_dy_R": -0.066
+  },
+  "unstable_modes": [
+    "Z_0^0(m0)",
+    "Z_1^1(cos)",
+    "Z_1^1(sin)",
+    "Z_2^2(cos)",
+    "Z_2^2(sin)"
+  ],
+  "recommendation": "Use constrained poses; regularize unstable direction modes if lower px needed."
+}

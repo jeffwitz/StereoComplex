@@ -1,0 +1,21 @@
+{
+  "selected_pair": {
+    "left_dir": "/home/jeff/Code/Pycaso/Exemple/Images_example/left_identification",
+    "right_dir": "/home/jeff/Code/Pycaso/Exemple/Images_example/right_identification2",
+    "left_file": "coin.tif",
+    "right_file": "coin_1.tif"
+  },
+  "base_dir": "/home/jeff/Code/Pycaso/Exemple/Images_example",
+  "all_dirs": [
+    "left_calibration",
+    "left_calibration11",
+    "left_calibration2",
+    "left_identification",
+    "left_identification2",
+    "right_calibration",
+    "right_calibration11",
+    "right_calibration2",
+    "right_identification",
+    "right_identification2"
+  ]
+}

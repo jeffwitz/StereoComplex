@@ -1,0 +1,14 @@
+{
+  "title": "3-D sub-pupil reconstruction from the Zernike rayfield (Figure 4 of the CMO paper)",
+  "intermediate_state": "../../pycaso_real_data/intermediate_state.npz",
+  "cache_file": "zernike_rayfield_canonical.npz",
+  "max_order_d": 2,
+  "max_nfev": 300,
+  "n_frames": 10,
+  "n_corners": 165,
+  "fx_reference_px": 25600,
+  "principal_point_px": [1024, 1024],
+  "chief_ray_length_mm": 65.0,
+  "view_init": {"elev": 20, "azim": -60},
+  "figure_size": [10, 8]
+}

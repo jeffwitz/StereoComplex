@@ -73,7 +73,27 @@ class SoloffPolynomialModel:
         *,
         degree: int = 3,
         ridge: float = 0.0,
-    ) -> "SoloffPolynomialModel":
+    ) -> SoloffPolynomialModel:
+        """Fit a Soloff polynomial to stereo calibration data.
+
+        Parameters
+        ----------
+        uv_left_px : ndarray, shape (N, 2)
+            Left-channel pixel coordinates.
+        uv_right_px : ndarray, shape (N, 2)
+            Right-channel pixel coordinates.
+        XYZ_mm : ndarray, shape (N, 3)
+            3-D calibration points in millimetres.
+        degree : int
+            Polynomial degree (2 or 3).
+        ridge : float
+            Ridge (Tikhonov) regularisation strength.
+
+        Returns
+        -------
+        SoloffPolynomialModel
+            Fitted polynomial model with per-channel coefficients.
+        """
         uv_left_px = np.asarray(uv_left_px, dtype=np.float64).reshape(-1, 2)
         uv_right_px = np.asarray(uv_right_px, dtype=np.float64).reshape(-1, 2)
         XYZ_mm = np.asarray(XYZ_mm, dtype=np.float64).reshape(-1, 3)
@@ -122,6 +142,7 @@ class SoloffPolynomialModel:
         )
 
     def predict(self, uv_left_px: np.ndarray, uv_right_px: np.ndarray) -> np.ndarray:
+        """Evaluate the fitted polynomial at query points."""
         uv_left_px = np.asarray(uv_left_px, dtype=np.float64).reshape(-1, 2)
         uv_right_px = np.asarray(uv_right_px, dtype=np.float64).reshape(-1, 2)
         if uv_left_px.shape[0] != uv_right_px.shape[0]:

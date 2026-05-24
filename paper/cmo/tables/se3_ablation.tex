@@ -1,0 +1,17 @@
+\begin{table}[H]
+\centering
+\caption{SE(3) arm alignment ablation study. Per-arm DOFs are individually necessary.}
+\label{tab:ablation}
+\begin{tabular}{lrrrrr}
+\toprule
+Variant & $p$ & Ray RMS (mm) & Px RMS (px) & P50 (px) & P95 (px) \\
+\midrule
+Telecentric (baseline) & 14 & 0.0480 & 14.55 & 13.22 & 22.40 \\
+rot_only & 20 & 0.0141 & 3.74 & 2.68 & 7.13 \\
+trans_only & 20 & 0.0099 & 2.44 & 2.06 & 4.15 \\
+full_se3 & 26 & 0.0021 & 1.06 & 0.87 & 1.84 \\
+diff_se3 & 26 & 0.0021 & 1.07 & 0.88 & 1.86 \\
+sym_se3 & 26 & 0.0021 & 1.09 & 0.90 & 1.90 \\
+\bottomrule
+\end{tabular}
+\end{table}

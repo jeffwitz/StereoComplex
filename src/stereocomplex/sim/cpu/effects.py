@@ -6,13 +6,28 @@ import numpy as np
 
 
 def fwhm_to_sigma(fwhm: float) -> float:
+    """Convert FWHM (full width at half maximum) to Gaussian sigma."""
     return float(fwhm) / 2.3548200450309493
 
 
 def gaussian_blur_u8(img_u8: np.ndarray, sigma_x: float, sigma_y: float) -> np.ndarray:
-    """
-    Applies Gaussian blur to a uint8 grayscale image.
+    """Apply Gaussian blur to a uint8 grayscale image.
+
     Uses OpenCV if available, otherwise falls back to a separable numpy implementation.
+
+    Parameters
+    ----------
+    img_u8 : ndarray, uint8
+        Input grayscale image.
+    sigma_x : float
+        Gaussian sigma in x direction (pixels).
+    sigma_y : float
+        Gaussian sigma in y direction (pixels).
+
+    Returns
+    -------
+    ndarray, uint8
+        Blurred image.
     """
     if sigma_x <= 0 and sigma_y <= 0:
         return img_u8
@@ -23,22 +38,40 @@ def gaussian_blur_u8(img_u8: np.ndarray, sigma_x: float, sigma_y: float) -> np.n
     try:
         import cv2  # type: ignore
 
-        out = cv2.GaussianBlur(img_u8, ksize=(0, 0), sigmaX=sigma_x, sigmaY=sigma_y, borderType=cv2.BORDER_REFLECT)
+        out = cv2.GaussianBlur(
+            img_u8, ksize=(0, 0), sigmaX=sigma_x, sigmaY=sigma_y,
+            borderType=cv2.BORDER_REFLECT,
+        )
         return out
     except Exception:
         return _gaussian_blur_numpy(img_u8, sigma_x, sigma_y)
 
 
 def radial_weight(h: int, w: int, start: float = 0.6, power: float = 2.0) -> np.ndarray:
-    """
-    Returns a (H,W) float32 weight map in [0,1] that increases from center to edges.
-    start: radius fraction where edge blur begins (0..1).
-    power: controls how quickly it ramps.
+    """Return a (H,W) float32 weight map in [0,1] that increases from centre to edges.
+
+    Parameters
+    ----------
+    h : int
+        Image height in pixels.
+    w : int
+        Image width in pixels.
+    start : float
+        Fraction of normalised radius where edge weight begins (0..1).
+    power : float
+        Exponent controlling how quickly the weight ramps.
+
+    Returns
+    -------
+    ndarray, shape (h, w)
+        Weight map in [0, 1].
     """
     start = float(np.clip(start, 0.0, 1.0))
     power = float(max(1e-6, power))
 
-    yy, xx = np.meshgrid(np.arange(h, dtype=np.float32), np.arange(w, dtype=np.float32), indexing="ij")
+    yy, xx = np.meshgrid(
+        np.arange(h, dtype=np.float32), np.arange(w, dtype=np.float32), indexing="ij"
+    )
     cx = (w - 1) * 0.5
     cy = (h - 1) * 0.5
     rx = (w - 1) * 0.5
@@ -57,8 +90,27 @@ def gaussian_blur_edge_varying_u8(
     edge_start: float = 0.6,
     edge_power: float = 2.0,
 ) -> np.ndarray:
-    """
-    Approximate spatially varying blur (stronger at edges) by blending two blurred images.
+    """Approximate spatially varying blur (stronger at edges) by blending two blurred images.
+
+    Parameters
+    ----------
+    img_u8 : ndarray, uint8
+        Input grayscale image.
+    sigma_x_center : float
+        Gaussian sigma at the image centre, x direction (pixels).
+    sigma_y_center : float
+        Gaussian sigma at the image centre, y direction (pixels).
+    edge_factor : float
+        Multiplier for blur strength at edges (> 1 = more blur at edges).
+    edge_start : float
+        Fraction of normalised radius where edge effect begins (0..1).
+    edge_power : float
+        Exponent of the radial weight profile.
+
+    Returns
+    -------
+    ndarray, uint8
+        Blurred image with spatially varying blur strength.
     """
     if edge_factor <= 1.0 or (sigma_x_center <= 0 and sigma_y_center <= 0):
         return gaussian_blur_u8(img_u8, sigma_x=sigma_x_center, sigma_y=sigma_y_center)
@@ -79,7 +131,7 @@ def gaussian_blur_edge_varying_u8(
 def _gaussian_kernel1d(sigma: float) -> np.ndarray:
     if sigma <= 0:
         return np.array([1.0], dtype=np.float64)
-    radius = int(math.ceil(3.0 * sigma))
+    radius = math.ceil(3.0 * sigma)
     x = np.arange(-radius, radius + 1, dtype=np.float64)
     k = np.exp(-(x * x) / (2.0 * sigma * sigma))
     k /= np.sum(k)

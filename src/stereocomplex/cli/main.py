@@ -12,10 +12,24 @@ from stereocomplex.cli.refine_corners import run_refine_corners
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entry point for the stereocomplex command-line tool.
+
+    Parameters
+    ----------
+    argv : list of str
+        Command-line arguments (subcommand + options).
+
+    Returns
+    -------
+    int
+        Process exit code.
+    """
     parser = argparse.ArgumentParser(prog="stereocomplex")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    gen = sub.add_parser("generate-cpu-dataset", help="Generate a synthetic stereo dataset (CPU fallback).")
+    gen = sub.add_parser(
+        "generate-cpu-dataset", help="Generate a synthetic stereo dataset (CPU fallback)."
+    )
     gen.add_argument("--out", type=Path, required=True)
     gen.add_argument("--scenes", type=int, default=1)
     gen.add_argument("--frames-per-scene", type=int, default=16)
@@ -29,7 +43,13 @@ def main(argv: list[str] | None = None) -> int:
         choices=["nearest", "linear", "cubic", "lanczos4"],
         help="Texture sampling interpolation (OpenCV if available).",
     )
-    gen.add_argument("--distort", type=str, default="none", choices=["none", "brown"], help="Geometric distortion model.")
+    gen.add_argument(
+        "--distort",
+        type=str,
+        default="none",
+        choices=["none", "brown"],
+        help="Geometric distortion model.",
+    )
     gen.add_argument(
         "--distort-strength",
         type=float,
@@ -50,27 +70,57 @@ def main(argv: list[str] | None = None) -> int:
         choices=["none", "hard"],
         help="If hard, forces pixels outside the board to 0 (black).",
     )
-    gen.add_argument("--blur-fwhm-um", type=float, default=0.0, help="Gaussian blur FWHM in µm (0 disables).")
-    gen.add_argument("--blur-fwhm-px", type=float, default=0.0, help="Gaussian blur FWHM in output pixels (0 disables).")
-    gen.add_argument("--blur-edge-factor", type=float, default=1.0, help="Edge blur multiplier (>=1).")
-    gen.add_argument("--blur-edge-start", type=float, default=0.6, help="Radius fraction where edge blur starts (0..1).")
-    gen.add_argument("--blur-edge-power", type=float, default=2.0, help="Edge blur ramp exponent.")
-    gen.add_argument("--noise-std", type=float, default=0.02, help="Additive Gaussian noise (image in [0,1]).")
+    gen.add_argument(
+        "--blur-fwhm-um", type=float, default=0.0, help="Gaussian blur FWHM in µm (0 disables)."
+    )
+    gen.add_argument(
+        "--blur-fwhm-px",
+        type=float,
+        default=0.0,
+        help="Gaussian blur FWHM in output pixels (0 disables)."
+    )
+    gen.add_argument(
+        "--blur-edge-factor", type=float, default=1.0, help="Edge blur multiplier (>=1)."
+    )
+    gen.add_argument(
+        "--blur-edge-start",
+        type=float,
+        default=0.6,
+        help="Radius fraction where edge blur starts (0..1)."
+    )
+    gen.add_argument(
+        "--blur-edge-power", type=float, default=2.0, help="Edge blur ramp exponent."
+    )
+    gen.add_argument(
+        "--noise-std", type=float, default=0.02, help="Additive Gaussian noise (image in [0,1])."
+    )
     gen.add_argument("--seed", type=int, default=0)
     gen.add_argument("--pitch-um", type=float, default=None, help="Override pixel pitch (µm).")
     gen.add_argument("--f-um", type=float, default=None, help="Override focal length (µm).")
-    gen.add_argument("--tz-mm", type=float, default=None, help="Override nominal working distance (mm).")
+    gen.add_argument(
+        "--tz-mm", type=float, default=None, help="Override nominal working distance (mm)."
+    )
     gen.add_argument(
         "--tz-schedule-mm",
         type=str,
         default=None,
         help="Optional comma-separated Z schedule in mm (length must match --frames-per-scene).",
     )
-    gen.add_argument("--baseline-mm", type=float, default=None, help="Override stereo baseline (mm).")
-    gen.add_argument("--squares-x", type=int, default=None, help="Override ChArUco squares_x.")
-    gen.add_argument("--squares-y", type=int, default=None, help="Override ChArUco squares_y.")
-    gen.add_argument("--square-size-mm", type=float, default=None, help="Override ChArUco square size (mm).")
-    gen.add_argument("--marker-size-mm", type=float, default=None, help="Override ChArUco marker size (mm).")
+    gen.add_argument(
+        "--baseline-mm", type=float, default=None, help="Override stereo baseline (mm)."
+    )
+    gen.add_argument(
+        "--squares-x", type=int, default=None, help="Override ChArUco squares_x."
+    )
+    gen.add_argument(
+        "--squares-y", type=int, default=None, help="Override ChArUco squares_y."
+    )
+    gen.add_argument(
+        "--square-size-mm", type=float, default=None, help="Override ChArUco square size (mm)."
+    )
+    gen.add_argument(
+        "--marker-size-mm", type=float, default=None, help="Override ChArUco marker size (mm)."
+    )
     gen.add_argument(
         "--pixels-per-square",
         type=int,
@@ -83,10 +133,14 @@ def main(argv: list[str] | None = None) -> int:
         help="Fix the board X/Y/rotation and only sweep it along Z (Pycaso-style dataset).",
     )
 
-    val = sub.add_parser("validate-dataset", help="Validate dataset structure + basic consistency checks.")
+    val = sub.add_parser(
+        "validate-dataset", help="Validate dataset structure + basic consistency checks."
+    )
     val.add_argument("dataset_root", type=Path)
 
-    oracle = sub.add_parser("eval-oracle", help="Oracle eval on synthetic scenes (pinhole CPU generator).")
+    oracle = sub.add_parser(
+        "eval-oracle", help="Oracle eval on synthetic scenes (pinhole CPU generator)."
+    )
     oracle.add_argument("dataset_root", type=Path)
 
     ch = sub.add_parser(
@@ -94,7 +148,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Detect ChArUco corners (OpenCV) and compare to GT (pixel error).",
     )
     ch.add_argument("dataset_root", type=Path)
-    ch.add_argument("--no-json", action="store_true", help="Do not write charuco_detection_report.json")
+    ch.add_argument(
+        "--no-json", action="store_true", help="Do not write charuco_detection_report.json"
+    )
     ch.add_argument(
         "--method",
         type=str,
@@ -115,23 +171,38 @@ def main(argv: list[str] | None = None) -> int:
             "rayfield_tps_robust",
         ],
     )
-    ch.add_argument("--refine", type=str, default="none", choices=["none", "tensor", "lines", "lsq", "noble"])
+    ch.add_argument(
+        "--refine", type=str, default="none", choices=["none", "tensor", "lines", "lsq", "noble"]
+    )
     ch.add_argument("--tensor-sigma", type=float, default=1.5)
     ch.add_argument("--search-radius", type=int, default=3)
 
     sweep = sub.add_parser(
         "sweep-compression",
-        help="Re-encode an existing dataset at different quality settings and evaluate ChArUco detection error.",
+        help=(
+            "Re-encode an existing dataset at different quality settings"
+            " and evaluate ChArUco detection error."
+        ),
     )
-    sweep.add_argument("--base", type=Path, required=True, help="Base dataset (prefer lossless PNG).")
-    sweep.add_argument("--out", type=Path, required=True, help="Output directory for re-encoded datasets and report.")
+    sweep.add_argument(
+        "--base", type=Path, required=True, help="Base dataset (prefer lossless PNG)."
+    )
+    sweep.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Output directory for re-encoded datasets and report.",
+    )
+
     sweep.add_argument(
         "--splits",
         type=str,
         default="train",
         help="Comma-separated splits to evaluate (default: train).",
     )
-    sweep.add_argument("--refine", type=str, default="none", choices=["none", "tensor", "lines", "lsq", "noble"])
+    sweep.add_argument(
+        "--refine", type=str, default="none", choices=["none", "tensor", "lines", "lsq", "noble"]
+    )
     sweep.add_argument("--tensor-sigma", type=float, default=1.5)
     sweep.add_argument("--search-radius", type=int, default=3)
     sweep.add_argument(
@@ -157,25 +228,36 @@ def main(argv: list[str] | None = None) -> int:
 
     refine = sub.add_parser(
         "refine-corners",
-        help="Refine ChArUco corners on a dataset scene (exports JSON and optional NPZ for OpenCV calibration).",
+        help=(
+            "Refine ChArUco corners on a dataset scene"
+            " (exports JSON and optional NPZ for OpenCV calibration)."
+        ),
     )
     refine.add_argument("dataset_root", type=Path)
     refine.add_argument("--split", default="train")
     refine.add_argument("--scene", default="scene_0000")
     refine.add_argument("--max-frames", type=int, default=0, help="Limit frames (0=all).")
-    refine.add_argument("--method", type=str, default="rayfield_tps_robust", choices=["raw", "rayfield_tps_robust"])
+    refine.add_argument(
+        "--method", type=str, default="rayfield_tps_robust", choices=["raw", "rayfield_tps_robust"]
+    )
     refine.add_argument("--tps-lam", type=float, default=10.0)
     refine.add_argument("--tps-huber", type=float, default=3.0)
     refine.add_argument("--tps-iters", type=int, default=3)
-    refine.add_argument("--out-json", type=Path, default=Path("paper/tables/refined_corners.json"))
-    refine.add_argument("--out-npz", type=Path, default=Path("paper/tables/refined_corners_opencv.npz"))
+    refine.add_argument(
+        "--out-json", type=Path, default=Path("paper/tables/refined_corners.json")
+    )
+    refine.add_argument(
+        "--out-npz", type=Path, default=Path("paper/tables/refined_corners_opencv.npz")
+    )
 
     args = parser.parse_args(argv)
 
     if args.cmd == "generate-cpu-dataset":
         tz_schedule = None
         if args.tz_schedule_mm:
-            tz_schedule = [float(x.strip()) for x in str(args.tz_schedule_mm).split(",") if x.strip()]
+            tz_schedule = [
+                float(x.strip()) for x in str(args.tz_schedule_mm).split(",") if x.strip()
+            ]
         generate_cpu_dataset(
             out_root=args.out,
             scenes=args.scenes,

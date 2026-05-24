@@ -1,0 +1,5 @@
+{
+  "title": "d_y profile comparison across the sensor (Figure 5 of the CMO paper)",
+  "profile_json": "../../pycaso_real_data/dy_profile_data.json",
+  "figure_size": [8, 5]
+}

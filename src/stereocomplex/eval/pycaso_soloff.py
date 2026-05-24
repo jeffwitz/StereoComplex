@@ -39,7 +39,9 @@ def _poly_design_matrix_3vars(X: np.ndarray, powers: np.ndarray) -> np.ndarray:
     return A
 
 
-def _poly_features_and_jacobian_3vars(xyz: np.ndarray, powers: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _poly_features_and_jacobian_3vars(
+    xyz: np.ndarray, powers: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     """
     For a single xyz point, return (phi, Jphi) where:
       - phi: (M,)
@@ -65,13 +67,19 @@ def _poly_features_and_jacobian_3vars(xyz: np.ndarray, powers: np.ndarray) -> tu
 
     mask = ax > 0
     if np.any(mask):
-        dphi_dx[mask] = ax[mask] * np.power(x, ax[mask] - 1, dtype=np.float64) * y_b[mask] * z_c[mask]
+        dphi_dx[mask] = (
+            ax[mask] * np.power(x, ax[mask] - 1, dtype=np.float64) * y_b[mask] * z_c[mask]
+        )
     mask = by > 0
     if np.any(mask):
-        dphi_dy[mask] = by[mask] * x_a[mask] * np.power(y, by[mask] - 1, dtype=np.float64) * z_c[mask]
+        dphi_dy[mask] = (
+            by[mask] * x_a[mask] * np.power(y, by[mask] - 1, dtype=np.float64) * z_c[mask]
+        )
     mask = cz > 0
     if np.any(mask):
-        dphi_dz[mask] = cz[mask] * x_a[mask] * y_b[mask] * np.power(z, cz[mask] - 1, dtype=np.float64)
+        dphi_dz[mask] = (
+            cz[mask] * x_a[mask] * y_b[mask] * np.power(z, cz[mask] - 1, dtype=np.float64)
+        )
 
     Jphi = np.stack([dphi_dx, dphi_dy, dphi_dz], axis=1)
     return phi, Jphi
@@ -89,7 +97,8 @@ class PycasoSoloffStereoModel:
 
     where each S(.) is a polynomial in (X,Y,Z) with crossed terms up to a chosen degree.
 
-    Identification (reconstruction) solves for (X,Y,Z) given (C_L,R_L,C_R,R_R) by non-linear least squares.
+    Identification (reconstruction) solves for (X,Y,Z) given
+    (C_L,R_L,C_R,R_R) by non-linear least squares.
     """
 
     degree: int
@@ -115,7 +124,27 @@ class PycasoSoloffStereoModel:
         uv_right_px: np.ndarray,
         degree: int = 3,
         ridge: float = 0.0,
-    ) -> "PycasoSoloffStereoModel":
+    ) -> PycasoSoloffStereoModel:
+        """Fit a Soloff polynomial to Pycaso stereo calibration data.
+
+        Parameters
+        ----------
+        XYZ_mm : ndarray, shape (N, 3)
+            3-D calibration points in millimetres.
+        uv_left_px : ndarray, shape (N, 2)
+            Observed left-channel pixel coordinates.
+        uv_right_px : ndarray, shape (N, 2)
+            Observed right-channel pixel coordinates.
+        degree : int
+            Polynomial degree (2 or 3).
+        ridge : float
+            Ridge (Tikhonov) regularisation strength.
+
+        Returns
+        -------
+        PycasoSoloffStereoModel
+            Fitted Soloff model with per-channel polynomial coefficients.
+        """
         XYZ_mm = np.asarray(XYZ_mm, dtype=np.float64).reshape(-1, 3)
         uv_left_px = np.asarray(uv_left_px, dtype=np.float64).reshape(-1, 2)
         uv_right_px = np.asarray(uv_right_px, dtype=np.float64).reshape(-1, 2)
@@ -228,9 +257,15 @@ class PycasoSoloffStereoModel:
         """
         uv_left_px = np.asarray(uv_left_px, dtype=np.float64).reshape(2)
         uv_right_px = np.asarray(uv_right_px, dtype=np.float64).reshape(2)
-        obs = np.array([uv_left_px[0], uv_left_px[1], uv_right_px[0], uv_right_px[1]], dtype=np.float64)
+        obs = np.array(
+            [uv_left_px[0], uv_left_px[1], uv_right_px[0], uv_right_px[1]],
+            dtype=np.float64,
+        )
 
-        c0 = np.array([self.coeffs1_Cl[0], self.coeffs1_Rl[0], self.coeffs1_Cr[0], self.coeffs1_Rr[0]], dtype=np.float64)
+        c0 = np.array(
+            [self.coeffs1_Cl[0], self.coeffs1_Rl[0], self.coeffs1_Cr[0], self.coeffs1_Rr[0]],
+            dtype=np.float64,
+        )
         B = np.array(
             [
                 self.coeffs1_Cl[1:4],
@@ -251,8 +286,21 @@ class PycasoSoloffStereoModel:
         *,
         max_nfev: int = 50,
     ) -> np.ndarray:
-        """
-        Solve for XYZ from measured stereo pixel coordinates.
+        """Solve for 3-D points from measured stereo pixel coordinates.
+
+        Parameters
+        ----------
+        uv_left_px : ndarray, shape (N, 2)
+            Left-channel pixel coordinates.
+        uv_right_px : ndarray, shape (N, 2)
+            Right-channel pixel coordinates.
+        max_nfev : int
+            Maximum number of function evaluations for the optimiser.
+
+        Returns
+        -------
+        ndarray, shape (N, 3)
+            Reconstructed 3-D points in millimetres.
         """
         from scipy.optimize import least_squares  # type: ignore
 
@@ -270,10 +318,12 @@ class PycasoSoloffStereoModel:
 
             x0 = self.initial_guess(uv_left_px[i], uv_right_px[i])
 
-            def fun(x):
+            def fun(x, obs=obs):
+                """Residual function for Soloff optimisation."""
                 return self._predict_all(x) - obs
 
             def jac(x):
+                """Analytical Jacobian of the Soloff polynomial residual."""
                 _pred, J = self._predict_all_with_jac(x)
                 return J
 

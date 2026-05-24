@@ -35,9 +35,9 @@ True error (against GT) requires `gt_charuco_corners.npz` (therefore typically s
 
 Notation:
 
-- \((x,y)\): coordinates on the board plane (mm),
-- \(\mathbf{u}(x,y)=(u(x,y),v(x,y))^\top\): image coordinates (px),
-- \(\tilde{\mathbf{x}}=(x,y,1)^\top\): homogeneous coordinates.
+- $(x,y)$: coordinates on the board plane (mm),
+- $\mathbf{u}(x,y)=(u(x,y),v(x,y))^\top$: image coordinates (px),
+- $\tilde{\mathbf{x}}=(x,y,1)^\top$: homogeneous coordinates.
 
 Define the projection operator (homogeneous → inhomogeneous):
 
@@ -46,7 +46,7 @@ Define the projection operator (homogeneous → inhomogeneous):
 \pi\!\left(\begin{bmatrix}a\\b\\c\end{bmatrix}\right)=\begin{bmatrix}a/c\\b/c\end{bmatrix}.
 ```
 
-The key idea is **not** to impose a pinhole model \((K,\mathbf d)\), but to exploit:
+The key idea is **not** to impose a pinhole model $(K,\mathbf d)$, but to exploit:
 
 - the “planar target” structure,
 - a low-frequency prior on the plane→image mapping.
@@ -58,18 +58,18 @@ We write the mapping as:
 \mathbf{u}(x,y) = \pi(H\tilde{\mathbf{x}}) + \mathbf{r}(x,y)
 ```
 
-- \(H\): global homography (projective backbone),
-- \(\mathbf{r}(x,y)\): a smoothed 2D residual field learned from ArUco markers.
+- $H$: global homography (projective backbone),
+- $\mathbf{r}(x,y)$: a smoothed 2D residual field learned from ArUco markers.
 
 Terminology (“non-parametric”):
 
 - Here, “non-parametric” does **not** mean “parameter-free”: we do estimate parameters.
-- It means “no low-dimensional optical model” (no pinhole + distortion \((K,\mathbf d)\)); instead we estimate a **smooth regression** of a 2D warp over the plane, with complexity controlled by grid resolution and regularization.
-- More strictly, this is **semi-parametric**: a parametric projective base (\(H\)) + a smooth correction (\(\mathbf r\)).
+- It means “no low-dimensional optical model” (no pinhole + distortion $(K,\mathbf d)$); instead we estimate a **smooth regression** of a 2D warp over the plane, with complexity controlled by grid resolution and regularization.
+- More strictly, this is **semi-parametric**: a parametric projective base ($H$) + a smooth correction ($\mathbf r$).
 
 ### Why a homography is a good base (planar board)
 
-Without distortion, a pinhole camera observes a **planar** target through a homography. If the board lies in the plane \(Z=0\) of the board frame, and the camera has pose \((R,t)\) and intrinsic matrix \(K\), then:
+Without distortion, a pinhole camera observes a **planar** target through a homography. If the board lies in the plane $Z=0$ of the board frame, and the camera has pose $(R,t)$ and intrinsic matrix $K$, then:
 
 ```{math}
 :label: eq-homography-plane
@@ -79,41 +79,41 @@ s\,\tilde{\mathbf{u}} \;=\; K \,[\,\mathbf r_1\;\mathbf r_2\;\mathbf t\,]\;\tild
 \;\; H = K [\,\mathbf r_1\;\mathbf r_2\;\mathbf t\,].
 ```
 
-where \(\tilde{\mathbf{u}}=(u,v,1)^\top\) and \(\mathbf r_1,\mathbf r_2\) are the first two columns of \(R\). This justifies \(\pi(H\tilde{\mathbf x})\) as a good global approximation (perspective + pose) of the board→image mapping.
+where $\tilde{\mathbf{u}}=(u,v,1)^\top$ and $\mathbf r_1,\mathbf r_2$ are the first two columns of $R$. This justifies $\pi(H\tilde{\mathbf x})$ as a good global approximation (perspective + pose) of the board→image mapping.
 
 ### Distortion/aberrations: what a homography cannot explain
 
-In this repository, synthetic images typically include Brown distortion (radial + tangential). More generally, distortion can be seen as a smooth mapping \(d(\cdot)\) acting on ideal image coordinates:
+In this repository, synthetic images typically include Brown distortion (radial + tangential). More generally, distortion can be seen as a smooth mapping $d(\cdot)$ acting on ideal image coordinates:
 
 ```{math}
 :label: eq-dist-compose
 \mathbf u(x,y) \;=\; d\!\left(\pi(H\tilde{\mathbf x})\right).
 ```
 
-If we write \(d(\mathbf u)=\mathbf u + \Delta(\mathbf u)\) (with \(\Delta\) the distortion offset), then:
+If we write $d(\mathbf u)=\mathbf u + \Delta(\mathbf u)$ (with $\Delta$ the distortion offset), then:
 
 ```{math}
 :label: eq-residual-definition
 \mathbf u(x,y) \;=\; \pi(H\tilde{\mathbf x}) + \underbrace{\Delta\!\left(\pi(H\tilde{\mathbf x})\right)}_{\mathbf r(x,y)}.
 ```
 
-In real optics (and in simulators), \(\Delta\) is typically low-frequency (radial polynomials, decentering, etc.), hence \(\mathbf r(x,y)\) is smooth on the board plane. The homography captures the dominant projective geometry, and \(\mathbf r\) captures a non-parametric correction of aberrations (at least their smooth component on the plane).
+In real optics (and in simulators), $\Delta$ is typically low-frequency (radial polynomials, decentering, etc.), hence $\mathbf r(x,y)$ is smooth on the board plane. The homography captures the dominant projective geometry, and $\mathbf r$ captures a non-parametric correction of aberrations (at least their smooth component on the plane).
 
 ### Estimation objective (data term + regularization)
 
-Given ArUco correspondences \(\{(x_i,y_i)\leftrightarrow \mathbf{u}_i\}_{i=1}^N\), we:
+Given ArUco correspondences $\{(x_i,y_i)\leftrightarrow \mathbf{u}_i\}_{i=1}^N$, we:
 
-1. estimate a robust homography \(H\) (RANSAC),
-2. compute observed residuals \(\hat{\mathbf r}_i\),
-3. reconstruct a smooth field \(\mathbf r_\theta(x,y)\) that approximates these residuals.
+1. estimate a robust homography $H$ (RANSAC),
+2. compute observed residuals $\hat{\mathbf r}_i$,
+3. reconstruct a smooth field $\mathbf r_\theta(x,y)$ that approximates these residuals.
 
-We parameterize \(\mathbf r(x,y)\) by values on a regular grid in board coordinates.
+We parameterize $\mathbf r(x,y)$ by values on a regular grid in board coordinates.
 
-Definition of \(\theta\) (field parameters):
+Definition of $\theta$ (field parameters):
 
-- Choose a grid of \(M\) nodes at positions \(\{(x_m,y_m)\}_{m=1}^M\).
-- Associate to each node an unknown 2D residual \(\mathbf g_m=(g^x_m,g^y_m)^\top\) (pixels, horizontal/vertical components).
-- Stack them into a parameter vector \(\theta\) (minimizing with respect to \(\theta\) is exactly minimizing with respect to all \(\mathbf g_m\)):
+- Choose a grid of $M$ nodes at positions $\{(x_m,y_m)\}_{m=1}^M$.
+- Associate to each node an unknown 2D residual $\mathbf g_m=(g^x_m,g^y_m)^\top$ (pixels, horizontal/vertical components).
+- Stack them into a parameter vector $\theta$ (minimizing with respect to $\theta$ is exactly minimizing with respect to all $\mathbf g_m$):
 
 ```{math}
 :label: eq-theta
@@ -123,7 +123,7 @@ g^x_1&\cdots&g^x_M&g^y_1&\cdots&g^y_M
 \in\mathbb{R}^{2M}.
 ```
 
-Field evaluation (bilinear interpolation): for a point \((x,y)\), take the 4 nodes of the cell containing \((x,y)\) and bilinear weights \(\{w_m(x,y)\}\) (sum to 1), yielding:
+Field evaluation (bilinear interpolation): for a point $(x,y)$, take the 4 nodes of the cell containing $(x,y)$ and bilinear weights $\{w_m(x,y)\}$ (sum to 1), yielding:
 
 ```{math}
 :label: eq-rtheta
@@ -142,9 +142,9 @@ We then solve:
 \min_{\theta}\sum_{i=1}^N \rho\!\left(\left\|\mathbf r_\theta(x_i,y_i)-\hat{\mathbf r}_i\right\|_2^2\right) + \lambda \|L\theta\|_2^2
 ```
 
-- \(L\): discrete Laplacian on the grid (penalizes curvature, enforces smoothness),
-- \(\lambda\): regularization weight,
-- \(\rho(\cdot)\): robust loss (Huber) to limit the influence of outliers.
+- $L$: discrete Laplacian on the grid (penalizes curvature, enforces smoothness),
+- $\lambda$: regularization weight,
+- $\rho(\cdot)$: robust loss (Huber) to limit the influence of outliers.
 
 The (norm-based) Huber loss can be written as:
 
@@ -157,7 +157,7 @@ t, & \sqrt{t}\le \delta,\\
 \end{cases}
 ```
 
-and is efficiently solved by IRLS (iteratively reweighted least squares). Weights are \(w_i=1\) if \(\lVert\cdot\rVert\le\delta\) and \(w_i=\delta/\lVert\cdot\rVert\) otherwise.
+and is efficiently solved by IRLS (iteratively reweighted least squares). Weights are $w_i=1$ if $\lVert\cdot\rVert\le\delta$ and $w_i=\delta/\lVert\cdot\rVert$ otherwise.
 
 ### Available measurements (ArUco)
 
@@ -168,7 +168,7 @@ Each detected ArUco corner provides a noisy correspondence:
 \mathbf{u}_i \approx \mathbf{u}(x_i,y_i)
 ```
 
-We first estimate \(H\) via RANSAC, then compute observed residuals:
+We first estimate $H$ via RANSAC, then compute observed residuals:
 
 ```{math}
 :label: eq-residuals
@@ -184,31 +184,31 @@ Model a measurement as:
 \mathbf{u}_i = \mathbf{u}(x_i,y_i) + \boldsymbol\varepsilon_i
 ```
 
-where \(\boldsymbol\varepsilon_i\) includes detection noise, bias (blur/compression), and outliers.
+where $\boldsymbol\varepsilon_i$ includes detection noise, bias (blur/compression), and outliers.
 
-The key point is that \(\mathbf r(x,y)\) is estimated using **all** available ArUco measurements under a **smoothness** prior:
+The key point is that $\mathbf r(x,y)$ is estimated using **all** available ArUco measurements under a **smoothness** prior:
 
-- if aberrations (more generally, deviations from the projective model) are dominated by a smooth component on the plane, then \(\mathbf r\) captures a systematic correction (bias) that a homography alone cannot explain;
+- if aberrations (more generally, deviations from the projective model) are dominated by a smooth component on the plane, then $\mathbf r$ captures a systematic correction (bias) that a homography alone cannot explain;
 - if detection noise is locally uncorrelated, smoothing acts as **denoising** (variance reduction) by enforcing spatial coherence.
 
 This is a bias/variance trade-off:
 
-- too much smoothing \(\Rightarrow\) bias (real variations are flattened),
-- too little smoothing \(\Rightarrow\) variance (the model follows noise/outliers).
+- too much smoothing $\Rightarrow$ bias (real variations are flattened),
+- too little smoothing $\Rightarrow$ variance (the model follows noise/outliers).
 
-In practice, Brown distortion and many “non-ideal optics” effects are smooth enough that \(\mathbf r\) reduces error over the whole board, including on ChArUco corners not directly used to fit \(\mathbf r\).
+In practice, Brown distortion and many “non-ideal optics” effects are smooth enough that $\mathbf r$ reduces error over the whole board, including on ChArUco corners not directly used to fit $\mathbf r$.
 
 ### Why not “just Gaussian blur the residuals”?
 
 Applying a Gaussian filter to suppress high frequencies makes sense **if** one already has a **dense** residual field defined on a regular grid.
 
-Here, residuals \(\hat{\mathbf r}_i\) are observed only at a **limited** number of points (Aruco corners), with:
+Here, residuals $\hat{\mathbf r}_i$ are observed only at a **limited** number of points (Aruco corners), with:
 
 - **irregular** sampling (marker geometry),
 - large **unobserved** regions (between markers / borders / masks),
 - **outliers** (failed detections, compression, blur, etc.).
 
-Therefore, before “blurring”, one must solve an **interpolation/inpainting** problem from sparse samples. The \(\mathbf r_\theta\) (grid + interpolation) model with \(\|L\theta\|^2\) regularization provides:
+Therefore, before “blurring”, one must solve an **interpolation/inpainting** problem from sparse samples. The $\mathbf r_\theta$ (grid + interpolation) model with $\|L\theta\|^2$ regularization provides:
 
 - an explicit grid representation,
 - controlled smoothness (Laplacian / Tikhonov regularization),
@@ -220,7 +220,7 @@ In other words, Gaussian blur is an option **after** reconstructing a dense fiel
 
 A classical alternative to the bilinear grid is a **regularized TPS** (thin-plate spline), well-suited to sparse measurements.
 
-After fitting the base homography, we observe residuals \(\hat{\mathbf r}_i\) at ArUco points \((x_i,y_i)\) and fit two scalar TPS (for \(r^x\) and \(r^y\)):
+After fitting the base homography, we observe residuals $\hat{\mathbf r}_i$ at ArUco points $(x_i,y_i)$ and fit two scalar TPS (for $r^x$ and $r^y$):
 
 ```{math}
 :label: eq-tps-form
@@ -229,7 +229,7 @@ r(x,y)=a_0+a_1 x+a_2 y+\sum_{i=1}^{N} w_i\,U(\lVert (x,y)-(x_i,y_i)\rVert),
 U(r)=r^2\log(r^2)\;\; (U(0)=0).
 ```
 
-In practice, coefficients \(\{w_i\}\) and \(\{a_k\}\) are found by solving a linear system:
+In practice, coefficients $\{w_i\}$ and $\{a_k\}$ are found by solving a linear system:
 
 ```{math}
 :label: eq-tps-system
@@ -246,7 +246,7 @@ w\\ a
 \end{bmatrix},
 ```
 
-where \(K_{ij}=U(\lVert \mathbf x_i-\mathbf x_j\rVert)\), \(P=[\mathbf 1,\;x,\;y]\), and \(\lambda\) controls smoothness (larger \(\lambda\) makes the field more “rigid”).
+where $K_{ij}=U(\lVert \mathbf x_i-\mathbf x_j\rVert)$, $P=[\mathbf 1,\;x,\;y]$, and $\lambda$ controls smoothness (larger $\lambda$ makes the field more “rigid”).
 
 In this repository, the variant is available via `rayfield_tps` (homography + TPS on residuals). On `dataset/v0_png/train/scene_0000`, with the current default (`tps_lam≈10`), it is slightly better than the grid backend:
 
@@ -268,7 +268,7 @@ It does not “fix”:
 
 ### Important notes (what this “ray-field” is not)
 
-- This is a **2D warp restricted to the board plane**: it does not reconstruct a per-pixel 3D ray field \((\mathbf{o}(u,v),\mathbf{d}(u,v))\).
+- This is a **2D warp restricted to the board plane**: it does not reconstruct a per-pixel 3D ray field $(\mathbf{o}(u,v),\mathbf{d}(u,v))$.
 - It is designed as a **2D stabilization second pass** when a pinhole model (PnP) is inadequate (e.g., non-central/CMO systems).
 
 ## Pipeline: what the example actually does
@@ -278,9 +278,9 @@ For each `left` and `right` image:
 1. Build a `CharucoBoard` from `meta.json` (square size, marker size, ArUco dictionary).
 2. Detect ArUco markers (IDs + 4 detected 2D corners per marker).
 3. Extract raw ChArUco corners via OpenCV (interpolation from detected markers).
-4. Estimate a homography \(H\) between board-space ArUco corners and image-space corners.
-5. Compute residuals \(\hat{\mathbf r}_i\), then fit a **smoothed** residual field \(\mathbf r(x,y)\) (grid + IRLS/Huber or TPS).
-6. Predict all ChArUco corners via \(\pi(H\tilde{\mathbf{x}}) + \mathbf r(x,y)\).
+4. Estimate a homography $H$ between board-space ArUco corners and image-space corners.
+5. Compute residuals $\hat{\mathbf r}_i$, then fit a **smoothed** residual field $\mathbf r(x,y)$ (grid + IRLS/Huber or TPS).
+6. Predict all ChArUco corners via $\pi(H\tilde{\mathbf{x}}) + \mathbf r(x,y)$.
 7. Compare to GT corners (if available) and produce:
    - a summary (RMS, P50, P95),
    - ECDF + histogram plots,
@@ -373,11 +373,11 @@ See {numref}`fig-hist-left` and {numref}`fig-hist-right`.
 2D error histogram (right view).
 ```
 
-### Sensitivity to \(\lambda\) (TPS)
+### Sensitivity to $\lambda$ (TPS)
 
-Parameter `tps_lam` controls the smoothness/fit trade-off: small \(\lambda\) fits data more closely (risk of overfitting noise), large \(\lambda\) makes the field more rigid (risk of underfitting).
+Parameter `tps_lam` controls the smoothness/fit trade-off: small $\lambda$ fits data more closely (risk of overfitting noise), large $\lambda$ makes the field more rigid (risk of underfitting).
 
-RMS and P95 vs \(\lambda\) (on the example scene):
+RMS and P95 vs $\lambda$ (on the example scene):
 
 See {numref}`fig-tps-lam-left` and {numref}`fig-tps-lam-right`.
 
@@ -386,7 +386,7 @@ See {numref}`fig-tps-lam-left` and {numref}`fig-tps-lam-right`.
 :alt: TPS lambda sensitivity (left view)
 :width: 95%
 
-TPS \(\lambda\) sensitivity: RMS and P95 vs `tps_lam` (left view).
+TPS $\lambda$ sensitivity: RMS and P95 vs `tps_lam` (left view).
 ```
 
 ```{figure} assets/rayfield_worked_example/plots/tps_lambda_sweep_right.png
@@ -394,7 +394,7 @@ TPS \(\lambda\) sensitivity: RMS and P95 vs `tps_lam` (left view).
 :alt: TPS lambda sensitivity (right view)
 :width: 95%
 
-TPS \(\lambda\) sensitivity: RMS and P95 vs `tps_lam` (right view).
+TPS $\lambda$ sensitivity: RMS and P95 vs `tps_lam` (right view).
 ```
 
 Why different optima for left/right?
@@ -402,14 +402,14 @@ Why different optima for left/right?
 - The two cameras have different aberrations and noise (distortion + blur + ArUco detection), hence the overfit/underfit trade-off differs.
 - The number and geometry of successfully detected markers can vary slightly between views, thus constraining the residual field differently.
 
-Which \(\lambda\) should be used?
+Which $\lambda$ should be used?
 
-- In practice, one chooses a **single** \(\lambda\) for the system; a robust choice is a plateau close to the minima of both curves.
+- In practice, one chooses a **single** $\lambda$ for the system; a robust choice is a plateau close to the minima of both curves.
 - On this scene, `tps_lam=10` is close to the left minimum and very close to the right minimum; this is the default of the worked example.
 
 ### Visualizing aberrations (residual amplitude)
 
-We visualize the amplitude of the learned residual field on the plane, \(\lVert \mathbf r(x,y)\rVert\) (pixels), which highlights the low-frequency structure of the projected aberrations:
+We visualize the amplitude of the learned residual field on the plane, $\lVert \mathbf r(x,y)\rVert$ (pixels), which highlights the low-frequency structure of the projected aberrations:
 
 See {numref}`fig-residual-amp-left` and {numref}`fig-residual-amp-right`.
 
@@ -418,7 +418,7 @@ See {numref}`fig-residual-amp-left` and {numref}`fig-residual-amp-right`.
 :alt: Residual amplitude ||r(x,y)|| on the board (left view)
 :width: 95%
 
-Residual amplitude \(\lVert \mathbf r(x,y)\rVert\) (px) on the board plane (left view, frame 0).
+Residual amplitude $\lVert \mathbf r(x,y)\rVert$ (px) on the board plane (left view, frame 0).
 ```
 
 ```{figure} assets/rayfield_worked_example/plots/residual_amp_right_frame000000.png
@@ -426,7 +426,7 @@ Residual amplitude \(\lVert \mathbf r(x,y)\rVert\) (px) on the board plane (left
 :alt: Residual amplitude ||r(x,y)|| on the board (right view)
 :width: 95%
 
-Residual amplitude \(\lVert \mathbf r(x,y)\rVert\) (px) on the board plane (right view, frame 0).
+Residual amplitude $\lVert \mathbf r(x,y)\rVert$ (px) on the board plane (right view, frame 0).
 ```
 
 ### Overlays (visual sanity checks)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -43,7 +42,11 @@ def save_stereo_central_rayfield(model_dir: Path, model: StereoCentralRayFieldMo
     meta: dict[str, Any] = {
         "schema_version": "stereocomplex.model.stereo_central_rayfield.v0",
         "image": {"width_px": int(model.image_width_px), "height_px": int(model.image_height_px)},
-        "disk": {"u0_px": float(model.left.u0_px), "v0_px": float(model.left.v0_px), "radius_px": float(model.left.radius_px)},
+        "disk": {
+    "u0_px": float(model.left.u0_px),
+    "v0_px": float(model.left.v0_px),
+    "radius_px": float(model.left.radius_px)
+},
         "zernike": {"nmax": int(model.left.nmax)},
         "rig": {
             "R_RL": np.asarray(model.R_RL, dtype=np.float64).tolist(),
@@ -70,6 +73,18 @@ def save_stereo_central_rayfield(model_dir: Path, model: StereoCentralRayFieldMo
 
 
 def load_stereo_central_rayfield(model_dir: Path) -> StereoCentralRayFieldModel:
+    """Load a fitted StereoCentralRayFieldModel from a directory.
+
+    Parameters
+    ----------
+    model_dir : Path
+        Directory containing model.json and coefficient .npy files.
+
+    Returns
+    -------
+    StereoCentralRayFieldModel
+        The loaded central rayfield model.
+    """
     model_dir = Path(model_dir)
     meta = json.loads((model_dir / "model.json").read_text(encoding="utf-8"))
     if str(meta.get("schema_version")) != "stereocomplex.model.stereo_central_rayfield.v0":
@@ -78,7 +93,6 @@ def load_stereo_central_rayfield(model_dir: Path) -> StereoCentralRayFieldModel:
     image = meta["image"]
     disk = meta["disk"]
     zern = meta["zernike"]
-    rig = meta["rig"]
     weights = meta["weights"]
 
     weights_path = model_dir / str(weights["path"])
@@ -105,4 +119,3 @@ def load_stereo_central_rayfield(model_dir: Path) -> StereoCentralRayFieldModel:
         R_RL=R_RL,
         t_RL=t_RL,
     )
-

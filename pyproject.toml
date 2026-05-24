@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stereocomplex"
-version = "0.1.0"
+version = "0.7.0a1"
 description = "Stereo calibration + compact ray-field/mapping with CPU fallback simulator."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,11 +17,7 @@ classifiers = [
 ]
 dependencies = [
   "numpy>=1.24",
-  "matplotlib>=3.8",
   "opencv-contrib-python-headless>=4.10",
-  "jupyterlab>=4.0",
-  "nbconvert>=7.0",
-  "ipykernel>=6.0",
   "pillow>=10.0",
   "scipy>=1.10",
 ]
@@ -30,6 +26,12 @@ dependencies = [
 Repository = "https://github.com/jeffwitz/StereoComplex"
 
 [project.optional-dependencies]
+notebooks = [
+  "jupyterlab>=4.0",
+  "nbconvert>=7.0",
+  "ipykernel>=6.0",
+  "matplotlib>=3.8",
+]
 docs = [
   "sphinx>=7.2",
   "sphinx-rtd-theme>=2.0",
@@ -57,4 +59,11 @@ target-version = "py310"
 [tool.pytest.ini_options]
 markers = [
   "integration: end-to-end process tests (may require opencv-contrib-python)",
+  "slow: optimisation / BA / image-processing tests (>2 s each)",
+]
+addopts = ["-m", "not slow", "--strict-markers"]
+filterwarnings = [
+  "error::DeprecationWarning",
+  "ignore::DeprecationWarning:numpy.*",
+  "ignore::DeprecationWarning:scipy.*",
 ]

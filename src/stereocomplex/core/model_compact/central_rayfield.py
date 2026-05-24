@@ -52,6 +52,7 @@ class CentralRayFieldZernike:
 
     @staticmethod
     def default_disk(width_px: int, height_px: int) -> tuple[float, float, float]:
+        """Default normalisation disk (radius) for the central rayfield."""
         u0 = (width_px - 1) / 2.0
         v0 = (height_px - 1) / 2.0
         # Circumscribed circle (covers the full image rectangle).
@@ -69,6 +70,7 @@ class CentralRayFieldZernike:
         return x, y
 
     def ray_directions_cam(self, u_px: np.ndarray, v_px: np.ndarray) -> np.ndarray:
+        """Central ray directions in camera frame for all pixels."""
         u_px = np.asarray(u_px, dtype=np.float64).reshape(-1)
         v_px = np.asarray(v_px, dtype=np.float64).reshape(-1)
         x, y = self._eval_xy(u_px, v_px)
@@ -77,6 +79,7 @@ class CentralRayFieldZernike:
         return d / norms
 
     def ray_origins_cam_mm(self, n: int) -> np.ndarray:
+        """Central ray origins in camera frame, all equal to ``C_mm``."""
         return np.repeat(self.C_mm.reshape(1, 3), n, axis=0)
 
     @classmethod
@@ -92,7 +95,7 @@ class CentralRayFieldZernike:
         radius_px: float,
         lam: float = 1e-6,
         C_mm: np.ndarray | None = None,
-    ) -> tuple["CentralRayFieldZernike", dict[str, float]]:
+    ) -> tuple[CentralRayFieldZernike, dict[str, float]]:
         """
         Fit (x(u,v), y(u,v)) from ground-truth 3D points expressed in camera frame.
 

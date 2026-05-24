@@ -21,15 +21,22 @@ class BrownPinholeParams:
     k3: float = 0.0
 
     def K(self) -> np.ndarray:
+        """Camera matrix K (3,3) from intrinsics."""
         return np.array(
-            [[float(self.fx), 0.0, float(self.cx)], [0.0, float(self.fy), float(self.cy)], [0.0, 0.0, 1.0]],
+            [
+                [float(self.fx), 0.0, float(self.cx)],
+                [0.0, float(self.fy), float(self.cy)],
+                [0.0, 0.0, 1.0],
+            ],
             dtype=np.float64,
         )
 
     def dist(self) -> np.ndarray:
+        """Distortion coefficients as a flat vector."""
         return np.array([self.k1, self.k2, self.p1, self.p2, self.k3], dtype=np.float64)
 
     def distortion(self) -> BrownDistortion:
+        """Distortion coefficients as a flat vector (alias)."""
         return BrownDistortion(k1=self.k1, k2=self.k2, p1=self.p1, p2=self.p2, k3=self.k3)
 
 
@@ -37,6 +44,20 @@ def project_brown_pinhole(
     params: BrownPinholeParams,
     XYZ_cam: np.ndarray,
 ) -> np.ndarray:
+    """Project 3-D world points to pixel coordinates with Brown-Conrady distortion.
+
+    Parameters
+    ----------
+    params : ndarray
+        Parameter vector: [fx, fy, cx, cy, k1, k2, p1, p2, k3].
+    XYZ_cam : ndarray, shape (N, 3)
+        3-D points in the camera frame, in millimetres.
+
+    Returns
+    -------
+    uv : ndarray, shape (N, 2)
+        Pixel coordinates.
+    """
     XYZ_cam = np.asarray(XYZ_cam, dtype=np.float64).reshape(-1, 3)
     X = XYZ_cam[:, 0]
     Y = XYZ_cam[:, 1]
@@ -61,8 +82,23 @@ def project_brown_pinhole_with_rvec(
     XYZ_cam: np.ndarray,
     rvec: np.ndarray,
 ) -> np.ndarray:
-    """
-    Convenience wrapper for post-hoc fits that include a global rotation.
+    """Project 3-D points to pixels with Brown distortion and a global rotation vector.
+
+    Convenience wrapper for post-hoc fits that include a camera-to-world rotation.
+
+    Parameters
+    ----------
+    params : ndarray
+        Parameter vector: [fx, fy, cx, cy, k1, k2, p1, p2, k3].
+    XYZ_cam : ndarray, shape (N, 3)
+        3-D points in the camera frame, in millimetres.
+    rvec : ndarray, shape (3,)
+        Rodrigues rotation vector (axis-angle) for the camera-to-world transform.
+
+    Returns
+    -------
+    ndarray, shape (N, 2)
+        Pixel coordinates.
     """
     from scipy.spatial.transform import Rotation as Rot  # type: ignore
 
@@ -139,17 +175,24 @@ def fit_brown_pinhole_from_camera_points(
 
     if fit_rotation:
         p0 = np.array(
-            [0.0, 0.0, 0.0, init.fx, init.fy, init.cx, init.cy, init.k1, init.k2, init.p1, init.p2, init.k3],
+            [
+                0.0, 0.0, 0.0,
+                init.fx, init.fy, init.cx, init.cy,
+                init.k1, init.k2, init.p1, init.p2, init.k3,
+            ],
             dtype=np.float64,
         )
     else:
         p0 = np.array(
-            [init.fx, init.fy, init.cx, init.cy, init.k1, init.k2, init.p1, init.p2, init.k3], dtype=np.float64
+            [init.fx, init.fy, init.cx, init.cy, init.k1, init.k2, init.p1, init.p2, init.k3],
+            dtype=np.float64,
         )
 
     # Conservative bounds: keep distortion moderate to avoid pathological fits.
     lb_base = np.array([10.0, 10.0, -0.5, -0.5, -1.0, -1.0, -0.1, -0.1, -1.0], dtype=np.float64)
-    ub_base = np.array([10_000.0, 10_000.0, w - 0.5, h - 0.5, 1.0, 1.0, 0.1, 0.1, 1.0], dtype=np.float64)
+    ub_base = np.array(
+        [10_000.0, 10_000.0, w - 0.5, h - 0.5, 1.0, 1.0, 0.1, 0.1, 1.0], dtype=np.float64
+    )
     if fit_rotation:
         lb = np.concatenate([np.full((3,), -np.pi, dtype=np.float64), lb_base], axis=0)
         ub = np.concatenate([np.full((3,), np.pi, dtype=np.float64), ub_base], axis=0)
@@ -167,6 +210,7 @@ def fit_brown_pinhole_from_camera_points(
     p0 = np.clip(p0, lb + 1e-12, ub - 1e-12)
 
     def fun(p: np.ndarray) -> np.ndarray:
+        """Residual function for pinhole parameter optimisation."""
         p = np.asarray(p, dtype=np.float64).reshape(-1)
         if fit_rotation:
             from scipy.spatial.transform import Rotation as Rot  # type: ignore
@@ -208,7 +252,11 @@ def fit_brown_pinhole_from_camera_points(
         rvec_opt = None
         fx, fy, cx, cy, k1, k2, p1, p2, k3 = (float(v) for v in sol.x.tolist())
     params = BrownPinholeParams(fx=fx, fy=fy, cx=cx, cy=cy, k1=k1, k2=k2, p1=p1, p2=p2, k3=k3)
-    diag = {"opt_cost": float(sol.cost), "opt_nfev": float(sol.nfev), "opt_success": float(bool(sol.success))}
+    diag = {
+        "opt_cost": float(sol.cost),
+        "opt_nfev": float(sol.nfev),
+        "opt_success": float(bool(sol.success)),
+    }
     if rvec_opt is not None:
         diag["rvec"] = [float(x) for x in rvec_opt.tolist()]
     return params, diag
@@ -255,8 +303,14 @@ def distortion_displacement_metrics(
     x = (uv[:, 0] - cx) / fx
     y = (uv[:, 1] - cy) / fy
 
-    gt = BrownDistortion(k1=float(dist_gt[0]), k2=float(dist_gt[1]), p1=float(dist_gt[2]), p2=float(dist_gt[3]), k3=float(dist_gt[4]))
-    est = BrownDistortion(k1=float(dist_est[0]), k2=float(dist_est[1]), p1=float(dist_est[2]), p2=float(dist_est[3]), k3=float(dist_est[4]))
+    gt = BrownDistortion(
+        k1=float(dist_gt[0]), k2=float(dist_gt[1]), p1=float(dist_gt[2]),
+        p2=float(dist_gt[3]), k3=float(dist_gt[4]),
+    )
+    est = BrownDistortion(
+        k1=float(dist_est[0]), k2=float(dist_est[1]), p1=float(dist_est[2]),
+        p2=float(dist_est[3]), k3=float(dist_est[4]),
+    )
 
     xd_gt, yd_gt = gt.distort(x, y)
     xd_est, yd_est = est.distort(x, y)

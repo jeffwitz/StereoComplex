@@ -1,0 +1,35 @@
+{
+  "n_pairs": 10,
+  "n_corners_expected": 165,
+  "n_corners_completed": 165,
+  "left_detected_per_frame": [
+    112,
+    153,
+    161,
+    161,
+    161,
+    161,
+    161,
+    161,
+    151,
+    61
+  ],
+  "right_detected_per_frame": [
+    70,
+    126,
+    149,
+    161,
+    161,
+    161,
+    161,
+    161,
+    161,
+    156
+  ],
+  "left_mean_detected": 144.3,
+  "right_mean_detected": 146.7,
+  "left_min_detected": 61,
+  "right_min_detected": 70,
+  "left_max_detected": 161,
+  "right_max_detected": 161
+}

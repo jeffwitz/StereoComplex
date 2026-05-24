@@ -10,12 +10,16 @@ from stereocomplex.meta import MetaValidationError, parse_view_meta
 
 
 def validate_dataset(dataset_root: Path) -> None:
+    """Validate a dataset against the expected schema."""
     dataset_root = dataset_root.resolve()
     manifest = dataset_root / "manifest.json"
     if not manifest.exists():
         # Convenience: allow validating a "collection" directory that contains
         # multiple dataset roots (e.g. compression sweeps).
-        children = sorted(p for p in dataset_root.iterdir() if p.is_dir() and (p / "manifest.json").exists())
+        children = sorted(
+            p for p in dataset_root.iterdir()
+            if p.is_dir() and (p / "manifest.json").exists()
+        )
         if not children:
             raise FileNotFoundError(f"Missing {manifest}")
         for child in children:
@@ -87,10 +91,16 @@ def _validate_scene(scene_dir: Path) -> None:
     rf0 = right_dir / first["right"]
     with Image.open(lf0) as im:
         if im.size != (left_view.image.width_px, left_view.image.height_px):
-            raise ValueError(f"{lf0} size {im.size} != meta {(left_view.image.width_px, left_view.image.height_px)}")
+            raise ValueError(
+                f"{lf0} size {im.size} != meta "
+                f"{(left_view.image.width_px, left_view.image.height_px)}"
+            )
     with Image.open(rf0) as im:
         if im.size != (right_view.image.width_px, right_view.image.height_px):
-            raise ValueError(f"{rf0} size {im.size} != meta {(right_view.image.width_px, right_view.image.height_px)}")
+            raise ValueError(
+                f"{rf0} size {im.size} != meta "
+                f"{(right_view.image.width_px, right_view.image.height_px)}"
+            )
 
 
 def _validate_board_meta(board: dict, meta_path: Path) -> None:

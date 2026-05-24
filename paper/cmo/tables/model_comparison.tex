@@ -1,0 +1,17 @@
+\begin{table}[H]
+\centering
+\caption{Model comparison on Pycaso CMO data. The 26-parameter CMO+SE(3) model is the compact physical reference.}
+\label{tab:models}
+\begin{tabular}{lrrrrr}
+\toprule
+Model & $p$ & Ray RMS (mm) & Px RMS (px) & P50 (px) & P95 (px) \\
+\midrule
+OpenCV stereo & -- & -- & $>300$ & -- & -- \\
+Perspective CMO & 19 & 3.48 & $\sim$86 & -- & -- \\
+Telecentric CMO + shear & 14 & 0.12 & 14.6 & 13.2 & 22.4 \\
+\textbf{CMO + SE(3)} & \textbf{26} & \textbf{0.0021} & \textbf{1.06} & \textbf{0.87} & \textbf{1.84} \\
+CMO + SE(3) + corner BA & 26 & $\sim$0.0019 & 0.88 & 0.64 & 1.70 \\
+Zernike O(0)+d(2) & 57 & 0.0007 & 0.47 & 0.34 & 0.86 \\
+\bottomrule
+\end{tabular}
+\end{table}

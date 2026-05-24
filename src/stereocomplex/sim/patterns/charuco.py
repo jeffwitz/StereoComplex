@@ -16,6 +16,7 @@ class CharucoSpec:
 
     @property
     def size_px(self) -> tuple[int, int]:
+        """Board dimensions in pixels at the current DPI."""
         return (self.squares_x * self.pixels_per_square, self.squares_y * self.pixels_per_square)
 
 
@@ -26,8 +27,7 @@ def generate_charuco_texture(spec: CharucoSpec) -> np.ndarray:
     OpenCV dependency is optional at import time; this function will raise if cv2.aruco is missing.
     """
     try:
-        import cv2  # type: ignore
-        import cv2.aruco as aruco  # type: ignore
+        from cv2 import aruco  # type: ignore
     except Exception as e:  # pragma: no cover
         raise RuntimeError("ChArUco generation requires opencv-contrib-python (cv2.aruco).") from e
 
@@ -39,7 +39,10 @@ def generate_charuco_texture(spec: CharucoSpec) -> np.ndarray:
 
     # OpenCV API differs across versions: CharucoBoard vs CharucoBoard_create.
     if hasattr(aruco, "CharucoBoard"):
-        board = aruco.CharucoBoard((spec.squares_x, spec.squares_y), spec.square_size_mm, spec.marker_size_mm, dictionary)
+        board = aruco.CharucoBoard(
+            (spec.squares_x, spec.squares_y),
+            spec.square_size_mm, spec.marker_size_mm, dictionary,
+        )
     elif hasattr(aruco, "CharucoBoard_create"):  # pragma: no cover
         board = aruco.CharucoBoard_create(
             spec.squares_x, spec.squares_y, spec.square_size_mm, spec.marker_size_mm, dictionary
@@ -56,4 +59,3 @@ def generate_charuco_texture(spec: CharucoSpec) -> np.ndarray:
     if img.ndim != 2:
         raise RuntimeError("Expected grayscale charuco image.")
     return img.astype(np.uint8, copy=False)
-

@@ -1,0 +1,389 @@
+{
+  "title": "Pycaso CMO \u2014 Step 1: Corner identification & TPS denoising",
+  "description": "ChArUco detection, Hessian completion, double Ray2D TPS producing gauge-stable 2D corners.",
+  "version": "2024.7.1",
+  "authors": "Jean-Fran\u00e7ois Witz; StereoComplex contributors",
+  "date": "2026-05-15",
+  "repository": "https://github.com/jeffwitz/StereoComplex",
+  "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md",
+  "license": "See StereoComplex and Pycaso repository licenses.",
+  "settings": [
+    {
+      "id": "setting_pycaso_cmo_microscope",
+      "kind": "settings/generic",
+      "title": "CMO microscope",
+      "description": "",
+      "documentation": "https://github.com/LaboratoireMecaniqueLille/Pycaso",
+      "associated_data_sources": [
+        "src_left_cmo_channel_camera",
+        "src_right_cmo_channel_camera"
+      ]
+    },
+    {
+      "id": "setting_charuco_legacy_target",
+      "kind": "settings/specimen",
+      "title": "ChArUco target",
+      "description": "",
+      "sizes": [
+        {
+          "kind": "unit",
+          "title": "squares_x",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 16
+        },
+        {
+          "kind": "unit",
+          "title": "squares_y",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 12
+        },
+        {
+          "kind": "unit",
+          "title": "inner_corners_x",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 15
+        },
+        {
+          "kind": "unit",
+          "title": "inner_corners_y",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 11
+        },
+        {
+          "kind": "unit",
+          "title": "inner_corners_total",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 165
+        },
+        {
+          "kind": "unit",
+          "title": "square_size",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 0.3
+        }
+      ],
+      "patterning_technique": "Legacy ChArUco board, DICT_6X6_250",
+      "patterning_feature_size": {
+        "kind": "unit",
+        "title": "square_size",
+        "unit": "mm",
+        "scale": 1.0,
+        "value": 0.3
+      }
+    },
+    {
+      "id": "setting_cmo_stereo_rig",
+      "kind": "settings/stereorig",
+      "title": "Stereo rig",
+      "description": "",
+      "stereo_angle": {
+        "kind": "unit",
+        "title": "convergence_angle",
+        "unit": "deg",
+        "scale": 1.0,
+        "value": 22.551396758555008
+      },
+      "calibration_target_type": "Legacy ChArUco DICT_6X6_250, setLegacyPattern(True)",
+      "calibration_target_size": [
+        {
+          "kind": "unit",
+          "title": "squares_x",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 16
+        },
+        {
+          "kind": "unit",
+          "title": "squares_y",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 12
+        },
+        {
+          "kind": "unit",
+          "title": "square_size",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 0.3
+        },
+        {
+          "kind": "unit",
+          "title": "expected_inner_corners",
+          "unit": "count",
+          "scale": 1.0,
+          "value": 165
+        },
+        {
+          "kind": "unit",
+          "title": "z_range_min",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 2.65
+        },
+        {
+          "kind": "unit",
+          "title": "z_range_max",
+          "unit": "mm",
+          "scale": 1.0,
+          "value": 3.35
+        }
+      ],
+      "associated_data_sources": [
+        "src_left_cmo_channel_camera",
+        "src_right_cmo_channel_camera"
+      ]
+    }
+  ],
+  "data_sources": [
+    {
+      "id": "src_left_cmo_channel_camera",
+      "kind": "data_sources/camera",
+      "title": "Left camera",
+      "description": "",
+      "output_components": 1,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "graylevel",
+          "unit": "graylevel",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "Leica Microsystems / Pycaso dataset",
+      "model": "Leica M125 C effective left channel",
+      "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md",
+      "image_size": [
+        {
+          "kind": "unit",
+          "title": "width",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 2048
+        },
+        {
+          "kind": "unit",
+          "title": "height",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 2048
+        }
+      ],
+      "focal_length": {
+        "kind": "unit",
+        "title": "objective_focal_length_from_rayfield",
+        "unit": "mm",
+        "scale": 1.0,
+        "value": 62.208914898071626
+      },
+      "lens": "Common Main Objective stereo microscope optics",
+      "standoff_distance": {
+        "kind": "unit",
+        "title": "working_distance_from_rayfield",
+        "unit": "mm",
+        "scale": 1.0,
+        "value": 64.70220034514719
+      }
+    },
+    {
+      "id": "src_right_cmo_channel_camera",
+      "kind": "data_sources/camera",
+      "title": "Right camera",
+      "description": "",
+      "output_components": 1,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "graylevel",
+          "unit": "graylevel",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "Leica Microsystems / Pycaso dataset",
+      "model": "Leica M125 C effective right channel",
+      "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md",
+      "image_size": [
+        {
+          "kind": "unit",
+          "title": "width",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 2048
+        },
+        {
+          "kind": "unit",
+          "title": "height",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 2048
+        }
+      ],
+      "focal_length": {
+        "kind": "unit",
+        "title": "objective_focal_length_from_rayfield",
+        "unit": "mm",
+        "scale": 1.0,
+        "value": 62.208914898071626
+      },
+      "lens": "Common Main Objective stereo microscope optics",
+      "standoff_distance": {
+        "kind": "unit",
+        "title": "working_distance_from_rayfield",
+        "unit": "mm",
+        "scale": 1.0,
+        "value": 64.70220034514719
+      }
+    },
+    {
+      "id": "src_charuco_legacy_detection",
+      "kind": "data_sources/generic",
+      "title": "ChArUco detection",
+      "description": "",
+      "input_data_sets": [
+        "ds_raw_left_images",
+        "ds_raw_right_images"
+      ],
+      "output_components": 2,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "u",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "v",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex / OpenCV",
+      "model": "CharucoDetector legacy DICT_6X6_250",
+      "documentation": "examples/notebooks/09_pycaso_real_data.py"
+    },
+    {
+      "id": "src_hessian_corner_completion",
+      "kind": "data_sources/generic",
+      "title": "Hessian completion",
+      "description": "",
+      "input_data_sets": [
+        "ds_raw_left_images",
+        "ds_raw_right_images",
+        "ds_detection_summary_json"
+      ],
+      "output_components": 2,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "u",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "v",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "Hessian completion, abs(det H)+Otsu+barycentre",
+      "documentation": "examples/notebooks/09_pycaso_real_data.py"
+    },
+    {
+      "id": "src_ray2d_double_tps",
+      "kind": "data_sources/generic",
+      "title": "Double TPS",
+      "description": "",
+      "input_data_sets": [
+        "ds_raw_left_images",
+        "ds_raw_right_images",
+        "ds_detection_summary_json"
+      ],
+      "output_components": 2,
+      "output_dimension": "surface",
+      "output_units": [
+        {
+          "kind": "unit",
+          "title": "u",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        },
+        {
+          "kind": "unit",
+          "title": "v",
+          "unit": "px",
+          "scale": 1.0,
+          "value": 1.0
+        }
+      ],
+      "manufacturer": "StereoComplex",
+      "model": "Ray2D TPS robust double pass",
+      "documentation": "docs/REAL_CMO_PYCASO_RAYFIELD.md"
+    }
+  ],
+  "data_sets": [
+    {
+      "id": "ds_raw_left_images",
+      "kind": "data_sets/generic",
+      "title": "Left images (PNG)",
+      "description": "Raw left channel PNG images from Pycaso (10 frames, 2048x2048 px)",
+      "file_type": "image/*",
+      "path": "examples/pycaso_data/Exemple/Images_example/left_calibration11/",
+      "data_sources": [
+        "src_left_cmo_channel_camera"
+      ]
+    },
+    {
+      "id": "ds_raw_right_images",
+      "kind": "data_sets/generic",
+      "title": "Right images (PNG)",
+      "description": "Raw right channel PNG images from Pycaso (10 frames, 2048x2048 px)",
+      "file_type": "image/*",
+      "path": "examples/pycaso_data/Exemple/Images_example/right_calibration11/",
+      "data_sources": [
+        "src_right_cmo_channel_camera"
+      ]
+    },
+    {
+      "id": "ds_detection_summary_json",
+      "kind": "data_sets/generic",
+      "title": "Detection counts",
+      "description": "Per-frame ChArUco detection counts (L/R channels)",
+      "file_type": "application/json",
+      "path": "docs/assets/pycaso_real_data/detection_summary.json",
+      "data_sources": [
+        "src_charuco_legacy_detection",
+        "src_hessian_corner_completion"
+      ]
+    },
+    {
+      "id": "ds_tps_intermediate_state_npz",
+      "kind": "data_sets/generic",
+      "title": "Denoised corners (NPZ)",
+      "description": "TPS-denoised 165-corners + Zernike fit + 26p model (NPZ archive)",
+      "file_type": "application/x-npz",
+      "path": "docs/assets/pycaso_real_data/intermediate_state.npz",
+      "data_sources": [
+        "src_ray2d_double_tps"
+      ]
+    }
+  ]
+}

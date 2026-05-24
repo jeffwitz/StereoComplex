@@ -1,0 +1,137 @@
+{
+  "schema_version": "stereocomplex.cmo_dataset.v0",
+  "generator": "stereocomplex.physics.cmo",
+  "target": {
+    "squares_x": 13,
+    "squares_y": 9,
+    "square_size_mm": 4.0,
+    "pixels_per_square": 36,
+    "pattern": "charuco",
+    "marker_size_ratio": 0.7
+  },
+  "cmo": {
+    "left": {
+      "name": "left",
+      "intrinsics": {
+        "width": 320,
+        "height": 240,
+        "fx": 1000.0,
+        "fy": 1000.0,
+        "cx": 159.5,
+        "cy": 119.5
+      },
+      "origin_world_mm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "R_cam_to_world": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "distortion": {
+        "k1": 0.0,
+        "k2": 0.0,
+        "p1": 0.0,
+        "p2": 0.0,
+        "k3": 0.0
+      },
+      "differential_aberration": {
+        "coeff_x": {},
+        "coeff_y": {}
+      },
+      "sensor_warp": {
+        "du_coeff_px": {},
+        "dv_coeff_px": {}
+      },
+      "vignetting": {
+        "strength": 0.16,
+        "floor": 0.55,
+        "x_shift": -0.04,
+        "y_shift": 0.0
+      }
+    },
+    "right": {
+      "name": "right",
+      "intrinsics": {
+        "width": 320,
+        "height": 240,
+        "fx": 1000.0,
+        "fy": 1000.0,
+        "cx": 159.5,
+        "cy": 119.5
+      },
+      "origin_world_mm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "R_cam_to_world": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "distortion": {
+        "k1": 0.0,
+        "k2": 0.0,
+        "p1": 0.0,
+        "p2": 0.0,
+        "k3": 0.0
+      },
+      "differential_aberration": {
+        "coeff_x": {},
+        "coeff_y": {}
+      },
+      "sensor_warp": {
+        "du_coeff_px": {},
+        "dv_coeff_px": {}
+      },
+      "vignetting": {
+        "strength": 0.16,
+        "floor": 0.55,
+        "x_shift": 0.04,
+        "y_shift": 0.0
+      }
+    },
+    "common_aberration": {
+      "coeff_x": {},
+      "coeff_y": {}
+    }
+  },
+  "sim_params": {
+    "image_format": "png",
+    "blur_sigma_px": 0.6,
+    "noise_std_gray": 0.0,
+    "seed": 0
+  },
+  "model_notes": [
+    "The renderer and sparse projection both use stereocomplex.physics.cmo.",
+    "CMOChannelRayField is the shared pixel-to-line physics model.",
+    "Sparse GT projection minimizes point-to-ray distance with the same CMOChannelRayField."
+  ]
+}

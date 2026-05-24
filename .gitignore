@@ -42,5 +42,11 @@ paper/figures/
 .ruff_cache/
 paper/references.txt
 session.txt
+claude_session.txt
+CLAUDE.md
+.github/
 .codex
 examples/notebooks/.ipynb_checkpoints/
+examples/pycaso_calib_data/
+examples/pycaso_data/
+docs/assets/pycaso_real_data/schur_ba/

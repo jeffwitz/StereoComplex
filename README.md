@@ -1,67 +1,150 @@
 # StereoComplex
 
-Stereo calibration and 3D reconstruction research prototype, built around:
+Lightweight Python toolkit for robust stereo calibration and ray-based 3D reconstruction.
 
-- a CPU synthetic-data generator (digital twins) for stereo + ChArUco,
-- a 2D “ray-field” correction (homography + smooth residual field) to improve ChArUco corner localization,
-- an experimental **ray-based 3D reconstruction / calibration** prototype (central ray-field, Zernike basis) designed as a stepping stone towards complex/non-pinhole optics.
+StereoComplex is designed for users who already know OpenCV calibration but need more diagnostic power when ChArUco localization, blur, compression, optical distortion, microscope optics, protective glass, or non-central effects make a standard pinhole workflow plateau.
 
-Note on terminology: in this repository, “ray-field” may refer either to (1) a **2D planar warp** learned on the board plane (homography + smooth residual field) or (2) an experimental **3D ray-based model**. The 2D method is not a per-pixel 3D ray model.
+## Start here
 
-## Why would you use this?
+The recommended first entry point is:
 
-StereoComplex targets two practical pain points:
+```text
+examples/notebooks/00_getting_started.ipynb
+examples/notebooks/00_getting_started.py
+```
 
-- In many practical stereo systems, calibration accuracy is limited by **2D localization quality** (blur, compression, noise) rather than by the camera model itself.
-- **Fix OpenCV calibration that plateaus** (blur / distortion / compression): refine ChArUco corners before calibration (without assuming a global pinhole model for the refinement).
-- **Reconstruct 3D without a pinhole model (prototype)**: calibrate a compact ray-based stereo model from multi-pose planar observations (**no solvePnP, no known** `K`) and triangulate from rays.
+It gives the shortest OpenCV-to-StereoComplex path:
 
-Engineering footprint: no ROS, no Docker requirement, no C++ toolchain; the core is a Python package using standard scientific libraries.
+1. define a ChArUco board;
+2. compare raw OpenCV calibration against Ray2D-refined calibration;
+3. inspect calibration quality with `assess_calibration`;
+4. export the result back to OpenCV format with `result.to_opencv()`.
 
-Visual proof (green = GT, red = OpenCV raw, blue = ray-field):
+Companion guide:
 
-![Micro overlay (left): GT (green), OpenCV raw (red), ray-field (blue)](docs/assets/rayfield_worked_example/micro_overlays/left_best_frame000000.png)
-![Micro overlay (right): GT (green), OpenCV raw (red), ray-field (blue)](docs/assets/rayfield_worked_example/micro_overlays/right_best_frame000000.png)
+```text
+docs/FROM_OPENCV_TO_STEREOCOMPLEX.md
+```
 
-## Key result: 3D ray-field is remarkably stable under compression
+Full notebook map:
 
-On a synthetic benchmark where we sweep codec quality, the **3D ray-field reconstruction** remains stable under lossy compression, while pinhole-based pipelines remain sensitive to compression artifacts through the 2D localization stage.
+```text
+docs/NOTEBOOKS.md
+```
 
-![Compression sweep: triangulation RMS vs codec quality (pinhole vs 3D ray-field)](docs/assets/compression_sweep/tri_rms_rel_depth_percent.png)
+## What StereoComplex does
 
-## Highlights (from the provided examples)
+StereoComplex has three distinct layers. Keeping them separate is important.
 
-- **2D ChArUco accuracy improvement (example)**: RMS corner error drops from ~0.357 px → ~0.219 px (left) and ~0.356 px → ~0.153 px (right) with the 2D ray-field correction.
-- **OpenCV stereo calibration impact (example)**: feeding OpenCV with ray-field-corrected corners improves mono RMS (~0.306/0.302 px → ~0.079/0.061 px), improves stereo RMS (~0.381 px → ~0.163 px), and reduces baseline error in disparity-equivalent pixels (~0.424 px → ~0.205 px).
-- **3D without a pinhole model (prototype)**: a central ray-field can be calibrated from multi-pose planar observations by a point↔ray bundle adjustment (**no solvePnP, no known** `K`), then used to triangulate points (and shows strong robustness to lossy compression in the provided compression sweep).
+| Layer | Meaning | Current status |
+|---|---|---|
+| **Ray2D / planar ray-field** | Homography plus smooth residual field on the calibration board plane | stable practical preprocessing |
+| **Central 3D ray-field** | Pixel → 3D direction with a shared camera center | research prototype |
+| **Non-central 3D rayfield** | Pixel → 3D line `(O(u,v), d(u,v))` | research-grade, validated on synthetic oracles and one real CMO case study |
 
-See `docs/RAYFIELD_WORKED_EXAMPLE.md` and `docs/STEREO_RECONSTRUCTION.md` for full methodology, plots, and definitions.
+Ray2D is **not** a non-central 3D camera model. It is a robust 2D observation refinement stage that improves the image points fed to calibration.
 
-## Alternatives and positioning
+## Main user paths
 
-StereoComplex is designed to sit between minimal OpenCV calibration scripts and larger robotics / Structure-from-Motion (SfM) toolchains.
-It keeps an OpenCV-like installation footprint, but emphasizes robust stereo geometry, rectification quality, and explicit diagnostic metrics.
+| I want to… | Start with |
+|---|---|
+| Learn the basic workflow | `examples/notebooks/00_getting_started.ipynb` |
+| Improve ChArUco corners before OpenCV | `sc.refine_charuco_corners(...)` |
+| Compare OpenCV raw vs Ray2D-refined | `sc.compare_opencv_stereo_calibration(...)` |
+| Calibrate like OpenCV with refined corners | `sc.calibrate_opencv(...)` |
+| Switch to a central ray-based model | `sc.calibrate_central(...)` |
+| Test non-central optics | `sc.calibrate_noncentral(...)` |
+| Identify CMO / plate / Brown / other optical families | `sc.identify_optics(...)` |
+| Check whether a calibration is usable | `sc.assess_calibration(result)` |
+| Export to OpenCV | `result.to_opencv()` |
 
-**OpenCV (camera & stereo calibration).** A widely used baseline: easy to install, stable APIs, strong documentation. In practice, performance can plateau on degraded data (blur, compression, noise), and OpenCV provides limited diagnostics beyond reprojection error. StereoComplex is compatible with OpenCV workflows and adds geometric corner refinement + explicit metrics on top. References: [opencv.org](https://opencv.org/), [opencv/opencv](https://github.com/opencv/opencv), [opencv/opencv_contrib](https://github.com/opencv/opencv_contrib).
+## Why use it?
 
-**Kalibr (ETH Zurich).** A robotics-oriented calibration toolbox (camera / inertial measurement unit (IMU)) with rich models and global optimization. For stereo-only workflows, the Robot Operating System (ROS) / catkin / Docker-style setup can be heavy. StereoComplex targets lightweight stereo calibration without requiring a robotics stack. Reference: [ethz-asl/kalibr](https://github.com/ethz-asl/kalibr).
+StereoComplex targets two practical problems:
 
-**Basalt (TUM).** A visual-inertial odometry (VIO) / simultaneous localization and mapping (SLAM) research framework that includes calibration tools and modern optimization. It is primarily a C++ VIO codebase with non-trivial build/configuration, and calibration is not a standalone focus. StereoComplex focuses specifically on stereo geometry and rectification quality. Reference: [VladyslavUsenko/basalt](https://github.com/VladyslavUsenko/basalt).
+1. **The camera model is not always the first limitation.** In many stereo systems, calibration is limited by 2D localization quality: blur, compression, noise, low contrast, defocus, or ChArUco detection failures.
+2. **Some optics are not well described by a central pinhole model.** Microscopes, inclined plates, thick optical stacks, protective windows, and CMO systems can leave structured ray residuals that a central model cannot explain.
 
-**camodocal.** An academic multi-camera calibration toolbox with solid foundations and multiple camera models. It tends to have lower maintenance activity and dated ergonomics compared to newer pipelines. StereoComplex focuses on a lightweight Python workflow with reproducible experiments and diagnostics. Reference: [hengli/camodocal](https://github.com/hengli/camodocal).
+The package therefore combines OpenCV-compatible workflows with ray-based diagnostics.
 
-**Structure-from-Motion (SfM) toolchains (COLMAP, OpenMVG).** Excellent for reconstruction from unordered imagery, but not designed around stereo calibration objectives (stereo constraints and rectification quality are not first-class targets). They can provide rough initialization in unconstrained settings, but are out of scope here. References: [colmap.github.io](https://colmap.github.io/) / [colmap/colmap](https://github.com/colmap/colmap), [openMVG/openMVG](https://github.com/openMVG/openMVG).
+## Key results
 
-**Non-goals (current scope).**
+### 1. OpenCV-compatible Ray2D refinement
 
-- Not a SLAM or VIO framework
-- Not a camera–IMU calibration toolbox
-- Not a replacement for full robotics stacks
-- Not a Structure-from-Motion pipeline
+On the bundled synthetic ChArUco examples, Ray2D refinement improves corner localization and can substantially reduce OpenCV mono/stereo reprojection residuals. See:
+
+```text
+docs/RAYFIELD_WORKED_EXAMPLE.md
+docs/FIX_MY_CALIBRATION.md
+examples/notebooks/01_ray2d_vs_opencv.ipynb
+```
+
+### 2. Non-central rendered-image benchmark
+
+On the inclined-plate benchmark, raw OpenCV ChArUco detections impose a high reconstruction floor. With Ray2D-refined observations, the same non-central bundle adjustment reaches sub-millimetric reconstruction accuracy:
+
+| Front-end | Central RMS | Oracle-detected RMS | Non-central BA RMS |
+|---|---:|---:|---:|
+| OpenCV raw | ~4.21 mm | ~3.44 mm | ~3.36 mm |
+| Ray2D refined | ~2.50 mm | ~0.76 mm | ~0.66 mm |
+
+Interpretation: the non-central model works when the 2D observations are good enough; front-end quality is the limiting factor on rendered or real images.
+
+### 3. Optical model identification
+
+A measured Zernike rayfield can be used as a geometric diagnostic instrument. StereoComplex can compare compact physical hypotheses such as central pinhole, Brown-Conrady, inclined plate, CMO-like models, and generic fallback rayfields.
+
+On the inclined-plate oracle, the physical plate model is selected unambiguously by ray-space BIC:
+
+| Candidate model | Support RMS | Full-grid RMS | BIC |
+|---|---:|---:|---:|
+| Central pinhole | 2.99 mm | 3.71 mm | +1 052 |
+| Central Brown-Conrady | 2.14 mm | 2.65 mm | −10 772 |
+| Pinhole + inclined plate | **0.00026 mm** | **0.00335 mm** | **−306 399** |
+
+See:
+
+```text
+docs/IDENTIFY_MY_OPTICS.md
+docs/CMO_MODEL_SELECTION.md
+examples/notebooks/06_cmo_model_selection.ipynb
+```
+
+### 4. Real CMO microscope case study
+
+The Pycaso CMO microscope case study is the main real-data validation of the non-central workflow.
+
+Measured results:
+
+| Model / method | Role | RMS |
+|---|---|---:|
+| Standard OpenCV stereo on the tested setup | central baseline | >300 px |
+| Perspective CMO physical model | wrong optical family | ~86 px |
+| Telecentric CMO 14p | correct family but not usable | ~14.6 px |
+| **Telecentric CMO + per-arm SE(3), 26p** | compact usable physical model | **1.06 px** |
+| **Zernike O(0)+d(2), 57p** | flexible rayfield reference | **0.47 px** |
+
+The key result is not only the subpixel Zernike fit. The case study shows a complete diagnostic chain:
+
+```text
+measure rayfield → analyze Pluecker residuals → reject wrong hypotheses → add per-arm SE(3) → obtain a compact physical CMO model
+```
+
+See:
+
+```text
+docs/REAL_CMO_PYCASO_RAYFIELD.md
+docs/CMO_PHYSICAL_MODEL.md
+examples/notebooks/09_pycaso_real_data.ipynb
+```
+
+The generated R3XA metadata file for the case study is:
+
+```text
+docs/assets/pycaso_real_data/pycaso_cmo_calibration.r3xa.json
+```
 
 ## Installation
-
-Core dependencies are in `pyproject.toml` (NumPy, Pillow, SciPy, OpenCV ArUco, Jupyter for the walkthrough notebooks).
 
 Editable install:
 
@@ -69,251 +152,104 @@ Editable install:
 .venv/bin/python -m pip install -e .
 ```
 
-## Quickstart (CPU dataset generator)
-
-CLI help:
+With notebook support:
 
 ```bash
-.venv/bin/python -m stereocomplex.cli --help
+.venv/bin/python -m pip install -e '.[notebooks]'
 ```
 
-Generate a minimal synthetic dataset:
+With documentation dependencies:
 
 ```bash
-.venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/v0 --scenes 2 --frames-per-scene 16 --width 640 --height 480
+.venv/bin/python -m pip install -e '.[docs]'
 ```
 
-ChArUco + blur (e.g., 8 µm FWHM):
+If you do not install the package, most examples can also be run with `PYTHONPATH=src`.
 
-```bash
-.venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/charuco_blur --pattern charuco --blur-fwhm-um 8
-```
-
-Stronger edge blur (variable PSF approximation):
-
-```bash
-.venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/charuco_edgeblur --pattern charuco --blur-fwhm-um 6 --blur-edge-factor 3 --blur-edge-start 0.5
-```
-
-Texture interpolation (anti-alias):
-
-```bash
-.venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/charuco_interp --pattern charuco --tex-interp lanczos4
-```
-
-Geometric aberrations (distortion):
-
-```bash
-.venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/charuco_dist --pattern charuco --distort brown --distort-strength 0.5
-```
-
-Black background outside the board + lossless WebP:
-
-```bash
-.venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/charuco_webp_black --pattern charuco --image-format webp --outside-mask hard
-```
-
-Validate dataset consistency:
-
-```bash
-.venv/bin/python -m stereocomplex.cli validate-dataset dataset/v0
-```
-
-Oracle eval (synthetic sanity check: very small reprojection/triangulation errors expected):
-
-```bash
-.venv/bin/python -m stereocomplex.cli eval-oracle dataset/v0
-```
-
-Note: if you prefer not to install the package, you can prefix commands with `PYTHONPATH=src`.
-
-## Quickstart (fix OpenCV calibration on a dataset scene)
-
-Export refined ChArUco corners (JSON + an OpenCV-ready NPZ):
-
-```bash
-.venv/bin/python -m stereocomplex.cli refine-corners dataset/v0_png --split train --scene scene_0000 \
-  --method rayfield_tps_robust \
-  --out-json paper/tables/refined_corners_scene0000.json \
-  --out-npz paper/tables/refined_corners_scene0000_opencv.npz
-```
-
-## Quickstart (3D reconstruction without a pinhole model)
-
-### Bring your own stereo folders (public API)
-
-If you already have `left/*.png`, `right/*.png`, and a known ChArUco board:
-
-First, if you just want to keep a standard OpenCV workflow and compare raw
-corners against `Ray2D + OpenCV`:
-
-```python
-import stereocomplex as sc
-
-board = sc.CharucoBoardSpec(
-    squares_x=11,
-    squares_y=7,
-    square_size_mm=39.0713,
-    marker_size_mm=27.3499,
-    aruco_dictionary="DICT_4X4_1000",
-)
-
-raw = sc.fit_opencv_stereo_from_image_dirs(
-    left_dir="my_data/left",
-    right_dir="my_data/right",
-    board=board,
-    method2d="raw",
-)
-refined = sc.fit_opencv_stereo_from_image_dirs(
-    left_dir="my_data/left",
-    right_dir="my_data/right",
-    board=board,
-    method2d="rayfield_tps_robust",
-)
-```
-
-Then, if you want the StereoComplex 3D backend instead of a pinhole model:
+## Quickstart from OpenCV
 
 ```python
 from pathlib import Path
-
 import stereocomplex as sc
 
 board = sc.CharucoBoardSpec(
     squares_x=11,
     squares_y=7,
-    square_size_mm=39.0713,
-    marker_size_mm=27.3499,
+    square_size_mm=39.07,
+    marker_size_mm=27.35,
     aruco_dictionary="DICT_4X4_1000",
 )
 
-result = sc.fit_stereo_central_rayfield_from_image_dirs(
+report = sc.compare_opencv_stereo_calibration(
     left_dir=Path("my_data/left"),
     right_dir=Path("my_data/right"),
     board=board,
-    method2d="rayfield_tps_robust",
-    export_model_dir=Path("models/my_calibration"),
 )
+
+print(report["raw"]["stereo_rms_px"])
+print(report["refined"]["stereo_rms_px"])
+
+K1, d1, K2, d2, R, T = report["refined_result"].to_opencv()
 ```
 
-Then load and triangulate:
+For the guided version, use:
 
-```python
-model = sc.load_stereo_central_rayfield("models/my_calibration")
-XYZ_mm, skew_mm = model.triangulate(uvL, uvR)
+```text
+examples/notebooks/00_getting_started.ipynb
 ```
 
-See `docs/BRING_YOUR_OWN_DATA.md` for the step-by-step walkthrough.
+## Documentation map
 
-### Dataset v0 scene (public API)
+First use:
 
-The stable public API wrapper for the versioned sample scene is:
-
-```python
-from pathlib import Path
-import stereocomplex as sc
-
-result = sc.fit_stereo_central_rayfield_from_dataset(
-    dataset_root="dataset/v0_png",
-    split="train",
-    scene="scene_0000",
-    max_frames=5,
-    method2d="rayfield_tps_robust",
-    nmax=10,
-    export_model_dir=Path("models/scene0000_rayfield3d"),
-)
-```
-
-### Internal paper script (advanced / reproducibility)
-
-Calibrate a central ray-field stereo model (point↔ray bundle adjustment) and export it:
-
-```bash
-.venv/bin/python paper/experiments/calibrate_central_rayfield3d_from_images.py dataset/v0_png \
-  --split train --scene scene_0000 --max-frames 5 \
-  --method2d rayfield_tps_robust \
-  --nmax 10 --lam-coeff 1e-3 --outer-iters 3 \
-  --out paper/tables/rayfield3d_ba_scene0000.json \
-  --export-model models/scene0000_rayfield3d
-```
-
-Then triangulate with the exported model (API demo):
-
-```bash
-.venv/bin/python docs/examples/reconstruction_api_demo.py dataset/v0_png \
-  --split train --scene scene_0000 --max-frames 5 \
-  --model models/scene0000_rayfield3d
-```
-
-## Documentation
-
-Start here:
-
+- `examples/notebooks/00_getting_started.ipynb`
+- `docs/FROM_OPENCV_TO_STEREOCOMPLEX.md`
 - `docs/START_HERE.md`
+- `docs/NOTEBOOKS.md`
+
+Practical calibration:
+
+- `docs/BRING_YOUR_OWN_DATA.md`
+- `docs/FIX_MY_CALIBRATION.md`
+- `docs/CHARUCO_IDENTIFICATION.md`
+- `docs/RAYFIELD_WORKED_EXAMPLE.md`
+
+Ray-based and non-central calibration:
+
+- `docs/RAYFIELD3D_RECONSTRUCTION.md`
+- `docs/NONCENTRAL_FROM_IMAGES.md`
+- `docs/PARALLEL_PLATE_ORIGIN_FIELD.md`
+- `docs/IDENTIFY_MY_OPTICS.md`
+
+Real-data CMO case study:
+
+- `docs/REAL_CMO_PYCASO_RAYFIELD.md`
+- `docs/CMO_PHYSICAL_MODEL.md`
+- `examples/notebooks/09_pycaso_real_data.ipynb`
+
+Reference:
+
+- `docs/PUBLIC_API.md`
 - `docs/ARCHITECTURE.md`
 - `docs/DATASET_SPEC.md`
 - `docs/CONVENTIONS.md`
+- `docs/ALTERNATIVES_POSITIONING.md`
 
-Core method pages:
-
-- `docs/CHARUCO_IDENTIFICATION.md`
-- `docs/FIX_MY_CALIBRATION.md`
-- `docs/RAYFIELD_WORKED_EXAMPLE.md`
-- `docs/STEREO_RECONSTRUCTION.md`
-- `docs/RAYFIELD3D_RECONSTRUCTION.md`
-- `docs/RECONSTRUCTION_API.md`
-- `docs/BRING_YOUR_OWN_DATA.md`
-
-## Example notebooks
-
-If you prefer a guided, executable walkthrough, start with:
-
-- `examples/notebooks/01_ray2d_vs_opencv.ipynb` and `examples/notebooks/01_ray2d_vs_opencv.py`
-- `examples/notebooks/02_ray3d.ipynb` and `examples/notebooks/02_ray3d.py`
-- `examples/notebooks/03_rayfield_virtual_rectification.ipynb` and `examples/notebooks/03_rayfield_virtual_rectification.py`
-
-The notebooks are intentionally lightweight: they read the committed synthetic images and JSON summaries already present in the repository, including the two small sample scenes versioned under
-`dataset/compression_sweep_pnp/png_lossless/train/scene_0000` and `dataset/v0_png/train/scene_0000`.
-After `pip install -e .`, the repo already includes the Jupyter stack, Matplotlib, and OpenCV ArUco support needed to open them with `jupyter lab examples/notebooks`.
-
-## Code & documentation
-
-The full toolkit is available on GitHub (`https://github.com/jeffwitz/StereoComplex`), and the online documentation is published via ReadTheDocs (`https://stereocomplex.readthedocs.io/en/latest/`), so you can browse tutorials and references without cloning the repo.
-
-### Sphinx / ReadTheDocs
-
-Build local HTML docs:
+## Build documentation
 
 ```bash
-.venv/bin/python -m pip install -e .[docs]
 make -C docs html
 ```
 
-Serve the HTML docs locally (needed to render the embedded YouTube video in the docs, and so the root URL opens the docs directly):
+Run the local validation suite before committing:
 
 ```bash
-.venv/bin/python -m http.server -d docs/_build/html 8000
+bash scripts/validate_local.sh
 ```
 
-Then open `http://localhost:8000/`.
+## Scope and non-goals
 
-Build PDF (LaTeX):
-
-```bash
-make -C docs latexpdf
-```
-
-## Minimal Python API (model → triangulation)
-
-```python
-import numpy as np
-import stereocomplex as sc
-
-model = sc.load_stereo_central_rayfield("models/scene0000_rayfield3d")
-uvL = np.array([[320.0, 240.0]], dtype=float)
-uvR = np.array([[318.5, 240.0]], dtype=float)
-XYZ_L_mm, skew_mm = model.triangulate(uvL, uvR)
-```
+StereoComplex is not a SLAM, VIO, camera-IMU, ROS, or Structure-from-Motion framework. It focuses on stereo calibration, ChArUco observation quality, ray-based diagnostics, and compact physical interpretation of measured rayfields.
 
 ## License
 

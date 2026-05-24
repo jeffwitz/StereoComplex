@@ -23,6 +23,8 @@ class FrameObservations:
 
 @dataclass(frozen=True)
 class CentralRayFieldBAResult:
+    """Result of single-camera central rayfield bundle adjustment."""
+
     nmax: int
     u0_px: float
     v0_px: float
@@ -35,6 +37,23 @@ class CentralRayFieldBAResult:
 
 
 def default_disk(width_px: int, height_px: int) -> tuple[float, float, float]:
+    """Return the Zernike normalization disk for an image of the given size.
+
+    The disk is centered at the image midpoint and its radius circumscribes
+    the full pixel grid.
+
+    Parameters
+    ----------
+    width_px : int
+        Image width in pixels.
+    height_px : int
+        Image height in pixels.
+
+    Returns
+    -------
+    tuple[float, float, float]
+        ``(u0_px, v0_px, radius_px)``.
+    """
     u0 = (width_px - 1) / 2.0
     v0 = (height_px - 1) / 2.0
     radius = 0.5 * float(np.hypot(width_px - 1, height_px - 1))
@@ -88,6 +107,7 @@ def _fit_coeffs_least_squares(
     p0 = _pack_coeffs(coeffs0_x, coeffs0_y)
 
     def fun(p: np.ndarray) -> np.ndarray:
+        """Residual function for central rayfield bundle adjustment."""
         coeffs_x, coeffs_y = _unpack_coeffs(p, K)
         res_parts: list[np.ndarray] = []
         for fid, fr in frames.items():
@@ -100,7 +120,9 @@ def _fit_coeffs_least_squares(
             res_parts.append(np.sqrt(lam_coeff) * p)
         return np.concatenate(res_parts, axis=0)
 
-    sol = least_squares(fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev))
+    sol = least_squares(
+        fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev)
+    )
     cx, cy = _unpack_coeffs(sol.x, K)
     diag = {
         "coeff_opt_cost": float(sol.cost),
@@ -129,13 +151,16 @@ def _fit_pose_least_squares(
     d = _dir_from_coeffs(A, coeffs_x, coeffs_y)
 
     def fun(p: np.ndarray) -> np.ndarray:
+        """Residual function for central rayfield bundle adjustment."""
         rvec = p[:3]
         tvec = p[3:]
         rot = R.from_rotvec(rvec).as_matrix()
         P_cam = (rot @ fr.P_board_mm.T).T + tvec.reshape(1, 3)
         return _point_to_ray_residual(P_cam, d)
 
-    sol = least_squares(fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev))
+    sol = least_squares(
+        fun, p0, method="trf", loss=loss, f_scale=float(f_scale_mm), max_nfev=int(max_nfev)
+    )
     rvec = sol.x[:3].copy()
     tvec = sol.x[3:].copy()
     diag = {
@@ -163,14 +188,41 @@ def fit_central_rayfield_ba(
     max_nfev_coeff: int = 80,
     max_nfev_pose: int = 50,
 ) -> CentralRayFieldBAResult:
-    """
-    Alternating minimization for a central ray-field and per-frame poses.
+    """Alternating minimisation for a central ray-field and per-frame poses.
 
-    We minimize point-to-ray distances:
+    Minimises point-to-ray distances:
       r_ij = (I - d d^T) (R_i P_j + t_i)
-
-    where d = d(u_ij, v_ij) comes from a compact Zernike model, and (R_i,t_i)
+    where d = d(u_ij, v_ij) comes from a compact Zernike model, and (R_i, t_i)
     is the board pose for each frame in camera coordinates.
+
+    Parameters
+    ----------
+    frames : dict[int, FrameObservations]
+        Per-frame observations keyed by frame index.
+    image_width_px, image_height_px : int
+        Sensor dimensions in pixels.
+    nmax : int
+        Maximum Zernike radial order.
+    rvecs0, tvecs0 : dict[int, ndarray]
+        Initial pose estimates per frame.
+    coeffs0_x, coeffs0_y : ndarray, optional
+        Initial Zernike coefficient estimates.
+    lam_coeff : float
+        Regularisation weight for Zernike coefficients.
+    loss : str
+        Robust loss function for least_squares.
+    f_scale_mm : float
+        Scale parameter for robust loss, in millimetres.
+    outer_iters : int
+        Number of alternating refinement iterations.
+    max_nfev_coeff, max_nfev_pose : int
+        Max function evaluations for coefficient and pose sub-problems.
+
+    Returns
+    -------
+    CentralRayFieldBAResult
+        Dataclass result object containing the fitted Zernike coefficients,
+        per-frame board poses, and optimisation diagnostics.
     """
     if not frames:
         raise ValueError("frames is empty")
@@ -202,8 +254,14 @@ def fit_central_rayfield_ba(
             raise RuntimeError("inconsistent Zernike design matrix width")
     assert K is not None
 
-    rvecs = {int(fid): np.asarray(rvecs0[int(fid)], dtype=np.float64).reshape(3) for fid in frames_clean}
-    tvecs = {int(fid): np.asarray(tvecs0[int(fid)], dtype=np.float64).reshape(3) for fid in frames_clean}
+    rvecs = {
+        int(fid): np.asarray(rvecs0[int(fid)], dtype=np.float64).reshape(3)
+        for fid in frames_clean
+    }
+    tvecs = {
+        int(fid): np.asarray(tvecs0[int(fid)], dtype=np.float64).reshape(3)
+        for fid in frames_clean
+    }
 
     if coeffs0_x is None:
         coeffs_x = np.zeros((K,), dtype=np.float64)

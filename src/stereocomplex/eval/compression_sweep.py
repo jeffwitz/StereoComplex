@@ -26,6 +26,35 @@ def run_compression_sweep(
     tensor_sigma: float = 1.5,
     search_radius: int = 3,
 ) -> Path:
+    """Re-encode images under compression settings and evaluate ChArUco detection.
+
+    Each case is re-encoded into a subdirectory of ``out_dir``, then
+    ``eval_charuco_scene`` is run on every scene.
+
+    Parameters
+    ----------
+    base_dataset : Path
+        Source dataset root.
+    out_dir : Path
+        Directory where re-encoded datasets and the report are written.
+    cases : list[SweepCase]
+        Compression variants to test (format, quality, lossless flag).
+    splits : tuple[str, ...]
+        Dataset splits to process.
+    method : str
+        Corner identification method.
+    refine : str
+        Subpixel refinement strategy.
+    tensor_sigma : float
+        Gaussian sigma for tensor-based refinement.
+    search_radius : int
+        Search window half-width for refinement.
+
+    Returns
+    -------
+    Path
+        Path to the written ``compression_sweep_report.json``.
+    """
     base_dataset = base_dataset.resolve()
     out_dir = out_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -42,7 +71,11 @@ def run_compression_sweep(
         reencode_dataset(
             base_dataset,
             ds_out,
-            ReencodeOptions(image_format=case.image_format, quality=case.quality, webp_lossless=case.webp_lossless),
+            ReencodeOptions(
+                image_format=case.image_format,
+                quality=case.quality,
+                webp_lossless=case.webp_lossless,
+            ),
         )
 
         scene_results: list[dict[str, object]] = []
