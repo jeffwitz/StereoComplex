@@ -427,3 +427,53 @@ rtk .venv/bin/python -m pytest tests/test_model_selection_oracles.py
 - Avoid changes under `paper/cmo/` unless explicitly requested.
 - All generated/analysis artefacts should be JSON when practical.
 - Deep Claude mode: fresh session + this `CLAUDE.md` only.
+
+### No orphan figures
+
+**Rule.** Every figure committed under `paper/*/figures/` (or anywhere else
+in this repository) must be regenerateable end-to-end from this repo alone,
+with no external context, no hidden state, and no manual editing required.
+A figure for which no contributor can reproduce *both* its data and its
+layout is **orphaned** and forbidden.
+
+**Why.** Reviewers and future contributors will need to update numbers,
+fix typos, change RMS after a re-fit, or re-render at a new size. Hunting
+for the script that produced a figure — or worse, rebuilding it from
+memory — wastes hours and silently drifts the paper from the code.
+
+**How to apply.**
+
+1. Place the editable data — measurement `.npz`, sweep `.json`, labels,
+   numbers cited in the figure — under
+   `docs/assets/<paper>/figureN_<short_name>/`. Conceptual diagrams
+   (no measurement data) still get a JSON of labels/numbers there; the
+   layout-only code lives in the script.
+2. Place the generation code in `examples/notebooks/generate_fig_<short_name>.py`.
+   The script must:
+   - read everything it needs from the asset folder above (no hard-coded
+     RMS, no figure-specific magic numbers buried in matplotlib calls);
+   - write **both** the PDF used by `paper/.../manuscript.tex` and a PNG
+     for docs/preview, in the same run;
+   - be runnable as `rtk .venv/bin/python examples/notebooks/generate_fig_<name>.py`
+     with no extra flags.
+3. Place a `README.md` in the asset folder that:
+   - names the figure it produces and where it is referenced in the paper;
+   - lists every editable input file;
+   - gives the exact regenerate command.
+
+**Reference example.** `docs/assets/cmo_paper/figure2_pipeline/` +
+`examples/notebooks/generate_fig_pipeline.py` (Figure 2 of the CMO
+paper). Match that structure for every new or revised figure.
+
+**Pre-flight check before adding a figure.** Before committing a new
+PDF/PNG under `paper/*/figures/`, verify in this order:
+
+- the asset folder under `docs/assets/<paper>/figureN_<name>/` exists;
+- the script at `examples/notebooks/generate_fig_<name>.py` exists and
+  reads only from that asset folder;
+- running the script on a fresh checkout reproduces the committed figure
+  byte-equivalent (modulo non-deterministic timestamps in the PDF
+  metadata).
+
+If any of those three fails, the figure is orphaned — fix the missing
+piece before commit.
