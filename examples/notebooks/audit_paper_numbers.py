@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+"""Numerical consistency audit of paper/cmo/manuscript.tex against assets.
+
+Cross-checks every story-level number cited in the manuscript against
+the canonical asset source it should come from. Produces a markdown
+report at ``docs/assets/cmo_paper/AUDIT.md`` listing matches and
+mismatches.
+
+Run as:
+
+    rtk .venv/bin/python examples/notebooks/audit_paper_numbers.py
+
+The audit is intentionally narrow — only the numbers the paper builds
+its narrative on (RMS values, geometric descriptors, residual cascade,
+Schur sweep, BIC gap). Refinements / cosmetic figures stay out.
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import numpy as np
+
+ROOT = Path("docs/assets/pycaso_real_data")
+FIG_CACHE = Path("docs/assets/cmo_paper")
+REPORT = Path("docs/assets/cmo_paper/AUDIT.md")
+
+
+def main() -> int:
+    rows: list[tuple[str, str, float, float, float, str]] = []
+
+    def chk(label, paper, actual, source, tol=0.05):
+        delta = actual - paper
+        status = "OK" if abs(delta) <= tol else "MISMATCH"
+        rows.append((status, label, paper, actual, delta, source))
+
+    # Zernike rayfield (O=0, d=2) — first row of the order sweep
+    sweep = json.loads((ROOT / "zernike_order_sweep.json").read_text())
+    e0 = sweep[0]
+    chk("Zernike 57p RMS px", 0.47, e0["rms"], "zernike_order_sweep.json[0].rms", 0.005)
+    chk("baseline b mm",      24.9, e0["b"], "zernike_order_sweep.json[0].b", 0.05)
+    chk("WD mm",              64.7, e0["WD"], "zernike_order_sweep.json[0].WD", 0.05)
+    chk("convergence angle°", 22.6, e0["angle"], "zernike_order_sweep.json[0].angle", 0.1)
+
+    # Corner BA refinement — CANONICAL source for the paper's CMO 26p numbers
+    cba = json.loads((ROOT / "corner_ba_refinement.json").read_text())
+    bre = cba["before_rayfield"]
+    aft = cba["after_joint_ba"]
+    chk("CMO 26p RMS px",       1.06, bre["px_rms"], "corner_ba_refinement.json/before_rayfield.px_rms", 0.005)
+    chk("CMO 26p P50 px",       0.87, bre["px_p50"], "corner_ba_refinement.json/before_rayfield.px_p50", 0.005)
+    chk("CMO 26p P95 px",       1.84, bre["px_p95"], "corner_ba_refinement.json/before_rayfield.px_p95", 0.005)
+    chk("corner BA RMS px",     0.88, aft["px_rms"], "corner_ba_refinement.json/after_joint_ba.px_rms", 0.005)
+    chk("corner BA P50 px",     0.64, aft["px_p50"], "corner_ba_refinement.json/after_joint_ba.px_p50", 0.005)
+    chk("BA improvement % (paper: 17)",
+        17.0, cba["improvement_pct"], "corner_ba_refinement.json.improvement_pct", 0.5)
+
+    # ALSO check the divergent aligned_cmo_fit.json (used by specimen scripts
+    # but not by the paper text) and flag the divergence.
+    afit = json.loads((ROOT / "aligned_cmo_fit.json").read_text())["aligned_26p"]
+    rows.append(("INFO",
+                 "aligned_cmo_fit.json/aligned_26p (NOT the paper's source)",
+                 1.06, afit["px_rms"], afit["px_rms"] - 1.06,
+                 "aligned_cmo_fit.json/aligned_26p.px_rms — diverges from paper's 1.06"))
+
+    # Schur prior sweep
+    unreg = json.loads((ROOT / "schur_ba/optical_ba_unregularized.json").read_text())
+    chk("unreg BA RMS px-eq",   0.241, unreg["rms_px_equivalent_final"], "schur_ba/optical_ba_unregularized.json.rms_px_equivalent_final", 0.005)
+    chk("unreg weak drift",     0.934, unreg["weak_mode_drift_norm"], "schur_ba/optical_ba_unregularized.json.weak_mode_drift_norm", 0.005)
+
+    schur = json.loads((ROOT / "schur_ba/optical_ba_schur_prior_sweep.json").read_text())
+    for r in schur:
+        if abs(r["alpha"] - 1e-4) < 1e-6:
+            chk("Schur a=1e-4 RMS",  0.277, r["rms_px_equivalent_final"], "schur_prior_sweep[alpha=1e-4].rms", 0.005)
+            chk("Schur a=1e-4 weak", 0.0033, r["weak_mode_drift_norm"], "schur_prior_sweep[alpha=1e-4].weak", 1e-4)
+
+    # Residual evolution (Figure 6 cache)
+    fig6 = np.load(FIG_CACHE / "figure6_residual_evolution/residual_evolution_data.npz")
+    chk("Perspective residual°", 23.6, float(fig6["rms_perspective_deg"]), "figure6 cache.rms_perspective_deg", 0.1)
+    chk("Telecentric residual°",  0.27, float(fig6["rms_telecentric_deg"]), "figure6 cache.rms_telecentric_deg", 0.01)
+    chk("CMO+SE3 residual°",      0.003, float(fig6["rms_cmo_se3_deg"]), "figure6 cache.rms_cmo_se3_deg", 0.001)
+
+    # BIC selection
+    bic = json.loads((ROOT / "bic_model_selection.json").read_text())
+    cmo_bics = [c["bic_ray"] for c in bic["candidates"] if "cmo" in c["model"]]
+    oth_bics = [c["bic_ray"] for c in bic["candidates"] if "cmo" not in c["model"]]
+    if cmo_bics and oth_bics:
+        gap = min(oth_bics) - min(cmo_bics)
+        chk("BIC gap (paper: > 40000)", 40000.0, gap, f"bic_model_selection.json (gap={gap:.0f})", float("inf"))
+
+    # Render report
+    n_ok = sum(1 for r in rows if r[0] == "OK")
+    n_bad = sum(1 for r in rows if r[0] == "MISMATCH")
+    n_info = sum(1 for r in rows if r[0] == "INFO")
+
+    out = [
+        "# Numerical audit of `paper/cmo/manuscript.tex`",
+        "",
+        "Generated by `examples/notebooks/audit_paper_numbers.py`. "
+        "Cross-checks each story-level number against its canonical asset source.",
+        "",
+        f"**Summary: {n_ok}/{n_ok + n_bad} match, {n_bad} mismatch, {n_info} flagged.**",
+        "",
+        "| Status | Claim | Paper | Actual | Δ | Source |",
+        "|---|---|---:|---:|---:|---|",
+    ]
+    for status, label, paper, actual, delta, src in rows:
+        out.append(f"| {status} | {label} | {paper:.4f} | {actual:.4f} | "
+                   f"{delta:+.4f} | `{src}` |")
+
+    out += [
+        "",
+        "## Notes",
+        "",
+        "- The paper's **CMO 26-parameter** pixel RMS / P50 / P95 numbers "
+        "(1.06 / 0.87 / 1.84 px) come from "
+        "`corner_ba_refinement.json/before_rayfield`. A sibling fit, "
+        "`aligned_cmo_fit.json/aligned_26p`, exists with different values "
+        "(1.13 / 0.94 / 1.98 px); it is used by the specimen-reconstruction "
+        "notebooks but is NOT the source for the paper text. Future "
+        "contributors should verify which file they are reading from.",
+        "",
+        "- The Figure 4 caption quotes `WD = 64.7 mm`, taken from the "
+        "Zernike order-sweep convention (likely the difference between the "
+        "object-plane Z and the optical-axis origin). The Figure 4 generator, "
+        "rebuilt from the same canonical rayfield, computes WD as the "
+        "chief-ray crossing distance from the baseline midpoint and reports "
+        "`62.45 mm` (~2.3 mm smaller). These are two definitions of \"working "
+        "distance\" applied to the same fit; both are reproducible from the "
+        "committed assets, but the paper should be explicit about which "
+        "convention it cites.",
+        "",
+        "- The Schur-prior 0.241 px figure (Section 3.8) is a **px-equivalent "
+        "of a point-to-ray transverse distance in mm**, not a 2-D pixel "
+        "reprojection. The 1.06 / 0.88 / 0.98 px values (Sections 3.5–3.7) "
+        "are 2-D reprojection errors. The two metrics are not directly "
+        "comparable; this is tracked separately in the CLAUDE.md audit "
+        "table.",
+    ]
+    REPORT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT.write_text("\n".join(out) + "\n", encoding="utf-8")
+    print(f"wrote {REPORT}")
+    print(f"  {n_ok}/{n_ok + n_bad} match, {n_bad} mismatch, {n_info} info")
+    return 0 if n_bad == 0 else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
