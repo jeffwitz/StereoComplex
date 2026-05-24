@@ -40,9 +40,21 @@ def pixel_to_sensor_um(
 def sensor_um_to_pixel(
     view: ViewMeta, x_um: np.ndarray, y_um: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Inverse of `pixel_to_sensor_um` for the same conventions (origin at crop center).
-    Returns delivered image pixel coordinates (u_px, v_px).
+    """Inverse of ``pixel_to_sensor_um``: sensor-plane micrometres back to pixel coordinates.
+
+    Parameters
+    ----------
+    view : ViewMeta
+        View metadata carrying sensor pitch, binning, crop, and resize parameters.
+    x_um : ndarray
+        Sensor-plane x coordinates in micrometres, origin at crop centre.
+    y_um : ndarray
+        Sensor-plane y coordinates in micrometres, origin at crop centre.
+
+    Returns
+    -------
+    (u_px, v_px) : tuple of ndarray
+        Delivered-image pixel coordinates.
     """
     x_um = np.asarray(x_um, dtype=np.float64)
     y_um = np.asarray(y_um, dtype=np.float64)
