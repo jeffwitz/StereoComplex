@@ -158,6 +158,7 @@ class NCameraCalibrationResult:
 
     @property
     def n_channels(self) -> int:
+        """Number of channels in this multi-camera dataset."""
         return len(self.channel_names)
 
 

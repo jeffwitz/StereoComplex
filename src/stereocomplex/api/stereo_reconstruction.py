@@ -38,10 +38,12 @@ class StereoCentralRayFieldModel:
 
     @property
     def C_L_mm(self) -> np.ndarray:
+        """Left camera centre in world coordinates (origin, in mm)."""
         return np.zeros((3,), dtype=np.float64)
 
     @property
     def C_R_in_L_mm(self) -> np.ndarray:
+        """Right camera centre expressed in the left camera frame (in mm)."""
         return (-self.R_RL.T @ self.t_RL.reshape(3)).astype(np.float64)
 
     @classmethod

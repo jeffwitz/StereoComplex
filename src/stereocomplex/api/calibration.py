@@ -68,6 +68,7 @@ def _estimate_K0_from_homographies(
     fs = np.logspace(np.log10(f_min), np.log10(f_max), num=80, dtype=np.float64)
 
     def cost_for_f(f: float) -> float:
+        """Focal-length regularisation cost for Zhang's calibration."""
         Kinv = np.array(
             [[1.0 / f, 0.0, -cx / f], [0.0, 1.0 / f, -cy / f], [0.0, 0.0, 1.0]], dtype=np.float64
         )
@@ -92,6 +93,7 @@ def _estimate_K0_from_homographies(
             return np.array([[f0, 0.0, cx], [0.0, f0, cy], [0.0, 0.0, 1.0]], dtype=np.float64)
 
     def v_ij(H: np.ndarray, i: int, j: int) -> np.ndarray:
+        """Zhang's v_ij vector for the image-of-the-absolute-conic constraint."""
         h_i = H[:, i].reshape(3)
         h_j = H[:, j].reshape(3)
         return np.array(
