@@ -1,0 +1,8 @@
+{
+  "title": "3-D sub-pupil reconstruction (Figure 4 of the CMO paper)",
+  "intermediate_state": "../../pycaso_real_data/intermediate_state.npz",
+  "pixel_pitch_mm": 0.0055,
+  "chief_ray_length_mm": 65.0,
+  "view_init": {"elev": 20, "azim": -60},
+  "figure_size": [10, 8]
+}
