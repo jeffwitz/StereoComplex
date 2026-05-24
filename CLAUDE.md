@@ -529,9 +529,19 @@ reconstructed = reconstruct_from_calibrated_rays(obs, xyz_maps)
   geometric validation, not aesthetic rendering.
 - Mitsuba 3 integration — deferred to Phase 5 (microscope optics).
 
-#### Phase 2.1 — Joint N-rayfield BA
-channels, so `fit_zernike_rayfields_from_multi_camera_observations(...)` becomes
-a true N-camera optimizer instead of a `left/right`-only wrapper.
+#### Phase 2.1 — Joint N-rayfield BA with N-view triangulation
+
+**Status: specification written, not implemented.**
+
+The stereo BA minimises point-to-ray distances for *pairs* of rays (left/right).
+Phase 2.1 generalises this to **N rays simultaneously**: a 3-D point observed
+by K cameras (K = 2‥N) constrains the point via K ray-to-point distances.
+
+**Goal.** Add true N-view bundle adjustment where every edge of the view-graph
+(camera `c` sees point `p`) contributes a residual.  For a point seen by K
+cameras, the residual is the sum of K point-to-ray distances, and the point
+is triangulated from K rays (via the generalised N-ray midpoint, §2.2), not
+from a single stereo pair.
 
 **Grounding — the existing stereo solver.** The reference implementation is
 `fit_zernike_rayfield_from_charuco_observations(...)` in
@@ -550,7 +560,7 @@ x = [ c_left (n_zernike) | c_right (n_zernike) | poses (6 * n_poses) ]
   (`_channel_residuals`); total = `concat` over channels, then per-channel
   origin-Z regularization rows appended (`residuals_reg`).
 
-**Architectural decisions (fixed for Phase 2.0 — do not deviate without JFW).**
+**Architectural decisions (fixed for Phase 2.1 — do not deviate without JFW).**
 
 1. Extrinsics are absorbed into each channel's rayfield. The world frame is the
    reference channel `channel_names[0]`; every channel's Zernike rayfield is
@@ -561,7 +571,34 @@ x = [ c_left (n_zernike) | c_right (n_zernike) | poses (6 * n_poses) ]
 3. One shared board pose per frame, unchanged.
 4. Channel order is `obs.channel_names`; reference channel is index 0.
 
-**Generalized parameter layout.**
+**2.2 N-ray triangulation.** The existing `triangulate_midpoint` works on
+exactly 2 rays.  A new function generalises this to K rays (K ≥ 2):
+
+```python
+def triangulate_nrays(origins, directions) -> tuple[np.ndarray, float]:
+    """Midpoint of the point that minimises the sum of squared point-to-ray distances.
+
+    Parameters
+    ----------
+    origins : ndarray, shape (K, 3)
+        Ray origins in world frame, millimetres.
+    directions : ndarray, shape (K, 3)
+        Unit ray directions (will be normalised).
+
+    Returns
+    -------
+    P : ndarray, shape (3,)
+        Triangulated point (least-squares intersection), millimetres.
+    gap : float
+        RMS of the K point-to-ray distances, millimetres.
+    """
+```
+
+This is the linear least-squares solution: `P = (sum(I - d_i d_i^T))^{-1}
+sum((I - d_i d_i^T) O_i)`.  For K=2 it reduces to the existing midpoint
+formula.  For parallel rays it degenerates gracefully (pseudo-inverse).
+
+**Generalised parameter layout.**
 
 ```
 x = [ c_ch0 | c_ch1 | ... | c_ch{N-1} | poses (6 * n_poses) ]
@@ -574,6 +611,12 @@ stereo layout — that identity is what makes step 5 below provable.
 
 **Implementation steps (ordered, each with a gate).**
 
+0. **N-ray triangulator** — implement `triangulate_nrays` and test:
+   - 2 rays = stereo midpoint (should match existing to machine precision).
+   - 4 rays on a pinhole oracle → RMS gap < 1e-6 mm (rays should intersect).
+   - 4 rays with added noise → gap proportional to noise amplitude.
+   - Gate: `pytest tests/test_nray_triangulation.py`.
+
 1. Add a layout helper (free function or frozen dataclass) in
    `rayfield_from_observations.py` returning the slice for
    `(channel_index, "origin"|"direction")` and the pose slice. No behavior
@@ -583,7 +626,10 @@ stereo layout — that identity is what makes step 5 below provable.
    initial_poses_t=None, *, max_nfev=300, origin_reg_weight=1e-3)
    -> tuple[MultiCameraZernikeRayField, ZernikeFitDiagnostics]`. Reuse
    `_precompute`, `_CachedGroup`, `_channel_residuals` unchanged — iterate
-   channels instead of hardcoding L/R. Pose init uses the reference channel:
+   channels instead of hardcoding L/R.  **Residual: for each 3-D point p that
+   is visible from K cameras, the residual is the concatenation of K
+   ray-to-point distances** (one per camera ray), not just 2.  Triangulation
+   uses `triangulate_nrays`.  Pose init uses the reference channel:
    `estimate_initial_poses_from_central_pinhole` with
    `K_ref = intrinsics_by_channel[channel_names[0]]` and the reference channel's
    pixels — add a reference-channel adapter if that helper does not accept the
@@ -633,6 +679,9 @@ stereo layout — that identity is what makes step 5 below provable.
 - Recovered board poses within `1e-3` rad / `1e-2` mm of the simulated poses.
 - Stereo equivalence: noise-free 2-channel `ray_rms_mm` matches the existing
   stereo solver to machine precision (step 5).
+- **N-view equivalence:** a point triangulated from K=4 pinhole rays via
+  `triangulate_nrays` matches the ground-truth point to within 1e-6 mm
+  (4 pinhole rays should intersect exactly).
 
 ### Phase 3 — N-channel model selection
 
