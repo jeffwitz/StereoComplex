@@ -21,7 +21,24 @@ from stereocomplex.eval.predictors.warps import (
 
 
 def marker_correspondences(charuco_board, marker_ids, marker_corners, *, ndim: int = 2):
-    """Pair detected ArUco marker corners with board object points."""
+    """Pair detected ArUco marker corners with board object points.
+
+    Parameters
+    ----------
+    charuco_board : CharucoBoardSpec
+        Board geometry defining object-point layout.
+    marker_ids : ndarray
+        Marker IDs.
+    marker_corners : list of ndarray
+        Detected marker corners per marker.
+    ndim : int
+        Dimensionality of object points (2 or 3).
+
+    Returns
+    -------
+    (obj_xy, img_uv) : tuple of ndarray
+        Matched object points (mm) and image points (pixels).
+    """
     if marker_ids is None or marker_corners is None or len(marker_ids) == 0:
         return None
     return build_marker_correspondences(charuco_board, marker_ids, marker_corners, ndim=ndim)
@@ -30,7 +47,24 @@ def marker_correspondences(charuco_board, marker_ids, marker_corners, *, ndim: i
 def predict_marker_warp(
     method: str, obj_pts: np.ndarray, img_pts: np.ndarray, chess: np.ndarray
 ) -> np.ndarray:
-    """Predict board-plane coordinates from a marker warp model."""
+    """Predict board-plane coordinates from a marker warp model.
+
+    Parameters
+    ----------
+    method : str
+        Prediction method ('kfield', 'rayfield', etc.).
+    obj_pts : ndarray
+        Board-plane object points in millimetres.
+    img_pts : ndarray
+        Image-plane marker corner coordinates.
+    chess : ndarray
+        ChArUco corner positions to predict.
+
+    Returns
+    -------
+    ndarray, shape (N, 2)
+        Predicted board-plane points in millimetres.
+    """
     predictors = {
         "kfield": predict_points_affine_field,
         "rayfield": predict_points_rayfield,
@@ -52,7 +86,28 @@ def predict_charuco_points(
     camera_matrix: np.ndarray | None,
     dist_coeffs: np.ndarray | None,
 ) -> tuple[np.ndarray, np.ndarray] | None:
-    """Predict ChArUco corner positions from marker correspondences."""
+    """Predict ChArUco corner positions from marker correspondences.
+
+    Parameters
+    ----------
+    cv2 : module
+        OpenCV module for corner refinement.
+    charuco_board : CharucoBoardSpec
+        Board geometry.
+    features : ImageFeatures
+        Detected image features (marker corners and IDs).
+    method : str
+        Prediction method ('field', 'keypt').
+    camera_matrix : ndarray or None
+        Camera matrix for undistortion, shape (3,3).
+    dist_coeffs : ndarray or None
+        Distortion coefficients.
+
+    Returns
+    -------
+    (obj_xy, img_uv) : tuple of ndarray or None
+        Matched object points (mm) and image points (pixels).
+    """
     if method == "mls":
         method = "mls_affine"
 
