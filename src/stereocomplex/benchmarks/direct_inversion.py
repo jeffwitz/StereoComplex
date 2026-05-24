@@ -162,9 +162,10 @@ def fit_direct_model_from_observations(
     initial_optical_parameters : (p,) ndarray | None
         Initial guess for the optical parameters.  Defaults to
         ``model_spec.initial_parameters``.
-    initial_pose_parameters : (6·P,) ndarray | None
-        Initial guess for the pose parameters (rvec, tvec per pose).
-        Defaults to the ground-truth poses stored in *observations*.
+    initial_poses_R, initial_poses_t : (3·P,) ndarray | None
+        Initial guesses for the pose parameters (rotation vectors and
+        translation vectors per pose).  Defaults to the ground-truth
+        poses stored in *observations*.
     K_left, K_right : (3,3) ndarray | None
         Intrinsic matrices.  Defaults to ``observations`` image_size with
         fx=fy=200, cx=W/2, cy=H/2 in the absence of a better estimate.
