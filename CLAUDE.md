@@ -473,7 +473,7 @@ session) knows what is left.
 
 | # | Figure file | Script | Asset folder | Status |
 |---|---|---|---|---|
-| 1 | `cmo_physical.pdf` | `generate_fig_cmo_physical.py` | — | TODO |
+| 1 | `cmo_physical.pdf` | `generate_fig_cmo_physical.py` | `figure1_cmo_physical/` | **DONE** |
 | 2 | `pipeline.pdf` | `generate_fig_pipeline.py` | `figure2_pipeline/` | **DONE** |
 | 3 | `BIC_vs_order.pdf` | `generate_fig_bic_vs_order.py` | `figure3_BIC_vs_order/` | **DONE** |
 | 4 | `subpupil_3d.pdf` | `generate_fig_subpupil_3d.py` | `figure4_subpupil_3d/` | **DONE** |
@@ -486,9 +486,12 @@ session) knows what is left.
 | 11 | `specimen_schur_regularized.png` | `generate_fig_specimen_schur_regularized.py` | `figure11_specimen_schur_regularized/` | **DONE** |
 | 12 | `bic_bars.pdf` | `generate_fig_bic_bars.py` | `figure12_bic_bars/` | **DONE** |
 
-Order of treatment chosen for the desorphaning pass (risk × edit
-frequency descending): 9, 10, 8, 7, 6, 4, 5, 3, 12, 1. Update the table
-as each row flips to DONE.
+**All 12 figures DONE** — every paper figure now has a manifest in
+`docs/assets/cmo_paper/figureN_<name>/` and a standalone generator in
+`examples/notebooks/generate_fig_<name>.py` that emits the PDF the
+manuscript references plus a PNG sibling for docs/preview. Heavy
+computations (Figure 6) are cached as a sibling `.npz` with a
+`--recompute` flag to refresh.
 
 **Pre-flight check before adding a figure.** Before committing a new
 PDF/PNG under `paper/*/figures/`, verify in this order:

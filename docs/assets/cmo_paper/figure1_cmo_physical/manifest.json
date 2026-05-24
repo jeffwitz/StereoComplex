@@ -1,0 +1,8 @@
+{
+  "title": "CMO stereo microscope optical layout (Figure 1 of the CMO paper)",
+  "f_obj_mm": 80,
+  "working_distance_mm": 120,
+  "b_mm": 8,
+  "exaggerated": true,
+  "figure_size": [5.5, 4.0]
+}
