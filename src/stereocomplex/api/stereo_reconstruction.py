@@ -62,6 +62,34 @@ class StereoCentralRayFieldModel:
         t_RL: np.ndarray,
         C_L_mm: np.ndarray | None = None,
     ) -> StereoCentralRayFieldModel:
+        """Build a StereoCentralRayFieldModel from raw coefficient arrays.
+
+        Parameters
+        ----------
+        image_width_px, image_height_px : int
+            Sensor dimensions in pixels.
+        nmax : int
+            Maximum Zernike radial order.
+        u0_px, v0_px : float
+            Unit-disk centre in pixels.
+        radius_px : float
+            Unit-disk radius in pixels.
+        coeffs_left_x, coeffs_left_y : ndarray
+            Zernike coefficients for the left camera.
+        coeffs_right_x, coeffs_right_y : ndarray
+            Zernike coefficients for the right camera.
+        R_RL : ndarray, shape (3, 3)
+            Rotation from left to right camera frame.
+        t_RL : ndarray, shape (3,)
+            Translation from left to right camera frame.
+        C_L_mm : ndarray, optional
+            Left camera centre in millimetres (defaults to origin).
+
+        Returns
+        -------
+        StereoCentralRayFieldModel
+            The reconstructed central rayfield model.
+        """
         if C_L_mm is None:
             C_L_mm = np.zeros((3,), dtype=np.float64)
         C_L_mm = np.asarray(C_L_mm, dtype=np.float64).reshape(3)

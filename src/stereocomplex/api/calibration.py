@@ -836,6 +836,34 @@ def fit_opencv_stereo_from_image_dirs(
     huber_c: float = 3.0,
     iters: int = 3,
 ) -> StereoOpenCVCalibrationResult:
+    """Fit an OpenCV stereo model to images in left/right directories.
+
+    Parameters
+    ----------
+    left_dir : str or Path
+        Directory containing left-camera images.
+    right_dir : str or Path
+        Directory containing right-camera images.
+    board : CharucoBoardSpec
+        ChArUco board geometry.
+    max_pairs : int
+        Maximum number of stereo pairs to process (0 = all).
+    method2d : str
+        2-D corner detection/refinement method.
+    min_common_corners : int
+        Minimum number of corners common to both views.
+    tps_lam : float
+        TPS smoothing parameter.
+    huber_c : float
+        Huber loss threshold in pixels.
+    iters : int
+        Number of IRLS refinement iterations.
+
+    Returns
+    -------
+    StereoOpenCVCalibrationResult
+        Named tuple with OpenCV calibration parameters per channel.
+    """
     pairs = _image_pairs_from_dirs(left_dir, right_dir, max_pairs=max_pairs)
     return fit_opencv_stereo_from_image_pairs(
         image_pairs=pairs,
@@ -860,6 +888,34 @@ def fit_opencv_stereo_from_dataset(
     huber_c: float = 3.0,
     iters: int = 3,
 ) -> StereoOpenCVCalibrationResult:
+    """Fit an OpenCV stereo model to a pre-organized dataset.
+
+    Parameters
+    ----------
+    dataset_root : str or Path
+        Root directory of the dataset.
+    split : str
+        Dataset split name ('train', 'val', 'test').
+    scene : str
+        Scene identifier.
+    max_frames : int
+        Maximum number of frames to process (0 = all).
+    method2d : str
+        2-D corner detection/refinement method.
+    min_common_corners : int
+        Minimum number of corners common to both views.
+    tps_lam : float
+        TPS smoothing parameter.
+    huber_c : float
+        Huber loss threshold in pixels.
+    iters : int
+        Number of IRLS refinement iterations.
+
+    Returns
+    -------
+    StereoOpenCVCalibrationResult
+        Named tuple with OpenCV calibration parameters per channel.
+    """
     board, pairs = _image_pairs_from_dataset(
         dataset_root=dataset_root, split=split, scene=scene, max_frames=max_frames
     )
@@ -1078,6 +1134,42 @@ def fit_stereo_central_rayfield_from_image_dirs(
     max_nfev: int = 800,
     export_model_dir: str | Path | None = None,
 ) -> StereoCentralRayFieldFitResult:
+    """Fit a central rayfield stereo model to images in left/right directories.
+
+    Parameters
+    ----------
+    left_dir : str or Path
+        Directory containing left-camera images.
+    right_dir : str or Path
+        Directory containing right-camera images.
+    board : CharucoBoardSpec
+        ChArUco board geometry.
+    max_pairs : int
+        Maximum number of stereo pairs (0 = all).
+    method2d : str
+        2-D corner refinement method.
+    min_common_corners : int
+        Minimum common corners per pair.
+    nmax : int
+        Maximum Zernike radial order.
+    lam_coeff : float
+        Regularisation weight for Zernike coefficients.
+    tps_lam : float
+        TPS smoothing parameter.
+    huber_c : float
+        Huber loss threshold in pixels.
+    iters : int
+        Number of IRLS iterations.
+    max_nfev : int
+        Maximum LS function evaluations.
+    export_model_dir : str or Path or None
+        If set, export the fitted model to this directory.
+
+    Returns
+    -------
+    StereoCentralRayFieldFitResult
+        Named tuple with fitted central rayfield model and diagnostics.
+    """
     pairs = _image_pairs_from_dirs(left_dir, right_dir, max_pairs=max_pairs)
     return fit_stereo_central_rayfield_from_image_pairs(
         image_pairs=pairs,
@@ -1258,6 +1350,42 @@ def fit_stereo_central_rayfield_from_dataset(
     max_nfev: int = 800,
     export_model_dir: str | Path | None = None,
 ) -> StereoCentralRayFieldFitResult:
+    """Fit a central rayfield stereo model to a pre-organized dataset.
+
+    Parameters
+    ----------
+    dataset_root : str or Path
+        Root directory of the dataset.
+    split : str
+        Dataset split name.
+    scene : str
+        Scene identifier.
+    max_frames : int
+        Maximum number of frames (0 = all).
+    method2d : str
+        2-D corner refinement method.
+    min_common_corners : int
+        Minimum common corners per pair.
+    nmax : int
+        Maximum Zernike radial order.
+    lam_coeff : float
+        Regularisation weight for Zernike coefficients.
+    tps_lam : float
+        TPS smoothing parameter.
+    huber_c : float
+        Huber loss threshold in pixels.
+    iters : int
+        Number of IRLS iterations.
+    max_nfev : int
+        Maximum LS function evaluations.
+    export_model_dir : str or Path or None
+        If set, export the fitted model to this directory.
+
+    Returns
+    -------
+    StereoCentralRayFieldFitResult
+        Named tuple with fitted central rayfield model and diagnostics.
+    """
     board, pairs = _image_pairs_from_dataset(
         dataset_root=dataset_root, split=split, scene=scene, max_frames=max_frames
     )
