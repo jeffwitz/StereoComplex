@@ -21,13 +21,14 @@ def check_file(path):
         
         # Get real parameter names (skip self/cls)
         real_args = {a.arg for a in node.args.args}
+        real_args |= {a.arg for a in node.args.kwonlyargs}
         real_args -= {'self', 'cls'}
         if not real_args:
             continue
         
-        # Extract names mentioned in the Parameters section
-        # Simple heuristic: look for "name : type" patterns
-        params_section = doc.split('Parameters')[1] if 'Parameters' in doc else ''
+        # Extract names mentioned in the Parameters section ONLY (stop before Returns)
+        doc_until_returns = doc.split('Returns')[0] if 'Returns' in doc else doc
+        params_section = doc_until_returns.split('Parameters')[1] if 'Parameters' in doc_until_returns else ''
         lines = params_section.split('\n')
         doc_params = set()
         for line in lines:
