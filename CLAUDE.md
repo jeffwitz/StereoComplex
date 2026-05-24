@@ -477,7 +477,7 @@ session) knows what is left.
 | 2 | `pipeline.pdf` | `generate_fig_pipeline.py` | `figure2_pipeline/` | **DONE** |
 | 3 | `BIC_vs_order.pdf` | `generate_fig_bic_vs_order.py` | — | TODO |
 | 4 | `subpupil_3d.pdf` | `generate_fig_subpupil_3d.py` | `figure4_subpupil_3d/` | **DONE** |
-| 5 | `dy_profile_comparison.pdf` | `generate_fig_dy_profile.py` | — | TODO |
+| 5 | `dy_profile_comparison.pdf` | `generate_fig_dy_profile.py` | `figure5_dy_profile_comparison/` | **DONE** |
 | 6 | `residual_evolution.pdf` | `generate_fig_residual_evolution.py` | `figure6_residual_evolution/` | **DONE** (heavy compute cached as `residual_evolution_data.npz`; `--recompute` forces rerun) |
 | 7 | `pareto_gauge_regularization.pdf` | `generate_fig_pareto.py` | `figure7_pareto_gauge_regularization/` | **DONE** |
 | 8 | `schur_singular_values.pdf` | `generate_fig_schur_svd.py` | `figure8_schur_singular_values/` | **DONE** |
