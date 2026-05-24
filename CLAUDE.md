@@ -150,6 +150,14 @@ Rules:
 - Do **not** refactor / split files for this; readability comes from the
   docstrings, not from moving code around.
 
+**Next pass — actionable TODO list at `docs/DOCSTRING_TODO.md`.**
+That file carries the prioritised list of 43 multi-arg public functions
+still at single-line depth (post commit `9f0181b`), with the full
+signature of each, the depth template, the hard rules (use
+`examples/notebooks/check_docstring_params.py` before every commit,
+honest commit titles, one file per commit), and the stopping criterion.
+Delete that file when the list is empty.
+
 Measure progress:
 
 ```bash
