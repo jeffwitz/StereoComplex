@@ -12,7 +12,13 @@ from stereocomplex.cli.refine_corners import run_refine_corners
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry point for the stereocomplex command-line tool."""
+    """CLI entry point for the stereocomplex command-line tool.
+
+    Parameters
+    ----------
+    argv : list of str
+        Command-line arguments (subcommand + options).
+    """
     parser = argparse.ArgumentParser(prog="stereocomplex")
     sub = parser.add_subparsers(dest="cmd", required=True)
 

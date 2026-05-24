@@ -326,7 +326,31 @@ def run_refine_corners(
     out_json: Path,
     out_npz: Path | None,
 ) -> None:
-    """CLI entry point for the refine-corners subcommand."""
+    """CLI entry point: refine ChArUco corners across a dataset scene.
+
+    Parameters
+    ----------
+    dataset_root : Path
+        Root directory of the dataset.
+    scene : str
+        Scene name (e.g. 'scene_0000').
+    method : str
+        Refinement method ('rayfield_tps_robust' by default).
+    max_frames : int, optional
+        Limit number of frames processed (all if None).
+    tps_lam : float
+        TPS smoothing parameter.
+    huber_c : float
+        Huber loss threshold in pixels.
+    iters : int
+        Number of IRLS iterations.
+    split : str
+        Dataset split ('train', 'val', 'test').
+    out_json : Path
+        Output JSON report path.
+    out_npz : Path, optional
+        Output NPZ calibration file path.
+    """
     refined = refine_dataset_scene(
         dataset_root=dataset_root,
         split=split,

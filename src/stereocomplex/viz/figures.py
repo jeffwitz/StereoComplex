@@ -31,6 +31,17 @@ def diagram_pinhole_stereo(
 
     Two camera centres O_L, O_R separated by baseline B, viewing a
     specimen point X.  One chief ray per camera.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axes.
+    O_left, O_right : tuple of float
+        Left and right optical centres in (x, z) millimetres.
+    specimen : tuple of float
+        Specimen position in (x, z) millimetres.
+    pixel_pitch : float
+        Pixel pitch in millimetres for sensor-scale indicators.
     """
     OL = np.array([float(O_left[0]), float(O_left[1])])
     OR = np.array([float(O_right[0]), float(O_right[1])])
@@ -116,6 +127,27 @@ def diagram_cmo_physical(
     In the afocal region rays are parallel to the optical axis; this is
     the defining property of an infinity-corrected CMO and justifies
     modelling each channel as a virtual pinhole at its sub-pupil.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axes.
+    model : CMOPhysicalStereoModel, optional
+        Pre-fitted model; overrides the individual geometry parameters.
+    f_obj : float
+        Objective focal length in millimetres.
+    working_distance : float
+        Distance from objective to specimen in millimetres.
+    b : float
+        Stereo baseline in millimetres.
+    f_tube : float
+        Tube lens focal length in millimetres.
+    pixel_pitch : float
+        Sensor pixel pitch in millimetres.
+    cx_px : float
+        Principal point x-coordinate in pixels.
+    exaggerated : bool
+        If True, exaggerate sub-pupil separation for visual clarity.
     """
 
     if model is not None:
@@ -256,6 +288,19 @@ def diagram_greenough(
     objectives at z > 0, specimen at z = 0 below them.  Each optical
     axis points DOWN from objective toward specimen.  Each sensor
     sits ABOVE its objective along the tilted axis.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axes.
+    O_left, O_right : tuple of float
+        Objective centre positions in (x, z) millimetres.
+    specimen : tuple of float
+        Specimen position in (x, z) millimetres.
+    sensor_offset : float
+        Distance from objective to sensor along the optical axis, in mm.
+    pixel_pitch : float
+        Pixel pitch in millimetres for sensor-scale indicators.
     """
 
     OL = np.array([float(O_left[0]), float(O_left[1])])
