@@ -484,7 +484,7 @@ session) knows what is left.
 | 9 | `specimen_reconstruction.pdf` | `generate_fig_specimen_reconstruction.py` | `figure9_specimen_reconstruction/` | **DONE** |
 | 10 | `zernike_cmo_rigid_removed.pdf` | `generate_fig_zernike_cmo_rigid_removed.py` | `figure10_zernike_cmo_rigid_removed/` | **DONE** (also fixed a pre-existing dimensional bug: Kabsch SE(3) now applied on 3-D mm points; "dZ after SE(3)" matches the manuscript's quoted 0.06 mm residual) |
 | 11 | `specimen_schur_regularized.png` | `generate_fig_specimen_schur_regularized.py` | `figure11_specimen_schur_regularized/` | **DONE** |
-| 12 | `bic_bars.pdf` | `generate_fig_bic_bars.py` | — | TODO |
+| 12 | `bic_bars.pdf` | `generate_fig_bic_bars.py` | `figure12_bic_bars/` | **DONE** |
 
 Order of treatment chosen for the desorphaning pass (risk × edit
 frequency descending): 9, 10, 8, 7, 6, 4, 5, 3, 12, 1. Update the table
