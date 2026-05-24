@@ -183,9 +183,35 @@ def zernike_design_matrix(
     v0_px: float,
     radius_px: float,
 ) -> tuple[np.ndarray, np.ndarray, list[ZernikeMode]]:
-    """
-    Build design matrix A (N,K) for real Zernike modes up to `nmax`.
-    Returns (A, mask, modes) where mask selects points inside the unit disk.
+    """Build the Zernike design matrix for a pixel grid.
+
+    Evaluates all real Zernike polynomials up to radial order ``nmax`` at the
+    unit-disk coordinates of each pixel.  Columns correspond to Zernike modes
+    in Noll order; rows correspond to pixels inside the unit disk.
+
+    Parameters
+    ----------
+    u_px : ndarray
+        Pixel x-coordinates.
+    v_px : ndarray
+        Pixel y-coordinates, same shape as u_px.
+    nmax : int
+        Maximum radial order (inclusive).  Produces K = (nmax+1)(nmax+2)/2 modes.
+    u0_px : float
+        x-coordinate of the unit-disk centre in pixels.
+    v0_px : float
+        y-coordinate of the unit-disk centre in pixels.
+    radius_px : float
+        Unit-disk radius in pixels.
+
+    Returns
+    -------
+    A : ndarray, shape (N_in, K)
+        Design matrix.  Row i, column j = mode j evaluated at pixel i.
+    mask : ndarray, bool
+        True where the pixel lies inside the unit disk.
+    modes : list of ZernikeMode
+        Zernike mode descriptors in Noll order (length K).
     """
     modes = zernike_modes(nmax)
     r, theta, mask = pixel_to_unit_disk(u_px, v_px, u0_px=u0_px, v0_px=v0_px, radius_px=radius_px)

@@ -137,7 +137,29 @@ def reconstruct_points_central_stereo(
     K_right: np.ndarray,
     T_right_left: np.ndarray,
 ) -> ReconstructionResult:
-    """Reconstruct correspondences with central pinhole rays."""
+    """Reconstruct 3-D points from stereo pixel correspondences using central pinhole rays.
+
+    Back-projects each pixel pair through the camera matrices, transforms the
+    right ray into the left camera frame via T_right_left, then triangulates
+    by midpoint of closest approach.
+
+    Parameters
+    ----------
+    left_pixels : ndarray, shape (N, 2)
+        Left pixel coordinates (u, v) in pixels.
+    right_pixels : ndarray, shape (N, 2)
+        Right pixel coordinates (u, v) in pixels.
+    K_left, K_right : ndarray, shape (3, 3)
+        Camera matrices for each channel.
+    T_right_left : ndarray, shape (4, 4)
+        Rigid transform from left to right camera frame.
+
+    Returns
+    -------
+    ReconstructionResult
+        Named tuple with ``points_3d_mm`` (N, 3), ``ray_gap_mm`` (N,), and
+        ``mask_valid`` (N, bool).
+    """
     uvL = np.asarray(left_pixels, dtype=np.float64).reshape(-1, 2)
     uvR = np.asarray(right_pixels, dtype=np.float64).reshape(-1, 2)
     if uvL.shape != uvR.shape:
@@ -160,7 +182,32 @@ def reconstruct_points_with_origin_fields(
     right_field: ZernikeOriginField,
     T_right_left: np.ndarray,
 ) -> ReconstructionResult:
-    """Reconstruct correspondences using identified origin fields."""
+    """Reconstruct 3-D points using per-pixel origin fields (non-central rays).
+
+    Unlike the central model where all rays share one camera centre, each
+    pixel gets its own ray origin O(u,v) and direction d(u,v) from the
+    Zernike origin field.  Triangulation uses midpoint of closest approach
+    between the two skew rays.
+
+    Parameters
+    ----------
+    left_pixels : ndarray, shape (N, 2)
+        Left pixel coordinates (u, v) in pixels.
+    right_pixels : ndarray, shape (N, 2)
+        Right pixel coordinates (u, v) in pixels.
+    left_field : ZernikeOriginField
+        Fitted left-channel non-central rayfield.
+    right_field : ZernikeOriginField
+        Fitted right-channel non-central rayfield.
+    T_right_left : ndarray, shape (4, 4)
+        Rigid transform from left to right camera frame.
+
+    Returns
+    -------
+    ReconstructionResult
+        Named tuple with ``points_3d_mm`` (N, 3), ``ray_gap_mm`` (N,), and
+        ``mask_valid`` (N, bool).
+    """
     uvL = np.asarray(left_pixels, dtype=np.float64).reshape(-1, 2)
     uvR = np.asarray(right_pixels, dtype=np.float64).reshape(-1, 2)
     if uvL.shape != uvR.shape:
