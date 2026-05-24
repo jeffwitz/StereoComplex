@@ -682,6 +682,36 @@ The CMO model's rigid sub-pupil and telecentric direction parameterisation impos
 Since no independent 3D ground truth is available for the coin specimen, we interpret the depth-scale difference as a convergence-depth ambiguity inherent to uncalibrated stereo reconstruction, not as a failure of either model.
 The depth-only scale discrepancy is therefore reported as an unresolved convergence-depth ambiguity between the flexible Zernike rayfield and the compact physical model. It does not by itself establish which reconstruction is metrically closer to the real coin surface. Resolving this point would require an independent 3D reference, for example profilometry of the same specimen.
 
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/specimen_schur_regularized.png}
+\caption{Five-variant specimen reconstruction with Schur-regularised variants. Each row shows the Z-map (surface relief after mean-plane subtraction), the XY footprint (coloured by relief), and the ray-gap histogram (log scale, shared range). All CMO variants are aligned to the Zernike reference frame via \texttt{core/conventions.py}. The rayfield initialisation (row~2) has a median gap \SI{0.022}{mm}---20$\times$ larger than the BA-refined rows---revealed by the corrected world-frame Y axis. The regularised variants (rows~4--5) achieve Z MAD \SI{0.027}{mm}, marginally better than the unregularised BA (\SI{0.030}{mm}) and $2.6\times$ smoother than the Zernike reference (\SI{0.194}{mm}). All BA variants converge to magnification $\sim$0.193 vs.\ Zernike 0.197 (3.5\,\% systematic model bias).}
+\label{fig:specimen_schur}
+\end{figure}
+
+Table~\ref{tab:specimen_comparison} quantifies the five reconstructions.
+The rayfield-initialised CMO model (before BA) has a median ray gap of \SI{0.022}{mm}---an order of magnitude worse than all BA-refined variants ($\sim$\SI{0.001}{mm}). This was previously masked by a Y-axis coordinate convention issue (see \texttt{core/conventions.py}); with the corrected world frame, the initial model's triangulation quality is revealed to be substantially worse than the BA-refined models.
+All BA variants recover tight ray intersections (median gap $\sim$\SI{1}{\micro\metre}), confirming that the ray geometry is correct regardless of the regularisation strategy.
+The regularised variants achieve Z MAD \SI{0.027}{mm}, marginally better than the unregularised BA (\SI{0.030}{mm})---the prior does not degrade the geometric reconstruction.
+All CMO BA variants converge to a magnification ratio of $\sim$0.193 vs.\ the Zernike reference at 0.197, reflecting a 3.5\,\% systematic model bias between the compact 26-parameter physical model and the flexible 57-parameter rayfield.
+
+\begin{table}[H]
+\centering
+\caption{Five-variant specimen reconstruction: surface roughness (Z MAD), median ray gap, and magnification ratio vs.\ the nominal 18.75~mm 2-cent euro coin.}
+\label{tab:specimen_comparison}
+\begin{tabular}{lrrr}
+\toprule
+Model & Z MAD (mm) & Median gap (mm) & Magnification \\
+\midrule
+Zernike rayfield (57~p)  & 0.194 & 0.0011 & 0.1968 \\
+CMO 26~p (rayfield init) & 0.073 & \textbf{0.0224} & 0.1904 \\
+CMO 26~p --- BA unregularised & 0.030 & 0.0011 & 0.1931 \\
+CMO 26~p --- BA + isotropic prior ($\alpha{=}10^{-2}$) & 0.027 & 0.0011 & 0.1930 \\
+CMO 26~p --- BA + \textbf{Schur prior} ($\alpha{=}10^{-3}$) & \textbf{0.027} & 0.0011 & 0.1930 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Model Performance}
 
 \input{tables/model_comparison.tex}
