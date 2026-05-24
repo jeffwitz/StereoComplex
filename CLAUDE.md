@@ -421,6 +421,9 @@ rtk .venv/bin/python -m pytest tests/test_model_selection_oracles.py
 
 - Code, comments, docstrings, and commit messages are in English.
 - Communicate with JFW in French.
+- **Every paper figure is versioned**: a standalone Python script generates a
+  vector PDF from JSON/NPZ data. The script *is* the source of truth; no
+  inline generation, no PNG without a script.
 - Keep backward-compatible stereo APIs unless JFW explicitly asks to break them.
 - Do not silently change public API behavior.
 - Commit and push each validated task to `origin/develop`.
