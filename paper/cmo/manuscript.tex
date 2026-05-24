@@ -379,7 +379,7 @@ We introduce an \textbf{operational usability score} that adds a hard reprojecti
 \begin{equation}
 S_{\mathrm{usable}} = \text{BIC}_{\text{ray}} + \mathbf{1}_{e_{\text{px}} > \SI{1.5}{px}} \left[10^6 + N_{\text{px}} \log\left(\frac{e_{\text{px}}^2}{1.5^2}\right)\right].
 \end{equation}
-Figure~\ref{fig:pareto} shows the gauge-regularisation sweep. The 14p telecentric model is rejected ($S_{\mathrm{usable}} \approx +978\,890$); the 26p SE(3)-aligned model is selected as best usable ($S_{\mathrm{usable}} \approx -32\,433$).
+Figure~\ref{fig:pareto} shows the gauge-regularisation sweep. Figure~\ref{fig:bicbars} and Table~\ref{tab:bic} report the usability-filtered model selection: the 14p telecentric model is rejected ($S_{\mathrm{usable}} \approx +978\,890$); the 26p SE(3)-aligned model is selected as the best usable physical model ($S_{\mathrm{usable}} \approx -32\,433$).
 
 \begin{figure}[!htbp]
 \centering
@@ -428,7 +428,7 @@ When $c \approx 1$, optics and poses are nearly inseparable (ill-conditioned).
 
 The Zernike rayfield itself (57 parameters, \SI{0.47}{px} RMS) serves as a generic non-parametric reference: it is a per-pixel spline in the Zernike basis and makes no assumptions about the optical architecture. The compact 26p model loses approximately \SI{0.6}{px} relative to this ceiling. This \SI{0.6}{px} gap represents the irreducible cost of physical interpretability: the 26 parameters capture the dominant telecentric skeleton and SE(3) arm misalignment, while the remaining ~\SI{0.6}{px} come from low-amplitude aberrations (field curvature, astigmatism, detection noise) that only the flexible 57-parameter Zernike field can absorb. For applications where sub-pixel accuracy is less critical than having a physically meaningful model, this trade-off is acceptable.
 
-In the StereoComplex direct-BA diagnostic implementation, a CMO-like configuration yields a Schur-complement coupling norm $c=0.81$, computed from a finite-difference Jacobian (forward differences, step $\delta=10^{-6}$, parameters scaled to comparable units). Because such block norms depend on the parameter scaling, the value is reported as a conditioning diagnostic rather than as a dimensionless property of the microscope. This value is reported as a conditioning diagnostic of the inverse problem, not as an independent physical measurement on the Pycaso dataset. Because such block norms can depend on parameter scaling, the value should be interpreted qualitatively: it indicates strong optics--pose coupling, not a universal dimensionless property of all CMO microscopes.
+In the StereoComplex direct-BA diagnostic implementation, the real Pycaso configuration yields a Schur-complement coupling norm $c=0.96$, while a synthetic CMO-like oracle gives $c\approx0.81$, both computed from finite-difference Jacobians (forward differences, step $\delta=10^{-6}$, parameters scaled to comparable units). Because such block norms depend on the parameter scaling, the values are reported as conditioning diagnostics rather than as universal dimensionless properties. The qualitative interpretation is robust: $c$ near unity indicates strong optics--pose coupling, not a universal property of all CMO microscopes.
 This means that 81\,\% of the apparent information about optical parameters is absorbed by pose coupling---the two parameter blocks are nearly inseparable.
 By contrast, the rayfield-mediated pipeline operates with $c = 0.0$: the Zernike BA absorbs pose uncertainty into the rayfield through its constrained shared-rotation model (15 pose parameters), and the ray-space model identification stage is entirely pose-free.
 
@@ -450,7 +450,7 @@ The pixel RMS improves from \SI{1.06}{px} to \SI{0.88}{px} (P50=\SI{0.64}{px}, P
 The model geometry---effective baseline, working distance, focal length, and convergence angle (all in the rayfield gauge and fixed $f_x$ reference), as well as the SE(3) arm corrections---is essentially identical before and after corner refinement.
 This confirms that the rayfield-initialised parameters are already near-optimal for corner reprojection: the corner BA improves pose estimates but does not alter the physical model.
 This is a strong validation of the two-stage decomposition strategy: the rayfield fit, which never directly minimises corner error, produces parameters so close to the corner optimum that the dedicated BA can barely improve them.
-In contrast, the direct approach---jointly estimating optics and poses from corners---is severely ill-conditioned for this non-central system (Schur-complement coupling norm $0.81$), failing to converge with a pinhole initialisation (RMS \SI{29}{px}).
+In contrast, the direct approach---jointly estimating optics and poses from corners---is severely ill-conditioned for this non-central system (Schur-complement coupling norm $c=0.96$ on the real Pycaso configuration, $c\approx0.81$ on synthetic CMO-like oracles), failing to converge with a pinhole initialisation (RMS \SI{29}{px}).
 
 \subsection{Stabilising Direct BA with a Schur-Complement Prior}
 \label{sec:schur_prior}
@@ -514,8 +514,8 @@ $10^{1}$  & 0.286 & 0.010 & $10^{1}$  & 0.323 & \textbf{$<10^{-4}$} \\
 \end{table}
 
 Table~\ref{tab:prior_sweep} reports the results. The $\alpha{=}0$ row is the unregularised direct BA: it converges at \SI{0.241}{px} but at the cost of $\Delta_{\text{weak}} = 0.934$, i.e.\ essentially \emph{all} of the parameter drift lives in the weak Schur subspace---the optimiser exploits the poorly observable directions to chase the data residual. The isotropic prior faces a classical trade-off when trying to suppress that drift: a small $\alpha$ still leaves the weak modes loose ($\Delta_{\text{weak}} = 0.53$ at $\alpha{=}10^{-4}$, where the optimiser also fails to converge), while a large $\alpha$ degrades the fit (RMS rises to \SI{0.286}{px}).
-The Schur prior breaks this trade-off: even at $\alpha{=}10^{-4}$ it suppresses \SI{99.6}{\percent} of the weak-mode drift (\num{0.934} $\to$ \num{0.0033}, a $280\times$ reduction) while keeping the RMS within \SI{0.039}{px} of the unregularised baseline.
-At $\alpha{=}10^{-3}$ the weak-mode drift is below $10^{-3}$ and the RMS penalty is only \SI{0.039}{px}---the prior blocks the poorly observable directions while leaving the well-observed degrees of freedom free to improve the fit.
+The Schur prior breaks this trade-off: even at $\alpha{=}10^{-4}$ it suppresses \SI{99.6}{\percent} of the weak-mode drift (\num{0.934} $\to$ \num{0.0033}, a $280\times$ reduction) while keeping the RMS within \SI{0.038}{px} of the unregularised baseline.
+At $\alpha{=}10^{-3}$ the weak-mode drift is below $10^{-3}$ and the RMS penalty is only \SI{0.038}{px}---the prior blocks the poorly observable directions while leaving the well-observed degrees of freedom free to improve the fit.
 At the strongest setting ($\alpha{=}10$), the Schur prior still converges, while the isotropic prior produces a higher RMS (\SI{0.286}{px} vs \SI{0.323}{px}) with residual weak drift (\num{0.010}).
 
 \subsubsection{The Double Role of the Rayfield}
@@ -667,14 +667,12 @@ For each correspondence, the two rays from the calibrated model are intersected 
 \includegraphics[width=\textwidth]{figures/specimen_reconstruction.pdf}
 \caption{Dense specimen reconstruction. Top row: left image, horizontal disparity field, valid mask (92.7\,\% coverage).
 Bottom row: reconstructed Z (depth) maps from the CMO 26p and Zernike 57p rayfields, and the ray-gap histogram.
-Both models produce nearly identical ray gaps (median \SI{0.001}{mm}), confirming rayfield coherence.
-The CMO 26p surface is smoother (Z roughness 0.072~mm) than the Zernike (0.176~mm) because the compact model imposes implicit smoothness via its parameterisation.}
+Both models produce nearly identical ray gaps (median \SI{0.001}{mm}), confirming rayfield coherence. The CMO 26p surface is smoother (Z roughness 0.072~mm) than the Zernike (0.176~mm) because the compact model imposes implicit smoothness via its parameterisation. (The rayfield-initialised CMO model, before BA, has a median gap of \SI{0.022}{mm} after coordinate-frame correction---see Table~\ref{tab:specimen_comparison}; all BA-refined variants recover \SI{0.001}{mm}.)}
 \label{fig:specimen}
 \end{figure}
 
-The median ray gap is \SI{0.001}{mm} for both models in Figure~\ref{fig:specimen}---excellent coherence, confirming that the two channels' rays intersect each other at the sub-millimetre level, despite never having been jointly optimised on this specimen.
+The median ray gap is \SI{0.001}{mm} for both BA-refined models in Figure~\ref{fig:specimen}---excellent coherence, confirming that the two channels' rays intersect each other at the sub-millimetre level, despite never having been jointly optimised on this specimen.
 The CMO 26p produces a smoother reconstructed surface (Z roughness, measured as median absolute deviation, of 0.072~mm vs.\ 0.176~mm for the Zernike), because the compact 26-parameter model imposes implicit spatial smoothness via its rigid-sub-pupil and affine-direction parameterisation, whereas the 57-parameter Zernike model has the flexibility to absorb detection noise into high-frequency surface variations.
-\textbf{Note on the rayfield-initialised model:} the CMO 26p model used in Figure~\ref{fig:specimen} is the rayfield-initialised pre-BA model, whose specimen reconstruction was generated before a coordinate-frame Y-axis correction was applied (see \texttt{core/conventions.py}). With the corrected world frame, the rayfield-initialised model exhibits a median ray gap of \SI{0.022}{mm} (Table~\ref{tab:specimen_comparison})---an order of magnitude larger. The BA-refined CMO models all recover \SI{0.001}{mm} gaps regardless of the regularisation strategy (Table~\ref{tab:specimen_comparison}), confirming that the BA corrects a triangulation deficiency present in the initial rayfield fit.
 OpenCV stereo reconstruction was not available because the standard OpenCV calibration failed to converge on this microscope's calibration data.
 
 \begin{figure}[!htbp]
@@ -828,7 +826,7 @@ The SE(3) arm alignment is specific to CMO microscopes, but the residual analysi
 \subsection{Why the Two-Stage Decomposition Works}
 
 The central insight of this work is not a specific model architecture but a problem decomposition strategy.
-Direct bundle adjustment jointly estimates optical parameters $\theta$ and board poses $\eta$ from 2D corners; for non-central optics, the Schur complement of the reduced camera system \cite{stereocomplex} reveals a coupling norm of $0.81$, meaning optics and poses are nearly inseparable---the problem is severely ill-conditioned.
+Direct bundle adjustment jointly estimates optical parameters $\theta$ and board poses $\eta$ from 2D corners; for non-central optics, the Schur complement of the reduced camera system \cite{stereocomplex} reveals coupling norms of $c=0.81$--$0.96$ depending on the diagnostic configuration, meaning optics and poses are nearly inseparable---the problem is severely ill-conditioned.
 By inserting the Zernike rayfield as an intermediate variable, the estimation splits into two well-conditioned sub-problems: (1) fit a flexible rayfield to corners (Zernike BA, coupling norm $0.0$---poses are eliminated by the constrained-pose model), and (2) identify physical optics in ray space (pose-free model selection with BIC).
 
 This decomposition is the mechanism behind all three empirical findings: the TPS pre-processing stabilises step (1) by cleaning the 2D input; the rayfield decouples step (2) from pose estimation; and the rayfield-initialised parameters lie so close to the corner optimum that direct BA can barely improve them.
