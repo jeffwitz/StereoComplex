@@ -35,15 +35,15 @@ plt.rcParams.update({
 
 def _step_box(ax, x, y, w, h, step, edge):
     rect = mpatches.FancyBboxPatch(
-        (x, y), w, h, boxstyle="round,pad=0.05",
+        (x, y), w, h, boxstyle="round,pad=0.04",
         facecolor="white", edgecolor=edge, linewidth=1.6,
     )
     ax.add_patch(rect)
-    ax.text(x + w / 2, y + h - 0.18, step["title"],
+    ax.text(x + w / 2, y + h - 0.12, step["title"],
             ha="center", va="top", fontsize=13, fontweight="bold")
     detail = "\n".join(step["lines"])
-    ax.text(x + w / 2, y + h / 2 - 0.18, detail,
-            ha="center", va="center", fontsize=11, color="#333333")
+    ax.text(x + w / 2, y + h - 0.38, detail,
+            ha="center", va="top", fontsize=11, color="#333333")
 
 
 def _down_arrow(ax, x, y_from, y_to, label):
@@ -55,32 +55,32 @@ def _down_arrow(ax, x, y_from, y_to, label):
 
 
 def render(data: dict, out_pdf: Path, out_png: Path) -> None:
-    fig_w, fig_h = 8.5, 12.5
+    fig_w, fig_h = 8.5, 10.5
     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
     ax.set_xlim(0, fig_w)
     ax.set_ylim(0, fig_h)
     ax.axis("off")
 
-    ax.text(fig_w / 2, fig_h - 0.25, data["title"],
+    ax.text(fig_w / 2, fig_h - 0.18, data["title"],
             ha="center", va="top", fontsize=13, fontweight="bold")
-    ax.text(fig_w / 2, fig_h - 0.65, data["subtitle"],
+    ax.text(fig_w / 2, fig_h - 0.55, data["subtitle"],
             ha="center", va="top", fontsize=10,
             color="#555555", style="italic")
 
     step_w = 5.2
-    step_h = 1.1
-    arrow_gap = 0.65
-    intra_arrow = 0.55
-    stage_pad = 0.35
-    title_band = 0.40
+    step_h = 0.95
+    arrow_gap = 0.50
+    intra_arrow = 0.45
+    stage_pad = 0.28
+    title_band = 0.32
     x_center = fig_w / 2.0
     x_step = x_center - step_w / 2.0
 
     io_w = 4.4
-    io_h = 0.95
+    io_h = 0.78
     x_io = x_center - io_w / 2.0
 
-    y_cursor = fig_h - 1.2
+    y_cursor = fig_h - 1.05
 
     # INPUT box
     rect_in = mpatches.FancyBboxPatch(
@@ -89,10 +89,10 @@ def render(data: dict, out_pdf: Path, out_png: Path) -> None:
         facecolor="#f4f4f4", edgecolor="#777777", linewidth=1.4,
     )
     ax.add_patch(rect_in)
-    ax.text(x_center, y_cursor - 0.18, data["input"]["label"],
+    ax.text(x_center, y_cursor - 0.12, data["input"]["label"],
             ha="center", va="top", fontsize=11, fontweight="bold",
             color="#555555")
-    ax.text(x_center, y_cursor - 0.38,
+    ax.text(x_center, y_cursor - 0.30,
             "\n".join(data["input"]["lines"]),
             ha="center", va="top", fontsize=10, color="#555555")
     y_cursor -= io_h
@@ -114,9 +114,9 @@ def render(data: dict, out_pdf: Path, out_png: Path) -> None:
             facecolor=stage["fill"], edgecolor=stage["edge"], linewidth=1.6,
         )
         ax.add_patch(rect)
-        ax.text(x_center, y_cursor - 0.22, stage["name"],
+        ax.text(x_center, y_cursor - 0.16, stage["name"],
                 ha="center", va="top",
-                fontsize=13, fontweight="bold", color=stage["edge"])
+                fontsize=12, fontweight="bold", color=stage["edge"])
 
         y_step1_top = y_cursor - stage_pad - title_band
         _step_box(ax, x_step, y_step1_top - step_h, step_w, step_h,
@@ -143,10 +143,10 @@ def render(data: dict, out_pdf: Path, out_png: Path) -> None:
         facecolor="#eaf6ec", edgecolor="#2a7a3b", linewidth=1.6,
     )
     ax.add_patch(rect_out)
-    ax.text(x_center, y_cursor - arrow_gap - 0.18, data["output"]["label"],
+    ax.text(x_center, y_cursor - arrow_gap - 0.12, data["output"]["label"],
             ha="center", va="top", fontsize=11, fontweight="bold",
             color="#2a7a3b")
-    ax.text(x_center, y_cursor - arrow_gap - 0.38,
+    ax.text(x_center, y_cursor - arrow_gap - 0.30,
             "\n".join(data["output"]["lines"]),
             ha="center", va="top", fontsize=10, color="#2a7a3b")
 
