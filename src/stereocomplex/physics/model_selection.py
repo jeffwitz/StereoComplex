@@ -55,6 +55,7 @@ class OpticalModelSelectionReport:
     warnings: list[str]
 
     def rows(self) -> list[dict[str, float | int | str | bool]]:
+        """Return model comparison rows as a list of dicts (suitable for DataFrame)."""
         return [
             {
                 "model": c.model_name,
@@ -78,13 +79,16 @@ class MultiChannelOpticalModelSelectionReport:
 
     @property
     def channel_names(self) -> tuple[str, ...]:
+        """Return channel name strings."""
         return tuple(self.channel_reports)
 
     @property
     def n_channels(self) -> int:
+        """Number of channels in the rayfield."""
         return len(self.channel_reports)
 
     def rows(self) -> list[dict[str, float | int | str | bool]]:
+        """Return model comparison rows as a list of dicts (suitable for DataFrame)."""
         return [
             {
                 "model": model,
@@ -391,9 +395,11 @@ def fit_physical_model_to_rayfield(
     p = int(x0.size)
 
     def model_at(x: np.ndarray) -> PhysicalRayFieldModel:
+        """Return a copy of the model evaluated at a specific parameter vector."""
         return _make_model(model_class, x, K_arr, model_kwargs)
 
     def combined_residuals(x: np.ndarray) -> np.ndarray:
+        """Combine ray-space and pixel residuals from left and right channels."""
         model = model_at(x)
         blocks = [
             float(support_weight)
