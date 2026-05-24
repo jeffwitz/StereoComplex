@@ -453,6 +453,66 @@ This gives Phase 2.0 a meaningful success criterion *before* any BA code is
 written: « a known 3-D object is reconstructed to within 0.1 mm using oracle
 rayfields on N cameras ».
 
+**8. Digital twin validation with Blender (two-step architecture).**
+
+For realistic texture-mapped validation objects (speckle on a cylinder, sphere,
+or industrial part), a `numpy` analytical function is insufficient — UV mapping,
+occlusions, and perspective projection require a real renderer.
+
+Blender Python (`bpy`) is the recommended tool for this:
+
+**Step A — Scene assembly (one Blender `.blend` file, scripted).**
+
+- A **ChArUco board** as a thick textured plane (one face).
+- A **3-D object** (cylinder, sphere, mesh) with a speckle texture applied
+  via UV mapping.
+- N **cameras** placed around the scene at known SE(3) poses, each with
+  known intrinsics (focal length, sensor size).
+- Both the board and the object are in the same world frame — no separate
+  coordinate systems.
+
+**Step B — Render & export (one render per camera).**
+
+Each camera renders two outputs:
+
+1. **RGB image** — the combined image (board + object), used for ChArUco
+   detection and dense stereo matching.
+2. **XYZ pass** — per-pixel 3-D coordinates in world frame (Blender's
+   `Mist` + `Vector` passes, or a custom compositor node).  This is the
+   ground-truth position map used to validate reconstruction accuracy.
+
+**Integration with the view-graph pipeline.**
+
+```python
+from stereocomplex.synthetic.blender_scene import BlenderScene
+
+scene = BlenderScene.from_blend("360_rig.blend")
+# → loads N cameras (K + SE(3)) and object metadata from the .blend file
+
+obs = view_graph(scene, n_poses=30)
+# → calibrates ChArUco board observations through the blender cameras
+
+xyz_maps = scene.load_xyz_maps()
+# → (C, H, W, 3) world-frame XYZ per pixel per camera
+
+reconstructed = reconstruct_from_calibrated_rays(obs, xyz_maps)
+# → compare against Blender ground truth → RMS error in mm
+```
+
+**Blender scripting requirements (to be implemented in Phase 2.0).**
+
+| Component | File | Responsibility |
+|---|---|---|
+| `blender_scene.py` | `synthetic/blender/` | Load a `.blend` file, extract camera poses (SE(3)), intrinsics (focal, sensor), board/object metadata. |
+| `blender_render.py` | `synthetic/blender/` | Script called *from inside Blender* (headless): enable XYZ pass, render all cameras, export PNG + NPY. Not called from the Python library — shipped as a standalone `render_scene.py` that users run with `blender --background --python`. |
+| `render_scene.py` | `scripts/` | Standalone Blender Python script: sets up compositor for XYZ pass, loops over cameras, renders, exports. |
+
+**Out of scope for Phase 2.0.**
+
+- Photorealistic materials, HDR lighting, depth-of-field — the goal is
+  geometric validation, not aesthetic rendering.
+- Mitsuba 3 integration — deferred to Phase 5 (microscope optics).
+
 #### Phase 2.1 — Joint N-rayfield BA
 channels, so `fit_zernike_rayfields_from_multi_camera_observations(...)` becomes
 a true N-camera optimizer instead of a `left/right`-only wrapper.
