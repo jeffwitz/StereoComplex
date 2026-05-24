@@ -69,7 +69,27 @@ def brown_conrady_distort_normalized(
     p2: float,
     k3: float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Apply Brown-Conrady distortion in normalized camera coordinates."""
+    """Apply Brown-Conrady distortion to normalised camera coordinates.
+
+    Uses the standard OpenCV convention:
+    xd = x * (1 + k1*r2 + k2*r4 + k3*r6) + 2*p1*x*y + p2*(r2 + 2*x^2)
+    yd = y * (1 + k1*r2 + k2*r4 + k3*r6) + p1*(r2 + 2*y^2) + 2*p2*x*y
+    where r2 = x^2 + y^2.
+
+    Parameters
+    ----------
+    x, y : ndarray
+        Undistorted normalised image coordinates (unitless).
+    k1, k2, k3 : float
+        Radial distortion coefficients (k3 is optional, often 0).
+    p1, p2 : float
+        Tangential distortion coefficients.
+
+    Returns
+    -------
+    xd, yd : ndarray
+        Distorted normalised coordinates (unitless).
+    """
     r2 = x * x + y * y
     radial = 1.0 + float(k1) * r2 + float(k2) * r2 * r2 + float(k3) * r2 * r2 * r2
     xy2 = 2.0 * x * y

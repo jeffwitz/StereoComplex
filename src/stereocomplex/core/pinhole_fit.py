@@ -44,7 +44,22 @@ def project_brown_pinhole(
     params: BrownPinholeParams,
     XYZ_cam: np.ndarray,
 ) -> np.ndarray:
-    """Project 3D points to pixels with Brown distortion."""
+    """Project 3-D world points to pixel coordinates with Brown-Conrady distortion.
+
+    Parameters
+    ----------
+    X : ndarray, shape (N, 3)
+        3-D points in the camera frame, in millimetres.
+    K : ndarray, shape (3, 3)
+        Camera matrix.
+    dist_coeffs : ndarray, shape (5,)
+        Brown-Conrady coefficients (k1, k2, p1, p2, k3).
+
+    Returns
+    -------
+    uv : ndarray, shape (N, 2)
+        Pixel coordinates.  Points behind the camera (z <= 0) return NaN.
+    """
     XYZ_cam = np.asarray(XYZ_cam, dtype=np.float64).reshape(-1, 3)
     X = XYZ_cam[:, 0]
     Y = XYZ_cam[:, 1]
