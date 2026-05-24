@@ -862,6 +862,48 @@ The raw Pycaso calibration images are available from \url{https://github.com/Lab
 To reproduce the numerical results without access to the raw images, restart from the pre-computed intermediate state (\texttt{intermediate\_state.npz}) which contains the already-detected, Hessian-completed, and TPS-denoised corner positions, the fitted Zernike rayfield, and the initial 26p model parameters.
 A Zenodo archive of the exact submitted version will be deposited before journal submission; until then, the GitHub commit hash should be used as the reproducibility identifier. 
 
+% ======================================================================
+\appendix
+\section{Numerical Reprojection for the CMO Model}
+\label{sec:reprojection_appendix}
+% ======================================================================
+
+The CMO telecentric model defines a forward mapping $\texttt{ray}(u,v) \to (O, d)$ from pixel coordinates to a 3-D ray.
+Computing the 2-D reprojection error requires the inverse: given a 3-D point $X^{\text{cam}}$ in the camera frame, find the pixel $(u,v)$ whose ray passes through (or closest to) $X^{\text{cam}}$.
+For a non-central model, no closed-form inverse exists.
+We solve it numerically: for each observation, the predicted pixel is
+
+\begin{equation}
+(u_{\text{pred}}, v_{\text{pred}}) =
+\operatorname{argmin}_{(u,v)\,\in\,[0,W]\times[0,H]}
+\|X^{\text{cam}} - P(u,v; \theta)\|^2,
+\end{equation}
+
+where $P(u,v;\theta)$ is the point on the ray $(O(u,v), d(u,v))$ closest to $X^{\text{cam}}$, computed as
+
+\begin{equation}
+P = O + \bigl((X^{\text{cam}} - O)\cdot d\bigr)\,d.
+\end{equation}
+
+The objective is the squared point-to-ray perpendicular distance.
+The minimization is performed with the L-BFGS-B algorithm \cite{byrd1995}, starting from the observed pixel $(u_{\text{obs}}, v_{\text{obs}})$, with bounds $[0, W{-}1] \times [0, H{-}1]$.
+Convergence tolerance is set to \texttt{ftol=}$10^{-12}$, \texttt{gtol=}$10^{-8}$.
+For the Pycaso dataset (10 frames, 165 corners, 2 channels; 3300 observations), the full reprojection computation takes approximately 35~seconds on a single CPU core.
+
+The 2-D reprojection residual for an observation is the vector $(u_{\text{pred}} - u_{\text{obs}},\; v_{\text{pred}} - v_{\text{obs}})$ in pixels.
+The 2-D RMS reported in Section~\ref{sec:schur_prior} and Table~\ref{tab:prior_sweep} is
+
+\begin{equation}
+\text{RMS}_{\text{2D}} = \sqrt{\frac{1}{N}\sum_{k=1}^{N} \bigl[(u_{\text{pred},k} - u_{\text{obs},k})^2 + (v_{\text{pred},k} - v_{\text{obs},k})^2\bigr]},
+\end{equation}
+
+where $N = n_{\text{frames}} \times n_{\text{corners}} \times 2$ is the total number of observations.
+
+This numerical reprojection is used as a post-optimization diagnostic: the bundle adjustment itself minimizes the ray-space residual
+(:func:`point\_to\_ray\_residuals\_cmo\_se3` in the StereoComplex codebase), which is a forward evaluation and therefore faster and smoother.
+After convergence, the 2-D reprojection error is computed from the optimized parameters to obtain the pixel-equivalent metric reported in the paper.
+
+
 \section*{Author Contributions}
 
 J.-F. Witz conceived the study, developed the StereoComplex framework, implemented all methods, conducted the experiments, and wrote the manuscript.

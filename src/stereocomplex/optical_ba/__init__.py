@@ -33,6 +33,7 @@ from stereocomplex.optical_ba.residuals import (
     PycasoCMOObservations,
     default_parameter_scales,
     point_to_ray_residuals_cmo_se3,
+    reprojection_residuals_cmo_se3,
 )
 from stereocomplex.optical_ba.schur import (
     SchurDiagnostic,
@@ -69,6 +70,7 @@ __all__ = [
     "plot_specimen_grid",
     "point_to_ray_residuals_cmo_se3",
     "reconstruct_with_cmo_se3",
+    "reprojection_residuals_cmo_se3",
     "run_optical_ba",
     "run_schur_regularized_optical_ba",
     "schur_complement_theta",

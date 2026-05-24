@@ -27,6 +27,7 @@ from stereocomplex.optical_ba.residuals import (
     PycasoCMOObservations,
     default_parameter_scales,
     point_to_ray_residuals_cmo_se3,
+    reprojection_residuals_cmo_se3,
 )
 from stereocomplex.optical_ba.priors import SchurPrior, schur_prior_residuals
 from stereocomplex.optical_ba.schur import diagnose_schur_modes
@@ -228,6 +229,7 @@ def run_optical_ba(
     damping_pose: float = 1e-8,
     fd_method: str = "central",
     fd_rel_step: float = 1e-6,
+    residual_fn=point_to_ray_residuals_cmo_se3,
 ) -> OpticalBAResult:
     """Run a direct (unregularised) optical BA on the Pycaso checkpoint.
 
@@ -289,7 +291,7 @@ def run_optical_ba(
         bounds = default_bounds(n_frames, observations.image_size)
 
     def residual_fun(x: np.ndarray) -> np.ndarray:
-        return point_to_ray_residuals_cmo_se3(x, observations)
+        return residual_fn(x, observations)
 
     # Build the "before" Schur diagnostic at theta0.
     fisher_before = build_fisher_blocks(
@@ -410,6 +412,7 @@ def run_schur_regularized_optical_ba(
     compute_fisher_after: bool = True,
     fd_method: str = "central",
     fd_rel_step: float = 1e-6,
+    residual_fn=point_to_ray_residuals_cmo_se3,
 ) -> OpticalBAResult:
     """Run an optical BA with Schur-based or isotropic regularisation.
 

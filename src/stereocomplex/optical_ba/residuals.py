@@ -90,6 +90,156 @@ def _apply_se3(O: np.ndarray, d: np.ndarray, R: np.ndarray, t: np.ndarray) -> tu
     return (R @ O.T).T + t[None, :], (R @ d.T).T
 
 
+def _project_one_point(
+    X_cam: np.ndarray,
+    m_tel: CMOTelecentricStereoModel,
+    R: np.ndarray, t: np.ndarray,
+    channel: str,
+    u0: float, v0: float,
+    W: int, H: int,
+) -> tuple[float, float]:
+    """Project a 3-D point through the CMO+SE(3) model to a pixel coordinate.
+
+    Minimises the squared point-to-ray distance over the sensor domain
+    ``[0, W] × [0, H]`` using L-BFGS-B, starting from the observed pixel
+    ``(u0, v0)``.  One evaluation of the cost requires one forward ``ray()``
+    call.
+
+    Parameters
+    ----------
+    X_cam : ndarray, shape (3,)
+        3-D point in the camera reference frame.
+    m_tel : CMOTelecentricStereoModel
+        Pre-built telecentric CMO model.
+    R, t : ndarray
+        SE(3) rotation matrix and translation for the channel.
+    channel : str
+        ``"left"`` or ``"right"``.
+    u0, v0 : float
+        Initial pixel guess (typically the observed pixel).
+    W, H : int
+        Sensor dimensions in pixels.
+
+    Returns
+    -------
+    u, v : float
+        Predicted pixel coordinates.
+    """
+    from scipy.optimize import minimize
+
+    sign = "left" if channel in ("left", 0) else "right"
+
+    def _cost(uv: np.ndarray) -> float:
+        u, v = uv[0], uv[1]
+        O_raw, d_raw = m_tel.ray(np.atleast_1d(u), np.atleast_1d(v), sign)
+        O_se3 = (R @ O_raw.T).T + t[None, :]  # noqa: E741
+        d_se3 = (R @ d_raw.T).T
+        delta = X_cam[None, :] - O_se3
+        perp = delta - np.sum(delta * d_se3, axis=1, keepdims=True) * d_se3
+        return float(np.sum(perp**2))
+
+    res = minimize(
+        _cost, np.array([u0, v0]),
+        bounds=[(0.0, W - 1), (0.0, H - 1)],
+        method="L-BFGS-B",
+        options={"ftol": 1e-12, "gtol": 1e-8, "maxiter": 20},
+    )
+    return float(res.x[0]), float(res.x[1])
+
+
+def reprojection_residuals_cmo_se3(
+    x_full: np.ndarray, observations: PycasoCMOObservations
+) -> np.ndarray:
+    """2-D pixel reprojection residuals for the CMO + per-arm SE(3) model.
+
+    Each 3-D board point is transformed by the frame pose to the camera
+    frame, then numerically projected through the CMO model to a predicted
+    pixel via :func:`_project_one_point` (L-BFGS-B minimisation of the
+    point-to-ray distance over the sensor domain).  The residual is the
+    2-D vector ``(u_pred - u_obs, v_pred - v_obs)`` in pixels.
+
+    See Appendix~\\ref{sec:reprojection_appendix} for the numerical
+    method.
+
+    Parameters
+    ----------
+    x_full : ndarray, shape (26 + 6 * n_frames,)
+    observations : PycasoCMOObservations
+
+    Returns
+    -------
+    ndarray, shape (n_frames * 2 * n_corners * 2,)
+        Flat residual vector of 2-D pixel errors.
+    """
+    from scipy.spatial.transform import Rotation
+
+    x_full = np.asarray(x_full, dtype=np.float64).reshape(-1)
+    n_frames = observations.n_frames
+    expected = N_THETA + N_POSE_PER_FRAME * n_frames
+    if x_full.size != expected:
+        raise ValueError(
+            f"x_full has {x_full.size} entries, expected {expected} "
+            f"({N_THETA} optical + 6 * {n_frames} pose)"
+        )
+
+    theta = x_full[:N_THETA]
+    image_size = observations.image_size
+    W, H = image_size
+
+    m_tel = CMOTelecentricStereoModel.from_parameter_vector(
+        theta[:N_TEL], pixel_pitch_mm=observations.pixel_pitch_mm,
+        image_size=image_size,
+    )
+    rv_L, t_L = theta[14:17], theta[17:20]
+    rv_R, t_R = theta[20:23], theta[23:26]
+    R_L = Rotation.from_rotvec(rv_L).as_matrix()
+    R_R = Rotation.from_rotvec(rv_R).as_matrix()
+
+    pose_vecs = x_full[N_THETA:].reshape(n_frames, N_POSE_PER_FRAME)
+    obj_pts = np.asarray(observations.obj_pts, dtype=np.float64)
+    M = obj_pts.shape[0]
+
+    R_p_all = np.empty((n_frames, 3, 3), dtype=np.float64)
+    t_p_all = np.empty((n_frames, 3), dtype=np.float64)
+    for p in range(n_frames):
+        R_p_all[p] = Rotation.from_rotvec(pose_vecs[p, :3]).as_matrix()
+        t_p_all[p] = pose_vecs[p, 3:6]
+
+    X_cam = np.einsum("nij,mj->nmi", R_p_all, obj_pts) + t_p_all[:, None, :]
+
+    uL_pred = np.empty((n_frames, M), dtype=np.float64)
+    vL_pred = np.empty((n_frames, M), dtype=np.float64)
+    uR_pred = np.empty((n_frames, M), dtype=np.float64)
+    vR_pred = np.empty((n_frames, M), dtype=np.float64)
+
+    for p in range(n_frames):
+        for j in range(M):
+            uL_pred[p, j], vL_pred[p, j] = _project_one_point(
+                X_cam[p, j], m_tel, R_L, t_L, "left",
+                float(observations.left_pixels[p, j, 0]),
+                float(observations.left_pixels[p, j, 1]),
+                W, H,
+            )
+            uR_pred[p, j], vR_pred[p, j] = _project_one_point(
+                X_cam[p, j], m_tel, R_R, t_R, "right",
+                float(observations.right_pixels[p, j, 0]),
+                float(observations.right_pixels[p, j, 1]),
+                W, H,
+            )
+
+    uL_obs = np.asarray(observations.left_pixels[..., 0], dtype=np.float64)
+    vL_obs = np.asarray(observations.left_pixels[..., 1], dtype=np.float64)
+    uR_obs = np.asarray(observations.right_pixels[..., 0], dtype=np.float64)
+    vR_obs = np.asarray(observations.right_pixels[..., 1], dtype=np.float64)
+
+    return np.concatenate([
+        (uL_pred - uL_obs).reshape(-1),
+        (vL_pred - vL_obs).reshape(-1),
+        (uR_pred - uR_obs).reshape(-1),
+        (vR_pred - vR_obs).reshape(-1),
+    ])
+
+
 def point_to_ray_residuals_cmo_se3(
     x_full: np.ndarray, observations: PycasoCMOObservations
 ) -> np.ndarray:
