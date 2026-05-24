@@ -296,7 +296,27 @@ def compare_3d_reconstruction_with_without_origin_field(
     central_model_result,
     origin_field_result,
 ) -> ReconstructionComparisonReport:
-    """Compare central stereo against reconstruction with identified origin fields."""
+    """Compare central stereo against non-central reconstruction with origin fields.
+
+    Triangulates the same point correspondences using a central model (all rays
+    from a single camera centre) and a non-central model (per-pixel origins).
+    Reports RMS, median, and P95 reconstruction error in 3-D.
+
+    Parameters
+    ----------
+    dataset : SyntheticStereoDataset
+        Stereo observations with ground-truth 3-D points.
+    central_model_result : StereoCentralRayFieldFitResult
+        Result from central rayfield calibration.
+    origin_field_result : StereoZernikeOriginFieldFitResult
+        Result from non-central Zernike origin field calibration.
+
+    Returns
+    -------
+    ReconstructionComparisonReport
+        Named tuple with ``central`` and ``noncentral`` error statistics
+        (rms_mm, median_mm, p95_mm).
+    """
     del central_model_result
     uvL = np.concatenate(dataset.left_pixels, axis=0)
     uvR = np.concatenate(dataset.right_pixels, axis=0)
