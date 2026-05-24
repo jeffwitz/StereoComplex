@@ -279,6 +279,13 @@ class PycasoSoloffStereoModel:
         x0 = x0_n * self.xyz_scale + self.xyz_mean
         return np.asarray(x0, dtype=np.float64).reshape(3)
 
+    def solve(
+        self,
+        uv_left_px: np.ndarray,
+        uv_right_px: np.ndarray,
+        *,
+        max_nfev: int = 50,
+    ) -> np.ndarray:
         """Solve for 3-D points from measured stereo pixel coordinates.
 
         Parameters

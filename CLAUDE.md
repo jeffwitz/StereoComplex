@@ -99,12 +99,10 @@ is identifiable; assert `working_distance` / `b` / `f_tube` and
 `f_obj - telecentric_offset`, never `f_obj` alone. The four
 `test_cmo_physical_model.py` slow tests were aligned to this in commit `b13d71e`.
 
-## Docstring coverage — DONE (98.6 %)
+## Docstring coverage — DONE (100 %)
 
-**Status as of 2026-05-24:** 421/427 public functions documented.  The
-remaining 6 are trivially undocumented (`lerp`, `reencode_dataset`,
-`n_channels`, `C_L_mm`, `C_R_in_L_mm`, plus 2 Zhang helpers) and do
-not carry scientific knowledge.
+**Status as of 2026-05-24:** 425/425 public functions documented.  The former
+`docs/DOCSTRING_TODO.md` checklist has been completed and deleted.
 
 **Perpetual rule:** every function *touched* in a future change must
 be brought up to the standard below.  The guard script
@@ -149,13 +147,9 @@ Rules:
 - Do **not** refactor / split files for this; readability comes from the
   docstrings, not from moving code around.
 
-**Next pass — actionable TODO list at `docs/DOCSTRING_TODO.md`.**
-That file carries the prioritised list of 43 multi-arg public functions
-still at single-line depth (post commit `9f0181b`), with the full
-signature of each, the depth template, the hard rules (use
-`examples/notebooks/check_docstring_params.py` before every commit,
-honest commit titles, one file per commit), and the stopping criterion.
-Delete that file when the list is empty.
+There is no remaining docstring checklist file.  Future work is a maintenance
+rule: any touched public function must keep or reach this depth in the same
+change.
 
 Measure progress:
 
