@@ -12,6 +12,8 @@ calibration on a shared calibration target.
 - `origin/develop` is the source of truth for current code.
 - Treat `develop` as the real implementation branch for large refactors and
   substantial code changes.
+- Current strategic goal: turn `develop` into a publishable, merge-ready
+  scientific platform snapshot before starting new research features.
 - Do not use `main` / `origin/main` as the reference branch for this work unless
   JFW explicitly asks for a release/backport.
 
@@ -52,13 +54,105 @@ behind compatibility wrappers:
 - Quality gates (lint + tests): see **Build, lint & test status** below — it is
   authoritative and must be kept up to date.
 
-## Build, lint & test status (2026-05-22)
+## Active priority: make `develop` publishable
+
+**Status as of 2026-05-24:** `origin/develop` has become the real project
+baseline.  The next cross-agent objective is to transform it from a large
+research branch into a readable, defensible, publishable snapshot
+(`v0.1.0-alpha` / merge-ready baseline), without opening a new algorithmic
+front.
+
+Until JFW explicitly redirects:
+
+- Prioritise consolidation tasks over new science features.
+- Do **not** start Phase 2 N-camera BA yet.  Keep the CDC below as the next
+  research milestone, but freeze the current validated stereo/rayfield/CMO
+  platform first.
+- Do **not** merge `develop` into `main` casually.  Prepare the branch so the
+  merge is boring: clear release notes, clear stable/experimental boundaries,
+  green gates, and known heavy artefacts documented.
+- Keep Colab links pointing at `develop` until the actual `develop` -> `main`
+  merge happens; then remove the temporary branch hack documented above.
+
+### Publishable snapshot checklist
+
+Work these items in small commits, pushing each validated task to
+`origin/develop`:
+
+1. Create `docs/RELEASE_READINESS.md`.
+   - Define the current release target (`v0.1.0-alpha` unless JFW changes it).
+   - List stable APIs, advanced APIs, experimental APIs, paper-only code, and
+     known non-goals.
+   - State clearly that N-camera Phase 1 scaffolding exists but true Phase 2 BA
+     is not implemented.
+2. Classify public API stability.
+   - Stable: OpenCV stereo path, Ray2D corner refinement, central stereo
+     rayfield, non-central Zernike origin-field fitting, model import/export,
+     reconstruction diagnostics.
+   - Advanced: physical model selection, CMO physical/telecentric/warped
+     models, Schur diagnostics, paper reproduction helpers.
+   - Experimental: N-camera facades, multi-camera oracles/simulators, future
+     Phase 2 BA, paper-specific optical BA scripts.
+3. Align the first-read docs.
+   - `README.md`, `docs/START_HERE.md`, `docs/PUBLIC_API.md`, and
+     `docs/NOTEBOOKS.md` should tell the same user path:
+     images -> OpenCV baseline -> Ray2D refinement -> central rayfield ->
+     non-central rayfield -> diagnostics/reconstruction.
+   - Do not put CMO/N-camera complexity in the first screen unless clearly
+     marked advanced/experimental.
+4. Put the real gates in one visible place.
+   - Required preflight for code changes:
+     `rtk .venv/bin/python -m ruff check src/`
+     `rtk .venv/bin/python examples/notebooks/check_docstring_params.py`
+     `rtk .venv/bin/python -m pytest`
+   - Slow gate before release/merge/tag:
+     `rtk .venv/bin/python -m pytest -m slow`
+   - If CI exists, wire the docstring guard into CI.  If CI does not exist,
+     create a documented local preflight command instead of inventing hidden
+     process.
+5. Audit repository weight before public release.
+   - Produce a tracked-file size report (`git ls-files` based), not a raw
+     working-tree `du`.
+   - Identify the largest assets and classify them: keep in repo, move to
+     release assets, move to Zenodo, or Git LFS candidate.
+   - Do not delete paper/figure/data artefacts without an explicit decision;
+     document the plan first.
+6. Mark experimental surfaces honestly.
+   - N-camera APIs must remain honest scaffolding until Phase 2 exists.
+   - CMO functions must distinguish 19/21-parameter paraxial fits,
+     telecentric 12/14/16-parameter fits, warped variants, and the paper's
+     26-parameter CMO + per-arm SE(3) BA.
+   - Public docs must not promise unsupported topology, parameter vector size,
+     or result fields.
+
+### Snapshot acceptance gates
+
+A `develop` snapshot is considered publishable only when all are true:
+
+- `git status --short --branch` is clean and aligned with `origin/develop`.
+- `ruff check src/` passes.
+- `check_docstring_params.py` passes over the full `src/stereocomplex` tree,
+  including `api/`.
+- Fast tests pass.
+- Slow tests pass or any failure is explicitly documented as pre-existing and
+  accepted by JFW.
+- `docs/RELEASE_READINESS.md` states stable/advanced/experimental/paper-only
+  boundaries.
+- Heavy tracked artefacts are inventoried and their release strategy is known.
+
+## Build, lint & test status (2026-05-24)
 
 Authoritative quality snapshot. Update this block whenever a gate moves.
 
 ### Lint — ruff
 
 - Enforced gate: `rtk .venv/bin/python -m ruff check src/` → **0 errors**.
+- Docstring contract gate:
+  `rtk .venv/bin/python examples/notebooks/check_docstring_params.py` →
+  **0 errors across 88 files**.  This now scans `api/`, detects invented and
+  missing parameters when a `Parameters` section exists, rejects stale phrases
+  such as `"Named tuple"` / `"with x"`, and requires docstrings on public
+  `Result` / `Report` dataclasses.
 - The gate is narrow: `[tool.ruff.lint].select` is unset, so only the default
   `E`/`F` rules gate. A broader run
   (`ruff check src/ --select E,F,W,B,UP,SIM,RUF,PERF,PLR,PLC,C90`) still reports
@@ -84,8 +178,9 @@ Authoritative quality snapshot. Update this block whenever a gate moves.
 
 ### Tests
 
-- Fast: `rtk .venv/bin/python -m pytest` → **120 passed, 39 deselected**.
-- Slow: `rtk .venv/bin/python -m pytest -m slow` → **39 passed** (0 failures).
+- Fast: `rtk .venv/bin/python -m pytest` → **159 passed, 39 deselected**.
+- Slow: `rtk .venv/bin/python -m pytest -m slow` → **39 passed,
+  159 deselected** in 382.20 s (0 failures).
 
 `CMOPhysicalStereoModel` carries a **per-axis SE(3)** (one SE(3) per axis, not a
 mutualised transform) — `n_parameters` is **19** with a shared principal point,
