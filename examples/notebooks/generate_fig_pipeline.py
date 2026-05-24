@@ -1,82 +1,135 @@
 #!/usr/bin/env python3
-"""Pipeline diagram: 4-stage calibration workflow (Figure 2).
+"""Pipeline diagram (Figure 2 of the CMO paper).
 
-Static flowchart showing the two-stage decomposition:
-Rayfield measurement (Ray2D preprocessing + Zernike BA) → Physical model
-identification (ray-space BIC → CMO+SE(3) model).
+Two-stage decomposition flowchart. All editable text/numbers live in
+``docs/assets/cmo_paper/figure2_pipeline/pipeline.json`` — this script only
+defines the layout. Both PDF (paper) and PNG (docs) are produced.
 """
+
+from __future__ import annotations
+
+import json
 from pathlib import Path
+
 import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 
-plt.rcParams.update({'font.family': 'serif', 'font.serif': ['DejaVu Serif'], 'font.size': 11})
-OUT = Path('paper/cmo/figures')
+matplotlib.use("Agg")
+import matplotlib.patches as mpatches  # noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
 
-fig, ax = plt.subplots(figsize=(14, 7))
-ax.set_xlim(0, 14)
-ax.set_ylim(0, 7)
-ax.axis('off')
+ASSET = Path("docs/assets/cmo_paper/figure2_pipeline/pipeline.json")
+OUT = Path("paper/cmo/figures")
 
-# Color scheme
-BOX_STYLE = dict(boxstyle='round,pad=0.6', facecolor='#e8f0fe', edgecolor='#2a55c7', linewidth=2)
-ARROW_COLOR = '#555555'
-GROUP_STYLE = dict(facecolor='#f5f5f5', edgecolor='#aaaaaa', linewidth=1.5, linestyle='--')
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["DejaVu Serif", "Times New Roman"],
+    "font.size": 10,
+})
 
-# ── Stage boxes ──
-# Row 1: Ray2D → Zernike BA
-# Row 2: BIC selection → CMO+SE3 model
-boxes = [
-    (1.0, 4.5, 5.0, 1.8, 'Ray2D Preprocessing\nChArUco detection +\ndouble TPS denoising\n(165 corners × 10 frames)', '#cfe2ff'),
-    (8.0, 4.5, 5.0, 1.8, 'Zernike Rayfield BA\nPer-pixel ray fitting\nO(u,v)+d(u,v), O·d=0\ntransverse gauge', '#cfe2ff'),
-    (1.0, 1.5, 5.0, 1.8, 'Ray-Space BIC\nModel selection in ray space\nTelecentric CMO wins\n(ΔBIC > 40,000)', '#d4edda'),
-    (8.0, 1.5, 5.0, 1.8, 'CMO + SE(3) Model\nJoint telecentric fit +\nper-channel arm alignment\n(26 params, 1.06 px RMS)', '#d4edda'),
-]
 
-for x, y, w, h, text, color in boxes:
-    rect = mpatches.FancyBboxPatch((x, y), w, h, boxstyle='round,pad=0.4',
-                                     facecolor=color, edgecolor='#444444', linewidth=1.5)
+def _step_box(ax, x, y, w, h, step, edge):
+    rect = mpatches.FancyBboxPatch(
+        (x, y), w, h, boxstyle="round,pad=0.04",
+        facecolor="white", edgecolor=edge, linewidth=1.4,
+    )
     ax.add_patch(rect)
-    ax.text(x + w/2, y + h/2, text, ha='center', va='center', fontsize=10,
-            family='monospace' if 'BIC' not in text else 'serif')
+    ax.text(x + w / 2, y + h - 0.22, step["title"],
+            ha="center", va="top", fontsize=10, fontweight="bold")
+    detail = "\n".join(step["lines"])
+    ax.text(x + w / 2, y + h / 2 - 0.18, detail,
+            ha="center", va="center", fontsize=8.5, color="#333333")
 
-# ── Arrows ──
-# Row 1: Box1 → Box2
-ax.annotate('', xy=(8.0, 5.4), xytext=(6.0, 5.4),
-            arrowprops=dict(arrowstyle='->', color=ARROW_COLOR, lw=2.5))
-ax.text(7.0, 5.7, 'pixel\ncorrespondences', ha='center', va='bottom', fontsize=8, color=ARROW_COLOR)
 
-# Row 1→Row 2: Box2 → Box3
-ax.annotate('', xy=(3.5, 3.3), xytext=(10.5, 4.5),
-            arrowprops=dict(arrowstyle='->', color=ARROW_COLOR, lw=2.5,
-                            connectionstyle='arc3,rad=-0.3'))
-ax.text(6.5, 3.8, 'Zernike rayfield\n(per-pixel rays)', ha='center', va='center', fontsize=8, color=ARROW_COLOR)
+def _arrow(ax, x_from, x_to, y, label):
+    ax.annotate("", xy=(x_to, y), xytext=(x_from, y),
+                arrowprops=dict(arrowstyle="->", color="#555555", lw=1.6))
+    ax.text((x_from + x_to) / 2, y + 0.28, label,
+            ha="center", va="bottom", fontsize=8, color="#444444")
 
-# Row 2: Box3 → Box4
-ax.annotate('', xy=(8.0, 2.4), xytext=(6.0, 2.4),
-            arrowprops=dict(arrowstyle='->', color=ARROW_COLOR, lw=2.5))
-ax.text(7.0, 2.7, 'CMO family +\nparameter seed', ha='center', va='bottom', fontsize=8, color=ARROW_COLOR)
 
-# ── Group backgrounds ──
-group1 = mpatches.FancyBboxPatch((0.3, 4.0), 13.4, 2.8, boxstyle='round,pad=0.2',
-                                   facecolor='#f0f4ff', edgecolor='#2a55c7', linewidth=2, linestyle='--')
-ax.add_patch(group1)
-ax.text(0.6, 6.4, 'Rayfield Measurement (2D)', fontsize=13, fontweight='bold', color='#2a55c7', va='center')
+def render(data: dict, out_pdf: Path, out_png: Path) -> None:
+    fig_w, fig_h = 16.0, 4.6
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+    ax.set_xlim(0, fig_w)
+    ax.set_ylim(0, fig_h)
+    ax.axis("off")
 
-group2 = mpatches.FancyBboxPatch((0.3, 1.0), 13.4, 2.8, boxstyle='round,pad=0.2',
-                                   facecolor='#f0fff0', edgecolor='#2a7a3b', linewidth=2, linestyle='--')
-ax.add_patch(group2)
-ax.text(0.6, 3.4, 'Physical Model Identification (3D)', fontsize=13, fontweight='bold', color='#2a7a3b', va='center')
+    ax.text(fig_w / 2, fig_h - 0.25, data["title"],
+            ha="center", va="top", fontsize=13, fontweight="bold")
+    ax.text(fig_w / 2, fig_h - 0.7, data["subtitle"],
+            ha="center", va="top", fontsize=9.5, color="#555555", style="italic")
 
-# ── Input/Output labels ──
-ax.text(0.3, 7.0, 'INPUT', fontsize=10, fontweight='bold', color='#666666', va='center')
-ax.text(0.3, 6.55, '10 stereo pairs\nChArUco board', fontsize=9, color='#666666', va='top')
+    io_w = 1.6
+    step_w, step_h = 2.7, 1.6
+    step_gap = 0.55
+    stage_pad_x, stage_pad_y = 0.30, 0.45
+    y_center = 1.65
+    y_step = y_center - step_h / 2
 
-ax.text(13.8, 0.5, 'OUTPUT', fontsize=10, fontweight='bold', color='#2a7a3b', va='center')
-ax.text(13.8, 0.05, 'Calibrated rays\n+ physical model', fontsize=9, color='#666666', va='top')
+    stage_w = 2 * step_w + step_gap + 2 * stage_pad_x
+    gap_stages = 0.85
+    total_w = io_w + 0.3 + stage_w + gap_stages + stage_w + 0.3 + io_w
+    x0 = (fig_w - total_w) / 2.0
 
-fig.tight_layout(pad=0.5)
-fig.savefig(OUT / 'pipeline.pdf', dpi=200, bbox_inches='tight', facecolor='white')
-plt.close()
-print('pipeline.pdf OK')
+    # INPUT block
+    ax.text(x0 + io_w / 2, y_center + 0.55, data["input"]["label"],
+            ha="center", va="bottom", fontsize=10, fontweight="bold", color="#555555")
+    ax.text(x0 + io_w / 2, y_center + 0.35, "\n".join(data["input"]["lines"]),
+            ha="center", va="top", fontsize=8.5, color="#555555")
+
+    x_cursor = x0 + io_w + 0.3
+    step_x_coords: list[float] = []
+
+    for stage in data["stages"]:
+        rect = mpatches.FancyBboxPatch(
+            (x_cursor, y_step - stage_pad_y), stage_w, step_h + 2 * stage_pad_y,
+            boxstyle="round,pad=0.05", facecolor=stage["fill"],
+            edgecolor=stage["edge"], linewidth=1.5,
+        )
+        ax.add_patch(rect)
+        ax.text(x_cursor + stage_w / 2, y_step + step_h + stage_pad_y - 0.12,
+                stage["name"], ha="center", va="top",
+                fontsize=10.5, fontweight="bold", color=stage["edge"])
+
+        x_s1 = x_cursor + stage_pad_x
+        x_s2 = x_s1 + step_w + step_gap
+        _step_box(ax, x_s1, y_step, step_w, step_h, stage["steps"][0], stage["edge"])
+        _step_box(ax, x_s2, y_step, step_w, step_h, stage["steps"][1], stage["edge"])
+        step_x_coords.extend([x_s1, x_s1 + step_w, x_s2, x_s2 + step_w])
+
+        x_cursor += stage_w + gap_stages
+
+    # OUTPUT block
+    x_out = x_cursor - gap_stages + 0.3
+    ax.text(x_out + io_w / 2, y_center + 0.55, data["output"]["label"],
+            ha="center", va="bottom", fontsize=10, fontweight="bold", color="#2a7a3b")
+    ax.text(x_out + io_w / 2, y_center + 0.35, "\n".join(data["output"]["lines"]),
+            ha="center", va="top", fontsize=8.5, color="#2a7a3b")
+
+    arrow_pairs = [
+        (x0 + io_w, step_x_coords[0]),        # INPUT  → step 1.1
+        (step_x_coords[1], step_x_coords[2]), # step 1.1 → step 1.2
+        (step_x_coords[3], step_x_coords[4]), # step 1.2 → step 2.1
+        (step_x_coords[5], step_x_coords[6]), # step 2.1 → step 2.2
+        (step_x_coords[7], x_out),            # step 2.2 → OUTPUT
+    ]
+    labels = ["pixels"] + data["arrow_labels"] + ["calibrated\nrays"]
+    for (x_from, x_to), label in zip(arrow_pairs, labels):
+        _arrow(ax, x_from + 0.05, x_to - 0.05, y_center, label)
+
+    fig.tight_layout(pad=0.3)
+    out_pdf.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_pdf, format="pdf", bbox_inches="tight", facecolor="white")
+    fig.savefig(out_png, format="png", dpi=200, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
+def main() -> int:
+    data = json.loads(ASSET.read_text(encoding="utf-8"))
+    render(data, OUT / "pipeline.pdf", OUT / "pipeline.png")
+    print(f"wrote {OUT / 'pipeline.pdf'} and {OUT / 'pipeline.png'}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
