@@ -18,19 +18,24 @@ class PhysicalRayFieldModel(Protocol):
 
     @property
     def n_parameters(self) -> int:
+        """Number of free parameters for model selection."""
         ...
 
     def parameter_vector(self) -> np.ndarray:
+        """Pack model parameters into a flat vector for optimisation."""
         ...
 
     @classmethod
     def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> Self:
+        """Reconstruct model from a parameter vector."""
         ...
 
     def parameter_dict(self) -> dict[str, float]:
+        """Model parameters as a dict keyed by coefficient name."""
         ...
 
     def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Compute ray (origin, direction) for a pixel."""
         ...
 
 
