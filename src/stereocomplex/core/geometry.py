@@ -97,9 +97,41 @@ class PinholeCamera:
 def triangulate_midpoint(
     o1_mm: np.ndarray, d1: np.ndarray, o2_mm: np.ndarray, d2: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Mid-point triangulation of two rays (o1 + t1 d1) and (o2 + t2 d2).
-    Returns (XYZ_mm, ray_distance_mm).
+    """Mid-point triangulation of two skew 3-D rays.
+
+    Finds the pair of points (one on each ray) that minimise the Euclidean
+    distance between the two rays, and returns their midpoint as the
+    triangulated 3-D position.  The ray distance (gap) is the minimum
+    distance between the two lines — zero when the rays intersect exactly.
+
+    For parallel or nearly-parallel rays (denominator < 1e-12), the midpoint
+    of the two ray origins is returned and the distance is the orthogonal
+    distance from o1 to the line through o2.
+
+    Parameters
+    ----------
+    o1_mm : ndarray, shape (N, 3) or (3,)
+        Ray origins of the first set of rays, in millimetres.
+    d1 : ndarray, shape (N, 3) or (3,)
+        Ray directions for the first set (unit vectors, will be normalised).
+    o2_mm : ndarray, shape (N, 3) or (3,)
+        Ray origins of the second set of rays, in millimetres.
+    d2 : ndarray, shape (N, 3) or (3,)
+        Ray directions for the second set (unit vectors, will be normalised).
+
+    Returns
+    -------
+    XYZ_mm : ndarray, shape (N, 3)
+        Triangulated 3-D points (midpoints of closest-approach segments),
+        in millimetres.
+    ray_distance_mm : ndarray, shape (N,)
+        Minimum distance between each ray pair, in millimetres.
+
+    Notes
+    -----
+    This is a vectorised version working on stacks of ray pairs.  The
+    gauge convention is the one implicit in the input origins — no
+    transverse projection is applied here; the origins are used as given.
     """
     o1_mm = np.asarray(o1_mm, dtype=np.float64)
     o2_mm = np.asarray(o2_mm, dtype=np.float64)
