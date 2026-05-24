@@ -2101,7 +2101,41 @@ def fit_cmo_warped_model_to_rayfields(
     warp_level: int = 0,
     shared_warp: bool = True,
 ) -> CMOPhysicalStereoFitResult:
-    """Fit the warped CMO model to left/right measured rayfields."""
+    """Fit the warped CMO model with sensor-plane polynomial corrections.
+
+    The most flexible CMO variant.  It adds a per-channel 2-D polynomial
+    warp on the sensor plane before ray evaluation, capturing residual
+    non-idealities beyond the physical model.
+
+    Parameters
+    ----------
+    left_field : ZernikeRayField
+        Measured left-channel rayfield.
+    right_field : ZernikeRayField
+        Measured right-channel rayfield.
+    image_size : (int, int)
+        Sensor dimensions in pixels (width, height).
+    initial_parameters : ndarray
+        Starting parameter vector including CMO rig + warp coefficients.
+    pixel_pitch_mm : float
+        Sensor pixel pitch in millimetres.
+    z_planes : (float, float)
+        Two z-planes in mm (default 50, 250) for ray intersection evaluation.
+    grid_shape : (int, int)
+        Subsampling grid for the full-image residual.
+    max_nfev : int
+        Maximum number of function evaluations.
+    warp_level : int
+        Polynomial level for the sensor-plane warp.
+    shared_warp : bool
+        If True, left and right channels share the same warp coefficients.
+
+    Returns
+    -------
+    CMOPhysicalStereoFitResult
+        Named tuple with ``x`` (optimal params), ``message``, ``success``,
+        and ``model`` (the fitted CMOWarpedStereoModel).
+    """
     x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
     full = _grid_pixels(image_size, grid_shape)
 
