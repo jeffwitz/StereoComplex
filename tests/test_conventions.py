@@ -87,10 +87,10 @@ def test_vectors_roundtrip_cv_phys():
 
 
 def test_rays_roundtrip_cv_phys():
-    O = np.random.randn(10, 3)
+    origins = np.random.randn(10, 3)
     d = np.random.randn(10, 3)
-    O2, d2 = transform_rays_phys_to_cv(*transform_rays_cv_to_phys(O, d))
-    np.testing.assert_allclose(O, O2, atol=1e-14)
+    origins2, d2 = transform_rays_phys_to_cv(*transform_rays_cv_to_phys(origins, d))
+    np.testing.assert_allclose(origins, origins2, atol=1e-14)
     np.testing.assert_allclose(d, d2, atol=1e-14)
 
 

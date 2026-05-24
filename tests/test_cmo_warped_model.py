@@ -13,7 +13,6 @@ from stereocomplex.physics.cmo_physical import (
     _n_warp_coeff_total,
     _polyval_2d,
     compute_cmo_zernike_residuals,
-    fit_cmo_warped_model_to_rayfields,
     _ray_rms,
 )
 from stereocomplex.physics.model_selection import rayfield_two_plane_residuals, _grid_pixels
@@ -88,7 +87,7 @@ def test_warp_level1_round_trip():
         warp_level=1, shared_warp=True)
     np.testing.assert_allclose(m2.parameter_vector(), x, atol=1e-14)
     assert m2.warp_level == 1
-    assert m2.shared_warp == True
+    assert m2.shared_warp
     np.testing.assert_allclose(m2.warp_xi_L, (0.0, 1.0, 0.0), atol=1e-14)
 
 

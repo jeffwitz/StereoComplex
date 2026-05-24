@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 import pytest
 
 matplotlib.use("Agg")

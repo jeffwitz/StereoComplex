@@ -7,7 +7,6 @@ import numpy as np
 from stereocomplex.benchmarks.inverse_problem_diagnostics import (
     InverseProblemDiagnostics,
     compute_inverse_problem_diagnostics,
-    compute_pipeline_condition_number,
     compute_schur_information,
     finite_difference_jacobian,
 )

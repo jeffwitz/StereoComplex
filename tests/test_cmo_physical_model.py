@@ -649,8 +649,6 @@ def test_bic_selects_brown_conrady_on_brown_conrady_oracle() -> None:
         dtype=np.float64,
     )
     K = np.array([[200.0, 0.0, 63.5], [0.0, 200.0, 47.5], [0.0, 0.0, 1.0]], dtype=np.float64)
-    intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=200.0, fy=200.0, cx=63.5, cy=47.5)
-
     # Oracle: a single channel with moderate Brown distortion (typical mid-FOV).
     oracle = CentralBrownConradyModel(K=K, k1=-0.08, k2=0.03, p1=1.0e-3, p2=-1.0e-3, k3=0.0)
 
@@ -733,7 +731,6 @@ def test_bic_classification_on_stereo_greenough_oracle() -> None:
     oracle_left = CentralBrownConradyModel(K=K_L, k1=-0.08, k2=0.03, p1=1.0e-3, p2=-1.0e-3, k3=0.0)
     oracle_right = CentralBrownConradyModel(K=K_R, k1=-0.06, k2=0.02, p1=-5.0e-4, p2=8.0e-4, k3=0.0)
 
-    intr_L = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=210.0, fy=210.0, cx=63.5, cy=47.5)
     terms = NonCentralPolynomialChannelModel.default_terms()
     poly_initial = np.zeros(8 + 2 * len(terms), dtype=np.float64)
     poly_bounds = (
@@ -972,8 +969,6 @@ def test_zernike_candidate_wins_on_uncatalogued_rayfield() -> None:
         dtype=np.float64,
     )
     K = np.array([[180.0, 0.0, 63.5], [0.0, 180.0, 47.5], [0.0, 0.0, 1.0]], dtype=np.float64)
-    intr = CMOIntrinsics(width=image_size[0], height=image_size[1], fx=180.0, fy=180.0, cx=63.5, cy=47.5)
-
     # High-order Zernike oracle with seeded random coefficients.
     # This creates a smooth but structurally complex rayfield that does not
     # belong to pinhole, Brown, plate, CMO, or Greenough families.
