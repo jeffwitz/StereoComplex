@@ -63,6 +63,7 @@ def _predict_points_tps_irls(
     Q = (query_xy - m[None, :]) / s
 
     def U(r2: np.ndarray) -> np.ndarray:
+        """Thin-plate spline kernel: U(r) = r^2 log(r^2), with U(0) = 0."""
         # U(r) = r^2 log(r^2), with U(0)=0.
         r2 = np.asarray(r2, dtype=np.float64)
         out = np.zeros_like(r2)
