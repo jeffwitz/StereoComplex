@@ -131,17 +131,12 @@ def default_bounds(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Default (lo, hi) bounds for the full BA parameter vector [theta, poses].
 
-    Lower and upper bounds are ndarrays matching the dimension of the parameter
-    vector.  Rayfield coefficients (theta) are unbounded (+/-inf).  Pose
-    translation components are loosely bounded to +/-5000 mm.  Rotation
-    components are unbounded.
-
     Parameters
     ----------
-    n_theta : int
-        Number of rayfield coefficients (Zernike).
-    n_poses : int
-        Number of board poses.
+    n_frames : int
+        Number of captured board poses (frames).
+    image_size : (int, int)
+        Sensor dimensions in pixels.
 
     Returns
     -------
