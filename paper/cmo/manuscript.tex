@@ -431,13 +431,13 @@ In the StereoComplex direct-BA diagnostic implementation, a CMO-like configurati
 This means that 81\,\% of the apparent information about optical parameters is absorbed by pose coupling---the two parameter blocks are nearly inseparable.
 By contrast, the rayfield-mediated pipeline operates with $c = 0.0$: the Zernike BA absorbs pose uncertainty into the rayfield through its constrained shared-rotation model (15 pose parameters), and the ray-space model identification stage is entirely pose-free.
 
-Figure~\ref{fig:schur} shows the singular value spectra. The coupling norm $c = 0.81$ quantifies why direct BA fails to converge on the Pycaso CMO oracle (RMS \SI{29}{px}, Section~\ref{sec:results}): the optimiser cannot separate optical parameters from pose parameters, and the pinhole-based initialisation ($\approx$\SI{2}{px} error) is too far from the true solution.
+Figure~\ref{fig:schur} shows the normalised eigenvalue spectrum of the Schur complement $S_\theta$ on the 26-parameter CMO optical block. Of the 26 eigenvalues, the trailing modes (red crosses, $\lambda_i/\lambda_{\max} < 10^{-3}$) collapse after pose marginalisation---these are precisely the directions penalised by the Schur prior (Section~\ref{sec:schur_prior}). The coupling norm $c = 0.81$ quantifies why direct BA is ill-conditioned for this non-central system: \SI{81}{\percent} of the apparent optical information is absorbed by pose coupling.
 Schur-coupling values for the other oracles (pinhole, Brown-Conrady, parallel-plate, Greenough) were not reliably computable from the current diagnostic infrastructure and are therefore not reported.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.85\textwidth]{figures/schur_singular_values.pdf}
-\caption{Singular value spectra of the optics information matrix $\mathcal{I}_{\theta\theta}$ (direct BA), its Schur complement $\mathcal{I}_{\theta|\eta}$ after marginalising poses, and the rayfield BA (pose-free). The trailing singular values of $\mathcal{I}_{\theta\theta}$ collapse in the Schur complement, indicating that the last $\sim$8 optical parameters are nearly unobservable when poses are jointly estimated. The rayfield BA eliminates this coupling by design.}
+\includegraphics[width=0.85\textwidth]{figures/schur_spectrum.pdf}
+\caption{Normalised eigenvalue spectrum of the Schur complement $S_\theta$ on the 26-parameter CMO optical block. Eigenvalues below the weak threshold $\lambda_i/\lambda_{\max} < 10^{-3}$ (red crosses) are the poorly observable directions after pose marginalisation---these are the modes penalised by the Schur prior in Section~\ref{sec:schur_prior}. The coupling norm is $c = 0.81$.}
 \label{fig:schur}
 \end{figure}
 
