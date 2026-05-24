@@ -99,18 +99,17 @@ is identifiable; assert `working_distance` / `b` / `f_tube` and
 `f_obj - telecentric_offset`, never `f_obj` alone. The four
 `test_cmo_physical_model.py` slow tests were aligned to this in commit `b13d71e`.
 
-## Docstring coverage — active objective
+## Docstring coverage — DONE (98.6 %)
 
-**Current priority for this repository:** raise docstring coverage so a working
-scientist — an optics / vision researcher, not necessarily a Python expert — can
-understand the code from its docstrings alone.
+**Status as of 2026-05-24:** 421/427 public functions documented.  The
+remaining 6 are trivially undocumented (`lerp`, `reencode_dataset`,
+`n_channels`, `C_L_mm`, `C_R_in_L_mm`, plus 2 Zhang helpers) and do
+not carry scientific knowledge.
 
-Baseline (2026-05-22): **53.8 %** of public functions documented (211/392),
-**20.0 %** of private ones. Target: 100 % of public functions, then the
-non-trivial private ones.
-
-Highest-priority file `physics/cmo_physical.py`: **100 %** (53/53 public
-functions documented).
+**Perpetual rule:** every function *touched* in a future change must
+be brought up to the standard below.  The guard script
+`examples/notebooks/check_docstring_params.py` is the pre-commit
+barrier — 0 alarme is non-negotiable.
 
 A good docstring here is teaching material, not a type echo. **`physics/cmo_physical.py`
 is the reference exemplar** — match the depth of its `from_parameter_vector` and
