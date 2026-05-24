@@ -76,16 +76,24 @@ conventions.
 | Slow tests | `rtk .venv/bin/python -m pytest -m slow` | 39 passed, 0 failures |
 | Doc coverage | `100%` (425/425 public functions) | ✅ |
 
-## Known heavy artefacts
+## Known heavy artefacts (audit 2026-05-24 — 234 MB total)
 
 | Artefact | Size | Strategy |
 |---|---|---|
-| `docs/assets/pycaso_real_data/` | ~50 MB | Keep in repo (needed for paper reproduction) |
-| `paper/cmo/figures/*.pdf` | <2 MB total | Keep (vector, versioned) |
-| `examples/notebooks/*.ipynb` | ~5 MB total | Keep (Colab badges point to develop) |
-| `paper/cmo/build/manuscript.pdf` | ~2 MB | Keep (submission artefact) |
+| `docs/assets/pycaso_real_data/schur_ba/*.npz` | 140 MB (6 files × ~24 MB) | Candidate for Zenodo — regeneration artefacts, not primary data |
+| `docs/assets/pycaso_real_data/specimen_*.npz` | 51 MB (3 files) | Keep (needed for paper figure reproduction) |
+| `paper/cmo/figures/` | 15 MB | Keep (vector PDF versions are 2 MB, PNGs are paper legacy) |
+| `paper/cmo/manuscript.pdf` | 8 MB | Keep (submission artefact) |
+| `Biblio/*.pdf` | 6 MB (2 files) | Already local bibliography — keep |
+| `examples/notebooks/*.ipynb` | 5 MB | Keep (Colab badges point to develop) |
+| `dataset/` | 2 MB | Keep (needed for notebook walkthroughs) |
+| `src/` | <1 MB | Keep |
 
-No Git LFS candidate identified at this stage.
+**Recommendation:** move `docs/assets/pycaso_real_data/schur_ba/` to Zenodo
+(140 MB would be removed) and add the DOI to the paper's data-availability
+statement.  The 6 large NPZ files are Schur-BA snapshots reproducible from the
+smaller `specimen_correspondences.npz` (12 MB) + the fitting code.  After
+removal, the repo would be ~94 MB.
 
 ## Pending before merge to main
 
