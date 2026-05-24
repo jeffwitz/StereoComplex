@@ -371,6 +371,22 @@ A pose is *visible* from a camera when:
 - `test_view_graph_balanced`: min coverage ≥ 0.5 × max coverage.
 - `test_view_graph_deterministic`: same seed → identical observations.
 
+**Reference 8-camera 360° rig.**  Cameras placed on a circle of radius
+`R = 500 mm` around the scene centre, at 45° intervals, all pointing inward.
+With a 60° horizontal FOV per camera, each camera sees ~2 neighbours — the
+view-graph is a ring of overlapping pairs plus potential skip-edges.
+
+| Camera | Azimuth | Shares poses with |
+|---|---|---|
+| cam0 | 0° | cam1, cam2, cam7 |
+| cam1 | 45° | cam0, cam2, cam3 |
+| ... | ... | neighbours ±1, ±2 |
+| cam7 | 315° | cam6, cam0, cam5 |
+
+With 8 cameras × 30 poses, partial overlap, and balanced coverage, this is
+the canonical test case for Phase 2.0 — non-trivial view-graph, challenging
+connectivity constraints, realistic 360° inspection scenario.
+
 **5. API sketch.**
 
 ```python
