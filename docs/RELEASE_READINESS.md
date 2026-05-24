@@ -71,7 +71,7 @@ conventions.
 | Gate | Command | Status |
 |---|---|---|
 | Lint | `rtk .venv/bin/python -m ruff check src/` | 0 errors |
-| Docstring contract | `rtk .venv/bin/python examples/notebooks/check_docstring_params.py` | 0 alarms, 88 files |
+| Docstring contract | `rtk .venv/bin/python examples/notebooks/check_docstring_params.py` | 0 alarms, 88 files, wired into CI |
 | Fast tests | `rtk .venv/bin/python -m pytest` | 159 passed, 39 deselected |
 | Slow tests | `rtk .venv/bin/python -m pytest -m slow` | 39 passed, 0 failures |
 | Doc coverage | `100%` (425/425 public functions) | ✅ |
