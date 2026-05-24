@@ -73,6 +73,18 @@ def save_stereo_central_rayfield(model_dir: Path, model: StereoCentralRayFieldMo
 
 
 def load_stereo_central_rayfield(model_dir: Path) -> StereoCentralRayFieldModel:
+    """Load a fitted StereoCentralRayFieldModel from a directory.
+
+    Parameters
+    ----------
+    model_dir : Path
+        Directory containing model.json and coefficient .npy files.
+
+    Returns
+    -------
+    StereoCentralRayFieldModel
+        The loaded central rayfield model.
+    """
     model_dir = Path(model_dir)
     meta = json.loads((model_dir / "model.json").read_text(encoding="utf-8"))
     if str(meta.get("schema_version")) != "stereocomplex.model.stereo_central_rayfield.v0":
