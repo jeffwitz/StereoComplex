@@ -40,7 +40,7 @@ def check_file(path):
                 name_part = stripped.split(':')[0].strip()
                 for name in name_part.split(','):
                     name = name.strip()
-                    if name and not name[0].isdigit():
+                    if name and name.isidentifier():
                         doc_params.add(name)
         
         # Check for invented parameters
