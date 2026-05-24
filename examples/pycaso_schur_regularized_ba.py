@@ -718,8 +718,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--zernike-baseline",
                         default="docs/assets/pycaso_real_data/specimen_reconstruction_zernike.npz",
                         help="path to the published Zernike rayfield reconstruction npz")
+    parser.add_argument("--fetch-zenodo", action="store_true",
+                        help="download schur_ba/ archive from Zenodo if not present locally")
 
     args = parser.parse_args(argv)
+    if args.fetch_zenodo:
+        from examples.zenodo_fetch import ensure_schur_ba
+        if not ensure_schur_ba():
+            return 1
     if args.mode == "diagnostic":
         return run_diagnostic(args)
     if args.mode == "ba":
