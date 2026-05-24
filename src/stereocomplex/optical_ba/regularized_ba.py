@@ -129,7 +129,25 @@ _POSE_BOUNDS_HI = np.full(6, +np.inf)
 def default_bounds(
     n_frames: int, image_size: tuple[int, int]
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Default ``(lo, hi)`` bounds for the full ``[theta, pose]`` vector."""
+    """Default (lo, hi) bounds for the full BA parameter vector [theta, poses].
+
+    Lower and upper bounds are ndarrays matching the dimension of the parameter
+    vector.  Rayfield coefficients (theta) are unbounded (+/-inf).  Pose
+    translation components are loosely bounded to +/-5000 mm.  Rotation
+    components are unbounded.
+
+    Parameters
+    ----------
+    n_theta : int
+        Number of rayfield coefficients (Zernike).
+    n_poses : int
+        Number of board poses.
+
+    Returns
+    -------
+    (lo, hi) : tuple of ndarray
+        Lower and upper bound vectors.
+    """
     tel_lo, tel_hi = _tel_bounds(image_size)
     theta_lo = np.concatenate([tel_lo, _ARM_BOUNDS_LO])
     theta_hi = np.concatenate([tel_hi, _ARM_BOUNDS_HI])
