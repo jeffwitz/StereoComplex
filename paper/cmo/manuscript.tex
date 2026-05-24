@@ -454,7 +454,9 @@ In contrast, the direct approach---jointly estimating optics and poses from corn
 \subsection{Stabilising Direct BA with a Schur-Complement Prior}
 \label{sec:schur_prior}
 
-The corner BA of Section~\ref{sec:corner_ba} improves pixel RMS by \SI{17}{\percent} without altering the physical model. However, the Schur-complement diagnostic of Section~\ref{sec:schur_conditioning} reveals that the Fisher information matrix at the rayfield solution $\theta_0$ has weak eigenmodes---directions in parameter space where a small change in optics can be nearly perfectly compensated by a change in board poses. An unregularised BA can drift along these modes, trading physical interpretability for marginal reprojection gains.
+The corner BA of Section~\ref{sec:corner_ba} improves the 2-D pixel reprojection RMS by \SI{17}{\percent} without altering the physical model. However, the Schur-complement diagnostic of Section~\ref{sec:schur_conditioning} reveals
+
+\textbf{Metric note.} The RMS values reported in this section are \emph{ray-space transverse distances} converted to pixel-equivalent units via $f_x / Z$ (CDC~\S2.4), not 2-D reprojection errors. They are directly comparable \emph{within} this section and across Table~\ref{tab:prior_sweep}, but differ by approximately \SI{0.6}{px} from the 2-D pixel reprojection RMS used elsewhere in this paper. The ray-space metric is chosen here because the Schur diagnostic and prior are built from the Fisher information of the point-to-ray residual, not the 2-D reprojection residual, so the regularisation analysis is internally consistent in ray space. The qualitative conclusions---the Schur prior breaking the RMS-vs.-drift trade-off---are independent of the metric. that the Fisher information matrix at the rayfield solution $\theta_0$ has weak eigenmodes---directions in parameter space where a small change in optics can be nearly perfectly compensated by a change in board poses. An unregularised BA can drift along these modes, trading physical interpretability for marginal reprojection gains.
 
 \subsubsection{Schur-Eigenmode Prior}
 
