@@ -56,7 +56,34 @@ def triangulate_two_rays(
     O_right: np.ndarray,
     d_right: np.ndarray,
 ) -> tuple[np.ndarray, float]:
-    """Return the midpoint triangulation of two 3D rays and their minimum distance."""
+    """Midpoint triangulation of two 3-D rays, returning the 3-D point of closest
+    approach and the ray gap (minimum distance between the two skew lines).
+
+    The triangulated point is the midpoint of the shortest segment connecting
+    the two rays.  No gauge constraint is applied to the ray origins — they are
+    used as given.  If the rays are parallel or nearly parallel (denominator
+    < 1e-12), the midpoint of the origins is returned and the ray gap is
+    computed as the orthogonal distance from one origin to the other ray.
+
+    Parameters
+    ----------
+    O_left : ndarray, shape (3,)
+        Left ray origin in world coordinates, in millimetres.
+    d_left : ndarray, shape (3,)
+        Left ray direction (unit vector, or will be normalised).
+    O_right : ndarray, shape (3,)
+        Right ray origin in world coordinates, in millimetres.
+    d_right : ndarray, shape (3,)
+        Right ray direction (unit vector, or will be normalised).
+
+    Returns
+    -------
+    P : ndarray, shape (3,)
+        Midpoint of the closest-approach segment, in millimetres.
+    gap : float
+        Minimum distance between the two rays, in millimetres.  Zero when the
+        rays intersect exactly.
+    """
     O1 = np.asarray(O_left, dtype=np.float64).reshape(3)
     O2 = np.asarray(O_right, dtype=np.float64).reshape(3)
     d1 = np.asarray(d_left, dtype=np.float64).reshape(3)
