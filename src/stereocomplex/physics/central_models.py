@@ -21,22 +21,27 @@ class CentralPinholeModel:
 
     @property
     def n_parameters(self) -> int:
+        """Number of free parameters in this model (0 for pinhole, 5 for Brown-Conrady)."""
         return 0
 
     def parameter_vector(self) -> np.ndarray:
+        """Pack model parameters into a flat vector for optimisation."""
         return np.zeros(0, dtype=np.float64)
 
     @classmethod
     def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> CentralPinholeModel:
+        """Reconstruct model from a parameter vector. K must be passed via kwargs."""
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size != 0:
             raise ValueError("CentralPinholeModel expects zero parameters")
         return cls(K=np.asarray(kwargs["K"], dtype=np.float64).reshape(3, 3))
 
     def parameter_dict(self) -> dict[str, float]:
+        """Model parameters as a dict keyed by coefficient name."""
         return {}
 
     def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Compute ray (origin at camera centre, distorted direction) for pixels."""
         uf, vf = _as_flat_pixels(u, v)
         d = pinhole_ray_from_pixel(uf, vf, self.K).reshape(-1, 3)
         origins = np.zeros_like(d)
@@ -124,13 +129,16 @@ class CentralBrownConradyModel:
 
     @property
     def n_parameters(self) -> int:
+        """Number of free parameters in this model (0 for pinhole, 5 for Brown-Conrady)."""
         return 5
 
     def parameter_vector(self) -> np.ndarray:
+        """Pack model parameters into a flat vector for optimisation."""
         return np.array([self.k1, self.k2, self.p1, self.p2, self.k3], dtype=np.float64)
 
     @classmethod
     def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> CentralBrownConradyModel:
+        """Reconstruct model from a parameter vector. K must be passed via kwargs."""
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size != 5:
             raise ValueError("CentralBrownConradyModel expects five parameters")
@@ -144,6 +152,7 @@ class CentralBrownConradyModel:
         )
 
     def parameter_dict(self) -> dict[str, float]:
+        """Model parameters as a dict keyed by coefficient name."""
         return {
             "k1": float(self.k1),
             "k2": float(self.k2),
@@ -153,6 +162,7 @@ class CentralBrownConradyModel:
         }
 
     def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Compute ray (origin at camera centre, distorted direction) for pixels."""
         K = np.asarray(self.K, dtype=np.float64).reshape(3, 3)
         uf, vf = _as_flat_pixels(u, v)
         xd = (uf - K[0, 2]) / K[0, 0]
