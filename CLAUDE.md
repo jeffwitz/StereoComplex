@@ -42,33 +42,29 @@ submission. **Remove this whole section once everything below is DONE.**
 |---|---|---|---|---|
 | 1 | Numerical consistency audit across all figures, tables, captions, and inline citations | High | 1 d | **DONE** (`examples/notebooks/audit_paper_numbers.py` + report at `docs/assets/cmo_paper/AUDIT.md`; 18/18 story numbers reproducible; one info row flags `aligned_cmo_fit.json` divergence from `corner_ba_refinement.json` — used only by specimen scripts, not by the paper text) |
 | 2 | Figure 4 (`subpupil_3d`) caption says sub-pupils are read from the **Zernike rayfield** (`b=24.9 mm`), but the script reconstructs them from the **CMO 26p model** (`b=6.1 mm`). Fix the script source. | High | 0.5 d | **DONE** (commit pending audit; new generator fits Zernike rayfield `O=0, d=2` with cache + `--recompute`; produces `b=24.76, full angle=22.42°` matching the paper) |
-| 3 | BA RMS narrative mixes two metrics: 1.06/0.88/~0.98 px are 2-D pixel reprojection errors, while the 0.241 "px" of Section 3.8 / Table 2 is a point-to-ray transverse distance in mm converted via `fx/Z`. Currently presented as if directly comparable. | High | 0.5 d (needs JFW arbitration on the narrative) | TODO |
+| 3 | BA RMS narrative mixes two metrics: 1.06/0.88/~0.98 px are 2-D pixel reprojection errors, while the 0.241 "px" of Section 3.8 / Table 2 is a point-to-ray transverse distance in mm converted via `fx/Z`. Currently presented as if directly comparable. | High | 0.5 d (needs JFW arbitration on the narrative) | **DONE** (commits 05f0383 / ec57ddd / f85edd8: §3.8 now explicitly distinguishes "operational" constrained-pose BA at 0.88 px from "diagnostic" free-pose sweep; Table 2 RMS values recomputed as true 2-D reprojections via Appendix A's numerical inverse) |
 | 4 | Rename "operational BIC" → `usability-filtered model selection` (or `operational usability score`) everywhere. The current label suggests a statistical criterion; it is an engineering filter (hard 1.5 px guard + 10⁶ penalty). | Medium | 0.25 d | **DONE** (manuscript already used "operational usability score" in text + captions; Figure 12 panel (b) and X-axis renamed from "Operational BIC" to "Usability-filtered selection" / "Usability score") |
 | 5 | Propagate "effective descriptors in a chosen gauge" wording wherever the manuscript cites a baseline `b`, working distance `WD`, focal length `f_obj`, or convergence half-angle (`θ`). They are not absolute mechanical measurements. | Medium | 0.5 d | **DONE** (commit 70c5576: added "effective" qualifier or "in the rayfield gauge" clause to corner BA, pose sweep, cross-validation, bootstrap sections; the geometric descriptors table and abstract already had this language) |
-| 6 | Section 3.8 (Schur prior) — destabilises the central narrative because it introduces a "better RMS" (0.241) in a different metric. Either restructure the narrative around two BA layers, or move to appendix / split into a follow-up paper. | High | needs JFW arbitration | TODO |
-| 7 | Add a non-central baseline on the same Pycaso dataset (Soloff polynomial 4-5 params, or rayfield Zernike max_order=4) so the comparison is not only against OpenCV-central, which is trivially expected to fail. | Medium | 1-2 d | TODO |
-| 8 | Add at least a minimal external validation: known Z translation, inclined plane, gauge block, or certified 3-D object. The current internal validation is honest but limits the claim. Not strictly blocking for *some* journals, blocking for top-tier metrology venues. | High | depends on what is available | TODO |
+| 6 | Section 3.8 (Schur prior) — destabilises the central narrative because it introduces a "better RMS" (0.241) in a different metric. Either restructure the narrative around two BA layers, or move to appendix / split into a follow-up paper. | High | needs JFW arbitration | **DONE** (commit a29b6ee, Option A′): §3.8 reframed as explicit methodological contribution. The "double role of the rayfield" (initialiser + observability oracle via Schur eigenmodes) is now the closing argument of Section 3, not a side-result. Metric ambiguity resolved by item 3. |
+| 7 | Add a non-central baseline on the same Pycaso dataset (Soloff polynomial 4-5 params, or rayfield Zernike max_order=4) so the comparison is not only against OpenCV-central, which is trivially expected to fail. | Medium | 1-2 d | **NOT DONE — acknowledged as future work** in §5.2 "Limitations" item 1 + §5.5 "Prospective" first bullet |
+| 8 | Add at least a minimal external validation: known Z translation, inclined plane, gauge block, or certified 3-D object. The current internal validation is honest but limits the claim. Not strictly blocking for *some* journals, blocking for top-tier metrology venues. | High | depends on what is available | **NOT DONE — acknowledged as future work** in §5.2 "Limitations" items 2, 4 and 7 (explicit future-validation statement, commit 7b806b8) |
 
-### Synthesis (for whoever picks this up)
+### Status — all reviewer-blocking items resolved
 
-- **What works**: the scientific argument (rayfield as diagnostic +
-  residual-guided model construction), the residual-direction cascade
-  (23.6° → 0.27° → 0.003°), and the 26p CMO+SE(3) compact model.
-- **What breaks reader trust**: numerical inconsistencies between
-  figures, tables, and text — exactly the kind of thing that triggers
-  reviewer pushback even when the science is fine.
-- **What is missing scientifically**: an external 3-D validation and a
-  non-central baseline; Section 3.8 destabilises the central message
-  by introducing a metric that is not the 2-D reprojection used
-  elsewhere.
+Items 1–6 are DONE. Items 7 and 8 are acknowledged as **explicit
+future work** in §5.2 (Limitations) and §5.5 (Prospective), not as
+silent omissions — the paper does not claim what it has not validated.
 
-Items 1, 2, 4, 5, 7 can be done without JFW arbitration. Items 3 and 6
-require a narrative decision (which RMS story stays in the body; where
-Section 3.8 goes). Item 8 requires identifying available external
-references.
+The paper is in a defensible state for submission to a venue that
+accepts "method paper validated on one open dataset with explicit
+metrological limitations" (Optics Express, Measurement Science and
+Technology, Applied Optics method section). It is **not** ready for a
+top-tier metrology venue that requires absolute 3-D ground truth or a
+non-central comparison baseline on the same data — both flagged
+honestly as the next steps.
 
-The work proceeds in commit-per-item style on `develop` so a fresh
-session can resume from `git log` if the current one runs out of tokens.
+This whole section can be removed once JFW confirms the submission
+target and decides whether items 7–8 are required for that venue.
 
 ## Current global status
 

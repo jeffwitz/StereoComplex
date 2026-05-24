@@ -27,7 +27,6 @@ from stereocomplex.optical_ba.residuals import (
     PycasoCMOObservations,
     default_parameter_scales,
     point_to_ray_residuals_cmo_se3,
-    reprojection_residuals_cmo_se3,
 )
 from stereocomplex.optical_ba.priors import SchurPrior, schur_prior_residuals
 from stereocomplex.optical_ba.schur import diagnose_schur_modes
