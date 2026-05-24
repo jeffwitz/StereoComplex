@@ -41,8 +41,21 @@ class BrownDistortion:
     def undistort(
         self, xd: np.ndarray, yd: np.ndarray, iterations: int = 7
     ) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Iterative inverse of distort() for small/moderate distortion.
+        """Invert Brown-Conrady distortion by fixed-point iteration.
+
+        Parameters
+        ----------
+        xd : ndarray
+            Distorted normalised x coordinates (unitless).
+        yd : ndarray
+            Distorted normalised y coordinates (unitless).
+        iterations : int
+            Number of fixed-point iterations (default 7).
+
+        Returns
+        -------
+        (x, y) : tuple of ndarray
+            Undistorted normalised coordinates (unitless).
         """
         xd = np.asarray(xd, dtype=np.float64)
         yd = np.asarray(yd, dtype=np.float64)
@@ -69,4 +82,3 @@ def brown_from_dict(d: dict) -> BrownDistortion:
 def brown_to_dict(m: BrownDistortion) -> dict:
     """Export Brown-Conrady model to a configuration dict."""
     return {"k1": m.k1, "k2": m.k2, "p1": m.p1, "p2": m.p2, "k3": m.k3}
-
