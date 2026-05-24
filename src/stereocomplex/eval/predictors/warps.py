@@ -253,6 +253,7 @@ def predict_points_affine_field(
         )
 
     def lerp(a0: np.ndarray, a1: np.ndarray, t: float) -> np.ndarray:
+        """Linear interpolation between two values or arrays."""
         return (1.0 - t) * a0 + t * a1
 
     out = np.empty((query_xy.shape[0], 2), dtype=np.float64)
@@ -342,11 +343,13 @@ def predict_points_rayfield(
     ymax += pad_y
 
     def node_index(ix: int, iy: int) -> int:
+        """Return the index of the node associated with a point."""
         return iy * nx + ix
 
     def weights_for_points(
         pts: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Compute interpolation weights for query points."""
         x = pts[:, 0]
         y = pts[:, 1]
         tx = (x - xmin) / (xmax - xmin)
@@ -396,6 +399,7 @@ def predict_points_rayfield(
         return predict_points_mls_homography(obj_xy, img_uv, query_xy)
 
     def proj(H: np.ndarray, pts: np.ndarray) -> np.ndarray:
+        """Project 2D points using a fitted warp model."""
         ph = np.concatenate([pts, np.ones((pts.shape[0], 1), dtype=np.float64)], axis=1)
         uvw = (H @ ph.T).T
         return uvw[:, :2] / (uvw[:, 2:3] + 1e-12)
@@ -510,6 +514,7 @@ def predict_points_rayfield_tps(
         return predict_points_mls_homography(obj_xy, img_uv, query_xy)
 
     def proj(H: np.ndarray, pts: np.ndarray) -> np.ndarray:
+        """Project 2D points using a fitted warp model."""
         ph = np.concatenate([pts, np.ones((pts.shape[0], 1), dtype=np.float64)], axis=1)
         uvw = (H @ ph.T).T
         return uvw[:, :2] / (uvw[:, 2:3] + 1e-12)
@@ -769,6 +774,7 @@ def predict_points_tps(
     Q = (query_xy - m[None, :]) / s
 
     def U(r2: np.ndarray) -> np.ndarray:
+        """Thin-plate spline kernel: U(r) = r^2 log(r^2), with U(0) = 0."""
         # U(r) = r^2 log(r^2), with U(0)=0.
         r2 = np.asarray(r2, dtype=np.float64)
         out = np.zeros_like(r2)

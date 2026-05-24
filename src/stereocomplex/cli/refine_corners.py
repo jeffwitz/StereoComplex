@@ -13,10 +13,12 @@ Side = Literal["left", "right"]
 
 
 def load_json(path: Path) -> dict[str, Any]:
+    """Load and parse a JSON file with error handling."""
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def load_frames(scene_dir: Path) -> list[dict[str, Any]]:
+    """Load frame metadata from a ChArUco frames file."""
     frames_path = scene_dir / "frames.jsonl"
     frames: list[dict[str, Any]] = []
     for line in frames_path.read_text(encoding="utf-8").splitlines():
@@ -28,6 +30,7 @@ def load_frames(scene_dir: Path) -> list[dict[str, Any]]:
 
 
 def build_charuco_from_meta(meta: dict[str, Any]):
+    """Build a CharucoBoardSpec from metadata dictionary."""
     import cv2  # type: ignore
     from cv2 import aruco  # type: ignore
 
@@ -113,6 +116,7 @@ def detect_view(
     charuco_detector,
     img_gray: np.ndarray,
 ) -> CharucoDetections | None:
+    """Detect and refine ChArUco corners for a single view."""
     if charuco_detector is not None:
         charuco_corners, charuco_ids, marker_corners, marker_ids = (
             charuco_detector.detectBoard(img_gray)
@@ -179,6 +183,7 @@ def refine_dataset_scene(
     huber_c: float,
     iters: int,
 ) -> dict[str, Any]:
+    """Refine corners for all frames in a dataset scene."""
     from stereocomplex.core.image_io import load_gray_u8
 
     scene_dir = Path(dataset_root) / str(split) / str(scene)
@@ -321,6 +326,7 @@ def run_refine_corners(
     out_json: Path,
     out_npz: Path | None,
 ) -> None:
+    """CLI entry point for the refine-corners subcommand."""
     refined = refine_dataset_scene(
         dataset_root=dataset_root,
         split=split,

@@ -21,6 +21,7 @@ class BrownPinholeParams:
     k3: float = 0.0
 
     def K(self) -> np.ndarray:
+        """Camera matrix K (3,3) from intrinsics."""
         return np.array(
             [
                 [float(self.fx), 0.0, float(self.cx)],
@@ -31,9 +32,11 @@ class BrownPinholeParams:
         )
 
     def dist(self) -> np.ndarray:
+        """Distortion coefficients as a flat vector."""
         return np.array([self.k1, self.k2, self.p1, self.p2, self.k3], dtype=np.float64)
 
     def distortion(self) -> BrownDistortion:
+        """Distortion coefficients as a flat vector (alias)."""
         return BrownDistortion(k1=self.k1, k2=self.k2, p1=self.p1, p2=self.p2, k3=self.k3)
 
 
@@ -41,6 +44,7 @@ def project_brown_pinhole(
     params: BrownPinholeParams,
     XYZ_cam: np.ndarray,
 ) -> np.ndarray:
+    """Project 3D points to pixels with Brown distortion."""
     XYZ_cam = np.asarray(XYZ_cam, dtype=np.float64).reshape(-1, 3)
     X = XYZ_cam[:, 0]
     Y = XYZ_cam[:, 1]
@@ -178,6 +182,7 @@ def fit_brown_pinhole_from_camera_points(
     p0 = np.clip(p0, lb + 1e-12, ub - 1e-12)
 
     def fun(p: np.ndarray) -> np.ndarray:
+        """Residual function for pinhole parameter optimisation."""
         p = np.asarray(p, dtype=np.float64).reshape(-1)
         if fit_rotation:
             from scipy.spatial.transform import Rotation as Rot  # type: ignore

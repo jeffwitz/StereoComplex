@@ -68,6 +68,7 @@ class CharucoObservationSet:
     diagnostics: SamplingDiagnostics | None = None
 
     def to_multi_camera(self) -> MultiCameraCharucoObservationSet:
+        """Convert stereo observations to multi-camera format."""
         return MultiCameraCharucoObservationSet(
             object_points_mm=self.object_points_mm,
             pose_rvecs=self.pose_rvecs,
@@ -105,17 +106,21 @@ class MultiCameraCharucoObservationSet:
 
     @property
     def channel_names(self) -> tuple[str, ...]:
+        """Channel names in insertion order."""
         return tuple(self.pixels_by_channel)
 
     @property
     def n_channels(self) -> int:
+        """Total number of channels in the observations."""
         return len(self.pixels_by_channel)
 
     @property
     def n_poses(self) -> int:
+        """Number of board poses captured."""
         return len(self.point_indices)
 
     def pixels(self, channel: str) -> list[np.ndarray]:
+        """Pixel coordinates for a given channel and pose."""
         return self.pixels_by_channel[channel]
 
 
