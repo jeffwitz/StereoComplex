@@ -398,6 +398,61 @@ obs = view_graph(scene, n_poses=30, min_shared=3, rng=np.random.default_rng(42))
 - Image rendering — use the existing `simulate_charuco_observations_from_camera_fields`.
 - Realistic occlusions, lighting, depth-of-field.
 
+**7. 3-D ground-truth object & reconstruction validation.**
+
+The ChArUco board is only a *calibration tool*.  A multi-camera rig is
+interesting because it can *measure* a 3-D scene.  The virtual bench must
+therefore include a known 3-D object so that the full calibration→reconstruction
+pipeline can be validated end-to-end:
+
+| Step | What | Validation |
+|---|---|---|
+| 1. Scene | Place N cameras + known object in a virtual volume | Object mesh or point cloud, known to < 1 µm |
+| 2. Calibrate | Observe ChArUco board through `view_graph` | Phase 2.1 BA |
+| 3. Match | Dense stereo matching on the object (DIS optical flow or virtual ground-truth correspondences) | Sub-pixel accuracy |
+| 4. Reconstruct | Triangulate N-view correspondences with calibrated rayfields | `reconstruct_points_*` |
+| 5. Evaluate | Compare reconstructed 3-D points against ground truth | RMS, P95 error in mm |
+
+**Minimum viable 3-D object (Phase 2.0 shipped with one).**
+
+A textured plane with known relief (e.g., a sinusoidal grating, a speckle
+pattern printed on a tilted plane, or a step wedge).  Simple enough to
+generate analytically, complex enough to test reconstruction accuracy.
+
+**Object specification.**
+
+```python
+@dataclass(frozen=True)
+class VirtualObject:
+    geometry: str           # "plane", "sinusoid", "step_wedge"
+    params: dict            # e.g. {"amplitude_mm": 5, "wavelength_mm": 50}
+    extent_mm: tuple[float, float]  # (width, height) of the object
+    texture: str            # "speckle", "checkerboard", "sinusoid"
+    ground_truth_mm: np.ndarray  # (M, 3) reference points with known XYZ
+```
+
+The object is fixed in the world frame.  N cameras observe it.  After
+calibration, `reconstruct_points_*` is called on matched pixel pairs (or
+N-tuples), and the reconstruction error is the Euclidean distance to
+`ground_truth_mm`.
+
+**Acceptance test for Phase 2.0 (no BA yet — use oracle rayfields).**
+
+```python
+scene = VirtualScene(
+    cameras=four_cameras_90deg,
+    object=VirtualObject(geometry="sinusoid", ...),
+    board=CharucoBoardSpec(...),
+)
+obs = view_graph(scene, n_poses=30)
+# Calibrate with oracle rayfields (perfect, no optimisation needed)
+# Match pixels → reconstruct → error < 0.1 mm RMS
+```
+
+This gives Phase 2.0 a meaningful success criterion *before* any BA code is
+written: « a known 3-D object is reconstructed to within 0.1 mm using oracle
+rayfields on N cameras ».
+
 #### Phase 2.1 — Joint N-rayfield BA
 channels, so `fit_zernike_rayfields_from_multi_camera_observations(...)` becomes
 a true N-camera optimizer instead of a `left/right`-only wrapper.
