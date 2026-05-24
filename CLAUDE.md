@@ -479,7 +479,7 @@ session) knows what is left.
 | 4 | `subpupil_3d.pdf` | `generate_fig_subpupil_3d.py` | — | TODO |
 | 5 | `dy_profile_comparison.pdf` | `generate_fig_dy_profile.py` | — | TODO |
 | 6 | `residual_evolution.pdf` | `generate_fig_residual_evolution.py` | — | TODO |
-| 7 | `pareto_gauge_regularization.pdf` | `generate_fig_pareto.py` | — | TODO |
+| 7 | `pareto_gauge_regularization.pdf` | `generate_fig_pareto.py` | `figure7_pareto_gauge_regularization/` | **DONE** |
 | 8 | `schur_singular_values.pdf` | `generate_fig_schur_svd.py` | `figure8_schur_singular_values/` | **DONE** |
 | 9 | `specimen_reconstruction.pdf` | `generate_fig_specimen_reconstruction.py` | `figure9_specimen_reconstruction/` | **DONE** |
 | 10 | `zernike_cmo_rigid_removed.pdf` | `generate_fig_zernike_cmo_rigid_removed.py` | `figure10_zernike_cmo_rigid_removed/` | **DONE** (also fixed a pre-existing dimensional bug: Kabsch SE(3) now applied on 3-D mm points; "dZ after SE(3)" matches the manuscript's quoted 0.06 mm residual) |

@@ -1,0 +1,6 @@
+{
+  "title": "Pareto frontier of the gauge-regularized Zernike sweep (Figure 7 of the CMO paper)",
+  "sweep_json": "../../pycaso_real_data/zernike_gauge_regularization_sweep.json",
+  "constrained_rms_mm_fallback": 0.000653,
+  "figure_size": [18, 5.5]
+}
