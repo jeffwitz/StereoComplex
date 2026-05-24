@@ -482,7 +482,7 @@ session) knows what is left.
 | 7 | `pareto_gauge_regularization.pdf` | `generate_fig_pareto.py` | — | TODO |
 | 8 | `schur_singular_values.pdf` | `generate_fig_schur_svd.py` | `figure8_schur_singular_values/` | **DONE** |
 | 9 | `specimen_reconstruction.pdf` | `generate_fig_specimen_reconstruction.py` | `figure9_specimen_reconstruction/` | **DONE** |
-| 10 | `zernike_cmo_rigid_removed.pdf` | `generate_fig_zernike_cmo_rigid_removed.py` | `figure10_zernike_cmo_rigid_removed/` | **DONE** (see README — faithfully reproduces a pre-existing bug; correct PNG sibling lives in notebook 11) |
+| 10 | `zernike_cmo_rigid_removed.pdf` | `generate_fig_zernike_cmo_rigid_removed.py` | `figure10_zernike_cmo_rigid_removed/` | **DONE** (also fixed a pre-existing dimensional bug: Kabsch SE(3) now applied on 3-D mm points; "dZ after SE(3)" matches the manuscript's quoted 0.06 mm residual) |
 | 11 | `specimen_schur_regularized.png` | `generate_fig_specimen_schur_regularized.py` | `figure11_specimen_schur_regularized/` | **DONE** |
 | 12 | `bic_bars.pdf` | `generate_fig_bic_bars.py` | — | TODO |
 
