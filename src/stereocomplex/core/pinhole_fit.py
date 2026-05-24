@@ -82,8 +82,23 @@ def project_brown_pinhole_with_rvec(
     XYZ_cam: np.ndarray,
     rvec: np.ndarray,
 ) -> np.ndarray:
-    """
-    Convenience wrapper for post-hoc fits that include a global rotation.
+    """Project 3-D points to pixels with Brown distortion and a global rotation vector.
+
+    Convenience wrapper for post-hoc fits that include a camera-to-world rotation.
+
+    Parameters
+    ----------
+    params : ndarray
+        Parameter vector: [fx, fy, cx, cy, k1, k2, p1, p2, k3].
+    XYZ_cam : ndarray, shape (N, 3)
+        3-D points in the camera frame, in millimetres.
+    rvec : ndarray, shape (3,)
+        Rodrigues rotation vector (axis-angle) for the camera-to-world transform.
+
+    Returns
+    -------
+    ndarray, shape (N, 2)
+        Pixel coordinates.
     """
     from scipy.spatial.transform import Rotation as Rot  # type: ignore
 
