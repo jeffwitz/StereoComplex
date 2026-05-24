@@ -124,7 +124,26 @@ def pinhole_ray_from_pixel(
     v: float | np.ndarray,
     K: np.ndarray,
 ) -> np.ndarray:
-    """Return normalized pinhole directions in camera coordinates."""
+    """Compute normalised pinhole ray directions from pixel coordinates.
+
+    Uses the camera matrix K to back-project pixels to unit vectors in camera
+    space.  The origin is implicitly at (0, 0, 0) — this function returns
+    directions only.
+
+    Parameters
+    ----------
+    u : float or ndarray
+        Pixel x-coordinate(s).
+    v : float or ndarray
+        Pixel y-coordinate(s).
+    K : ndarray, shape (3, 3)
+        Camera matrix.
+
+    Returns
+    -------
+    ndarray, shape (..., 3)
+        Unit ray directions in camera coordinates.
+    """
     K = np.asarray(K, dtype=np.float64).reshape(3, 3)
     u_arr = np.asarray(u, dtype=np.float64)
     v_arr = np.asarray(v, dtype=np.float64)
@@ -177,8 +196,26 @@ def project_point_with_parallel_plate(
     params: ParallelPlateSyntheticParams,
     image_size: tuple[int, int] | None = None,
 ) -> tuple[float, float]:
-    """
-    Project a 3D point by finding the pixel whose generated ray passes closest to it.
+    """Find the pixel whose generated plate-distorted ray passes closest to a 3-D point.
+
+    Uses iterative least-squares optimisation.  The point must be in front of
+    the camera (Z > 0).
+
+    Parameters
+    ----------
+    P_cam : ndarray, shape (3,)
+        3-D point in camera coordinates, in millimetres.
+    K : ndarray, shape (3, 3)
+        Camera matrix.
+    params : ParallelPlateSyntheticParams
+        Plate geometry parameters.
+    image_size : (int, int), optional
+        Sensor dimensions, used to validate the returned pixel.
+
+    Returns
+    -------
+    (u, v) : (float, float)
+        Pixel coordinates of the closest ray.
     """
     P = np.asarray(P_cam, dtype=np.float64).reshape(3)
     if P[2] <= 0:
@@ -227,7 +264,38 @@ def generate_parallel_plate_stereo_dataset(
     noise_std_px: float = 0.0,
     keep_oracle_rayfields: bool = True,
 ) -> SyntheticStereoDataset:
-    """Generate synthetic stereo pixel observations from inclined-plate oracle cameras."""
+    """Generate synthetic stereo pixel observations from inclined-plate oracle cameras.
+
+    For each board pose, projects the known object points through the left and
+    right parallel-plate camera models and optionally adds Gaussian pixel noise.
+
+    Parameters
+    ----------
+    object_points : ndarray, shape (N, 3)
+        Board-plane object points in mm (Z=0).
+    board_poses : sequence of ndarray
+        Board-to-world transforms, each shape (4, 4).
+    K_left, K_right : ndarray, shape (3, 3)
+        Camera matrices for the two channels.
+    T_left_world, T_right_world : ndarray, shape (4, 4)
+        World-to-camera transforms.
+    plate_left, plate_right : ParallelPlateSyntheticParams
+        Plate geometry for each channel.
+    image_size : (int, int)
+        Sensor dimensions in pixels (width, height).
+    noise_std_px : float
+        Standard deviation of additive Gaussian pixel noise (default 0).
+    keep_oracle_rayfields : bool
+        If True, attach exact ray functions to the returned dataset for
+        ground-truth evaluation.
+
+    Returns
+    -------
+    SyntheticStereoDataset
+        Named tuple with ``left_pixels``, ``right_pixels``, ``object_points``,
+        ``board_poses``, optional ``oracle_left_ray_function`` and
+        ``oracle_right_ray_function``.
+    """
     obj = _as_points(object_points)
     rng = np.random.default_rng(12345)
     left_pixels: list[np.ndarray] = []
