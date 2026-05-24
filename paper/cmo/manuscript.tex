@@ -244,11 +244,11 @@ This is the measurement stage of the two-stage decomposition (see Section~4.2).
 \subsection{The Zernike Rayfield as Observable}
 
 The fitted rayfield $\mathcal{R}_c(u,v)=(O_c(u,v),d_c(u,v))$ is used as an experimental observable. Within the chosen transverse gauge and fixed reference scale, effective rayfield descriptors can be read from the centre-pixel rays---no physical model fit is required. These descriptors are internally consistent quantities of the calibrated rayfield; they are not claimed to be externally validated absolute microscope specifications without an independent metrological reference. The centre-pixel values are:
-$b = \|O_R - O_L\| = \SI{24.9}{mm}$ (stereo baseline),
+$b = \|O_R - O_L\| = \SI{24.9}{mm}$ (effective stereo baseline in the rayfield gauge),
 $z_p = (|O_{L,z}| + |O_{R,z}|)/2 = \SI{2.5}{mm}$ (sub-pupil depth),
-$WD = \SI{64.7}{mm}$ (working distance, from mean pose Z),
+$WD = \SI{64.7}{mm}$ (effective working distance, from mean pose Z; convention: object-plane Z minus optical-axis origin),
 $f_{\text{obj}} = WD - z_p = \SI{62.2}{mm}$ (objective focal length),
-$\theta = \arccos(d_L \cdot d_R) = \SI{22.6}{\degree}$ (convergence angle).
+$\theta = \arccos(d_L \cdot d_R) = \SI{22.6}{\degree}$ (effective full convergence angle at the centre pixel).
 
 \begin{figure}[!htbp]
 \centering
@@ -446,7 +446,7 @@ Schur-coupling values for the other oracles (pinhole, Brown-Conrady, parallel-pl
 
 The 26p model, fitted to the rayfield, is refined by direct corner bundle adjustment (joint optimisation of model parameters and per-frame poses on 3300 corner observations, 200~nfev, soft-L1 loss).
 The pixel RMS improves from \SI{1.06}{px} to \SI{0.88}{px} (P50=\SI{0.64}{px}, P95=\SI{1.70}{px}; \SI{+17}{\percent}), while all 26 model parameters remain unchanged to within $10^{-3}$ of their rayfield-fit values.
-The model geometry---baseline, working distance, focal length, convergence angle, SE(3) arm corrections---is essentially identical before and after corner refinement.
+The model geometry---effective baseline, working distance, focal length, and convergence angle (all in the rayfield gauge and fixed $f_x$ reference), as well as the SE(3) arm corrections---is essentially identical before and after corner refinement.
 This confirms that the rayfield-initialised parameters are already near-optimal for corner reprojection: the corner BA improves pose estimates but does not alter the physical model.
 This is a strong validation of the two-stage decomposition strategy: the rayfield fit, which never directly minimises corner error, produces parameters so close to the corner optimum that the dedicated BA can barely improve them.
 In contrast, the direct approach---jointly estimating optics and poses from corners---is severely ill-conditioned for this non-central system (Schur-complement coupling norm $0.81$), failing to converge with a pinhole initialisation (RMS \SI{29}{px}).
@@ -567,11 +567,11 @@ After double TPS, the gauge drift drops to \SI{0.023}{\degree}, and the rayfield
 \subsection{Pose Count Sensitivity}
 
 To assess robustness to the number of calibration frames, we sub-sample $N \in \{3,5,8,10\}$ frames from the 10 available and re-run the full pipeline (Zernike fit + 26p model) for each.
-Table~\ref{tab:pose_sweep} reports pixel RMS and geometric descriptors.
+Table~\ref{tab:pose_sweep} reports pixel RMS and effective geometric descriptors.
 
 \begin{table}[H]
 \centering
-\caption{Pose sweep: pixel RMS and CMO descriptor stability vs.\ number of frames.}
+\caption{Pose sweep: pixel RMS and effective-descriptor stability vs.\ number of frames (all descriptors in the rayfield gauge with $f_x=25600$~px).}
 \label{tab:pose_sweep}
 \begin{tabular}{lrrrrr}
 \toprule
@@ -586,8 +586,8 @@ $N$ frames & RMS (px) & P50 (px) & $b$ (mm) & $WD$ (mm) & $\theta$ (\si{\degree}
 \end{table}
 
 The pixel RMS is stable within \SI{0.05}{px} across frame counts---even 3 frames suffice for \SI{1.02}{px} calibration.
-Geometric descriptors vary by less than \SI{0.2}{mm} (baseline) and \SI{0.1}{mm} (working distance), confirming that the pipeline is robust to the number of calibration images.
-The convergence angle $\theta \approx \SI{22.5}{\degree}$ (standard deviation \SI{0.1}{\degree}).
+Effective descriptors vary by less than \SI{0.2}{mm} (baseline) and \SI{0.1}{mm} (working distance) in the chosen gauge, confirming that the pipeline is robust to the number of calibration images.
+The effective convergence angle $\theta \approx \SI{22.5}{\degree}$ (standard deviation \SI{0.1}{\degree}).
 
 \subsection{OpenCV Tuning Does Not Recover}
 
@@ -600,13 +600,13 @@ This confirms that the failure is structural (central projection assumption), no
 \subsection{Geometric Descriptor Validation}
 
 The Pycaso software publication \cite{pycaso2023} documents a Leica~205C stereo microscope. However, nominal geometric parameters (baseline, working distance, focal length) of the specific instrument used to acquire the open dataset are not available from the publication or manufacturer datasheets.
-Our rayfield-derived descriptors---$b = \SI{24.9}{mm}$, $WD = \SI{64.7}{mm}$, $f_{\text{obj}} = \SI{62.2}{mm}$---are substantially different.
+Our rayfield-derived effective descriptors, read at the rayfield gauge ($O \cdot d = 0$) and fixed reference scale ($f_x = 25600$~px), are $b = \SI{24.9}{mm}$, $WD = \SI{64.7}{mm}$, $f_{\text{obj}} = \SI{62.2}{mm}$---substantially different from any plausible Leica~205C configuration.
 This indicates that the open Pycaso calibration dataset was produced with a different microscope or optical configuration than the one documented in the Pycaso paper.
 
 While we cannot validate against the nominal specifications of the actual microscope used (unknown manufacturer, unknown model), the StereoComplex-derived descriptors are \textbf{internally consistent} by three independent tests:
-(1)~cross-validation stability: $1.07 \pm 0.02$~px RMS across 5 folds, with descriptor spread $\pm 0.4$~mm (baseline), $\pm 0.15$~mm (WD);
+(1)~cross-validation stability: $1.07 \pm 0.02$~px RMS across 5 folds, with effective-descriptor spread $\pm 0.4$~mm (baseline), $\pm 0.15$~mm (WD);
 (2)~bootstrap 95\,\% confidence intervals: $b \in [23.48, 25.04]$~mm, $WD \in [64.64, 65.13]$~mm, $\theta \in [21.04^\circ, 22.72^\circ]$;
-(3)~frame-count stability: descriptors vary by $< 0.2$~mm (baseline) and $< 0.1$~mm (WD) from 3 to 10 frames (Table~\ref{tab:pose_sweep}).
+(3)~frame-count stability: effective descriptors vary by $< 0.2$~mm (baseline) and $< 0.1$~mm (WD) from 3 to 10 frames (Table~\ref{tab:pose_sweep}).
 
 External validation remains open.
 Confirming the absolute accuracy of the geometric descriptors requires either (a)~manufacturer specifications for the specific microscope and optical configuration used to collect the Pycaso calibration images, or (b)~an independent 3D measurement of the sub-pupil positions and working distance.
@@ -626,16 +626,16 @@ Three internal validation experiments assess the robustness of the 26p pipeline 
 \textbf{Cross-validation.}
 5-fold leave-2-out cross-validation (fit on 8 frames, evaluate on 2 held-out frames) yields a mean pixel RMS of $1.07 \pm 0.02$~px.
 The low standard deviation ($\sim$\SI{0.02}{px}) confirms that the model is not overfitting to specific frames; the calibration is stable across the 10-frame dataset.
-Fold~1 shows slightly higher RMS (\SI{1.09}{px}) and a lower baseline estimate ($b = \SI{23.1}{mm}$) because the held-out frames (0 and 1) cover the most extreme Z values.
+Fold~1 shows slightly higher RMS (\SI{1.09}{px}) and a lower effective baseline estimate ($b = \SI{23.1}{mm}$) because the held-out frames (0 and 1) cover the most extreme Z values.
 
 \textbf{Bootstrap descriptor stability.}
 100 bootstrap iterations (resampling 10 frames with replacement, refitting the full pipeline each time) give 95\,\% confidence intervals:
 \begin{itemize}
-  \item Baseline $b$: [$24.2$, $25.4$]~mm (mean $24.6$~mm, $\sigma = 0.4$~mm)
-  \item Working distance $WD$: [$64.7$, $65.1$]~mm (mean $64.9$~mm, $\sigma = 0.14$~mm)
-    \item Convergence angle $\theta$: [$21.4^\circ$, $23.0^\circ$] (mean $22.2^\circ$, $\sigma = 0.4^\circ$)
+  \item Effective baseline $b$: [$24.2$, $25.4$]~mm (mean $24.6$~mm, $\sigma = 0.4$~mm)
+  \item Effective working distance $WD$: [$64.7$, $65.1$]~mm (mean $64.9$~mm, $\sigma = 0.14$~mm)
+    \item Effective convergence angle $\theta$: [$21.4^\circ$, $23.0^\circ$] (mean $22.2^\circ$, $\sigma = 0.4^\circ$)
 \end{itemize}
-The working distance is the most stable descriptor ($\sigma < \SI{0.2}{mm}$), while the baseline and convergence angle show \SI{0.4}{mm} and \SI{0.4}{\degree} variation respectively---consistent with the gauge sensitivity of the Zernike origin field noted in Section~\ref{sec:limitations}.
+The effective working distance is the most stable descriptor ($\sigma < \SI{0.2}{mm}$), while the effective baseline and convergence angle show \SI{0.4}{mm} and \SI{0.4}{\degree} variation respectively---consistent with the gauge sensitivity of the Zernike origin field noted in Section~\ref{sec:limitations}.
 
 \textbf{Sensitivity to fixed focal length $f_x$.}
 Varying the fixed pinhole focal length $f_x$ by $\pm 10\%$ (5 values: 23040, 24320, 25600, 26880, 28160~px) produces:
@@ -743,7 +743,7 @@ The operational usability score correctly rejects the 14p base model as unusable
 
 \begin{table}[H]
 \centering
-\caption{CMO-consistent geometric descriptors read directly from the Zernike rayfield at the centre pixel.}
+\caption{CMO-consistent effective geometric descriptors read directly from the Zernike rayfield at the centre pixel. All values are reported in the chosen rayfield gauge ($O \cdot d = 0$) and fixed reference focal scale ($f_x = 25600$~px); their absolute metrological interpretation requires an independent external reference (see Section~\ref{sec:limitations}).}
 \label{tab:descriptors}
 \begin{tabular}{lrl}
 \toprule
@@ -848,7 +848,7 @@ Code, data, and documentation are publicly available at \url{https://github.com/
 Several directions extend this work.
 First, the methodology should be validated on additional CMO microscope designs and manufacturers to confirm generalisability beyond the single Pycaso instrument.
 Second, the Greenough stereo microscope family---with tilted optical axes rather than parallel sub-pupils---presents a harder identification problem where the telecentric model does not apply; the residual-guided construction method would need to discover a different geometric skeleton.
-Third, quantitative uncertainty propagation from ChArUco corner noise to physical descriptor estimates (baseline, working distance) would strengthen the metrological claim.
+Third, quantitative uncertainty propagation from ChArUco corner noise to effective-descriptor estimates (baseline, working distance) would strengthen the metrological claim.
 Fourth, deep learning-based corner detection could replace the hand-tuned Hessian+TPS pipeline, potentially improving the raw 2D input quality and further reducing the gauge instability.
 Finally, extending the Zernike rayfield to time-varying deformations (e.g., vibration, thermal drift) would enable \emph{in-situ} calibration monitoring without dedicated targets.
 
