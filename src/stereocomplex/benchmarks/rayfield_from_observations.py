@@ -46,6 +46,7 @@ class ZernikeFitDiagnostics:
 
     @property
     def n_channels(self) -> int:
+        """Number of channels in the observation dataset."""
         return len(self.channel_names)
 
 
@@ -239,6 +240,7 @@ def fit_zernike_rayfield_from_charuco_observations(
     enforce_gauge = config.enforce_transverse_gauge
 
     def residuals(x: Array) -> Array:
+        """Compute ray-space residuals for the current BA state."""
         cL = x[:n_zernike]
         cR = x[n_zernike : 2 * n_zernike]
         # origin: first half, direction: second half, each (n_modes, 3)
@@ -286,6 +288,7 @@ def fit_zernike_rayfield_from_charuco_observations(
     # pixels, exploiting a gauge degeneracy with near-flat poses.
 
     def residuals_reg(x: Array) -> Array:
+        """Compute regularised ray-space residuals."""
         r_geo = residuals(x)
         # Penalize all origin coefficients (both channels) to stay near zero
         cL = x[:n_zernike]
@@ -634,6 +637,7 @@ def fit_constrained_zernike_rayfield(
         return np.concatenate(blocks) if blocks else np.zeros(0, dtype=np.float64)
 
     def residuals(x: np.ndarray) -> np.ndarray:
+        """Compute ray-space residuals for the current BA state."""
         cL = x[:n_field_per_ch]
         cR = x[n_field_per_ch : 2 * n_field_per_ch]
         pose_p = x[2 * n_field_per_ch :]

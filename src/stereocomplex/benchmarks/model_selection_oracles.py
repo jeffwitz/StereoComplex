@@ -95,16 +95,20 @@ class MultiCameraOracle:
 
     @property
     def channel_names(self) -> tuple[str, ...]:
+        """Channel names in insertion order."""
         return tuple(self.fields_by_channel)
 
     @property
     def n_channels(self) -> int:
+        """Number of channels in the oracle dataset."""
         return len(self.fields_by_channel)
 
     def field(self, channel: str):
+        """Access the rayfield for a named channel."""
         return self.fields_by_channel[channel]
 
     def K(self, channel: str) -> np.ndarray:
+        """Camera matrix K (3,3) for a named channel."""
         return self.intrinsics_by_channel[channel]
 
 

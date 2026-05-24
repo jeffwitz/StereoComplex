@@ -169,6 +169,7 @@ def compute_inverse_problem_diagnostics(
     x_full = np.concatenate([theta, eta])
 
     def full_residual(x):
+        """Full residual vector for the inverse problem diagnostic."""
         return residual_function(x[:p_opt], x[p_opt:])
 
     J_full = finite_difference_jacobian(full_residual, x_full, step=step)
@@ -254,6 +255,7 @@ def compute_pipeline_condition_number(
         p_pose = et.size
 
         def full_res(x):
+            """Concatenated residual for all observations."""
             return residual_function(x[:p_opt], x[p_opt:])
 
         J_full = finite_difference_jacobian(full_res, np.concatenate([th, et]), step=step)
@@ -282,6 +284,7 @@ def compute_pipeline_condition_number(
     else:
         # Pipeline B: no pose parameters
         def opt_res(x):
+            """Optimised residual after BA convergence."""
             return residual_function(x, None)
 
         J_opt = finite_difference_jacobian(opt_res, th, step=step)

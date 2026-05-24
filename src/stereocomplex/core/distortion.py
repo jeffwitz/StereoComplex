@@ -22,6 +22,7 @@ class BrownDistortion:
     k3: float = 0.0
 
     def distort(self, x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Apply radial and tangential distortion to normalised coordinates."""
         x = np.asarray(x, dtype=np.float64)
         y = np.asarray(y, dtype=np.float64)
         r2 = x * x + y * y
@@ -55,6 +56,7 @@ class BrownDistortion:
 
 
 def brown_from_dict(d: dict) -> BrownDistortion:
+    """Build Brown-Conrady model from a configuration dict."""
     return BrownDistortion(
         k1=float(d.get("k1", 0.0)),
         k2=float(d.get("k2", 0.0)),
@@ -65,5 +67,6 @@ def brown_from_dict(d: dict) -> BrownDistortion:
 
 
 def brown_to_dict(m: BrownDistortion) -> dict:
+    """Export Brown-Conrady model to a configuration dict."""
     return {"k1": m.k1, "k2": m.k2, "p1": m.p1, "p2": m.p2, "k3": m.k3}
 

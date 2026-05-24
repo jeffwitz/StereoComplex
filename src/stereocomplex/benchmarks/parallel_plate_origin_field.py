@@ -59,6 +59,7 @@ class RenderedImageBenchmarkReport:
 
 
 def make_grid_board(nx: int = 7, ny: int = 5, spacing: float = 24.0) -> np.ndarray:
+    """Build a ChArUco board geometry as a grid of object points."""
     xs = (np.arange(nx, dtype=np.float64) - (nx - 1) / 2.0) * float(spacing)
     ys = (np.arange(ny, dtype=np.float64) - (ny - 1) / 2.0) * float(spacing)
     xx, yy = np.meshgrid(xs, ys)
@@ -66,6 +67,7 @@ def make_grid_board(nx: int = 7, ny: int = 5, spacing: float = 24.0) -> np.ndarr
 
 
 def make_transform(R: np.ndarray | None = None, t: np.ndarray | None = None) -> np.ndarray:
+    """Create a 4x4 homogeneous transform from rotation vector and translation."""
     T = np.eye(4, dtype=np.float64)
     if R is not None:
         T[:3, :3] = np.asarray(R, dtype=np.float64).reshape(3, 3)
@@ -87,6 +89,7 @@ def _rot_y(deg: float) -> np.ndarray:
 
 
 def make_default_parallel_plate_dataset(noise_std_px: float = 0.0) -> SyntheticStereoDataset:
+    """Generate the default synthetic parallel-plate dataset."""
     image_size = (640, 480)
     K_left = np.array([[620.0, 0.0, 319.5], [0.0, 620.0, 239.5], [0.0, 0.0, 1.0]])
     K_right = K_left.copy()
@@ -422,6 +425,7 @@ def run_parallel_plate_origin_field_benchmark(
     pose_regularization: float = 0.0,
     rig_regularization: float = 0.0,
 ) -> BenchmarkReport:
+    """Run the full origin-field benchmark end-to-end."""
     dataset = make_default_parallel_plate_dataset(noise_std_px=noise_std_px)
     dataset_clean = make_default_parallel_plate_dataset(noise_std_px=0.0)
     config_left = ZernikeOriginFieldConfig(image_size=dataset.image_size, max_order=max_order)

@@ -50,6 +50,7 @@ class SyntheticStereoDataset:
 
     @property
     def oracle_left_ray_function(self):
+        """Exact ray function for the left channel (no noise)."""
         if self.oracle_left_params is None:
             return None
 
@@ -60,6 +61,7 @@ class SyntheticStereoDataset:
 
     @property
     def oracle_right_ray_function(self):
+        """Exact ray function for the right channel (no noise)."""
         if self.oracle_right_params is None:
             return None
 
@@ -188,6 +190,7 @@ def project_point_with_parallel_plate(
     from scipy.optimize import least_squares  # type: ignore
 
     def fun(x: np.ndarray) -> np.ndarray:
+        """Residual function for plate parameter optimisation."""
         origin, direction = parallel_plate_ray_from_pixel(float(x[0]), float(x[1]), K, params)
         return _point_line_residual(
             P, np.asarray(origin).reshape(3), np.asarray(direction).reshape(3)
