@@ -105,17 +105,18 @@ def eval_real_zernike(mode: ZernikeMode, r: np.ndarray, theta: np.ndarray) -> np
 
     Parameters
     ----------
-    rho : ndarray
+    mode : ZernikeMode
+        Zernike mode descriptor carrying radial order, azimuthal order and
+        sine/cosine branch.
+    r : ndarray
         Normalised radial coordinates, in [0, 1].
     theta : ndarray
-        Azimuthal angles in radians, same shape as rho.
-    n : int
-        Radial order of the Zernike polynomial.
+        Azimuthal angles in radians, same shape as ``r``.
 
     Returns
     -------
     ndarray
-        Zernike polynomial values, same shape as rho.
+        Zernike polynomial values, same shape as ``r``.
     """
     r = np.asarray(r, dtype=np.float64)
     theta = np.asarray(theta, dtype=np.float64)
@@ -221,4 +222,3 @@ def zernike_design_matrix(
     for k, mode in enumerate(modes):
         A[:, k] = eval_real_zernike(mode, r_in, th_in)
     return A, mask, modes
-

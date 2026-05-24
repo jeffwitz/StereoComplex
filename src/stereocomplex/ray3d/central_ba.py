@@ -215,6 +215,12 @@ def fit_central_rayfield_ba(
         Number of alternating refinement iterations.
     max_nfev_coeff, max_nfev_pose : int
         Max function evaluations for coefficient and pose sub-problems.
+
+    Returns
+    -------
+    CentralRayFieldBAResult
+        Dataclass result object containing the fitted Zernike coefficients,
+        per-frame board poses, and optimisation diagnostics.
     """
     if not frames:
         raise ValueError("frames is empty")

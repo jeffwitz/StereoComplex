@@ -18,6 +18,11 @@ def main(argv: list[str] | None = None) -> int:
     ----------
     argv : list of str
         Command-line arguments (subcommand + options).
+
+    Returns
+    -------
+    int
+        Process exit code.
     """
     parser = argparse.ArgumentParser(prog="stereocomplex")
     sub = parser.add_subparsers(dest="cmd", required=True)

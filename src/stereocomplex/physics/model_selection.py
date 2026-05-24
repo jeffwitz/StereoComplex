@@ -414,8 +414,8 @@ def fit_physical_model_to_rayfield(
     Returns
     -------
     PhysicalModelFitResult
-        Named tuple with ``x`` (optimal params), ``rms_mm``, ``success``,
-        and ``model`` (the fitted instance).
+        Dataclass result object with ``parameter_vector`` (optimal parameters),
+        ``rms_mm``, ``success``, and ``model`` (the fitted instance).
     """
     from scipy.optimize import least_squares  # type: ignore
 
@@ -444,7 +444,7 @@ def fit_physical_model_to_rayfield(
         return _make_model(model_class, x, K_arr, model_kwargs)
 
     def combined_residuals(x: np.ndarray) -> np.ndarray:
-        """Combine ray-space and pixel residuals from left and right channels."""
+        """Combine support-grid and optional full-grid ray-space residuals."""
         model = model_at(x)
         blocks = [
             float(support_weight)

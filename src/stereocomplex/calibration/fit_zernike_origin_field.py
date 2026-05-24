@@ -137,13 +137,60 @@ def fit_stereo_zernike_origin_field(
     rig_regularization: float = 0.0,
     max_nfev: int = 200,
 ) -> StereoZernikeOriginFieldFitResult:
-    """
-    Fit a generic Zernike origin field from point-to-ray residuals.
+    """Fit stereo non-central Zernike origin fields from point-to-ray residuals.
 
-    By default this keeps board poses, stereo extrinsics and directions fixed to
-    isolate the identification of `O(u,v)`. Experimental flags can also optimize
-    a direction field `d(u,v)` and board poses. The fit never accesses the
-    physical parallel-plate oracle parameters.
+    The default mode identifies per-pixel ray origins ``O_left(u,v)`` and
+    ``O_right(u,v)`` on top of fixed pinhole directions, fixed board poses and a
+    fixed stereo rig.  Optional flags can extend the optimisation to direction
+    perturbations, per-frame board poses and the stereo extrinsics.  The fit is
+    purely geometric: it uses only observed pixels, camera intrinsics, initial
+    poses and the board object points, never the physical oracle parameters used
+    to generate synthetic data.
+
+    Parameters
+    ----------
+    observations : SyntheticStereoDataset
+        Stereo calibration observations.  ``left_pixels`` and ``right_pixels``
+        are per-frame pixel arrays; ``object_points`` or
+        ``per_frame_object_points`` provide matching board coordinates in mm.
+    K_left, K_right : ndarray, shape (3, 3)
+        Left and right pinhole intrinsics used for the fixed base directions.
+    T_right_left_initial : ndarray, shape (4, 4)
+        Initial transform from left-camera coordinates to right-camera
+        coordinates.
+    board_poses_initial : sequence of ndarray, each shape (4, 4)
+        Initial board-to-world transforms, one per observed frame.
+    config_left, config_right : ZernikeOriginFieldConfig
+        Zernike basis, image size and gauge settings for each channel.
+    optimize_board_poses : bool
+        If True, include one SE(3) board pose block per frame in the least-
+        squares vector.
+    optimize_stereo_extrinsics : bool
+        If True, refine the stereo rig transform around
+        ``T_right_left_initial``.
+    optimize_directions : bool
+        If True, fit Zernike direction perturbation coefficients as well as
+        origin coefficients.
+    robust_loss : {"linear", "huber", "soft_l1", "cauchy", "arctan"}
+        Robust loss passed to ``scipy.optimize.least_squares``.
+    regularization : float
+        L2 weight for origin-field coefficients.
+    direction_regularization : float or None
+        L2 weight for direction coefficients.  ``None`` reuses
+        ``regularization``.
+    pose_regularization : float
+        L2 weight anchoring optimised board poses to their initial values.
+    rig_regularization : float
+        L2 weight anchoring optimised stereo extrinsics to the initial rig.
+    max_nfev : int
+        Maximum number of least-squares function evaluations.
+
+    Returns
+    -------
+    StereoZernikeOriginFieldFitResult
+        Dataclass result object containing the fitted left/right rayfields,
+        optional direction coefficients, refined poses/rig and residual
+        diagnostics.
     """
     if len(board_poses_initial) != len(observations.left_pixels):
         raise ValueError("board_poses_initial must match the number of observed frames")

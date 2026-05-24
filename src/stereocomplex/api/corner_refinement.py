@@ -36,16 +36,45 @@ def refine_charuco_corners(
     huber_c: float = 3.0,
     iters: int = 3,
 ) -> np.ndarray:
-    """
-    Refine ChArUco corners using only geometric priors on the board plane.
+    """Refine ChArUco corners using geometric priors on the board plane.
 
-    Inputs:
-    - `board`: OpenCV CharucoBoard instance (used to get object coordinates).
-    - marker detections: `marker_ids`, `marker_corners` (AruCo corners in pixels)
-    - ChArUco corners to refine: `charuco_ids`, `charuco_xy` (pixels)
+    The function accepts either a bundled :class:`CharucoDetections` object or
+    the four raw detection arrays.  ``method="raw"`` returns the ChArUco
+    detector coordinates unchanged; ``method="rayfield_tps_robust"`` fits a
+    robust 2-D board-plane warp from marker corners to image pixels and
+    evaluates it at the requested ChArUco corner IDs.
 
-    Output:
-    - refined corner positions (K,2) in pixels, same order as `charuco_ids`.
+    Parameters
+    ----------
+    method : {"raw", "rayfield_tps_robust"}
+        Refinement strategy.
+    board : CharucoBoardSpec or OpenCV CharucoBoard
+        Board geometry. ``CharucoBoardSpec`` is converted with
+        ``build_charuco_board``; an OpenCV board must provide ``getIds``,
+        ``getObjPoints`` and ``getChessboardCorners``.
+    detections : CharucoDetections, optional
+        Bundled marker and ChArUco detections for one image.  If provided, the
+        four raw detection arguments below are ignored.
+    marker_ids : ndarray, shape (M,), optional
+        ArUco marker IDs detected in the image.
+    marker_corners : list of ndarray, optional
+        Marker corner coordinates in pixels, one ``(4, 2)`` array per marker.
+    charuco_ids : ndarray, shape (K,), optional
+        ChArUco corner IDs to refine.
+    charuco_xy : ndarray, shape (K, 2), optional
+        Initial ChArUco corner coordinates in pixels.
+    tps_lam : float
+        Thin-plate-spline smoothing parameter for ``rayfield_tps_robust``.
+    huber_c : float
+        Huber threshold in pixels for robust TPS fitting.
+    iters : int
+        Number of robust reweighting iterations.
+
+    Returns
+    -------
+    ndarray, shape (K, 2)
+        Refined corner positions in pixels, in the same order as
+        ``charuco_ids``.
     """
     if detections is not None:
         marker_ids = detections.marker_ids

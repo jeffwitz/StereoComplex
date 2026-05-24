@@ -157,8 +157,8 @@ def reconstruct_points_central_stereo(
     Returns
     -------
     ReconstructionResult
-        Named tuple with ``points_3d_mm`` (N, 3), ``ray_gap_mm`` (N,), and
-        ``mask_valid`` (N, bool).
+        Dataclass result object with ``points_3d`` (N, 3), ``ray_gap`` (N,),
+        and ``valid_mask`` (N, bool).
     """
     uvL = np.asarray(left_pixels, dtype=np.float64).reshape(-1, 2)
     uvR = np.asarray(right_pixels, dtype=np.float64).reshape(-1, 2)
@@ -205,8 +205,8 @@ def reconstruct_points_with_origin_fields(
     Returns
     -------
     ReconstructionResult
-        Named tuple with ``points_3d_mm`` (N, 3), ``ray_gap_mm`` (N,), and
-        ``mask_valid`` (N, bool).
+        Dataclass result object with ``points_3d`` (N, 3), ``ray_gap`` (N,),
+        and ``valid_mask`` (N, bool).
     """
     uvL = np.asarray(left_pixels, dtype=np.float64).reshape(-1, 2)
     uvR = np.asarray(right_pixels, dtype=np.float64).reshape(-1, 2)
@@ -361,8 +361,8 @@ def compare_3d_reconstruction_with_without_origin_field(
     Returns
     -------
     ReconstructionComparisonReport
-        Named tuple with ``central`` and ``noncentral`` error statistics
-        (rms_mm, median_mm, p95_mm).
+        Dataclass result object with ``central`` and ``with_origin_field``
+        error statistics.
     """
     del central_model_result
     uvL = np.concatenate(dataset.left_pixels, axis=0)

@@ -465,7 +465,7 @@ def run_parallel_plate_origin_field_benchmark(
     Returns
     -------
     BenchmarkReport
-        Named tuple with reconstruction comparison and diagnostics.
+        Dataclass result object with reconstruction comparison and diagnostics.
     """
     dataset = make_default_parallel_plate_dataset(noise_std_px=noise_std_px)
     dataset_clean = make_default_parallel_plate_dataset(noise_std_px=0.0)

@@ -241,6 +241,8 @@ def compute_pipeline_condition_number(
         Optical parameters at the optimum.
     eta : (p_poses,) ndarray | None
         Pose parameters.  If None, only the optics-only condition is computed.
+    step : float
+        Finite-difference step for the numerical Jacobian.
 
     Returns
     -------

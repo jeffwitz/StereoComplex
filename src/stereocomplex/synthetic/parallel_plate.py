@@ -292,9 +292,8 @@ def generate_parallel_plate_stereo_dataset(
     Returns
     -------
     SyntheticStereoDataset
-        Named tuple with ``left_pixels``, ``right_pixels``, ``object_points``,
-        ``board_poses``, optional ``oracle_left_ray_function`` and
-        ``oracle_right_ray_function``.
+        Dataclass dataset object with ``left_pixels``, ``right_pixels``,
+        ``object_points``, ``board_poses``, and optional oracle rayfields.
     """
     obj = _as_points(object_points)
     rng = np.random.default_rng(12345)

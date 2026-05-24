@@ -799,7 +799,28 @@ def compare_opencv_stereo_calibration(
     ``method2d="raw"``, once with *method2d*) and returns a comparison
     dictionary.
 
-    Parameters are forwarded to ``fit_opencv_stereo_from_image_dirs``.
+    Parameters
+    ----------
+    left_dir : str or Path
+        Directory containing left-camera calibration images.
+    right_dir : str or Path
+        Directory containing right-camera calibration images.
+    board : CharucoBoardSpec
+        ChArUco board geometry used for detection and calibration.
+    max_pairs : int or None
+        Maximum number of stereo pairs to process. ``None`` means the default
+        of ``fit_opencv_stereo_from_image_dirs``.
+    method2d : str
+        Refined 2-D corner method used for the second calibration pass.
+    **kwargs
+        Additional keyword arguments forwarded to
+        ``fit_opencv_stereo_from_image_dirs``.
+
+    Returns
+    -------
+    dict
+        Dictionary containing raw/refined dataclass result objects, their
+        serialised dictionaries, and the RMS improvement in pixels.
     """
     raw = fit_opencv_stereo_from_image_dirs(
         left_dir=Path(left_dir),
@@ -864,7 +885,7 @@ def fit_opencv_stereo_from_image_dirs(
     Returns
     -------
     StereoOpenCVCalibrationResult
-        Named tuple with OpenCV calibration parameters per channel.
+        Dataclass result object with OpenCV calibration parameters per channel.
     """
     pairs = _image_pairs_from_dirs(left_dir, right_dir, max_pairs=max_pairs)
     return fit_opencv_stereo_from_image_pairs(
@@ -916,7 +937,7 @@ def fit_opencv_stereo_from_dataset(
     Returns
     -------
     StereoOpenCVCalibrationResult
-        Named tuple with OpenCV calibration parameters per channel.
+        Dataclass result object with OpenCV calibration parameters per channel.
     """
     board, pairs = _image_pairs_from_dataset(
         dataset_root=dataset_root, split=split, scene=scene, max_frames=max_frames
@@ -1170,7 +1191,7 @@ def fit_stereo_central_rayfield_from_image_dirs(
     Returns
     -------
     StereoCentralRayFieldFitResult
-        Named tuple with fitted central rayfield model and diagnostics.
+        Dataclass result object with the fitted central rayfield model and diagnostics.
     """
     pairs = _image_pairs_from_dirs(left_dir, right_dir, max_pairs=max_pairs)
     return fit_stereo_central_rayfield_from_image_pairs(
@@ -1271,6 +1292,13 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
         Corner refinement method passed to refine_charuco_corners.
     min_common_corners:
         Minimum corners common to left and right per frame.
+    tps_lam:
+        Thin-plate-spline smoothing parameter forwarded to
+        ``refine_charuco_corners`` when ``method2d="rayfield_tps_robust"``.
+    huber_c:
+        Huber threshold in pixels for robust 2-D corner refinement.
+    iters:
+        Number of IRLS iterations for robust 2-D corner refinement.
     regularization:
         L2 regularization weight on the Zernike origin coefficients.
     max_nfev:
@@ -1386,7 +1414,7 @@ def fit_stereo_central_rayfield_from_dataset(
     Returns
     -------
     StereoCentralRayFieldFitResult
-        Named tuple with fitted central rayfield model and diagnostics.
+        Dataclass result object with the fitted central rayfield model and diagnostics.
     """
     board, pairs = _image_pairs_from_dataset(
         dataset_root=dataset_root, split=split, scene=scene, max_frames=max_frames

@@ -42,6 +42,8 @@ def diagram_pinhole_stereo(
         Specimen position in (x, z) millimetres.
     pixel_pitch : float
         Pixel pitch in millimetres for sensor-scale indicators.
+    baseline_label : str
+        Text used for the baseline dimension annotation.
     """
     OL = np.array([float(O_left[0]), float(O_left[1])])
     OR = np.array([float(O_right[0]), float(O_right[1])])

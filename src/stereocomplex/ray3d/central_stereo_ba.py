@@ -143,6 +143,12 @@ def fit_central_stereo_rayfield_ba(
         Scale parameter for robust loss, in millimetres.
     max_nfev : int
         Maximum function evaluations.
+
+    Returns
+    -------
+    CentralStereoRayFieldBAResult
+        Dataclass result object containing fitted left/right rayfield
+        coefficients, rig parameters, board poses, and diagnostics.
     """
     if not frames:
         raise ValueError("frames is empty")
@@ -402,6 +408,12 @@ def fit_central_stereo_rayfield_coeffs_fixed(
         Scale parameter for robust loss, in mm.
     max_nfev : int
         Maximum function evaluations.
+
+    Returns
+    -------
+    CentralStereoRayFieldBAResult
+        Dataclass result object containing fitted left/right rayfield
+        coefficients with the supplied rig and board poses.
     """
     if not frames:
         raise ValueError("frames is empty")

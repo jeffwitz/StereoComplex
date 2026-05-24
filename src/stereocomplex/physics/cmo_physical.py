@@ -143,10 +143,10 @@ class CMOPhysicalStereoModel:
 
         The layout is: 6 shared optical parameters
         (``f_obj_mm``, ``working_distance_mm``, ``b_mm``, ``f_tube_mm``,
-        ``cx``, ``cy``), optionally 2 principal-point deltas, 3 rigid-body
-        tilts (``theta_axis_tilt_rad``, ``theta_pitch_rad``,
-        ``telecentric_offset_mm``), and 5 Brown-Conrady distortion
-        coefficients per channel (10 total).
+        ``cx``, ``cy``), optionally 2 principal-point deltas, 2 global tilt
+        angles (``theta_axis_tilt_rad``, ``theta_pitch_rad``), one axial
+        telecentric offset/depth parameter (``telecentric_offset_mm``), and
+        5 Brown-Conrady distortion coefficients per channel (10 total).
         """
         return 19 if self.share_principal_point else 21
 
@@ -543,12 +543,15 @@ class CMOPhysicalChannelModel:
         return self.rig.ray(u, v, self.channel)
 
     def project_point(self, X: Array, max_iter: int = 20) -> tuple[Array, bool]:
-        """Analytic projection of a 3-D point to pixel coordinates.
+        """Project a 3-D point with the non-tilted paraxial channel approximation.
 
-        Inverts the CMO ray model: given a world point *X*, find the
-        pixel whose ray passes through *X*.  The distortion inversion
-        uses fixed-point iteration (converges in ~5 steps for typical
-        coefficients).
+        Given a point *X*, find the pixel whose approximate ray passes through
+        it.  This helper is intentionally narrower than
+        :meth:`CMOPhysicalStereoModel.ray`: it uses the sub-pupil
+        ``z = working_distance_mm - f_obj_mm`` and does not invert
+        ``telecentric_offset_mm``, ``theta_axis_tilt_rad`` or
+        ``theta_pitch_rad``.  Use it only for the legacy non-tilted projection
+        path; use ``ray()`` for the full fitted 19/21-parameter model.
 
         Returns ``(uv, ok)`` where *uv* is (2,) and *ok* is True if
         the point projects inside the sensor.
@@ -626,10 +629,12 @@ def fit_cmo_physical_stereo_model_to_rayfields(
 ) -> CMOPhysicalStereoFitResult:
     """Fit the shared physical CMO rig to left and right measured Zernike rayfields.
 
-    This is the main fitting entry point for the CMO physical model family.
-    It optimises the shared rig parameters (baseline, working distance,
-    objective focal length, tube focal length, per-channel SE(3) arm alignment)
-    so that the physical model reproduces the measured ray origins and directions.
+    This entry point fits the shared 19/21-parameter paraxial CMO model:
+    baseline, working distance, objective focal length, tube focal length,
+    principal-point terms, two global tilt angles, one axial telecentric
+    offset/depth parameter, and per-channel Brown-Conrady distortion. It does
+    **not** fit the paper's 26-parameter CMO + per-arm SE(3) bundle-adjustment
+    model.
 
     Parameters
     ----------
@@ -663,14 +668,15 @@ def fit_cmo_physical_stereo_model_to_rayfields(
     Returns
     -------
     CMOPhysicalStereoFitResult
-        Named tuple with ``x`` (optimal params), ``message``, ``success``,
-        ``model`` (the fitted CMO stereo model), and diagnostics.
+        Dataclass result object with ``parameter_vector`` (optimal params),
+        ``message``, ``success``, ``model`` (the fitted CMO stereo model), and
+        diagnostics.
 
     Notes
     -----
     The two-zone loss (sparse support + subsampled full grid) balances fidelity
-    to observations with smoothness. On the Pycaso CMO dataset this achieves
-    1.06 px reprojection (26-parameter model).
+    to observation pixels with smooth ray-space behaviour across the image. It
+    is a rayfield-to-model fit, not the final per-arm SE(3) paper BA.
     """ 
 
     x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
@@ -886,9 +892,10 @@ class CMOTelecentricStereoModel:
     def n_parameters(self) -> int:
         """Number of free parameters in the flattened vector.
 
-        Base: 10 shared optical + slope params.  Add 2 per-channel slopes
-        when ``shared_slopes=False`` (→ 12), then optionally 2 per-channel
-        shear (→ 14 or 16), and optionally 2 per-channel quadratic terms.
+        Public parameter vectors have 12, 14, or 16 entries. The 12-parameter
+        variant uses shared slopes and shared shear; disabling shared slopes
+        yields 14 entries, and disabling shared shear yields 16. There is no
+        supported 10-parameter public vector.
 
         See :meth:`from_parameter_vector` for the exact layout.
         """
@@ -1419,9 +1426,10 @@ def fit_cmo_telecentric_model_to_rayfields(
         Measured right-channel rayfield.
     image_size : (int, int)
         Sensor dimensions in pixels (width, height).
-    initial_parameters : ndarray, shape depends on variant
-        Starting parameter vector (10, 12, 14, or 16 values depending on
-        whether principal point is shared and whether directions are optimised).
+    initial_parameters : ndarray, shape (12,), (14,), or (16,)
+        Starting parameter vector. The supported variants are shared
+        slopes/shear (12), per-channel slopes with shared shear (14), and
+        per-channel slopes plus per-channel shear (16).
     pixel_pitch_mm : float
         Sensor pixel pitch in millimetres.
     z_planes : (float, float)
@@ -1436,16 +1444,13 @@ def fit_cmo_telecentric_model_to_rayfields(
     Returns
     -------
     CMOPhysicalStereoFitResult
-        Named tuple with ``x`` (optimal 14 parameters), ``message``,
-        ``success``, and ``model`` (the fitted CMOTelecentricStereoModel).
-
-    Notes
-    -----
-    This is the template function described in ``docs/DOCSTRING_TODO.md``.
+        Dataclass result object with ``parameter_vector`` (optimal parameters),
+        ``message``, ``success``, and ``model`` (the fitted
+        CMOTelecentricStereoModel).
     """
     x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
-    if x0.size not in {10, 12, 14, 16}:
-        raise ValueError(f"initial_parameters must contain 10, 12, 14, or 16 values, got {x0.size}")
+    if x0.size not in {12, 14, 16}:
+        raise ValueError(f"initial_parameters must contain 12, 14, or 16 values, got {x0.size}")
 
     full = _grid_pixels(image_size, grid_shape)
     support_l = full
@@ -2133,8 +2138,8 @@ def fit_cmo_warped_model_to_rayfields(
     Returns
     -------
     CMOPhysicalStereoFitResult
-        Named tuple with ``x`` (optimal params), ``message``, ``success``,
-        and ``model`` (the fitted CMOWarpedStereoModel).
+        Dataclass result object with ``parameter_vector`` (optimal params),
+        ``message``, ``success``, and ``model`` (the fitted CMOWarpedStereoModel).
     """
     x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
     full = _grid_pixels(image_size, grid_shape)

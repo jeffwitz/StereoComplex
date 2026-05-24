@@ -150,7 +150,11 @@ class StereoCentralRayFieldModel:
         """
         Precompute per-pixel ray direction maps for left and right cameras.
 
-        Returns (dL_map, dR_map) with shape (H,W,3).
+        Returns ``(dL_map, dR_map)`` with shape ``(H, W, 3)``.  ``dL_map``
+        contains directions expressed in the left camera frame; ``dR_map``
+        contains directions expressed in the right camera frame.  Transform
+        right-channel directions with ``R_RL.T`` before triangulating in the
+        left frame.
         """
         h = int(self.image_height_px)
         w = int(self.image_width_px)

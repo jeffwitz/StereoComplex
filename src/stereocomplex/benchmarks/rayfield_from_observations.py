@@ -78,6 +78,10 @@ def fit_zernike_rayfield_from_charuco_observations(
     initial_poses_R, initial_poses_t : lists of ndarray | None
         Initial pose estimates.  If None, estimated via central pinhole.
     max_nfev : int
+        Maximum number of least-squares function evaluations.
+    origin_reg_weight : float
+        L2 regularisation weight applied to origin-Z coefficients for each
+        channel.
 
     Returns
     -------

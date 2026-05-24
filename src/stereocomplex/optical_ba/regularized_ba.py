@@ -280,8 +280,13 @@ def run_optical_ba(
         Threshold passed through to :func:`diagnose_schur_modes`.
     damping_pose : float
         Tikhonov damping on the pose block of the Fisher.
-    fd_method, fd_rel_step
+    fd_method : str
+        Finite-difference stencil for the Fisher computation.
+    fd_rel_step : float
         Finite-difference settings for the Fisher computation.
+    residual_fn : callable
+        Residual function mapping the concatenated ``[theta, pose]`` vector
+        and observations to a 1-D residual array.
 
     Returns
     -------
@@ -442,10 +447,47 @@ def run_schur_regularized_optical_ba(
 
     Parameters
     ----------
+    theta0 : ndarray, shape (26,)
+        Initial optical vector.
+    pose0 : ndarray, shape (6 * n_frames,)
+        Initial per-frame pose vector.
+    observations : PycasoCMOObservations
+        ChArUco observations and CMO sensor metadata.
+    fx_ref_px : float
+        Reference pixel focal length used for pixel-equivalent diagnostics.
     prior : callable
         ``prior(theta) -> ndarray`` returning the regularisation
         residuals to append to the data residual.
-    All other parameters are identical to :func:`run_optical_ba`.
+    loss : str
+        Robust loss name accepted by ``scipy.optimize.least_squares``.
+    f_scale_mm : float
+        Robust-loss transition scale, in millimetres.
+    max_nfev : int
+        Maximum residual-function evaluations.
+    bounds : tuple of (ndarray, ndarray) or None
+        ``(lo, hi)`` bounds on the full vector. If ``None``, falls back to
+        :func:`default_bounds`.
+    weak_threshold : float
+        Threshold passed through to :func:`diagnose_schur_modes`.
+    damping_pose : float
+        Tikhonov damping on the pose block of the Fisher.
+    fisher_before : FisherBlocks or None
+        Optional precomputed Fisher blocks at the initial point.
+    compute_fisher_after : bool
+        If True, recompute Schur diagnostics at the optimum.
+    fd_method : str
+        Finite-difference stencil for Fisher computations.
+    fd_rel_step : float
+        Relative finite-difference step for Fisher computations.
+    residual_fn : callable
+        Residual function mapping the concatenated ``[theta, pose]`` vector
+        and observations to a 1-D residual array.
+
+    Returns
+    -------
+    OpticalBAResult
+        Optimised parameters, residual statistics, Schur diagnostics and
+        physical descriptors.
     """
     theta0 = np.asarray(theta0, dtype=np.float64).reshape(-1)
     pose0 = np.asarray(pose0, dtype=np.float64).reshape(-1)
@@ -466,7 +508,7 @@ def run_schur_regularized_optical_ba(
 
     def residual_fun(x: np.ndarray) -> np.ndarray:
         """Regularised residual function for bundle adjustment."""
-        data_res = point_to_ray_residuals_cmo_se3(x, observations)
+        data_res = residual_fn(x, observations)
         prior_res = prior_fn(x[:N_THETA])
         return np.concatenate([data_res, prior_res])
 
@@ -474,7 +516,7 @@ def run_schur_regularized_optical_ba(
     # Accept a pre-computed FisherBlocks from the caller (e.g. a sweep that
     # already built the diagnostic to construct the SchurPrior) to avoid
     # redundant finite-difference work.
-    data_only_fun = lambda x: point_to_ray_residuals_cmo_se3(x, observations)  # noqa: E731
+    data_only_fun = lambda x: residual_fn(x, observations)  # noqa: E731
     if fisher_before is None:
         fisher_before = build_fisher_blocks(
             residual_fun=data_only_fun,

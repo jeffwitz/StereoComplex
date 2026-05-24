@@ -395,7 +395,8 @@ def simulate_charuco_observations_from_camera_fields(
     Returns
     -------
     MultiCameraCharucoObservationSet
-        Named tuple with per-channel corner observations and ground-truth data.
+        Dataclass result object with per-channel corner observations and
+        ground-truth data.
     """
     if not fields_by_channel:
         raise ValueError("at least one camera field is required")

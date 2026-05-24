@@ -82,8 +82,10 @@ def generate_cpu_dataset(
         Per-frame Z-translation schedule.
     baseline_mm_override : float, optional
         Stereo baseline override.
-    board_squares_x_override, board_square_size_mm_override : float, optional
-        Board geometry overrides.
+    board_squares_x_override, board_squares_y_override : int, optional
+        Board square-count overrides.
+    board_square_size_mm_override : float, optional
+        Board square-size override.
     board_marker_size_mm_override, board_pixels_per_square_override : float, optional
         Marker and rendering overrides.
     z_only_mode : bool

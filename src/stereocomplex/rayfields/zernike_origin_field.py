@@ -518,11 +518,11 @@ class ZernikeCandidate:
     polynomial surrogate) in
     :func:`~stereocomplex.physics.model_selection.select_physical_model_from_rayfield`.
 
-    The candidate uses a **lower** max-order than the measured Zernike rayfield
-    (typically ``max_order=1``, 18 parameters per channel with directions, versus
-    ``max_order=4``, 60 parameters for the measurement).  If no physical model
-    explains the measured rayfield well enough, the compact Zernike candidate
-    wins BIC — signalling that the optics fall outside the physical catalogue.
+    The candidate usually uses a **lower** max-order than the measured Zernike
+    rayfield.  The raw coefficient count is ``n_modes * 6`` when directions are
+    fitted and ``n_modes * 3`` for origin-only fitting.  The number therefore
+    depends on the exact Zernike mode list and on whether direction coefficients
+    are part of the candidate.
 
     By default both origin and direction Zernike fields are fitted
     (``fit_directions=True``, using :class:`ZernikeRayField`).  Set
@@ -532,13 +532,11 @@ class ZernikeCandidate:
     .. note::
 
        The transverse gauge :math:`O(u,v)\\cdot d(u,v)=0` is enforced at
-       ray-evaluation time.  This removes one redundant degree of freedom per
-       mode (the longitudinal displacement along the ray), so the *effective*
-       parameter count is ``n_modes * 5`` with directions or ``n_modes * 2``
-       without.  The ``n_parameters`` property reports the raw coefficient
-       count (6 or 3 per mode), which slightly over-penalises the Zernike
-       candidate in BIC comparisons.  The margin is 1 parameter per mode —
-       negligible against the BIC differences seen in practice.
+       ray-evaluation time.  Depending on the gauge and on whether pose
+       parameters are included in a surrounding fit, the effective comparison
+       count may differ from the raw coefficient count.  The ``n_parameters``
+       property intentionally reports the raw coefficient count (6 or 3 per
+       mode) for BIC consistency across candidates.
     """
 
     K: np.ndarray

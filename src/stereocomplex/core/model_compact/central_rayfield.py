@@ -79,7 +79,7 @@ class CentralRayFieldZernike:
         return d / norms
 
     def ray_origins_cam_mm(self, n: int) -> np.ndarray:
-        """Central ray origins in camera frame (all at zero for pinhole)."""
+        """Central ray origins in camera frame, all equal to ``C_mm``."""
         return np.repeat(self.C_mm.reshape(1, 3), n, axis=0)
 
     @classmethod
