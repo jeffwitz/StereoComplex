@@ -482,7 +482,13 @@ The prior is added to the least-squares objective as $n_\theta$ extra residual r
 
 \subsubsection{Prior Sweep and Comparison with Tikhonov Baseline}
 
-An isotropic (Tikhonov) prior $\mathcal{L}_{\text{iso}} = \alpha \|D_\theta^{-1}(\theta - \theta_0)\|^2$ serves as a baseline. Both priors are swept over $\alpha \in \{10^{-4}, 10^{-3}, 10^{-2}, 10^{-1}, 1, 10\}$ with the same BA settings as Section~\ref{sec:corner_ba} (200~nfev, soft-L1 loss).
+\textbf{Two BA configurations must be distinguished.}
+Section~\ref{sec:corner_ba} reports a \emph{constrained-pose} corner BA: the board rotation is shared across frames and only the Z translation varies, yielding \SI{1.06}{px} $\to$ \SI{0.88}{px} (Table~\ref{tab:model_comparison}) with 15 pose parameters.
+The sweep in this section intentionally \emph{releases the pose constraint}: each of the 10 frames has a free 6-DOF pose (60 pose parameters), exposing the full optics--pose coupling identified by the Schur diagnostic of Section~\ref{sec:schur_conditioning}.
+The resulting unregularised RMS (\SI{0.241}{px}) is lower than the constrained-pose BA precisely because the free poses can absorb residual rayfield errors---which is exactly the compensation the Schur prior is designed to prevent.
+The two RMS values should not be conflated: the \SI{0.88}{px} is the operational calibration result; the \SI{0.241}{px} is a diagnostic upper bound obtained by deliberately exposing the ill-conditioned coupling.
+
+An isotropic (Tikhonov) prior $\mathcal{L}_{\text{iso}} = \alpha \|D_\theta^{-1}(\theta - \theta_0)\|^2$ serves as a baseline. Both priors are swept over $\alpha \in \{10^{-4}, 10^{-3}, 10^{-2}, 10^{-1}, 1, 10\}$ with free per-frame poses (200~nfev, soft-L1 loss). The 2-D reprojection RMS is computed by numerical projection (Appendix~\ref{sec:reprojection_appendix}).
 
 \begin{table}[H]
 \centering
@@ -665,8 +671,9 @@ The CMO 26p surface is smoother (Z roughness 0.072~mm) than the Zernike (0.176~m
 \label{fig:specimen}
 \end{figure}
 
-The median ray gap is \SI{0.001}{mm} for both models---excellent coherence, confirming that the two channels' rays intersect each other at the sub-millimetre level, despite never having been jointly optimised on this specimen.
+The median ray gap is \SI{0.001}{mm} for both models in Figure~\ref{fig:specimen}---excellent coherence, confirming that the two channels' rays intersect each other at the sub-millimetre level, despite never having been jointly optimised on this specimen.
 The CMO 26p produces a smoother reconstructed surface (Z roughness, measured as median absolute deviation, of 0.072~mm vs.\ 0.176~mm for the Zernike), because the compact 26-parameter model imposes implicit spatial smoothness via its rigid-sub-pupil and affine-direction parameterisation, whereas the 57-parameter Zernike model has the flexibility to absorb detection noise into high-frequency surface variations.
+\textbf{Note on the rayfield-initialised model:} the CMO 26p model used in Figure~\ref{fig:specimen} is the rayfield-initialised pre-BA model, whose specimen reconstruction was generated before a coordinate-frame Y-axis correction was applied (see \texttt{core/conventions.py}). With the corrected world frame, the rayfield-initialised model exhibits a median ray gap of \SI{0.022}{mm} (Table~\ref{tab:specimen_comparison})---an order of magnitude larger. The BA-refined CMO models all recover \SI{0.001}{mm} gaps regardless of the regularisation strategy (Table~\ref{tab:specimen_comparison}), confirming that the BA corrects a triangulation deficiency present in the initial rayfield fit.
 OpenCV stereo reconstruction was not available because the standard OpenCV calibration failed to converge on this microscope's calibration data.
 
 \begin{figure}[!htbp]

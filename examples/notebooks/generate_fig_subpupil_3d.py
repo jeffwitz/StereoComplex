@@ -174,14 +174,22 @@ def render(manifest: dict, data: dict, out_dir: Path) -> None:
     half_angle_deg = full_angle_deg / 2.0
     bmid = (OcL + OcR) / 2.0
     P_cross = _closest_point_midpoint(OcL, dcL, OcR, dcR)
-    WD = float(np.linalg.norm(P_cross - bmid)) if P_cross is not None else float("nan")
+    WD_geom = float(np.linalg.norm(P_cross - bmid)) if P_cross is not None else float("nan")
+
+    # Paper-consistent WD from mean pose Z (not the geometric crossing distance)
+    is_path = Path(manifest["intermediate_state"])
+    if not is_path.is_absolute():
+        is_path = (MANIFEST.parent / is_path).resolve()
+    chk = np.load(str(is_path))
+    WD_paper = float(np.mean(np.abs(np.asarray(chk["opt_t"], dtype=np.float64)[:, 2])))
 
     print(f"  centre-pixel descriptors (Zernike rayfield, max_order_d="
           f"{int(data['max_order_d'])}):")
     print(f"    OL = ({OcL[0]:+.3f}, {OcL[1]:+.3f}, {OcL[2]:+.3f}) mm")
     print(f"    OR = ({OcR[0]:+.3f}, {OcR[1]:+.3f}, {OcR[2]:+.3f}) mm")
     print(f"    baseline b = {b:.3f} mm")
-    print(f"    working distance WD = {WD:.3f} mm")
+    print(f"    working distance WD (geom) = {WD_geom:.3f} mm")
+    print(f"    working distance WD (paper, from mean pose Z) = {WD_paper:.3f} mm")
     print(f"    full convergence angle = {full_angle_deg:.3f} deg "
           f"(half = {half_angle_deg:.3f} deg)")
 
@@ -205,7 +213,7 @@ def render(manifest: dict, data: dict, out_dir: Path) -> None:
 
     if P_cross is not None:
         ax.scatter(*P_cross, c="green", s=140, marker="x", linewidth=1.5,
-                   label=f"Chief-ray crossing (WD={WD:.2f} mm)")
+                   label=f"Chief-ray crossing (WD={WD_paper:.2f} mm)")
 
     ax.plot([OcL[0], OcR[0]], [OcL[1], OcR[1]], [OcL[2], OcR[2]],
             "k--", lw=2, alpha=0.6)
@@ -217,7 +225,7 @@ def render(manifest: dict, data: dict, out_dir: Path) -> None:
     ax.set_zlabel("Z (mm)")
     ax.set_title(
         "3D sub-pupil reconstruction from Zernike rayfield\n"
-        f"b={b:.2f} mm, WD={WD:.2f} mm, half-angle "
+        f"b={b:.2f} mm, WD={WD_paper:.2f} mm, half-angle "
         f"$\\theta_{{1/2}}$={half_angle_deg:.2f}°"
     )
     ax.legend(fontsize=9, loc="upper left")
