@@ -43,8 +43,10 @@ from stereocomplex.optical_ba.schur import (
 from stereocomplex.optical_ba.specimen import (
     EUR_2_CENT_DIAMETER_MM,
     SpecimenReconstruction,
+    load_specimen_npz,
     load_zernike_baseline,
     magnification_ratio,
+    plot_specimen_grid,
     reconstruct_with_cmo_se3,
 )
 
@@ -61,8 +63,10 @@ __all__ = [
     "default_parameter_scales",
     "diagnose_schur_modes",
     "finite_difference_jacobian_scaled",
+    "load_specimen_npz",
     "load_zernike_baseline",
     "magnification_ratio",
+    "plot_specimen_grid",
     "point_to_ray_residuals_cmo_se3",
     "reconstruct_with_cmo_se3",
     "run_optical_ba",

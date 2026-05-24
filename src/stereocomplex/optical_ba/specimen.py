@@ -206,6 +206,193 @@ def _summarise(
 EUR_2_CENT_DIAMETER_MM = 18.75
 
 
+def load_specimen_npz(
+    npz_path: Path | str,
+    variant: str | None = None,
+) -> SpecimenReconstruction:
+    """Load a previously saved specimen point cloud from a ``.npz`` file.
+
+    Two on-disk formats are supported:
+
+    - **CMO format** (keys ``X, Y, Z, gap_mm``): one entry per pixel
+      correspondence, all assumed triangulation-valid (this is what
+      :func:`reconstruct_with_cmo_se3` writes via the BA script).
+    - **Legacy Zernike format** (keys ``X, Y, Z, gap, valid``): full-size
+      arrays plus an explicit per-correspondence validity mask, as written
+      by ``examples/notebooks/10_pycaso_specimen_reconstruction.py``.
+
+    Parameters
+    ----------
+    npz_path : Path or str
+        File path to read.
+    variant : str, optional
+        Display label; defaults to the filename stem minus the
+        ``specimen_`` prefix.
+
+    Returns
+    -------
+    SpecimenReconstruction
+    """
+    npz_path = Path(npz_path)
+    data = np.load(npz_path)
+    keys = set(data.keys())
+    label = variant if variant is not None else npz_path.stem.replace("specimen_", "")
+
+    if {"X", "Y", "Z", "gap_mm"} <= keys:
+        X = np.asarray(data["X"], dtype=np.float64)
+        Y = np.asarray(data["Y"], dtype=np.float64)
+        Z = np.asarray(data["Z"], dtype=np.float64)
+        gap = np.asarray(data["gap_mm"], dtype=np.float64)
+        valid = np.ones(X.size, dtype=bool)
+    elif {"X", "Y", "Z", "gap", "valid"} <= keys:
+        valid = np.asarray(data["valid"], dtype=bool)
+        X = np.asarray(data["X"], dtype=np.float64)
+        Y = np.asarray(data["Y"], dtype=np.float64)
+        Z = np.asarray(data["Z"], dtype=np.float64)
+        gap = np.asarray(data["gap"], dtype=np.float64)
+        if X.size == valid.size:
+            X, Y, Z, gap = X[valid], Y[valid], Z[valid], gap[valid]
+    else:
+        raise ValueError(
+            f"{npz_path}: unrecognised specimen npz format, keys={sorted(keys)}"
+        )
+
+    extent = (float(X.max() - X.min()), float(Y.max() - Y.min()))
+    median_z = float(np.median(Z))
+    z_mad = float(np.median(np.abs(Z - median_z)))
+    return SpecimenReconstruction(
+        X=X, Y=Y, Z=Z, gap_mm=gap,
+        valid_mask=valid,
+        image_extent_xy_mm=extent,
+        median_z_mm=median_z,
+        z_mad_mm=z_mad,
+        median_gap_mm=float(np.median(gap)),
+        variant=label,
+    )
+
+
+def plot_specimen_grid(
+    recs: list[SpecimenReconstruction],
+    correspondences_path: Path | str,
+    out_paths: list[Path | str] | Path | str,
+    *,
+    title: str | None = None,
+    nominal_diameter_mm: float = EUR_2_CENT_DIAMETER_MM,
+) -> None:
+    """N-row comparison figure: Z-map, XY footprint, ray-gap histogram per variant.
+
+    The Z-map and the XY scatter both show the surface relief
+    ``Z − mean plane`` (each variant is detrended by its own least-squares
+    plane) on a shared colour scale, so the different working-distance
+    offsets across variants do not wash out the relief signal. The
+    ray-gap histogram uses a shared log-scale range piloted by the worst
+    99-th percentile across variants.
+
+    Parameters
+    ----------
+    recs : list of SpecimenReconstruction
+        One reconstruction per row, in the desired top-to-bottom order.
+    correspondences_path : Path or str
+        Path to ``specimen_correspondences.npz``; required to know the ROI
+        bounds and the per-correspondence pixel coordinates for the Z-map.
+    out_paths : Path, str, or list of those
+        Destination file(s). If a list, the same figure is written to every
+        path with format inferred from the suffix (``.png``, ``.pdf``, …).
+    title : str, optional
+        Figure suptitle. A default is provided if omitted.
+    nominal_diameter_mm : float
+        Reference physical diameter used in the magnification ratio shown
+        in the XY-scatter title.
+    """
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    if not isinstance(out_paths, (list, tuple)):
+        out_paths = [out_paths]
+    out_paths = [Path(p) for p in out_paths]
+
+    data = np.load(Path(correspondences_path))
+    roi = [int(x) for x in data["roi"]]
+    roi_x0, roi_x1, roi_y0, roi_y1 = roi
+    h_roi, w_roi = (roi_y1 - roi_y0), (roi_x1 - roi_x0)
+    uL = np.asarray(data["uL"], dtype=np.float64)
+    vL = np.asarray(data["vL"], dtype=np.float64)
+    n_corr = uL.size
+    for rec in recs:
+        if rec.valid_mask.size != n_corr:
+            raise ValueError(
+                f"variant {rec.variant!r} valid_mask has {rec.valid_mask.size} "
+                f"entries, expected {n_corr} (same as correspondences)"
+            )
+
+    ui_full = (uL - roi_x0).astype(np.int64)
+    vi_full = (vL - roi_y0).astype(np.int64)
+
+    z_rel = []
+    for rec in recs:
+        A = np.column_stack([rec.X, rec.Y, np.ones_like(rec.X)])
+        a, b, c = np.linalg.lstsq(A, rec.Z, rcond=None)[0]
+        z_rel.append(rec.Z - (a * rec.X + b * rec.Y + c))
+    z_limit = float(np.percentile(np.abs(np.concatenate(z_rel)), 98))
+    vmin, vmax = -z_limit, z_limit
+
+    gap_p99_max = max(float(np.percentile(rec.gap_mm, 99)) for rec in recs)
+    gap_upper = max(1.1 * gap_p99_max, 1e-4)
+
+    n_var = len(recs)
+    fig, axes = plt.subplots(n_var, 3, figsize=(15, 4 * n_var))
+    if n_var == 1:
+        axes = np.atleast_2d(axes)
+
+    for row, rec in enumerate(recs):
+        z_map = np.full((h_roi, w_roi), np.nan, dtype=np.float64)
+        z_map[vi_full[rec.valid_mask], ui_full[rec.valid_mask]] = z_rel[row]
+        ax_z, ax_xy, ax_gap = axes[row]
+
+        im = ax_z.imshow(z_map, cmap="viridis", origin="upper",
+                         vmin=vmin, vmax=vmax)
+        ax_z.set_title(f"{rec.variant}\nZ MAD = {rec.z_mad_mm:.4f} mm")
+        ax_z.set_xlabel("u-ROI (px)")
+        ax_z.set_ylabel("v-ROI (px)")
+        fig.colorbar(im, ax=ax_z, label="Z − mean plane (mm)")
+
+        ratio = magnification_ratio(rec, nominal_diameter_mm)
+        ax_xy.scatter(rec.X, rec.Y, s=1, c=z_rel[row], cmap="viridis",
+                      vmin=vmin, vmax=vmax)
+        ax_xy.set_aspect("equal")
+        ax_xy.invert_yaxis()
+        w, h = rec.image_extent_xy_mm
+        ax_xy.set_title(
+            f"XY footprint = {w:.2f} x {h:.2f} mm\n"
+            f"magnification ratio vs {nominal_diameter_mm:.2f} mm coin = {ratio:.4f}"
+        )
+        ax_xy.set_xlabel("X (mm)")
+        ax_xy.set_ylabel("Y (mm)")
+
+        ax_gap.hist(rec.gap_mm, bins=80, range=(0.0, gap_upper),
+                    color="steelblue", alpha=0.85)
+        ax_gap.axvline(rec.median_gap_mm, color="red", lw=1,
+                       label=f"median = {rec.median_gap_mm:.4f} mm")
+        ax_gap.set_yscale("log")
+        ax_gap.set_title(f"Ray-pair gap (log y, shared range 0–{gap_upper:.4f} mm)")
+        ax_gap.set_xlabel("gap (mm)")
+        ax_gap.set_ylabel("count (log)")
+        ax_gap.legend(loc="upper right", fontsize=9)
+
+    fig.suptitle(
+        title or (f"Pycaso 2-cent coin — surface relief (Z − mean plane) "
+                  f"across variants (n_corr={n_corr})"),
+        fontsize=13, fontweight="bold",
+    )
+    fig.tight_layout()
+    for out in out_paths:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
 def magnification_ratio(recon: SpecimenReconstruction,
                         nominal_diameter_mm: float = EUR_2_CENT_DIAMETER_MM) -> float:
     """Return the reconstructed-vs-nominal magnification ratio of the XY footprint.

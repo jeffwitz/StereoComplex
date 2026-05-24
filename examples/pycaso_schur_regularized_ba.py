@@ -44,6 +44,7 @@ from stereocomplex.optical_ba import (  # noqa: E402  (sys.path tweak above)
     diagnose_schur_modes,
     load_zernike_baseline,
     magnification_ratio,
+    plot_specimen_grid,
     point_to_ray_residuals_cmo_se3,
     reconstruct_with_cmo_se3,
     run_optical_ba,
@@ -398,8 +399,8 @@ def _reconstruct_and_plot_specimens(
     (out_dir / f"specimen_comparison_{variant_label}.json").write_text(
         json.dumps(metrics, indent=2), encoding="utf-8"
     )
-    _plot_specimen_grid(recs, correspondences_path,
-                        out_dir / f"specimen_comparison_{variant_label}.png")
+    plot_specimen_grid(recs, correspondences_path,
+                       out_dir / f"specimen_comparison_{variant_label}.png")
 
     print("  specimen comparison vs 2-cent euro (18.75 mm):")
     for rec in recs:
@@ -409,108 +410,6 @@ def _reconstruct_and_plot_specimens(
               f"ratio={ratio:.4f}  Z_med={rec.median_z_mm:+.3f} mm  "
               f"Z_MAD={rec.z_mad_mm:.4f} mm  gap_med={rec.median_gap_mm:.4f} mm")
     return metrics
-
-
-def _plot_specimen_grid(
-    recs: list,
-    correspondences_path: Path,
-    out_path: Path,
-) -> None:
-    """3-column comparison: Z map, XY footprint, ray-gap histogram per variant."""
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    data = np.load(correspondences_path)
-    roi = [int(x) for x in data["roi"]]
-    roi_x0, roi_x1, roi_y0, roi_y1 = roi
-    h_roi, w_roi = (roi_y1 - roi_y0), (roi_x1 - roi_x0)
-    uL = np.asarray(data["uL"], dtype=np.float64)
-    vL = np.asarray(data["vL"], dtype=np.float64)
-    n_corr = uL.size
-    for rec in recs:
-        if rec.valid_mask.size != n_corr:
-            raise ValueError(
-                f"variant {rec.variant!r} valid_mask has {rec.valid_mask.size} "
-                f"entries, expected {n_corr} (same as correspondences)"
-            )
-
-    ui_full = (uL - roi_x0).astype(np.int64)
-    vi_full = (vL - roi_y0).astype(np.int64)
-
-    # Detrend each variant by its best-fit mean plane so the Z-map and
-    # scatter show surface relief (deviation from the local plane) rather
-    # than absolute working distance — all rows share the same colour scale.
-    z_rel = []
-    for rec in recs:
-        A = np.column_stack([rec.X, rec.Y, np.ones_like(rec.X)])
-        a, b, c = np.linalg.lstsq(A, rec.Z, rcond=None)[0]
-        z_rel.append(rec.Z - (a * rec.X + b * rec.Y + c))
-    all_z_rel = np.concatenate(z_rel)
-    z_limit = float(np.percentile(np.abs(all_z_rel), 98))
-    vmin, vmax = -z_limit, z_limit
-
-    # Shared ray-gap range: median gaps are ~1e-3 mm on Pycaso, so a fixed
-    # 0.2 mm window crushes everything into the first bin. Use the worst
-    # variant's 99-th percentile (with a small buffer) so the histogram tails
-    # are readable AND comparable across rows.
-    gap_p99_max = max(float(np.percentile(rec.gap_mm, 99)) for rec in recs)
-    gap_upper = max(1.1 * gap_p99_max, 1e-4)
-
-    n_var = len(recs)
-    fig, axes = plt.subplots(n_var, 3, figsize=(15, 4 * n_var))
-    if n_var == 1:
-        axes = np.atleast_2d(axes)
-
-    for row, rec in enumerate(recs):
-        z_map = np.full((h_roi, w_roi), np.nan, dtype=np.float64)
-        z_map[vi_full[rec.valid_mask], ui_full[rec.valid_mask]] = z_rel[row]
-        ax_z, ax_xy, ax_gap = axes[row]
-
-        im = ax_z.imshow(z_map, cmap="viridis", origin="upper",
-                         vmin=vmin, vmax=vmax)
-        ax_z.set_title(
-            f"{rec.variant}\nZ MAD = {rec.z_mad_mm:.4f} mm"
-        )
-        ax_z.set_xlabel("u-ROI (px)")
-        ax_z.set_ylabel("v-ROI (px)")
-        fig.colorbar(im, ax=ax_z, label="Z − mean plane (mm)")
-
-        ratio = magnification_ratio(rec, EUR_2_CENT_DIAMETER_MM)
-        ax_xy.scatter(rec.X, rec.Y, s=1, c=z_rel[row], cmap="viridis",
-                      vmin=vmin, vmax=vmax)
-        ax_xy.set_aspect("equal")
-        # Z-map and scatter share the OpenCV convention where Y_world
-        # follows image v (downward).  Matplotlib defaults to Y-up, so
-        # invert the scatter's Y axis to match the Z-map origin="upper".
-        ax_xy.invert_yaxis()
-        w, h = rec.image_extent_xy_mm
-        ax_xy.set_title(
-            f"XY footprint = {w:.2f} x {h:.2f} mm\n"
-            f"magnification ratio vs 18.75 mm coin = {ratio:.4f}"
-        )
-        ax_xy.set_xlabel("X (mm)")
-        ax_xy.set_ylabel("Y (mm)")
-
-        ax_gap.hist(rec.gap_mm, bins=80, range=(0.0, gap_upper),
-                    color="steelblue", alpha=0.85)
-        ax_gap.axvline(rec.median_gap_mm, color="red", lw=1,
-                       label=f"median = {rec.median_gap_mm:.4f} mm")
-        ax_gap.set_yscale("log")
-        ax_gap.set_title(f"Ray-pair gap (log y, shared range 0–{gap_upper:.4f} mm)")
-        ax_gap.set_xlabel("gap (mm)")
-        ax_gap.set_ylabel("count (log)")
-        ax_gap.legend(loc="upper right", fontsize=9)
-
-    fig.suptitle(
-        f"Pycaso 2-cent coin — surface relief (Z − mean plane) across variants  "
-        f"(n_corr={n_corr})",
-        fontsize=13, fontweight="bold",
-    )
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=150, bbox_inches="tight")
-    plt.close(fig)
 
 
 def _sweep_alphas(arg_value: str) -> list[float]:

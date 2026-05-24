@@ -452,8 +452,10 @@ memory — wastes hours and silently drifts the paper from the code.
    The script must:
    - read everything it needs from the asset folder above (no hard-coded
      RMS, no figure-specific magic numbers buried in matplotlib calls);
-   - write **both** the PDF used by `paper/.../manuscript.tex` and a PNG
-     for docs/preview, in the same run;
+   - write **the format `paper/.../manuscript.tex` actually references**
+     (PDF for vector figures, PNG for raster-heavy ones like dense
+     point clouds), and also a PNG for docs/preview when the paper
+     itself uses PDF — in the same run;
    - be runnable as `rtk .venv/bin/python examples/notebooks/generate_fig_<name>.py`
      with no extra flags.
 3. Place a `README.md` in the asset folder that:
