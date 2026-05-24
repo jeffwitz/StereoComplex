@@ -215,6 +215,7 @@ scripts 07 and 08.
 - Reference:
   :doc:`api`,
   :doc:`PUBLIC_API`,
+  :doc:`RELEASE_READINESS`,
   :doc:`ARCHITECTURE`,
   :doc:`CONVENTIONS`,
   :doc:`DATASET_SPEC`,
@@ -289,6 +290,7 @@ scripts 07 and 08.
 
    api
    PUBLIC_API
+   RELEASE_READINESS
    ARCHITECTURE
    CONVENTIONS
    DATASET_SPEC
