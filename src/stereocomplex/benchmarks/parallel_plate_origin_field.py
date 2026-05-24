@@ -59,7 +59,22 @@ class RenderedImageBenchmarkReport:
 
 
 def make_grid_board(nx: int = 7, ny: int = 5, spacing: float = 24.0) -> np.ndarray:
-    """Build a ChArUco board geometry as a grid of object points."""
+    """Build a ChArUco board as a grid of 3-D object points centred at the origin.
+
+    Parameters
+    ----------
+    nx : int
+        Number of grid points along x.
+    ny : int
+        Number of grid points along y.
+    spacing : float
+        Distance between adjacent points in millimetres.
+
+    Returns
+    -------
+    ndarray, shape (nx * ny, 3)
+        Board-plane object points in millimetres (Z=0), centred at origin.
+    """
     xs = (np.arange(nx, dtype=np.float64) - (nx - 1) / 2.0) * float(spacing)
     ys = (np.arange(ny, dtype=np.float64) - (ny - 1) / 2.0) * float(spacing)
     xx, yy = np.meshgrid(xs, ys)
