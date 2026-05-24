@@ -50,6 +50,7 @@ class PinholeParallelPlateRayField:
         self.params = params
 
     def ray(self, u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Compute ray (origin, direction) for a pixel through the inclined parallel plate model."""
         return pinhole_parallel_plate_ray_from_pixel(u, v, self.K, self.params)
 
 
@@ -60,9 +61,11 @@ class PinholeParallelPlateModel(PinholeParallelPlateRayField):
 
     @property
     def n_parameters(self) -> int:
+        """Number of free parameters (2 for plate tilt, 0 for pinhole baseline)."""
         return 3
 
     def parameter_vector(self) -> np.ndarray:
+        """Pack model parameters into a flat vector for optimisation."""
         return np.array(
             [self.params.alpha_deg, self.params.beta_deg, self.params.thickness_mm],
             dtype=np.float64,
@@ -70,6 +73,7 @@ class PinholeParallelPlateModel(PinholeParallelPlateRayField):
 
     @classmethod
     def from_parameter_vector(cls, x: np.ndarray, **kwargs) -> PinholeParallelPlateModel:
+        """Reconstruct model from a parameter vector. K must be passed via kwargs."""
         arr = np.asarray(x, dtype=np.float64).reshape(-1)
         if arr.size != 3:
             raise ValueError("PinholeParallelPlateModel expects three parameters")
@@ -83,6 +87,7 @@ class PinholeParallelPlateModel(PinholeParallelPlateRayField):
         return cls(np.asarray(kwargs["K"], dtype=np.float64).reshape(3, 3), params)
 
     def parameter_dict(self) -> dict[str, float]:
+        """Model parameters as a dict keyed by coefficient name."""
         return {
             "alpha_deg": float(self.params.alpha_deg),
             "beta_deg": float(self.params.beta_deg),
@@ -273,10 +278,12 @@ def fit_parallel_plate_to_zernike_rayfield(
         )
 
     def plate_field(x: np.ndarray) -> PinholeParallelPlateRayField:
+        """Factory: extract the fitted ParallelPlateRayField from a PinholeParallelPlateModel."""
         params = _params_from_vector(x, eta=eta, d1_mm=initial_params.d1_mm, fit_eta=fit_eta)
         return PinholeParallelPlateRayField(K_arr, params)
 
     def fun(x: np.ndarray) -> np.ndarray:
+        """Objective function for plate parameter optimisation (ray-space residual)."""
         residual_blocks = [
             float(support_weight)
             * rayfield_two_plane_residuals(
