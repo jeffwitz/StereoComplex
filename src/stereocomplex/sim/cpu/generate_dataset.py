@@ -44,7 +44,51 @@ def generate_cpu_dataset(
     board_pixels_per_square_override: int | None = None,
     z_only_mode: bool = False,
 ) -> None:
-    """Generate a synthetic ChArUco dataset with CPU rendering."""
+    """Generate a synthetic stereo ChArUco dataset with CPU-based rendering.
+
+    Parameters
+    ----------
+    out_root : Path
+        Output directory for the generated dataset.
+    scenes : int
+        Number of scenes to generate.
+    frames_per_scene : int
+        Number of stereo pairs per scene.
+    width, height : int
+        Image dimensions in pixels.
+    pattern : str
+        Board pattern type ('auto', 'charuco').
+    tex_interp : str
+        Texture interpolation mode.
+    distort : str
+        Distortion model ('none', 'brown', etc.).
+    distort_strength : float
+        Distortion amplitude.
+    image_format : str
+        Output format ('png', etc.).
+    outside_mask : str
+        Masking strategy for out-of-image pixels.
+    blur_fwhm_um, blur_fwhm_px : float
+        Blur strength in micrometres or pixels.
+    blur_edge_factor, blur_edge_start, blur_edge_power : float
+        Edge-varying blur parameters.
+    noise_std : float
+        Gaussian noise standard deviation (fraction of full scale).
+    seed : int
+        RNG seed for reproducibility.
+    pitch_um_override, f_um_override, tz_nominal_mm_override : float, optional
+        Sensor/camera parameter overrides.
+    tz_schedule_mm : list of float, optional
+        Per-frame Z-translation schedule.
+    baseline_mm_override : float, optional
+        Stereo baseline override.
+    board_squares_x_override, board_square_size_mm_override : float, optional
+        Board geometry overrides.
+    board_marker_size_mm_override, board_pixels_per_square_override : float, optional
+        Marker and rendering overrides.
+    z_only_mode : bool
+        If True, only vary the Z translation (no rotation).
+    """
     rng = np.random.default_rng(seed)
     out_root.mkdir(parents=True, exist_ok=True)
 
