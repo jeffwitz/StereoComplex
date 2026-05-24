@@ -536,8 +536,27 @@ def predict_points_rayfield_tps_robust(
     huber_c: float = 3.0,
     iters: int = 3,
 ) -> np.ndarray:
-    """
-    Ray-field variant: global homography + robust TPS-smoothed residuals (IRLS).
+    """Ray-field variant: global homography + robust TPS-smoothed residuals via IRLS.
+
+    Parameters
+    ----------
+    obj_xy : ndarray, shape (M, 2)
+        Board-plane object points in millimetres.
+    img_uv : ndarray, shape (M, 2)
+        Corresponding image points in pixels.
+    query_xy : ndarray, shape (Q, 2)
+        Query points on the board plane in millimetres.
+    lam : float
+        TPS smoothing parameter.
+    huber_c : float
+        Huber loss threshold in pixels.
+    iters : int
+        Number of IRLS refinement iterations.
+
+    Returns
+    -------
+    ndarray, shape (Q, 2)
+        Predicted image points in pixels.
     """
     from stereocomplex.core.rayfield2d import predict_points_rayfield_tps_robust as _impl
 
@@ -650,8 +669,21 @@ def predict_points_piecewise_affine(
     img_uv: np.ndarray,
     query_xy: np.ndarray,
 ) -> np.ndarray:
-    """
-    Piecewise-affine mapping using Delaunay triangulation in object space.
+    """Piecewise-affine mapping using Delaunay triangulation in object space.
+
+    Parameters
+    ----------
+    obj_xy : ndarray, shape (M, 2)
+        Board-plane object points in millimetres.
+    img_uv : ndarray, shape (M, 2)
+        Corresponding image points in pixels.
+    query_xy : ndarray, shape (Q, 2)
+        Query points on the board plane in millimetres.
+
+    Returns
+    -------
+    ndarray, shape (Q, 2)
+        Predicted image points in pixels.
     """
     obj_xy = np.asarray(obj_xy, dtype=np.float64)
     img_uv = np.asarray(img_uv, dtype=np.float64)

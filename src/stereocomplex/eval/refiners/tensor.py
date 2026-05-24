@@ -12,9 +12,28 @@ def refine_points_tensor_symmetry(
     search_radius: float,
     tensor_sigma: float,
 ) -> np.ndarray:
-    """
-    Pycaso-like second pass: estimate local axes from the structure tensor, then maximize a
+    """Pycaso-like second pass: refine corners by maximising quadrant symmetry.
+
+    Estimates local axes from the structure tensor, then maximises a
     quadrant-symmetry score evaluated along those axes.
+
+    Parameters
+    ----------
+    cv2 : module
+        OpenCV module.
+    img_u8 : ndarray, uint8
+        Grayscale input image.
+    pts_xy : ndarray, shape (N, 2)
+        Initial corner coordinates in pixels.
+    search_radius : float
+        Search radius in pixels.
+    tensor_sigma : float
+        Gaussian sigma for the structure tensor computation.
+
+    Returns
+    -------
+    ndarray, shape (N, 2)
+        Refined corner coordinates in pixels.
     """
     search_radius = float(max(0.25, search_radius))
     tensor_sigma = float(max(0.8, tensor_sigma))

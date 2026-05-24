@@ -260,15 +260,21 @@ class PycasoSoloffStereoModel:
         x0 = x0_n * self.xyz_scale + self.xyz_mean
         return np.asarray(x0, dtype=np.float64).reshape(3)
 
-    def solve(
-        self,
-        uv_left_px: np.ndarray,
-        uv_right_px: np.ndarray,
-        *,
-        max_nfev: int = 50,
-    ) -> np.ndarray:
-        """
-        Solve for XYZ from measured stereo pixel coordinates.
+        """Solve for 3-D points from measured stereo pixel coordinates.
+
+        Parameters
+        ----------
+        uv_left_px : ndarray, shape (N, 2)
+            Left-channel pixel coordinates.
+        uv_right_px : ndarray, shape (N, 2)
+            Right-channel pixel coordinates.
+        max_nfev : int
+            Maximum number of function evaluations for the optimiser.
+
+        Returns
+        -------
+        ndarray, shape (N, 3)
+            Reconstructed 3-D points in millimetres.
         """
         from scipy.optimize import least_squares  # type: ignore
 

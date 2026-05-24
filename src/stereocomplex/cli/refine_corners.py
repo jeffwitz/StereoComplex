@@ -208,7 +208,32 @@ def refine_dataset_scene(
     huber_c: float,
     iters: int,
 ) -> dict[str, Any]:
-    """Refine corners for all frames in a dataset scene."""
+    """Refine ChArUco corners for all frames in a dataset scene.
+
+    Parameters
+    ----------
+    dataset_root : Path
+        Root directory of the dataset.
+    split : str
+        Dataset split name ('train', 'val', 'test').
+    scene : str
+        Scene identifier.
+    method : str
+        Refinement method name.
+    max_frames : int
+        Maximum number of frames to process (0 = all).
+    tps_lam : float
+        TPS smoothing parameter.
+    huber_c : float
+        Huber loss threshold in pixels.
+    iters : int
+        Number of IRLS refinement iterations.
+
+    Returns
+    -------
+    dict
+        Refinement results keyed by frame.
+    """
     from stereocomplex.core.image_io import load_gray_u8
 
     scene_dir = Path(dataset_root) / str(split) / str(scene)
