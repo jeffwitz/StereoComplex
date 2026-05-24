@@ -42,7 +42,32 @@ def detect_image_features(
     img: np.ndarray,
     method: str,
 ) -> tuple[ImageFeatures | None, int]:
-    """Detect ArUco markers and ChArUco corners in an image."""
+    """Detect ArUco markers and ChArUco corners in a grayscale image.
+
+    Parameters
+    ----------
+    aruco : module
+        OpenCV aruco submodule.
+    dictionary : aruco.Dictionary
+        ArUco marker dictionary.
+    charuco_board : aruco.CharucoBoard
+        ChArUco board geometry.
+    detector_params : aruco.DetectorParameters
+        ArUco detection parameters.
+    aruco_detector : aruco.ArucoDetector
+        Pre-configured detector.
+    charuco_detector : aruco.CharucoDetector
+        Pre-configured ChArUco detector.
+    img : ndarray, uint8
+        Grayscale input image.
+    method : str
+        Detection method name.
+
+    Returns
+    -------
+    (ImageFeatures or None, int)
+        Detected features and corner count.
+    """
     if charuco_detector is not None:
         charuco_corners, charuco_ids, marker_corners, marker_ids = charuco_detector.detectBoard(img)
         if method_requires_markers(method):

@@ -172,13 +172,27 @@ def build_virtual_rectify_maps(
     t_lr: np.ndarray,
     params: RectifyParams,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Build rectification remap LUTs (mapx/mapy) for left and right images.
+    """Build rectification remap LUTs (mapx/mapy) for left and right images.
+
+    Parameters
+    ----------
+    ray_model_L : RayFieldModel
+        Left-channel rayfield.
+    ray_model_R : RayFieldModel
+        Right-channel rayfield.
+    R_lr : ndarray, shape (3, 3)
+        Rotation from left to right camera frame.
+    t_lr : ndarray, shape (3,)
+        Translation from left to right camera frame.
+    params : RectifyParams
+        Rectification parameters (resolution, z-plane, etc.).
 
     Returns
     -------
-    mapx_L, mapy_L, mapx_R, mapy_R : float32 arrays (H', W')
-    R_rect : 3x3 rotation (rect frame rows in left frame)
+    mapx_L, mapy_L, mapx_R, mapy_R : ndarray, float32, shape (H', W')
+        Remap LUTs for cv2.remap.
+    R_rect : ndarray, shape (3, 3)
+        Rotation mapping the rectified frame rows into the left camera frame.
     """
     H, W = params.height, params.width
     fx = params.fx
@@ -285,8 +299,21 @@ def rectify_pair(
     maps: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
     params: RectifyParams,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Apply precomputed remap to rectify a pair of images.
+    """Apply precomputed remap to rectify a pair of images.
+
+    Parameters
+    ----------
+    images : (ndarray, ndarray)
+        Left and right grayscale images.
+    maps : (ndarray, ndarray, ndarray, ndarray)
+        Remap LUTs (mapx_L, mapy_L, mapx_R, mapy_R) from build_virtual_rectify_maps.
+    params : RectifyParams
+        Rectification parameters.
+
+    Returns
+    -------
+    (ndarray, ndarray)
+        Rectified left and right images.
     """
     I_L, I_R = images
     mapx_L, mapy_L, mapx_R, mapy_R = maps

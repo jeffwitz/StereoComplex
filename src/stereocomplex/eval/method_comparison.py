@@ -137,7 +137,19 @@ def compare_charuco_methods(
 
 
 def write_latex_table(report: dict[str, object], out_path: Path, caption: str, label: str) -> None:
-    """Write comparison results as a LaTeX booktabs table."""
+    """Write comparison results as a LaTeX booktabs table.
+
+    Parameters
+    ----------
+    report : dict
+        Comparison report with per-method metrics.
+    out_path : Path
+        Output file path.
+    caption : str
+        LaTeX table caption.
+    label : str
+        LaTeX \\label value.
+    """
     def esc(s: str) -> str:
         """Escape LaTeX special characters in a string."""
         # Minimal LaTeX escaping for captions/labels (not for full LaTeX content).

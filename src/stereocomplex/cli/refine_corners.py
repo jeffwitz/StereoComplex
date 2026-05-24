@@ -116,7 +116,32 @@ def detect_view(
     charuco_detector,
     img_gray: np.ndarray,
 ) -> CharucoDetections | None:
-    """Detect and refine ChArUco corners for a single view."""
+    """Detect ChArUco corners in a single grayscale image.
+
+    Parameters
+    ----------
+    cv2 : module
+        OpenCV module (passed for import isolation).
+    aruco : module
+        OpenCV aruco submodule.
+    dictionary : aruco.Dictionary
+        ArUco marker dictionary.
+    board : aruco.CharucoBoard
+        ChArUco board geometry.
+    detector_params : aruco.DetectorParameters
+        ArUco marker detection parameters.
+    aruco_detector : aruco.ArucoDetector
+        Pre-configured ArUco detector.
+    charuco_detector : aruco.CharucoDetector or None
+        Pre-configured ChArUco detector.
+    img_gray : ndarray, uint8
+        Grayscale input image.
+
+    Returns
+    -------
+    CharucoDetections or None
+        Detected ChArUco corners and IDs, or None on failure.
+    """
     if charuco_detector is not None:
         charuco_corners, charuco_ids, marker_corners, marker_ids = (
             charuco_detector.detectBoard(img_gray)

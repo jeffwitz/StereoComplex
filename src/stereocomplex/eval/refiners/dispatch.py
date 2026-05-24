@@ -21,7 +21,28 @@ def refine_detected_points(
     search_radius: int,
     tensor_sigma: float,
 ) -> np.ndarray:
-    """Dispatch to the appropriate corner refinement method."""
+    """Dispatch to the appropriate corner refinement method.
+
+    Parameters
+    ----------
+    refine : str
+        Refinement method name.
+    cv2 : module
+        OpenCV module for corner refinement.
+    img : ndarray
+        Grayscale input image.
+    charuco_xy : ndarray
+        Raw detected corner coordinates in pixels.
+    search_radius : int
+        Search radius in pixels for sub-pixel refinement.
+    tensor_sigma : float
+        Tensor voting sigma for sub-pixel refinement.
+
+    Returns
+    -------
+    ndarray, shape (N, 2)
+        Refined corner coordinates in pixels.
+    """
     if refine == "none":
         return charuco_xy
 
