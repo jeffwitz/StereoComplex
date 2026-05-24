@@ -371,7 +371,52 @@ def fit_physical_model_to_rayfield(
     name: str | None = None,
     **model_kwargs,
 ) -> PhysicalModelFitResult:
-    """Fit or score a physical model against a target rayfield in ray space."""
+    """Fit a physical model candidate to a measured rayfield in ray space.
+
+    This is the core model selection routine.  Given a measured rayfield and
+    a physical model class, it optimises the model parameters so that the
+    model rays best reproduce the measured rays, then returns a fit result
+    with RMS error and parameter estimates.
+
+    Parameters
+    ----------
+    model_class : type
+        Physical model class with ``ray(u,v) -> (origin, direction)``.
+    target_field : ZernikeRayField
+        Measured rayfield to match (origin + direction field).
+    K : ndarray, shape (3, 3)
+        Camera matrix.
+    image_size : (int, int)
+        Sensor dimensions in pixels (width, height).
+    initial_parameters : ndarray, optional
+        Starting parameter vector (defaults to model_class default).
+    bounds : (lo, hi), optional
+        Lower and upper bounds for the parameters.
+    z_planes : (float, float)
+        Two z-planes in mm (default 100, 1000) for ray intersection evaluation.
+    grid_shape : (int, int)
+        Subsampling grid for the full-image residual.
+    support_pixels : ndarray, optional
+        Observed-pixel coords (N, 2) whose ray gap is up-weighted.
+    support_weight : float
+        Relative weight of support-pixel residuals.
+    full_grid_weight : float
+        Relative weight of the full-grid residual term.
+    robust_loss : str
+        ``"huber"`` or ``"soft_l1"`` — robust loss for least_squares.
+    max_nfev : int
+        Maximum number of function evaluations.
+    name : str, optional
+        Human-readable model name for reporting.
+    **model_kwargs
+        Additional keyword arguments forwarded to the model constructor.
+
+    Returns
+    -------
+    PhysicalModelFitResult
+        Named tuple with ``x`` (optimal params), ``rms_mm``, ``success``,
+        and ``model`` (the fitted instance).
+    """
     from scipy.optimize import least_squares  # type: ignore
 
     K_arr = np.asarray(K, dtype=np.float64).reshape(3, 3)
