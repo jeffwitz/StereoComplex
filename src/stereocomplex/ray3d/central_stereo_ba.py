@@ -102,11 +102,10 @@ def fit_central_stereo_rayfield_ba(
     f_scale_mm: float = 1.0,
     max_nfev: int = 200,
 ) -> CentralStereoRayFieldBAResult:
-    """
-    Joint stereo bundle adjustment for a *central* ray-field in both cameras.
+    """Joint stereo bundle adjustment for a central ray-field in both cameras.
 
     Variables:
-      - Zernike coefficients for left/right x,y
+      - Zernike coefficients for left/right x, y
       - A single stereo rig transform (R_RL, t_RL) with P_R = R_RL P_L + t_RL
       - Per-frame board poses in left camera coordinates (R_i, t_i)
 
@@ -115,6 +114,35 @@ def fit_central_stereo_rayfield_ba(
       r_R = (I - d_R d_R^T) P_R
 
     where P_L = R_i P_board + t_i and P_R = R_RL P_L + t_RL.
+
+    Parameters
+    ----------
+    frames : dict[int, StereoFrameObservations]
+        Per-frame stereo observations keyed by frame index.
+    image_width_px, image_height_px : int
+        Sensor dimensions in pixels.
+    nmax : int
+        Maximum Zernike radial order.
+    rvecs0, tvecs0 : dict[int, ndarray]
+        Initial board pose estimates per frame (in left camera coordinates).
+    rig_rvec0, rig_tvec0 : ndarray
+        Initial stereo rig transform (right relative to left).
+    coeffs0_left_x, coeffs0_left_y : ndarray
+        Initial Zernike coefficients for the left camera.
+    coeffs0_right_x, coeffs0_right_y : ndarray
+        Initial Zernike coefficients for the right camera.
+    lam_coeff : float
+        Regularisation weight for Zernike coefficients.
+    lam_center : float
+        Regularisation weight for the camera centre.
+    lam_jacobian : float
+        Scale factor for analytical Jacobian contributions.
+    loss : str
+        Robust loss function for least_squares.
+    f_scale_mm : float
+        Scale parameter for robust loss, in millimetres.
+    max_nfev : int
+        Maximum function evaluations.
     """
     if not frames:
         raise ValueError("frames is empty")
@@ -345,13 +373,35 @@ def fit_central_stereo_rayfield_coeffs_fixed(
     f_scale_mm: float = 1.0,
     max_nfev: int = 200,
 ) -> CentralStereoRayFieldBAResult:
-    """
-    Fit only the ray-field coefficients for both cameras, with fixed:
-      - stereo rig (R_RL, t_RL)
-      - per-frame board poses (R_i, t_i)
+    """Fit only the ray-field coefficients for both cameras, with fixed poses and rig.
 
     This is useful for controlled synthetic benchmarks (GT poses/rig),
     or when external metrology provides accurate poses.
+
+    Parameters
+    ----------
+    frames : dict[int, StereoFrameObservations]
+        Per-frame stereo observations.
+    image_width_px, image_height_px : int
+        Sensor dimensions in pixels.
+    nmax : int
+        Maximum Zernike radial order.
+    rvecs, tvecs : dict[int, ndarray]
+        Fixed board pose estimates per frame.
+    rig_rvec, rig_tvec : ndarray
+        Fixed stereo rig transform.
+    coeffs0_left_x, coeffs0_left_y : ndarray
+        Initial Zernike coefficients for left camera.
+    coeffs0_right_x, coeffs0_right_y : ndarray
+        Initial Zernike coefficients for right camera.
+    lam_coeff : float
+        Regularisation weight for coefficients.
+    loss : str
+        Robust loss function.
+    f_scale_mm : float
+        Scale parameter for robust loss, in mm.
+    max_nfev : int
+        Maximum function evaluations.
     """
     if not frames:
         raise ValueError("frames is empty")

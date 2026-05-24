@@ -186,14 +186,35 @@ def fit_central_rayfield_ba(
     max_nfev_coeff: int = 80,
     max_nfev_pose: int = 50,
 ) -> CentralRayFieldBAResult:
-    """
-    Alternating minimization for a central ray-field and per-frame poses.
+    """Alternating minimisation for a central ray-field and per-frame poses.
 
-    We minimize point-to-ray distances:
+    Minimises point-to-ray distances:
       r_ij = (I - d d^T) (R_i P_j + t_i)
-
-    where d = d(u_ij, v_ij) comes from a compact Zernike model, and (R_i,t_i)
+    where d = d(u_ij, v_ij) comes from a compact Zernike model, and (R_i, t_i)
     is the board pose for each frame in camera coordinates.
+
+    Parameters
+    ----------
+    frames : dict[int, FrameObservations]
+        Per-frame observations keyed by frame index.
+    image_width_px, image_height_px : int
+        Sensor dimensions in pixels.
+    nmax : int
+        Maximum Zernike radial order.
+    rvecs0, tvecs0 : dict[int, ndarray]
+        Initial pose estimates per frame.
+    coeffs0_x, coeffs0_y : ndarray, optional
+        Initial Zernike coefficient estimates.
+    lam_coeff : float
+        Regularisation weight for Zernike coefficients.
+    loss : str
+        Robust loss function for least_squares.
+    f_scale_mm : float
+        Scale parameter for robust loss, in millimetres.
+    outer_iters : int
+        Number of alternating refinement iterations.
+    max_nfev_coeff, max_nfev_pose : int
+        Max function evaluations for coefficient and pose sub-problems.
     """
     if not frames:
         raise ValueError("frames is empty")
