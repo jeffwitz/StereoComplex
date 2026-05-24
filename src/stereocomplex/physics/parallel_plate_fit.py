@@ -113,12 +113,53 @@ def pinhole_parallel_plate_ray_from_pixel(
     K: np.ndarray,
     params: PinholeParallelPlateFitParams,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Return the physical `(O, d)` ray of a pinhole + inclined parallel plate."""
+    """Compute the 3-D ray (origin, direction) for a pixel through a pinhole
+    camera with an inclined parallel plate in front of the sensor.
+
+    The plate shifts the apparent ray origin while preserving the direction.
+
+    Parameters
+    ----------
+    u : ndarray
+        Pixel x-coordinates.
+    v : ndarray
+        Pixel y-coordinates.
+    K : ndarray, shape (3, 3)
+        Camera matrix.
+    params : PinholeParallelPlateFitParams
+        Plate geometry (normal, thickness, refractive index, distance).
+
+    Returns
+    -------
+    (origin, direction) : tuple of ndarray
+        Ray origins in mm and unit directions, each shape (N, 3).
+    """
     return parallel_plate_ray_from_pixel(u, v, K, _as_synthetic_params(params))
 
 
 def intersect_ray_with_z_plane(origin_points: np.ndarray, d: np.ndarray, z: float) -> np.ndarray:
-    """Intersect one or more rays with the plane `z = constant`."""
+    """Intersect one or more rays with a horizontal z-plane at a given depth.
+
+    Parameters
+    ----------
+    origin_points : ndarray, shape (N, 3)
+        Ray origins in world coordinates, in millimetres.
+    d : ndarray, shape (N, 3)
+        Ray directions (unit vectors).
+    z : float
+        Z-coordinate of the target plane in millimetres.
+
+    Returns
+    -------
+    ndarray, shape (N, 3)
+        Intersection points in millimetres.
+
+    Raises
+    ------
+    ValueError
+        If any ray direction has a z-component smaller than 1e-12 in
+        absolute value (ray is parallel to the plane).
+    """
     origin = np.asarray(origin_points, dtype=np.float64).reshape(-1, 3)
     direction = np.asarray(d, dtype=np.float64).reshape(-1, 3)
     denom = direction[:, 2]
