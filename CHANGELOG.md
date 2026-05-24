@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0-alpha] - 2026-05-24
+
+### Added
+
+- **Publishable snapshot** (`docs/RELEASE_READINESS.md`): stable/advanced/experimental API boundaries, quality gates, known artefacts.
+- **Zenodo archival**: Schur BA snapshots archived at DOI 10.5281/zenodo.20369312 with auto-download helper (`examples/zenodo_fetch.py`).
+- **CI docstring guard**: `check_docstring_params.py` wired into `.github/workflows/ci.yml`.
+- **Diátaxis tutorial**: 6-step walkthrough from install to CMO calibration.
+
+### Changed
+
+- **100% docstring coverage** (425/425 public functions) — all scientific core, instrumentation, CLI, and API modules documented with Parameters/Returns, units, and shapes.
+- Repository weight reduced from 234 MB to 114 MB by archiving `schur_ba/` on Zenodo.
+- **Ruff**: E/F=0, E501=0, cosmetic rules cleared.
+
 ## [0.7.0] - 2026-05-17
 
 ### Added

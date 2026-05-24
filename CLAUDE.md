@@ -28,7 +28,7 @@ next `develop` → `main` merge, **all Colab references point to `develop`**:
   of every `examples/notebooks/*.ipynb`;
 - `examples/notebooks/add_colab_badges.py`.
 
-**At the next `develop` → `main` merge, deactivate this hack**: switch those
+**Colab branch hack DEACTIVATED as of v0.7.0-alpha merge.**: switch those
 three places back from `develop` to `main` (once `main` actually carries the
 notebooks). Until then, share `blob/develop/` Colab URLs.
 
