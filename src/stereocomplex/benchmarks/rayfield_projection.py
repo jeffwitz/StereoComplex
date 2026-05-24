@@ -76,6 +76,7 @@ def project_point_by_rayfield_inverse(
     )
 
     def fun(uv):
+        """Residual function minimising the 2D reprojection error."""
         return point_ray_residual(uv, field, X)
 
     bounds = (np.array([0.0, 0.0]), np.array([float(W - 1), float(H - 1)]))

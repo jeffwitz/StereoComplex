@@ -75,6 +75,7 @@ class PinholeCamera:
     f_um: float
 
     def ray_directions_cam(self, x_um: np.ndarray, y_um: np.ndarray) -> np.ndarray:
+        """Central ray directions in camera frame for a pixel grid."""
         x_mm = np.asarray(x_um, dtype=np.float64) / 1000.0
         y_mm = np.asarray(y_um, dtype=np.float64) / 1000.0
         f_mm = float(self.f_um) / 1000.0

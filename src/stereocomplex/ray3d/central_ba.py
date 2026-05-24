@@ -105,6 +105,7 @@ def _fit_coeffs_least_squares(
     p0 = _pack_coeffs(coeffs0_x, coeffs0_y)
 
     def fun(p: np.ndarray) -> np.ndarray:
+        """Residual function for central rayfield bundle adjustment."""
         coeffs_x, coeffs_y = _unpack_coeffs(p, K)
         res_parts: list[np.ndarray] = []
         for fid, fr in frames.items():
@@ -148,6 +149,7 @@ def _fit_pose_least_squares(
     d = _dir_from_coeffs(A, coeffs_x, coeffs_y)
 
     def fun(p: np.ndarray) -> np.ndarray:
+        """Residual function for central rayfield bundle adjustment."""
         rvec = p[:3]
         tvec = p[3:]
         rot = R.from_rotvec(rvec).as_matrix()

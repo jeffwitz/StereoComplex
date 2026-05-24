@@ -97,6 +97,7 @@ def _radial_poly(n: int, m: int, r: np.ndarray) -> np.ndarray:
 
 
 def eval_real_zernike(mode: ZernikeMode, r: np.ndarray, theta: np.ndarray) -> np.ndarray:
+    """Evaluate real-valued Zernike polynomials at (rho, theta)."""
     r = np.asarray(r, dtype=np.float64)
     theta = np.asarray(theta, dtype=np.float64)
     R = _radial_poly(mode.n, mode.m, r)

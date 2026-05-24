@@ -10,6 +10,7 @@ from stereocomplex.meta import MetaValidationError, parse_view_meta
 
 
 def validate_dataset(dataset_root: Path) -> None:
+    """Validate a dataset against the expected schema."""
     dataset_root = dataset_root.resolve()
     manifest = dataset_root / "manifest.json"
     if not manifest.exists():

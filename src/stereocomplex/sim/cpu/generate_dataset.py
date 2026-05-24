@@ -44,6 +44,7 @@ def generate_cpu_dataset(
     board_pixels_per_square_override: int | None = None,
     z_only_mode: bool = False,
 ) -> None:
+    """Generate a synthetic ChArUco dataset with CPU rendering."""
     rng = np.random.default_rng(seed)
     out_root.mkdir(parents=True, exist_ok=True)
 
@@ -502,6 +503,7 @@ def _make_distortion(
     # Coefficients are intentionally small; strength scales them.
     # Typical normalized radii are <= ~0.8 for most pixels.
     def sample_one() -> BrownDistortion:
+        """Draw a single random sample from the dataset generator."""
         s = strength
         return BrownDistortion(
             k1=float(rng.uniform(-0.25, 0.25) * s),

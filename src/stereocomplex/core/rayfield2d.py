@@ -165,6 +165,7 @@ def predict_points_rayfield_tps_robust(
         return _apply_affine(M, query_xy)
 
     def proj(Hh: np.ndarray, pts: np.ndarray) -> np.ndarray:
+        """Project 2D points using the fitted planar rayfield."""
         ph = np.concatenate([pts, np.ones((pts.shape[0], 1), dtype=np.float64)], axis=1)
         uvw = (Hh @ ph.T).T
         return uvw[:, :2] / (uvw[:, 2:3] + 1e-12)

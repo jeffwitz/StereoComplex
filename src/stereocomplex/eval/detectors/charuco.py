@@ -16,6 +16,7 @@ class ImageFeatures:
 
 
 def method_requires_markers(method: str) -> bool:
+    """Check whether a detection method needs ArUco marker data."""
     return method in {
         "homography",
         "pnp",

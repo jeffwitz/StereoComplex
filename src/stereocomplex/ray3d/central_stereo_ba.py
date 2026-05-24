@@ -211,6 +211,7 @@ def fit_central_stereo_rayfield_ba(
     target = 1.0 / f0_px
 
     def fun(p: np.ndarray) -> np.ndarray:
+        """Residual function for central stereo bundle adjustment."""
         p = np.asarray(p, dtype=np.float64).reshape(-1)
         coeffs = p[: 4 * K]
         rig = p[4 * K : 4 * K + 6]
@@ -409,6 +410,7 @@ def fit_central_stereo_rayfield_coeffs_fixed(
     R_RL = R.from_rotvec(rig_rvec).as_matrix()
 
     def fun(p: np.ndarray) -> np.ndarray:
+        """Residual function for central stereo bundle adjustment."""
         cLx, cLy, cRx, cRy = _unpack_coeffs(p, K)
         res_parts: list[np.ndarray] = []
         for fid in fids:

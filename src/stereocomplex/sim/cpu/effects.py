@@ -6,6 +6,7 @@ import numpy as np
 
 
 def fwhm_to_sigma(fwhm: float) -> float:
+    """Convert FWHM (full width at half maximum) to Gaussian sigma."""
     return float(fwhm) / 2.3548200450309493
 
 

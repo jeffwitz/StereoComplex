@@ -72,10 +72,12 @@ class PycasoCMOObservations:
 
     @property
     def n_frames(self) -> int:
+        """Number of frames in the observation set."""
         return int(self.left_pixels.shape[0])
 
     @property
     def n_corners(self) -> int:
+        """Total number of corner observations across all frames."""
         return int(self.left_pixels.shape[1])
 
 

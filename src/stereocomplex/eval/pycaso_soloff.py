@@ -291,6 +291,7 @@ class PycasoSoloffStereoModel:
                 return self._predict_all(x) - obs
 
             def jac(x):
+                """Analytical Jacobian of the Soloff polynomial residual."""
                 _pred, J = self._predict_all_with_jac(x)
                 return J
 

@@ -290,6 +290,7 @@ def run_optical_ba(
         bounds = default_bounds(n_frames, observations.image_size)
 
     def residual_fun(x: np.ndarray) -> np.ndarray:
+        """Regularised residual function for bundle adjustment."""
         return residual_fn(x, observations)
 
     # Build the "before" Schur diagnostic at theta0.
@@ -451,6 +452,7 @@ def run_schur_regularized_optical_ba(
         prior_fn = prior  # assume callable
 
     def residual_fun(x: np.ndarray) -> np.ndarray:
+        """Regularised residual function for bundle adjustment."""
         data_res = point_to_ray_residuals_cmo_se3(x, observations)
         prior_res = prior_fn(x[:N_THETA])
         return np.concatenate([data_res, prior_res])

@@ -15,6 +15,7 @@ class ReencodeOptions:
 
 
 def reencode_dataset(in_root: Path, out_root: Path, opts: ReencodeOptions) -> None:
+    """Re-encode a dataset to a different image format."""
     in_root = in_root.resolve()
     out_root = out_root.resolve()
 

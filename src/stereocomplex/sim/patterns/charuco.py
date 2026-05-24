@@ -16,6 +16,7 @@ class CharucoSpec:
 
     @property
     def size_px(self) -> tuple[int, int]:
+        """Board dimensions in pixels at the current DPI."""
         return (self.squares_x * self.pixels_per_square, self.squares_y * self.pixels_per_square)
 
 

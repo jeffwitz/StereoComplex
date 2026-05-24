@@ -21,6 +21,7 @@ def refine_detected_points(
     search_radius: int,
     tensor_sigma: float,
 ) -> np.ndarray:
+    """Dispatch to the appropriate corner refinement method."""
     if refine == "none":
         return charuco_xy
 

@@ -295,6 +295,7 @@ def fit_direct_model_from_observations(
         return _channel_field(m, "left")
 
     def make_optical_model_right(x_optics: Array) -> object:
+        """Build the right-channel optical model from parameters."""
         if hasattr(model_class, "from_parameter_vector"):
             m = model_class.from_parameter_vector(x_optics, K=K_R, **model_kwargs)
         else:
@@ -303,6 +304,7 @@ def fit_direct_model_from_observations(
 
     # --- residual function ---
     def residuals(x_all: Array) -> Array:
+        """Compute residual between direct inversion and rayfield prediction."""
         x_optics = x_all[:p_optics]
         x_poses = x_all[p_optics:]
 

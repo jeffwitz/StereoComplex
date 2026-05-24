@@ -219,6 +219,7 @@ def fit_stereo_zernike_origin_field(
     p0 = np.concatenate(p0_parts, axis=0)
 
     def unpack(p: np.ndarray):
+        """Unpack the parameter vector into origin, direction, poses, and rig components."""
         arr = np.asarray(p, dtype=np.float64).reshape(-1)
         cursor = 0
         left_origin = arr[cursor : cursor + n_coeff].reshape(n_terms, 3)
@@ -266,6 +267,7 @@ def fit_stereo_zernike_origin_field(
         left_direction: np.ndarray,
         right_direction: np.ndarray,
     ):
+        """Build left and right ZernikeRayField from coefficient arrays."""
         if optimize_directions:
             left = ZernikeRayField(
                 K_left,
@@ -308,6 +310,7 @@ def fit_stereo_zernike_origin_field(
         return origin, d
 
     def residuals(p: np.ndarray) -> np.ndarray:
+        """Compute ray-space residuals for the current BA state."""
         (
             left_origin,
             right_origin,

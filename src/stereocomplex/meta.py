@@ -44,11 +44,13 @@ def _require(cond: bool, msg: str) -> None:
 
 
 def load_view_meta(path: Path) -> ViewMeta:
+    """Load view metadata from a JSON file."""
     data = json.loads(path.read_text(encoding="utf-8"))
     return parse_view_meta(data)
 
 
 def parse_view_meta(data: dict[str, Any]) -> ViewMeta:
+    """Parse view metadata dict into a structured object."""
     schema_version = data.get("schema_version")
     _require(
         schema_version == "stereocomplex.meta.v0",
