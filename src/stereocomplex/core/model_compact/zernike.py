@@ -134,8 +134,33 @@ def pixel_to_unit_disk(
     v0_px: float,
     radius_px: float,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Map pixels to unit-disk polar coordinates (r, theta) with a mask for r<=1.
+    """Map pixel coordinates to unit-disk polar coordinates for Zernike evaluation.
+
+    Pixels are centred at (u0_px, v0_px) and scaled by ``radius_px`` so that
+    the disk of that radius maps to rho = 1.  Pixels outside the disk produce
+    rho > 1.
+
+    Parameters
+    ----------
+    u_px : ndarray
+        Pixel x-coordinates.
+    v_px : ndarray
+        Pixel y-coordinates.
+    u0_px : float
+        x-coordinate of the disk centre in pixels.
+    v0_px : float
+        y-coordinate of the disk centre in pixels.
+    radius_px : float
+        Disk radius in pixels (must be > 0).
+
+    Returns
+    -------
+    r : ndarray
+        Normalised radial coordinates (0 at centre, 1 at the disk edge).
+    theta : ndarray
+        Azimuthal angles in radians.
+    mask : ndarray, bool
+        True where r <= 1 (inside the unit disk).
     """
     if radius_px <= 0:
         raise ValueError("radius_px must be > 0")
