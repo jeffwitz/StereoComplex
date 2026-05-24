@@ -467,6 +467,29 @@ memory — wastes hours and silently drifts the paper from the code.
 `examples/notebooks/generate_fig_pipeline.py` (Figure 2 of the CMO
 paper). Match that structure for every new or revised figure.
 
+**CMO paper figure compliance tracker.** Update this table when a figure
+is brought into compliance, so the next contributor (or a fresh Claude
+session) knows what is left.
+
+| # | Figure file | Script | Asset folder | Status |
+|---|---|---|---|---|
+| 1 | `cmo_physical.pdf` | `generate_fig_cmo_physical.py` | — | TODO |
+| 2 | `pipeline.pdf` | `generate_fig_pipeline.py` | `figure2_pipeline/` | **DONE** |
+| 3 | `BIC_vs_order.pdf` | `generate_fig_bic_vs_order.py` | — | TODO |
+| 4 | `subpupil_3d.pdf` | `generate_fig_subpupil_3d.py` | — | TODO |
+| 5 | `dy_profile_comparison.pdf` | `generate_fig_dy_profile.py` | — | TODO |
+| 6 | `residual_evolution.pdf` | `generate_fig_residual_evolution.py` | — | TODO |
+| 7 | `pareto_gauge_regularization.pdf` | `generate_fig_pareto.py` | — | TODO |
+| 8 | `schur_singular_values.pdf` | `generate_fig_schur_svd.py` | — | TODO |
+| 9 | `specimen_reconstruction.pdf` | `generate_fig_specimen_reconstruction.py` | `figure9_specimen_reconstruction/` | **DONE** |
+| 10 | `zernike_cmo_rigid_removed.pdf` | `generate_fig_zernike_cmo_rigid_removed.py` | `figure10_zernike_cmo_rigid_removed/` | **DONE** (see README — faithfully reproduces a pre-existing bug; correct PNG sibling lives in notebook 11) |
+| 11 | `specimen_schur_regularized.png` | `generate_fig_specimen_schur_regularized.py` | `figure11_specimen_schur_regularized/` | **DONE** |
+| 12 | `bic_bars.pdf` | `generate_fig_bic_bars.py` | — | TODO |
+
+Order of treatment chosen for the desorphaning pass (risk × edit
+frequency descending): 9, 10, 8, 7, 6, 4, 5, 3, 12, 1. Update the table
+as each row flips to DONE.
+
 **Pre-flight check before adding a figure.** Before committing a new
 PDF/PNG under `paper/*/figures/`, verify in this order:
 

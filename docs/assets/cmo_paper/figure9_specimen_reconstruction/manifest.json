@@ -1,0 +1,11 @@
+{
+  "title": "Dense specimen reconstruction (Figure 9 of the CMO paper)",
+  "correspondences": "../../pycaso_real_data/specimen_correspondences.npz",
+  "cmo_reconstruction": "../../pycaso_real_data/specimen_reconstruction_cmo26.npz",
+  "zernike_reconstruction": "../../pycaso_real_data/specimen_reconstruction_zernike.npz",
+  "left_image_with_roi": "../../../../paper/cmo/figures/specimen_left_with_roi.png",
+  "roi_crop_px": [300, 1700, 300, 1700],
+  "disparity_vmax_percentile": 80,
+  "z_percentile_clip": [1, 99],
+  "gap_xmax_percentile": 99.5
+}
