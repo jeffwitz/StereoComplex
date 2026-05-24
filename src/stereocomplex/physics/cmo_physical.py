@@ -1404,7 +1404,45 @@ def fit_cmo_telecentric_model_to_rayfields(
     full_grid_weight: float = 0.0,
     max_nfev: int = 500,
 ) -> CMOPhysicalStereoFitResult:
-    """Fit the telecentric CMO model to left/right measured rayfields."""
+    """Fit the telecentric CMO model to left and right measured Zernike rayfields.
+
+    This variant assumes telecentricity in object space, reducing the
+    parameter count compared to the full physical model.  It fits baseline,
+    working distance, and per-channel sub-pupil positions while keeping the
+    objective focal length fixed at infinity in object space.
+
+    Parameters
+    ----------
+    left_field : ZernikeRayField
+        Measured left-channel rayfield (origin field + direction field).
+    right_field : ZernikeRayField
+        Measured right-channel rayfield.
+    image_size : (int, int)
+        Sensor dimensions in pixels (width, height).
+    initial_parameters : ndarray, shape depends on variant
+        Starting parameter vector (10, 12, 14, or 16 values depending on
+        whether principal point is shared and whether directions are optimised).
+    pixel_pitch_mm : float
+        Sensor pixel pitch in millimetres.
+    z_planes : (float, float)
+        Two z-planes in mm (default 50, 250) for ray intersection evaluation.
+    grid_shape : (int, int)
+        Subsampling grid (width, height) for the full-image residual.
+    full_grid_weight : float
+        Relative weight of the full-grid residual term (0 = only support pixels).
+    max_nfev : int
+        Maximum number of function evaluations for the optimiser.
+
+    Returns
+    -------
+    CMOPhysicalStereoFitResult
+        Named tuple with ``x`` (optimal 14 parameters), ``message``,
+        ``success``, and ``model`` (the fitted CMOTelecentricStereoModel).
+
+    Notes
+    -----
+    This is the template function described in ``docs/DOCSTRING_TODO.md``.
+    """
     x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
     if x0.size not in {10, 12, 14, 16}:
         raise ValueError(f"initial_parameters must contain 10, 12, 14, or 16 values, got {x0.size}")
