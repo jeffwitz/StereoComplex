@@ -39,13 +39,10 @@ Editable install:
 
 ```bash
 .venv/bin/python -m pip install -e .
-```
 
 For notebooks:
 
-```bash
 .venv/bin/python -m pip install -e '.[notebooks]'
-```
 
 If you do not install the package, most commands can still be run with `PYTHONPATH=src`.
 
@@ -83,7 +80,6 @@ Ray2D can improve ChArUco localization before feeding points into OpenCV calibra
 
 - `examples/notebooks/00_getting_started.ipynb`
 - `examples/notebooks/01_ray2d_vs_opencv.ipynb`
-- :doc:`FROM_OPENCV_TO_STEREOCOMPLEX`
 - :doc:`FIX_MY_CALIBRATION`
 
 ### Non-central rendered-image benchmark
@@ -120,10 +116,7 @@ The ten numbered notebooks are the guided teaching sequence; see
 Each notebook's first cell moves to the repository root on its own, so the
 relative `dataset/` paths resolve wherever JupyterLab is started:
 
-```bash
-.venv/bin/python -m pip install -e '.[notebooks]'
 .venv/bin/jupyter lab examples/notebooks
-```
 
 **Run them on Google Colab** — click a link below. The first cell installs
 StereoComplex automatically; no local setup is needed.
@@ -159,11 +152,9 @@ report = sc.compare_opencv_stereo_calibration(
     left_dir=Path("my_data/left"),
     right_dir=Path("my_data/right"),
     board=board,
-)
 
 assessment = sc.assess_calibration(report["refined_result"])
 K1, d1, K2, d2, R, T = report["refined_result"].to_opencv()
-```
 
 For the detailed version:
 
@@ -173,20 +164,16 @@ For the detailed version:
 
 Generate and validate a minimal dataset:
 
-```bash
 .venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/charuco --pattern charuco --frames-per-scene 16
 .venv/bin/python -m stereocomplex.cli validate-dataset dataset/charuco
-```
 
 Evaluate Ray2D ChArUco identification against synthetic ground truth:
 
-```bash
 .venv/bin/python -m stereocomplex.cli eval-charuco-detection dataset/charuco --method rayfield_tps_robust
-```
 
 ## Documentation map
 
-- First use: :doc:`FROM_OPENCV_TO_STEREOCOMPLEX`, :doc:`BRING_YOUR_OWN_DATA`, :doc:`NOTEBOOKS`.
+- First use: :doc:`how_to/from_opencv_to_stereocomplex`, :doc:`how_to/bring_your_own_data`, :doc:`NOTEBOOKS`.
 - ChArUco and Ray2D: :doc:`CHARUCO_IDENTIFICATION`, :doc:`RAYFIELD_WORKED_EXAMPLE`.
 - Ray-based calibration and reconstruction: :doc:`STEREO_RECONSTRUCTION`, :doc:`RECONSTRUCTION_API`, :doc:`RAYFIELD3D_RECONSTRUCTION`, :doc:`RAYFIELD_VIRTUAL_RECTIFY`.
 - Non-central and optical model identification: :doc:`how_to/noncentral_from_images`, :doc:`how_to/identify_my_optics`, :doc:`explanation/parallel_plate_origin_field`, :doc:`explanation/cmo_model_selection`.

@@ -34,7 +34,6 @@ result = fit_opencv_stereo_from_dataset(
     dataset_root="dataset/v0_png",
     split="train",
     scene="scene_0000",
-    board=board,
     max_frames=20,
     method2d="raw",     # raw = standard OpenCV corner detection
 )

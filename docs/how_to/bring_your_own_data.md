@@ -10,7 +10,7 @@ to:
 
 - a baseline **OpenCV raw vs Ray2D + OpenCV** comparison,
 - a calibrated StereoComplex model,
-- optionally a non-central Zernike rayfield model (validated on real CMO hardware),
+- optionally a non-central Zernike rayfield model (validated on synthetic non-central oracles and one real CMO case study),
 - an exported `models/<name>/model.json + weights.npz`,
 - and then `model.triangulate(...)` in Python.
 
