@@ -229,10 +229,38 @@ scripts 07 and 08.
 
    START_HERE
    tutorials/INDEX
+   how_to/INDEX
    FROM_OPENCV_TO_STEREOCOMPLEX
    BRING_YOUR_OWN_DATA
    FIX_MY_CALIBRATION
    NOTEBOOKS
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference
+   :hidden:
+
+   reference/INDEX
+   api
+   PUBLIC_API
+   ARCHITECTURE
+   CONVENTIONS
+   DATASET_SPEC
+   ALTERNATIVES_POSITIONING
+   LICENSE
+   RELEASE_READINESS
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Explanation
+   :hidden:
+
+   explanation/INDEX
+   CMO_PHYSICAL_MODEL
+   CMO_MODEL_SELECTION
+   DIRECT_VS_RAYFIELD_INVERSION
+   PARALLEL_PLATE_ORIGIN_FIELD
+   REAL_CMO_PYCASO_RAYFIELD
 
 .. toctree::
    :maxdepth: 2
