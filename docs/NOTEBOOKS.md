@@ -23,16 +23,16 @@ versioned directly in Git:
 > `blob/main/...` Colab links 404. Revert these to `main` after the next
 > `develop` → `main` merge (see the *Colab branch hack* note in `CLAUDE.md`).
 
-- [00_getting_started](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/00_getting_started.ipynb)
-- [01_ray2d_vs_opencv](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/01_ray2d_vs_opencv.ipynb)
-- [02_ray3d](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/02_ray3d.ipynb)
-- [03_rayfield_virtual_rectification](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/03_rayfield_virtual_rectification.ipynb)
-- [04_parallel_plate_origin_field](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/04_parallel_plate_origin_field.ipynb)
-- [05_noncentral_calibration_from_images](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/05_noncentral_calibration_from_images.ipynb)
-- [06_cmo_model_selection](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/06_cmo_model_selection.ipynb)
-- [07_model_selection_matrix](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/07_model_selection_matrix.ipynb)
-- [08_direct_vs_rayfield_inversion](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/08_direct_vs_rayfield_inversion.ipynb)
-- [09_pycaso_real_data](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/09_pycaso_real_data.ipynb)
+- [00_getting_started](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/00_getting_started.ipynb)
+- [01_ray2d_vs_opencv](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/01_ray2d_vs_opencv.ipynb)
+- [02_ray3d](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/02_ray3d.ipynb)
+- [03_rayfield_virtual_rectification](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/03_rayfield_virtual_rectification.ipynb)
+- [04_parallel_plate_origin_field](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/04_parallel_plate_origin_field.ipynb)
+- [05_noncentral_calibration_from_images](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/05_noncentral_calibration_from_images.ipynb)
+- [06_cmo_model_selection](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/06_cmo_model_selection.ipynb)
+- [07_model_selection_matrix](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/07_model_selection_matrix.ipynb)
+- [08_direct_vs_rayfield_inversion](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/08_direct_vs_rayfield_inversion.ipynb)
+- [09_pycaso_real_data](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/09_pycaso_real_data.ipynb)
 
 ## Recommended reading order
 
@@ -201,3 +201,17 @@ jupyter lab examples/notebooks
 
 If Jupyter is not installed, the notebook files can still be opened directly in
 VS Code or another notebook viewer.
+
+## Diátaxis role
+
+Notebooks span multiple documentation modes.  Here is how each notebook
+maps to the [Diátaxis framework](https://diataxis.fr):
+
+| Notebook | Primary mode | Secondary mode | Notes |
+|---|---|---|---|
+| 00–04 | **Tutorial** | — | Guided walkthroughs, match the `docs/tutorials/` sequence |
+| 05–07 | **Tutorial** | How‑to | Calibration from images, model selection, parameter sweeps |
+| 08 | **Explanation** | — | Direct inversion vs rayfield — theory comparison |
+| 09 | **Case study** | Explanation | The full Pycaso CMO paper walkthrough |
+| 10 | **Case study** | Tutorial | Pycaso specimen sanity check |
+| 11 | **Explanation** | — | Zernike vs CMO rigid‑removed autopsy |

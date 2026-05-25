@@ -97,7 +97,7 @@ removal, the repo would be ~94 MB (after Zenodo archival).
 
 ## Pending before merge to main
 
-1. Switch Colab links from `blob/develop/` to `blob/main/` (see CLAUDE.md § Colab branch hack)
+1. Switch Colab links from `blob/main/` to `blob/main/` (see CLAUDE.md § Colab branch hack)
 2. Tag `v0.1.0-alpha` on the merge commit
 3. Update `docs/START_HERE.md` to reflect that `develop` → `main` has happened
 4. Archive paper artefacts on Zenodo and link from README

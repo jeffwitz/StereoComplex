@@ -138,7 +138,7 @@ These can be done in any order; each is one focused commit.
 6. **Link audit.** Replace every `blob/main/...` Colab/source URL with
    `blob/main/...` *only* if the file actually exists on `main` (post
    `ed422d6`). The temporary `develop`-pointing hack is now obsolete;
-   any remaining `blob/develop/...` in `docs/` is a bug to fix.
+   any remaining `blob/main/...` in `docs/` is a bug to fix.
 7. **Notebook role.** Update `docs/NOTEBOOKS.md` to say notebooks are
    **case studies** that double as tutorials, and explicitly map each
    notebook to its Diátaxis mode (most are tutorial, a few are

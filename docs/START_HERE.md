@@ -130,16 +130,16 @@ StereoComplex automatically; no local setup is needed.
 
 Recommended order:
 
-1. [`00_getting_started.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/00_getting_started.ipynb) — OpenCV-to-StereoComplex onboarding.
-2. [`01_ray2d_vs_opencv.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/01_ray2d_vs_opencv.ipynb) — why Ray2D improves ChArUco observations.
-3. [`02_ray3d.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/02_ray3d.ipynb) — central 3D ray-field reconstruction prototype.
-4. [`03_rayfield_virtual_rectification.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/03_rayfield_virtual_rectification.ipynb) — bridge back to dense stereo.
-5. [`04_parallel_plate_origin_field.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/04_parallel_plate_origin_field.ipynb) — non-central synthetic oracle.
-6. [`05_noncentral_calibration_from_images.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/05_noncentral_calibration_from_images.ipynb) — practical non-central image-folder path.
-7. [`06_cmo_model_selection.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/06_cmo_model_selection.ipynb) — physical model selection on CMO-like optics.
-8. [`07_model_selection_matrix.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/07_model_selection_matrix.ipynb) — 6-oracle classification matrix.
-9. [`08_direct_vs_rayfield_inversion.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/08_direct_vs_rayfield_inversion.ipynb) — direct vs rayfield-mediated inversion.
-10. [`09_pycaso_real_data.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/09_pycaso_real_data.ipynb) — real Pycaso CMO case study.
+1. [`00_getting_started.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/00_getting_started.ipynb) — OpenCV-to-StereoComplex onboarding.
+2. [`01_ray2d_vs_opencv.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/01_ray2d_vs_opencv.ipynb) — why Ray2D improves ChArUco observations.
+3. [`02_ray3d.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/02_ray3d.ipynb) — central 3D ray-field reconstruction prototype.
+4. [`03_rayfield_virtual_rectification.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/03_rayfield_virtual_rectification.ipynb) — bridge back to dense stereo.
+5. [`04_parallel_plate_origin_field.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/04_parallel_plate_origin_field.ipynb) — non-central synthetic oracle.
+6. [`05_noncentral_calibration_from_images.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/05_noncentral_calibration_from_images.ipynb) — practical non-central image-folder path.
+7. [`06_cmo_model_selection.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/06_cmo_model_selection.ipynb) — physical model selection on CMO-like optics.
+8. [`07_model_selection_matrix.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/07_model_selection_matrix.ipynb) — 6-oracle classification matrix.
+9. [`08_direct_vs_rayfield_inversion.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/08_direct_vs_rayfield_inversion.ipynb) — direct vs rayfield-mediated inversion.
+10. [`09_pycaso_real_data.ipynb`](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/main/examples/notebooks/09_pycaso_real_data.ipynb) — real Pycaso CMO case study.
 
 ## Quickstart for your own stereo folders
 
@@ -189,13 +189,19 @@ Evaluate Ray2D ChArUco identification against synthetic ground truth:
 - First use: :doc:`FROM_OPENCV_TO_STEREOCOMPLEX`, :doc:`BRING_YOUR_OWN_DATA`, :doc:`NOTEBOOKS`.
 - ChArUco and Ray2D: :doc:`CHARUCO_IDENTIFICATION`, :doc:`RAYFIELD_WORKED_EXAMPLE`.
 - Ray-based calibration and reconstruction: :doc:`STEREO_RECONSTRUCTION`, :doc:`RECONSTRUCTION_API`, :doc:`RAYFIELD3D_RECONSTRUCTION`, :doc:`RAYFIELD_VIRTUAL_RECTIFY`.
-- Non-central and optical model identification: :doc:`NONCENTRAL_FROM_IMAGES`, :doc:`IDENTIFY_MY_OPTICS`, :doc:`PARALLEL_PLATE_ORIGIN_FIELD`, :doc:`CMO_MODEL_SELECTION`.
-- Real-data CMO: :doc:`REAL_CMO_PYCASO_RAYFIELD`, :doc:`CMO_PHYSICAL_MODEL`.
-- Project status and reference: :doc:`VALIDATION_STATUS`, :doc:`ROADMAP`, :doc:`PUBLIC_API`, :doc:`ARCHITECTURE`, :doc:`CONVENTIONS`.
+- Non-central and optical model identification: :doc:`how_to/noncentral_from_images`, :doc:`how_to/identify_my_optics`, :doc:`explanation/parallel_plate_origin_field`, :doc:`explanation/cmo_model_selection`.
+- Real-data CMO: :doc:`explanation/cmo_case_study` (merged from `REAL_CMO_PYCASO_RAYFIELD` + `CMO_PHYSICAL_MODEL`).
+- Project status and reference: :doc:`VALIDATION_STATUS`, :doc:`reference/stability_levels`, :doc:`PUBLIC_API`, :doc:`ARCHITECTURE`, :doc:`CONVENTIONS`.
 
 ## Next steps
 
-- Start with `examples/notebooks/00_getting_started.ipynb`.
-- Use :doc:`FROM_OPENCV_TO_STEREOCOMPLEX` if you want the OpenCV migration path.
-- Use :doc:`REAL_CMO_PYCASO_RAYFIELD` if you want the advanced scientific validation.
-- Add more real datasets before claiming deployment-grade generality for non-central optics.
+The documentation is organised around four [Diátaxis](https://diataxis.fr)
+modes — pick the one that matches your need:
+
+- **[Tutorials](tutorials/INDEX)** — step‑by‑step learning, 5–10 min each.
+- **[How‑to guides](how_to/INDEX)** — task‑oriented recipes.
+- **[Reference](reference/INDEX)** — exhaustive API tables, signatures, units.
+- **[Explanation](explanation/INDEX)** — background, design choices, positioning.
+
+Prefer notebooks?  See the [Notebook walkthroughs](NOTEBOOKS).  Prefer a
+single‑page deep dive?  See the [Tutorial](TUTORIAL) (retired redirect).
