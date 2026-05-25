@@ -152,20 +152,24 @@ report = sc.compare_opencv_stereo_calibration(
     left_dir=Path("my_data/left"),
     right_dir=Path("my_data/right"),
     board=board,
+)
 
 assessment = sc.assess_calibration(report["refined_result"])
 K1, d1, K2, d2, R, T = report["refined_result"].to_opencv()
+```
 
 For the detailed version:
 
-- :doc:`BRING_YOUR_OWN_DATA`
+- :doc:`how_to/bring_your_own_data`
 
 ## Quickstart for the versioned synthetic dataset
 
 Generate and validate a minimal dataset:
 
+```bash
 .venv/bin/python -m stereocomplex.cli generate-cpu-dataset --out dataset/charuco --pattern charuco --frames-per-scene 16
 .venv/bin/python -m stereocomplex.cli validate-dataset dataset/charuco
+```
 
 Evaluate Ray2D ChArUco identification against synthetic ground truth:
 
