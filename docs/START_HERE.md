@@ -14,8 +14,7 @@ Ray2D is a 2D correction of board-plane observations. It is not itself a 3D non-
 
 ## Recommended first step
 
-Start with the [tutorials](tutorials/INDEX) — a progressive 4‑step sequence, 5–10 minutes each.  Or jump directly to notebook 00:
-or run it locally (see the *Notebook walkthroughs* section below):
+Start with the [tutorials](tutorials/INDEX) — a progressive 4-step sequence, 5-10 minutes each — or jump directly to notebook 00:
 
 ```text
 examples/notebooks/00_getting_started.ipynb
@@ -31,7 +30,7 @@ This is the shortest path for users who already know OpenCV:
 
 Companion page:
 
-- :doc:`FROM_OPENCV_TO_STEREOCOMPLEX`
+- :doc:`how_to/from_opencv_to_stereocomplex`
 
 ## Installation
 
@@ -39,10 +38,13 @@ Editable install:
 
 ```bash
 .venv/bin/python -m pip install -e .
+```
 
 For notebooks:
 
+```bash
 .venv/bin/python -m pip install -e '.[notebooks]'
+```
 
 If you do not install the package, most commands can still be run with `PYTHONPATH=src`.
 
@@ -52,13 +54,13 @@ If you do not install the package, most commands can still be run with `PYTHONPA
 |---|---|
 | I know OpenCV and want a quick start | `examples/notebooks/00_getting_started.ipynb` |
 | I just want better OpenCV calibration | `sc.compare_opencv_stereo_calibration(...)` or `sc.calibrate_opencv(..., method2d="rayfield_tps_robust")` |
-| My OpenCV calibration plateaus on blur/noise/compression | :doc:`FIX_MY_CALIBRATION` |
-| I have my own left/right folders | :doc:`BRING_YOUR_OWN_DATA` |
+| My OpenCV calibration plateaus on blur/noise/compression | :doc:`how_to/fix_my_calibration` |
+| I have my own left/right folders | :doc:`how_to/bring_your_own_data` |
 | I want to understand Ray2D | `examples/notebooks/01_ray2d_vs_opencv.ipynb` and :doc:`RAYFIELD_WORKED_EXAMPLE` |
 | I want a central ray-based 3D model | `sc.calibrate_central(...)` and :doc:`RAYFIELD3D_RECONSTRUCTION` |
-| I suspect non-central optics | `sc.calibrate_noncentral(...)` and :doc:`NONCENTRAL_FROM_IMAGES` |
-| I want to identify a physical optical family | `sc.identify_optics(...)` and :doc:`IDENTIFY_MY_OPTICS` |
-| I want the real CMO validation | :doc:`REAL_CMO_PYCASO_RAYFIELD` and `examples/notebooks/09_pycaso_real_data.ipynb` |
+| I suspect non-central optics | `sc.calibrate_noncentral(...)` and :doc:`how_to/noncentral_from_images` |
+| I want to identify a physical optical family | `sc.identify_optics(...)` and :doc:`how_to/identify_my_optics` |
+| I want the real CMO validation | :doc:`explanation/cmo_case_study` and `examples/notebooks/09_pycaso_real_data.ipynb` |
 
 ## What StereoComplex does today
 
@@ -80,13 +82,14 @@ Ray2D can improve ChArUco localization before feeding points into OpenCV calibra
 
 - `examples/notebooks/00_getting_started.ipynb`
 - `examples/notebooks/01_ray2d_vs_opencv.ipynb`
-- :doc:`FIX_MY_CALIBRATION`
+- :doc:`how_to/from_opencv_to_stereocomplex`
+- :doc:`how_to/fix_my_calibration`
 
 ### Non-central rendered-image benchmark
 
 On the inclined-plate benchmark, the non-central bundle adjustment benefits strongly from Ray2D-refined observations and reaches sub-millimetric reconstruction accuracy. Read:
 
-- :doc:`PARALLEL_PLATE_ORIGIN_FIELD`
+- :doc:`explanation/parallel_plate_origin_field`
 - `examples/notebooks/04_parallel_plate_origin_field.ipynb`
 
 ### Real CMO microscope case study
@@ -103,23 +106,21 @@ The Pycaso CMO case study is the main real-data validation of the non-central wo
 
 Read:
 
-- :doc:`REAL_CMO_PYCASO_RAYFIELD`
-- :doc:`CMO_PHYSICAL_MODEL`
+- :doc:`explanation/cmo_case_study`
 - `examples/notebooks/09_pycaso_real_data.ipynb`
 
 ## Notebook walkthroughs
 
-The ten numbered notebooks are the guided teaching sequence; see
-:doc:`NOTEBOOKS` for the detailed overview.
+The ten numbered notebooks are the guided teaching sequence; see :doc:`NOTEBOOKS` for the detailed overview.
 
-**Run them locally** — install the notebook extras, then launch JupyterLab.
-Each notebook's first cell moves to the repository root on its own, so the
-relative `dataset/` paths resolve wherever JupyterLab is started:
+**Run them locally** — install the notebook extras, then launch JupyterLab. Each notebook's first cell moves to the repository root on its own, so the relative `dataset/` paths resolve wherever JupyterLab is started:
 
+```bash
+.venv/bin/python -m pip install -e '.[notebooks]'
 .venv/bin/jupyter lab examples/notebooks
+```
 
-**Run them on Google Colab** — click a link below. The first cell installs
-StereoComplex automatically; no local setup is needed.
+**Run them on Google Colab** — click a link below. The first cell installs StereoComplex automatically; no local setup is needed.
 
 Recommended order:
 
@@ -173,7 +174,9 @@ Generate and validate a minimal dataset:
 
 Evaluate Ray2D ChArUco identification against synthetic ground truth:
 
+```bash
 .venv/bin/python -m stereocomplex.cli eval-charuco-detection dataset/charuco --method rayfield_tps_robust
+```
 
 ## Documentation map
 
@@ -181,18 +184,16 @@ Evaluate Ray2D ChArUco identification against synthetic ground truth:
 - ChArUco and Ray2D: :doc:`CHARUCO_IDENTIFICATION`, :doc:`RAYFIELD_WORKED_EXAMPLE`.
 - Ray-based calibration and reconstruction: :doc:`STEREO_RECONSTRUCTION`, :doc:`RECONSTRUCTION_API`, :doc:`RAYFIELD3D_RECONSTRUCTION`, :doc:`RAYFIELD_VIRTUAL_RECTIFY`.
 - Non-central and optical model identification: :doc:`how_to/noncentral_from_images`, :doc:`how_to/identify_my_optics`, :doc:`explanation/parallel_plate_origin_field`, :doc:`explanation/cmo_model_selection`.
-- Real-data CMO: :doc:`explanation/cmo_case_study` (merged from `REAL_CMO_PYCASO_RAYFIELD` + `CMO_PHYSICAL_MODEL`).
+- Real-data CMO: :doc:`explanation/cmo_case_study`.
 - Project status and reference: :doc:`VALIDATION_STATUS`, :doc:`reference/stability_levels`, :doc:`PUBLIC_API`, :doc:`ARCHITECTURE`, :doc:`CONVENTIONS`.
 
 ## Next steps
 
-The documentation is organised around four [Diátaxis](https://diataxis.fr)
-modes — pick the one that matches your need:
+The documentation is organised around four [Diátaxis](https://diataxis.fr) modes — pick the one that matches your need:
 
-- **[Tutorials](tutorials/INDEX)** — step‑by‑step learning, 5–10 min each.
-- **[How‑to guides](how_to/INDEX)** — task‑oriented recipes.
+- **[Tutorials](tutorials/INDEX)** — step-by-step learning, 5-10 min each.
+- **[How-to guides](how_to/INDEX)** — task-oriented recipes.
 - **[Reference](reference/INDEX)** — exhaustive API tables, signatures, units.
 - **[Explanation](explanation/INDEX)** — background, design choices, positioning.
 
-Prefer notebooks?  See the [Notebook walkthroughs](NOTEBOOKS).  Prefer a
-single‑page deep dive?  See the [Tutorial](TUTORIAL) (retired redirect).
+Prefer notebooks? See the [Notebook walkthroughs](NOTEBOOKS). Prefer a single-page deep dive? See the [Tutorial](TUTORIAL) (retired redirect).
