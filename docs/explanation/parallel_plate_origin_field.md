@@ -699,7 +699,7 @@ diagnostic. The Zernike rayfield is the measured object; the physical candidates
 are judged by how well they compress and explain it. The mathematical
 definitions of the central pinhole, central Brown-Conrady, inclined
 parallel-plate, CMO channel, two-plane residual, AIC and BIC are centralized in
-[Identify My Optics](IDENTIFY_MY_OPTICS.md#mathematical-model-catalogue). This
+[Identify My Optics](../IDENTIFY_MY_OPTICS.md#mathematical-model-catalogue). This
 page keeps only the inclined-plate benchmark results.
 
 The table below reports the average left/right RMS distance to the measured
@@ -718,7 +718,7 @@ mean that StereoComplex fit the plate directly from pixels. It means that the
 measured rayfield contains enough information to reject central alternatives in
 ray space.
 The Brown-Conrady row is a misspecification test: as defined in
-[Identify My Optics](IDENTIFY_MY_OPTICS.md#candidate-1-central-brown-conrady-stereo),
+[Identify My Optics](../IDENTIFY_MY_OPTICS.md#candidate-1-central-brown-conrady-stereo),
 it is central and therefore cannot reproduce the pixel-dependent origin field
 of the plate oracle.
 
@@ -737,7 +737,7 @@ because each camera bends directions independently while remaining central. The
 ray-space score is the primary diagnostic; the reconstruction table shows the
 same qualitative failure mode.
 
-```{figure} assets/parallel_plate_origin_field/physical_plate_reconstruction_comparison.png
+```{figure} ../assets/parallel_plate_origin_field/physical_plate_reconstruction_comparison.png
 :alt: Reconstruction comparison between central Zernike fitted plate and oracle models
 :width: 80%
 
@@ -748,7 +748,7 @@ generalizes over the entire pixel domain rather than interpolating within the
 observed support.
 ```
 
-```{figure} assets/parallel_plate_origin_field/physical_plate_vs_zernike_rayfield_heatmap.png
+```{figure} ../assets/parallel_plate_origin_field/physical_plate_vs_zernike_rayfield_heatmap.png
 :alt: Heatmap of fitted plate versus measured Zernike rayfield
 :width: 80%
 
@@ -757,7 +757,7 @@ rayfield on the `z=1000 mm` plane. Cyan points show the observed calibration
 support. Errors outside that support mostly measure extrapolation differences.
 ```
 
-```{figure} assets/parallel_plate_origin_field/physical_plate_bootstrap_parameters.png
+```{figure} ../assets/parallel_plate_origin_field/physical_plate_bootstrap_parameters.png
 :alt: Bootstrap stability of fitted physical plate parameters
 :width: 90%
 
@@ -766,7 +766,7 @@ close to the oracle values when the plate is refitted on random subsets of the
 observed support.
 ```
 
-```{figure} assets/parallel_plate_origin_field/physical_plate_model_selection.png
+```{figure} ../assets/parallel_plate_origin_field/physical_plate_model_selection.png
 :alt: Ray-space comparison of candidate physical models
 :width: 90%
 
@@ -775,7 +775,7 @@ The inclined parallel-plate model is the only compact candidate that explains
 the measured non-central field at both support points and across the image grid.
 ```
 
-```{figure} assets/parallel_plate_origin_field/physical_model_selection_bic.png
+```{figure} ../assets/parallel_plate_origin_field/physical_model_selection_bic.png
 :alt: AIC and BIC comparison for physical optical candidates
 :width: 90%
 
@@ -784,7 +784,7 @@ despite using more parameters than the pinhole model because its ray-space
 residual is orders of magnitude lower.
 ```
 
-```{figure} assets/parallel_plate_origin_field/brown_vs_zernike_rayfield_heatmap.png
+```{figure} ../assets/parallel_plate_origin_field/brown_vs_zernike_rayfield_heatmap.png
 :alt: Heatmap of Brown-Conrady residual against measured Zernike rayfield
 :width: 80%
 
@@ -797,7 +797,7 @@ This section illustrates a broader workflow: measure the rayfield first, then
 compare optical models in ray space. Les points 2D servent à mesurer le champ de
 rayons ; le champ de rayons sert ensuite à identifier l'optique.
 
-```{figure} assets/parallel_plate_origin_field/reconstruction_error_distributions.png
+```{figure} ../assets/parallel_plate_origin_field/reconstruction_error_distributions.png
 :alt: 3D reconstruction error distributions for central stereo and identified origin-field stereo
 :width: 100%
 
@@ -807,7 +807,7 @@ the observed pixels; blue is the fitted `O(u,v)` field; purple is the
 experimental BA fit over `O(u,v)`, `d(u,v)`, board poses, and stereo rig.
 ```
 
-```{figure} assets/parallel_plate_origin_field/depth_error_map_noise_free.png
+```{figure} ../assets/parallel_plate_origin_field/depth_error_map_noise_free.png
 :alt: Noise-free depth error maps
 :width: 100%
 
@@ -816,7 +816,7 @@ depth bias; the oracle rayfield is numerically exact; the identified origin
 field reduces the error close to the fit residual scale.
 ```
 
-```{figure} assets/parallel_plate_origin_field/depth_error_map_noise_005px.png
+```{figure} ../assets/parallel_plate_origin_field/depth_error_map_noise_005px.png
 :alt: Depth error maps with 0.05 px observation noise
 :width: 100%
 
@@ -841,14 +841,14 @@ The heatmaps below show the single-plane error at `z=1000 mm`. Errors are small
 near the observed image region and grow near corners where the Zernike field is
 more weakly constrained by the synthetic board poses.
 
-```{figure} assets/parallel_plate_origin_field/rayfield_plane_error_noise_free.png
+```{figure} ../assets/parallel_plate_origin_field/rayfield_plane_error_noise_free.png
 :alt: Noise-free fitted rayfield vs oracle at z=1000 mm
 :width: 100%
 
 Noise-free rayfield comparison on the `z=1000 mm` reference plane.
 ```
 
-```{figure} assets/parallel_plate_origin_field/rayfield_plane_error_noise_005px.png
+```{figure} ../assets/parallel_plate_origin_field/rayfield_plane_error_noise_005px.png
 :alt: Fitted rayfield vs oracle at z=1000 mm with 0.05 px observation noise
 :width: 100%
 
@@ -864,7 +864,7 @@ diagnostic. In the noisy case, the oracle noisy-pixel reference and the fitted
 distribution, which again indicates that the fit has reached the
 observation-noise scale.
 
-```{figure} assets/parallel_plate_origin_field/ray_gap_histograms.png
+```{figure} ../assets/parallel_plate_origin_field/ray_gap_histograms.png
 :alt: Ray gap histograms for central stereo and identified origin-field stereo
 :width: 100%
 
@@ -933,7 +933,7 @@ the refined coordinates (`0.785 mm`). This is consistent with the geometric
 noise-floor estimate above and confirms that the non-central BA was not the main
 bottleneck in the raw rendered test.
 
-```{figure} assets/parallel_plate_origin_field/rendered_image_ba/rendered_pair.png
+```{figure} ../assets/parallel_plate_origin_field/rendered_image_ba/rendered_pair.png
 :alt: Rendered non-central ChArUco image pair with vignetting blur and noise
 :width: 100%
 
@@ -942,7 +942,7 @@ The image contains vignetting, spatially varying blur and sensor noise before
 OpenCV ChArUco detection.
 ```
 
-```{figure} assets/parallel_plate_origin_field/rendered_image_ba/detected_image_ba_rms.png
+```{figure} ../assets/parallel_plate_origin_field/rendered_image_ba/detected_image_ba_rms.png
 :alt: Central reconstruction versus complete BA from rendered ChArUco detections
 :width: 70%
 

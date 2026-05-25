@@ -5,7 +5,7 @@
 > matrix, BIC-based selection, and noise-robustness analysis.
 >
 > For the inverse-problem rationale behind measuring a rayfield *before*
-> physical interpretation, see [Rayfield mediation](DIRECT_VS_RAYFIELD_INVERSION.md).
+> physical interpretation, see [Rayfield mediation](../DIRECT_VS_RAYFIELD_INVERSION.md).
 
 This page documents the model-selection framework through two notebooks:
 
@@ -17,7 +17,7 @@ This page documents the model-selection framework through two notebooks:
   identifies the optical architecture for every catalogued family, plus an
   uncatalogued fallback, both noiseless and under 20 µm measurement noise.
 
-Generated assets live in `docs/assets/cmo_model_selection/`.
+Generated assets live in `docs/../assets/cmo_model_selection/`.
 
 The central idea:
 
@@ -63,7 +63,7 @@ In this notebook the rendered image pair is a visual and generator sanity check;
 the fitting results below are deliberately isolated from detection quality and
 use oracle/Zernike rayfields.
 
-```{figure} assets/cmo_model_selection/cmo_rendered_pair.png
+```{figure} ../assets/cmo_model_selection/cmo_rendered_pair.png
 :alt: Rendered CMO left and right ChArUco images
 :width: 95%
 
@@ -79,7 +79,7 @@ candidate must use the same ray model.
 
 Notebook 06 now uses the compact shared-rig physical CMO model,
 `CMOPhysicalStereoModel`, as the oracle. This model is documented in
-[Physical CMO Model](CMO_PHYSICAL_MODEL.md). It encodes a stronger optical
+[Physical CMO Model](../CMO_PHYSICAL_MODEL.md). It encodes a stronger optical
 hypothesis than a generic non-central polynomial field:
 
 - one common main objective;
@@ -112,7 +112,7 @@ systems that are not constrained by a common main objective, such as:
 Use the physical CMO when a common-objective microscope is the credible
 structural hypothesis. Use the polynomial surrogate when the hardware is less
 constrained or unknown.  See [Physical CMO Model — Real microscope
-mapping](CMO_PHYSICAL_MODEL.md#real-microscope-mapping) for a table of
+mapping](../CMO_PHYSICAL_MODEL.md#real-microscope-mapping) for a table of
 commercial instruments and their corresponding model families.
 
 ## Generic Zernike rayfield measurement
@@ -165,7 +165,7 @@ The shared physical CMO is then fitted as a stereo model:
 
 All candidates are fitted to the measured Zernike rayfield using the shared
 two-plane ray residual defined in
-[Identify My Optics](IDENTIFY_MY_OPTICS.md#ray-space-comparison). The residual
+[Identify My Optics](../IDENTIFY_MY_OPTICS.md#ray-space-comparison). The residual
 compares line geometry, not raw origins; this avoids gauge artifacts when two
 equivalent parameterizations of the same 3D line choose different points on
 that line.
@@ -195,7 +195,7 @@ the convergent chief-ray geometry.  With the correct K and a constant
 aberration term the polynomial CAN fit the CMO rayfield (see the main
 classification matrix below), but at the cost of 36 independent parameters.
 
-```{figure} assets/cmo_model_selection/cmo_model_selection_rms.png
+```{figure} ../assets/cmo_model_selection/cmo_model_selection_rms.png
 :alt: Per-channel CMO model selection rayfield RMS
 :width: 95%
 
@@ -204,7 +204,7 @@ Zernike rayfields. The polynomial surrogate is the best independent-channel
 fallback, but it still leaves a large structured residual on a true shared CMO.
 ```
 
-```{figure} assets/cmo_model_selection/cmo_model_selection_bic.png
+```{figure} ../assets/cmo_model_selection/cmo_model_selection_bic.png
 :alt: Per-channel CMO model selection BIC
 :width: 95%
 
@@ -225,7 +225,7 @@ best independent 18-parameter channel fits, for 36 total parameters.
 | polynomial surrogate | 36 | 52.31901 mm | 52.32677 mm | 52.31126 mm | 15851.1 |
 | physical CMO shared | 17 | 0.00093 mm | 0.00092 mm | 0.00094 mm | -47785.0 |
 
-```{figure} assets/cmo_model_selection/cmo_physical_vs_polynomial_rms.png
+```{figure} ../assets/cmo_model_selection/cmo_physical_vs_polynomial_rms.png
 :alt: Shared physical CMO versus polynomial surrogate RMS
 :width: 85%
 
@@ -234,7 +234,7 @@ physical CMO, and the shared physical CMO recovers the rayfield by orders of
 magnitude better than the independent polynomial surrogate.
 ```
 
-```{figure} assets/cmo_model_selection/cmo_physical_vs_polynomial_bic.png
+```{figure} ../assets/cmo_model_selection/cmo_physical_vs_polynomial_bic.png
 :alt: Shared physical CMO versus polynomial surrogate BIC
 :width: 85%
 
@@ -270,7 +270,7 @@ This single-oracle experiment validates the core workflow:
    (with free ``origin_z`` and an expanded aberration basis) but requires
    ~36 independent parameters, and the BIC penalty is decisive.
 
-The full 6-oracle classification matrix (notebook 07, [next section](#full-classification-matrix))
+The full 6-oracle classification matrix (notebook 07, [next section](../#full-classification-matrix))
 extends this to all catalogued families and validates the framework under
 measurement noise.
 
@@ -292,7 +292,7 @@ correctly identifies each one:
 All six oracles are correctly classified.  The last row is the detector: when
 `zernike_compact` wins, the optics fall outside the catalogued families.
 
-```{figure} assets/cmo_model_selection/classification_heatmap.png
+```{figure} ../assets/cmo_model_selection/classification_heatmap.png
 :alt: BIC heatmap across all six oracles and candidates
 
 ΔBIC heatmap.  The diagonal (ΔBIC = 0) is the correct classification.
@@ -301,7 +301,7 @@ Values are capped at 5 000 for readability; the full range extends to
 ~60 000 for structural mismatches (e.g., inclined plate vs compact Zernike).
 ```
 
-```{figure} assets/cmo_model_selection/classification_heatmap_noisy.png
+```{figure} ../assets/cmo_model_selection/classification_heatmap_noisy.png
 :alt: BIC heatmap with 20 µm origin noise
 
 ΔBIC heatmap under 20 µm Gaussian origin noise (simulating realistic ChArUco
@@ -349,7 +349,7 @@ scientific instrument: the most important distinctions — *is this a CMO?*
 and *is this optics in the catalogue?* — are the most robust to measurement
 noise.
 
-See also [Identify My Optics](IDENTIFY_MY_OPTICS.md) for the full candidate
+See also [Identify My Optics](../IDENTIFY_MY_OPTICS.md) for the full candidate
 catalogue and interpretation guide.
 
 ## Current limitations

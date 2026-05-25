@@ -14,7 +14,7 @@ architecture.  This page documents a complete calibration of a real CMO
 microscope using a different approach: **measure the rays first, identify the
 optics afterwards**.
 
-![CMO architecture diagram](assets/diagrams/cmo_physical.png)
+![CMO architecture diagram](../assets/diagrams/cmo_physical.png)
 
 *The CMO architecture: two off-axis sub-pupils share one main objective.
 The chief rays from each channel converge toward the object plane through
@@ -78,7 +78,7 @@ geometry or manufacturer specifications.
   central stereo calibration, with the configuration tested, does not.
 
 > **The executable protocol** is
-> [Notebook 09](../examples/notebooks/09_pycaso_real_data.py).
+> [Notebook 09](../../examples/notebooks/09_pycaso_real_data.py).
 > Run it with `python examples/notebooks/09_pycaso_real_data.py` to
 > reproduce all numerical values in this page.
 
@@ -662,7 +662,7 @@ flow, 1.94 M correspondences over a 1448 × 1448 px ROI) tests whether
 the regularised BA preserves or degrades the geometric reconstruction.
 Five optical models are compared:
 
-![5-variant specimen reconstruction](assets/pycaso_real_data/schur_ba/specimen_comparison_all_variants.png)
+![5-variant specimen reconstruction](../assets/pycaso_real_data/schur_ba/specimen_comparison_all_variants.png)
 
 *Surface relief (Z minus local mean plane) and ray-pair gap distributions
 for the Zernike rayfield, the CMO rayfield initialisation, the
@@ -690,7 +690,7 @@ further — to 0.027 mm — showing that the prior does not degrade the fit.
 
 ### Schur vs isotropic sweep
 
-![Schur complement spectrum](assets/pycaso_real_data/schur_ba/schur_spectrum.png)
+![Schur complement spectrum](../assets/pycaso_real_data/schur_ba/schur_spectrum.png)
 
 A sweep over the prior strength $\alpha$ reveals the difference between
 the isotropic (Tikhonov) and Schur-based priors:
@@ -735,7 +735,7 @@ physical descriptors — all from only 10 ChArUco stereo pairs.
 ## Saved artefacts
 
 ```text
-docs/assets/pycaso_real_data/
+docs/../assets/pycaso_real_data/
     detection_summary.json                 ← per-frame ChArUco counts
     summary.json                           ← calibration RMS, CMO descriptors
     model_comparison.json                  ← Zernike vs telecentric vs perspective
@@ -785,4 +785,4 @@ access to the original TIFF/PNG images.
 - :doc:`NOTEBOOKS` — all walkthrough notebooks
 - :doc:`SCHUR_REGULARIZED_BA` (planned) — detailed theory behind the Schur-complement prior
 - ``src/stereocomplex/core/conventions.py`` — coordinate-frame convention layer (OpenCV vs physical Y-up)
-- [Notebook 09](../examples/notebooks/09_pycaso_real_data.py) — executable protocol
+- [Notebook 09](../../examples/notebooks/09_pycaso_real_data.py) — executable protocol
