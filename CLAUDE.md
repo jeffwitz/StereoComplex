@@ -717,19 +717,38 @@ Remaining work:
   truth.
 - Optionally add a notebook once the code path is stable.
 
-### Phase 5 — N-camera Greenough simulation
+### Phase 5 — Heterogeneous N-camera rig validation
 
-Goal: simulate a Greenough binocular plus two additional context cameras.
+Goal: validate the N-camera pipeline on a rig combining different camera types
+with partial overlap — the realistic scenario for industrial 360° inspection.
 
-Current status:
+**Current status:** not started.
 
-- Not started.
+**Test configurations (ordered by difficulty).**
 
-Expected validation:
+| # | Rig | Cameras | What it validates |
+|---|---|---|---|
+| 5a | 4 pinhole @ 90° | 4 × identical pinhole | View-graph, N-view triangulation, BA convergence |
+| 5b | 8 pinhole @ 45° | 8 × identical pinhole | Scalability, partial-overlap view-graph |
+| 5c | Close-range pair + 2 context | 2 × short-baseline pinhole + 2 × wide pinhole | Mixed baselines, unbalanced coverage |
+| 5d | Non-central + pinhole mix | 1 × parallel-plate camera + 3 × pinhole | Mixed optical models, per-channel rayfield identification |
 
-- Greenough channels should be identified as independent per-channel optical
-  centres.
-- Context cameras should be identified as pinhole/central channels.
+**Expected validation.**
+
+- Non-central or non-pinhole channels should be correctly handled as
+  independent channel rayfields (origin field + direction field).
+- Central context cameras should remain identifiable as compact
+  pinhole-like channels (origin at camera centre).
+- The N-ray triangulator should produce lower RMS gap for points seen
+  by K=4 cameras than for points seen by K=2 cameras.
+- Recovered board poses should match ground truth to within 1e-3 rad
+  / 1e-2 mm, even when some cameras see only a subset of poses.
+
+**Not yet a microscope benchmark.**  A Greenough stereo microscope scenario is
+deferred to a future `microscopy/` validation suite.  Phase 5 deliberately
+stays at the macroscopic camera-array scale to establish the core N-camera
+pipeline before introducing microscope-specific optics (depth of field,
+telecentricity, CMO constraints).
 
 ## Recent refactor work already completed on `develop`
 
