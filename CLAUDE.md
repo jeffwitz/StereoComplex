@@ -265,6 +265,38 @@ print(f"private {prd}/{prv} = {100 * prd / prv:.1f}%")
 PY
 ```
 
+## Active priority before N-camera: Diátaxis documentation pass
+
+The current `docs/` tree has good content but mixes the four Diátaxis
+modes (tutorial / how-to / reference / explanation) within the same
+files. Before opening the Phase 2 N-camera BA front, the next
+cross-agent objective is to **restructure `docs/` so a new user lands,
+runs the first tutorial, and reaches a number** — without having to
+read a paper.
+
+**Actionable brief at `docs/DOCS_DIATAXIS_TODO.md`** — it carries:
+
+- the target directory tree (`docs/{tutorials, how_to, reference,
+  explanation}/`) with one `INDEX.md` per mode;
+- the classification of every existing `docs/*.md` into a mode;
+- 7 small first-commits sized to land independently (tutorial split,
+  how-to index, reference for result objects, reference for physical
+  model classes with explicit 19/21 vs 12/14/16 vs 26 parameter
+  layouts, explanation extract, link audit, notebook role);
+- the hard rules (one mode per file; tutorials never mention CMO;
+  reference is austere; how-tos open with the user need; explanation
+  pages declare their kind in the first paragraph);
+- the acceptance gates (a fresh-clone user runs tutorial 01 end-to-end
+  and gets a number).
+
+**Until that file is empty, do NOT start Phase 2 N-camera BA work.**
+The Phase 2 CDC below stays the next research milestone, but the
+documentation pass goes first. JFW can override by removing this
+section.
+
+Delete `docs/DOCS_DIATAXIS_TODO.md` *and* this section when the
+acceptance checklist is fully checked.
+
 ## Active task: N-camera calibration
 
 ### Phase 1 — Refactor camera model to support N channels
