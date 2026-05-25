@@ -14,8 +14,7 @@ Ray2D is a 2D correction of board-plane observations. It is not itself a 3D non-
 
 ## Recommended first step
 
-Start with notebook 00 — [open it directly in Google Colab](https://colab.research.google.com/github/jeffwitz/StereoComplex/blob/develop/examples/notebooks/00_getting_started.ipynb),
-or follow the step-by-step [tutorial](TUTORIAL) (text-only, faster to scan).
+Start with the [tutorials](tutorials/INDEX) — a progressive 4‑step sequence, 5–10 minutes each.  Or jump directly to notebook 00:
 or run it locally (see the *Notebook walkthroughs* section below):
 
 ```text

@@ -183,7 +183,7 @@ scripts 07 and 08.
 
 - Getting started:
   :doc:`START_HERE`,
-  :doc:`TUTORIAL`,
+  :doc:`tutorials/INDEX`,
   :doc:`FROM_OPENCV_TO_STEREOCOMPLEX`,
   :doc:`BRING_YOUR_OWN_DATA`,
   :doc:`FIX_MY_CALIBRATION`,
@@ -228,7 +228,7 @@ scripts 07 and 08.
    :hidden:
 
    START_HERE
-   TUTORIAL
+   tutorials/INDEX
    FROM_OPENCV_TO_STEREOCOMPLEX
    BRING_YOUR_OWN_DATA
    FIX_MY_CALIBRATION
