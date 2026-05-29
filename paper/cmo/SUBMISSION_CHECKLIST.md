@@ -10,7 +10,7 @@
 - [x] ORCID: 0000-0002-7240-9476
 - [x] Corresponding author email: jean-francois.witz@centralelille.fr
 - [x] Data availability statement: GitHub + Zenodo DOI placeholder
-- [x] Reproducibility statement: commit hash 60272b7, intermediate_state.npz
+- [x] Reproducibility statement: commit hash 93110db, intermediate_state.npz
 - [x] Funding: CNRS (no specific grant number)
 - [x] No undefined acronyms: CMO, BA, BIC, AIC, TPS, SE(3), RMS defined on first use
 - [x] Pages: 23 (within limits)
@@ -36,7 +36,7 @@
 
 ## Reproducibility
 
-- [x] Code: https://github.com/jeffwitz/StereoComplex (commit 60272b7)
+- [x] Code: https://github.com/jeffwitz/StereoComplex (commit 93110db)
 - [x] Dataset: Pycaso (https://github.com/LaboratoireMecaniqueLille/Pycaso)
 - [x] Pre-computed state: intermediate_state.npz (restart without raw images)
 - [x] Zenodo DOI: 10.5281/zenodo.XXXXXXX (to be filled after archival)
