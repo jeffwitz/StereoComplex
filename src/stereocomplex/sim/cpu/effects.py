@@ -38,11 +38,10 @@ def gaussian_blur_u8(img_u8: np.ndarray, sigma_x: float, sigma_y: float) -> np.n
     try:
         import cv2  # type: ignore
 
-        out = cv2.GaussianBlur(
+        return cv2.GaussianBlur(
             img_u8, ksize=(0, 0), sigmaX=sigma_x, sigmaY=sigma_y,
             borderType=cv2.BORDER_REFLECT,
         )
-        return out
     except Exception:
         return _gaussian_blur_numpy(img_u8, sigma_x, sigma_y)
 

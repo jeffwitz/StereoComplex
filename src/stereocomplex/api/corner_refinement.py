@@ -5,7 +5,6 @@ from typing import Any, Literal
 
 import numpy as np
 
-
 RefineMethod = Literal["raw", "rayfield_tps_robust"]
 
 
@@ -93,7 +92,10 @@ def refine_charuco_corners(
         and hasattr(board, "getChessboardCorners")
     ):
         try:
-            from stereocomplex.api.calibration import CharucoBoardSpec, build_charuco_board  # noqa: PLC0415
+            from stereocomplex.api.calibration import (
+                CharucoBoardSpec,
+                build_charuco_board,
+            )
 
             if isinstance(board, CharucoBoardSpec):
                 board = build_charuco_board(board)
@@ -111,7 +113,7 @@ def refine_charuco_corners(
     if method != "rayfield_tps_robust":
         raise ValueError(f"unknown method: {method}")
 
-    from stereocomplex.core.rayfield2d import predict_points_rayfield_tps_robust  # noqa: PLC0415
+    from stereocomplex.core.rayfield2d import predict_points_rayfield_tps_robust
 
     marker_ids = np.asarray(marker_ids, dtype=np.int32).reshape(-1)
     board_ids = np.asarray(board.getIds(), dtype=np.int32).reshape(-1)
@@ -127,7 +129,7 @@ def refine_charuco_corners(
         o = id_to_obj2.get(int(mid))
         if o is None:
             continue
-        mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)  # noqa: PLW2901
+        mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
         if mc.shape != (4, 2) or o.shape != (4, 2):
             continue
         obj_pts.append(o)

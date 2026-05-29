@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
-from collections.abc import Sequence
 
 import numpy as np
 
 from stereocomplex.api._calibration_charuco import (
-    _CharucoRuntime,
     _build_charuco_runtime,
+    _CharucoRuntime,
     _detect_refined_stereo_pair,
     build_charuco_board,  # noqa: F401
     detect_charuco_corners,  # noqa: F401
@@ -54,7 +54,7 @@ def _estimate_K0_from_homographies(
 
     Hs: list[np.ndarray] = []
     for H in homographies:
-        H = np.asarray(H, dtype=np.float64).reshape(3, 3)  # noqa: PLW2901
+        H = np.asarray(H, dtype=np.float64).reshape(3, 3)
         if not np.all(np.isfinite(H)):
             continue
         if abs(float(H[2, 2])) < 1e-12:
@@ -204,8 +204,8 @@ def _init_coeffs_pinhole_prior(
     image_size: tuple[int, int],
     f0_px: float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    from stereocomplex.ray3d.central_ba import default_disk  # noqa: PLC0415
-    from stereocomplex.core.model_compact.zernike import zernike_design_matrix  # noqa: PLC0415
+    from stereocomplex.core.model_compact.zernike import zernike_design_matrix
+    from stereocomplex.ray3d.central_ba import default_disk
 
     w, h = int(image_size[0]), int(image_size[1])
     cx = (w - 1) / 2.0
@@ -245,8 +245,8 @@ def _init_coeffs_from_pose_guess(
 ) -> tuple[np.ndarray, np.ndarray]:
     import cv2  # type: ignore
 
-    from stereocomplex.ray3d.central_ba import default_disk  # noqa: PLC0415
-    from stereocomplex.core.model_compact.zernike import zernike_design_matrix  # noqa: PLC0415
+    from stereocomplex.core.model_compact.zernike import zernike_design_matrix
+    from stereocomplex.ray3d.central_ba import default_disk
 
     w, h = int(image_size[0]), int(image_size[1])
     u0, v0, radius = default_disk(w, h)
@@ -1318,9 +1318,13 @@ def fit_stereo_zernike_origin_field_from_image_dirs(
     """
     import cv2  # type: ignore
 
-    from stereocomplex.calibration.fit_zernike_origin_field import fit_stereo_zernike_origin_field  # noqa: PLC0415
-    from stereocomplex.rayfields.zernike_origin_field import ZernikeOriginFieldConfig  # noqa: PLC0415
-    from stereocomplex.synthetic.parallel_plate import SyntheticStereoDataset  # noqa: PLC0415
+    from stereocomplex.calibration.fit_zernike_origin_field import (
+        fit_stereo_zernike_origin_field,
+    )
+    from stereocomplex.rayfields.zernike_origin_field import (
+        ZernikeOriginFieldConfig,
+    )
+    from stereocomplex.synthetic.parallel_plate import SyntheticStereoDataset
 
     pairs = _image_pairs_from_dirs(left_dir, right_dir, max_pairs=max_pairs)
 

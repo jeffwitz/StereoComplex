@@ -13,8 +13,8 @@ from stereocomplex.benchmarks.model_selection_oracles import (
     build_cmo_oracle,
     build_exotic_zernike_oracle,
     build_greenough_oracle,
-    build_pinhole_oracle,
     build_pinhole_n_camera_oracle,
+    build_pinhole_oracle,
     build_plate_oracle,
 )
 
@@ -32,7 +32,7 @@ def test_each_oracle_has_left_right_ray_methods():
         u = np.array([o.image_size[0] / 2])
         v = np.array([o.image_size[1] / 2])
         OL, dL = o.left_field.ray(u, v)
-        OR, dR = o.right_field.ray(u, v)
+        _OR, _dR = o.right_field.ray(u, v)
         assert OL.shape == (1, 3)
         assert dL.shape == (1, 3)
         assert np.all(np.isfinite(OL))

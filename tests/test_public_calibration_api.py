@@ -1,16 +1,16 @@
 from __future__ import annotations
-import pytest
 
 import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 
 @pytest.mark.slow
 def test_fit_stereo_central_rayfield_from_dataset_smoke(tmp_path: Path) -> None:
-    from stereocomplex.advanced import fit_stereo_central_rayfield_from_dataset
     import stereocomplex as sc
+    from stereocomplex.advanced import fit_stereo_central_rayfield_from_dataset
 
     scene_root = Path("dataset/v0_png")
     result = fit_stereo_central_rayfield_from_dataset(

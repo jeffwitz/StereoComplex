@@ -104,7 +104,9 @@ def _triangulate_skew_lines(
     return midpoint, gap, valid
 
 
-def _apply_se3(O: np.ndarray, d: np.ndarray, rv: np.ndarray, t: np.ndarray) -> tuple[np.ndarray, np.ndarray]:  # noqa: E741
+def _apply_se3(
+    O: np.ndarray, d: np.ndarray, rv: np.ndarray, t: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
     R = Rotation.from_rotvec(rv).as_matrix()
     return (R @ O.T).T + t[None, :], (R @ d.T).T
 
@@ -156,8 +158,8 @@ def reconstruct_with_cmo_se3(
 
     OL_raw, dL_raw = m_tel.ray(uL, vL, "left")
     OR_raw, dR_raw = m_tel.ray(uR, vR, "right")
-    OL, dL = _apply_se3(OL_raw, dL_raw, rv_L, t_L)  # noqa: E741
-    OR, dR = _apply_se3(OR_raw, dR_raw, rv_R, t_R)  # noqa: E741
+    OL, dL = _apply_se3(OL_raw, dL_raw, rv_L, t_L)
+    OR, dR = _apply_se3(OR_raw, dR_raw, rv_R, t_R)
 
     P, gap, valid = _triangulate_skew_lines(OL, dL, OR, dR)
     return _summarise(P, gap, valid, variant)

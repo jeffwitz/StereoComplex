@@ -122,7 +122,7 @@ def test_check_frame_convention_missing_attribute_is_ok():
 def test_phys_to_image_xy_converts_y_sign():
     K = np.array([[1000, 0, 500], [0, 1000, 500], [0, 0, 1]], dtype=float)
     Z = np.array([1.0])
-    u, v = phys_to_image_xy(np.array([0.0]), np.array([0.1]), Z, K)
+    _u, v = phys_to_image_xy(np.array([0.0]), np.array([0.1]), Z, K)
     # Y_up = +0.1 → Y_cv = -0.1 → v = cy + fy*(-0.1)/Z = 500 - 100 = 400
     assert abs(v[0] - 400.0) < 0.01
 
@@ -130,7 +130,7 @@ def test_phys_to_image_xy_converts_y_sign():
 def test_image_to_phys_xy_converts_y_sign():
     K = np.array([[1000, 0, 500], [0, 1000, 500], [0, 0, 1]], dtype=float)
     Z = np.array([1.0])
-    X, Y = image_to_phys_xy(np.array([600]), np.array([400]), Z, K)
+    _X, Y = image_to_phys_xy(np.array([600]), np.array([400]), Z, K)
     # v=400 → Y_cv = (400-500)/1000 = -0.1 → Y_phys = +0.1
     assert abs(Y[0] - 0.1) < 0.001
 

@@ -6,8 +6,8 @@ parameters and board poses by minimising 2-D reprojection error.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import time as _time
+from dataclasses import dataclass
 
 import numpy as np
 from scipy.optimize import least_squares  # type: ignore

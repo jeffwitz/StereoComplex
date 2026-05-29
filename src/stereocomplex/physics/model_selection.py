@@ -277,7 +277,7 @@ def default_physical_model_specs(*, include_telecentric: bool = False) -> list[P
         ),
     ]
     if include_telecentric:
-        from stereocomplex.physics.cmo_physical import CMOTelecentricChannelModel  # noqa: PLC0415
+        from stereocomplex.physics.cmo_physical import CMOTelecentricChannelModel
 
         specs.append(
             PhysicalModelSpec(

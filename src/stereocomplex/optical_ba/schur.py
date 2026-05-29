@@ -50,9 +50,10 @@ class SchurDiagnostic:
         Eigenvectors of ``S_theta``, columns aligned with ``eigvals``.
     coupling_norm : float
         Normalised pose / optics coupling indicator
-        :math:`\\|\\mathcal{I}_{\\theta\\eta}\\mathcal{I}_{\\eta\\eta}^{-1}\\mathcal{I}_{\\eta\\theta}\\|_F /
-        \\|\\mathcal{I}_{\\theta\\theta}\\|_F`. Scale-dependent: only meaningful
-        when compared at fixed ``D_theta`` parameter scales.
+        :math:`\\|\\mathcal{I}_{\\theta\\eta}\\mathcal{I}_{\\eta\\eta}^{-1}
+        \\mathcal{I}_{\\eta\\theta}\\|_F / \\|\\mathcal{I}_{\\theta\\theta}\\|_F`.
+        Scale-dependent: only meaningful when compared at fixed
+        ``D_theta`` parameter scales.
     weak_mode_indices : ndarray of int
         Indices into ``eigvals`` of the weak modes (eigenvalues smaller than
         ``weak_threshold * eigvals[0]``).

@@ -1,16 +1,28 @@
 from stereocomplex.api import (
-    # Tier 1 — user entry points
-    assess_calibration,
     CalibrationAssessment,
     CameraSetup,
     CharucoBoardSpec,
     NCameraCalibrationResult,
+    # Tier 2 — result/report dataclasses
+    OpticalModelSelectionReport,
+    ParallelPlateFromRayfieldFitResult,
+    PhysicalModelFitResult,
     PhysicalModelSpec,
+    ReconstructionComparisonReport,
+    ReconstructionErrorReport,
+    ReconstructionResult,
+    StereoCentralRayFieldFitReport,
+    StereoCentralRayFieldFitResult,
     StereoCentralRayFieldModel,
-    compare_opencv_stereo_calibration,
     StereoImagePair,
+    StereoOpenCVCalibrationReport,
+    StereoOpenCVCalibrationResult,
+    StereoZernikeOriginFieldFitResult,
+    # Tier 1 — user entry points
+    assess_calibration,
     build_charuco_board,
     calibrate,
+    compare_opencv_stereo_calibration,
     detect_charuco_corners,
     fit_opencv_stereo_from_image_dirs,
     fit_stereo_central_rayfield_from_image_dirs,
@@ -19,18 +31,6 @@ from stereocomplex.api import (
     refine_charuco_corners,
     save_stereo_central_rayfield,
     select_physical_model_from_rayfield,
-    # Tier 2 — result/report dataclasses
-    OpticalModelSelectionReport,
-    ParallelPlateFromRayfieldFitResult,
-    PhysicalModelFitResult,
-    ReconstructionComparisonReport,
-    ReconstructionErrorReport,
-    ReconstructionResult,
-    StereoCentralRayFieldFitReport,
-    StereoCentralRayFieldFitResult,
-    StereoOpenCVCalibrationReport,
-    StereoOpenCVCalibrationResult,
-    StereoZernikeOriginFieldFitResult,
 )
 
 __all__ = [  # noqa: RUF022 — grouped by tier

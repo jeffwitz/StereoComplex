@@ -1,11 +1,10 @@
 from __future__ import annotations
-import pytest
 
 import json
 from pathlib import Path
 
 import numpy as np
-
+import pytest
 
 # These limits are intentionally broad: they catch broken plumbing or severe numerical
 # regressions without freezing the current optimizer to an over-specific solution.

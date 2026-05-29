@@ -557,6 +557,7 @@ class CMOPhysicalChannelModel:
         the point projects inside the sensor.
         """
         import numpy as np
+
         from stereocomplex.physics.central_models import (
             brown_conrady_distort_normalized,
         )
@@ -677,7 +678,7 @@ def fit_cmo_physical_stereo_model_to_rayfields(
     The two-zone loss (sparse support + subsampled full grid) balances fidelity
     to observation pixels with smooth ray-space behaviour across the image. It
     is a rayfield-to-model fit, not the final per-arm SE(3) paper BA.
-    """ 
+    """
 
     x0 = np.asarray(initial_parameters, dtype=np.float64).reshape(-1)
     if x0.size not in {19, 21}:
@@ -2289,7 +2290,7 @@ def compute_cmo_zernike_residuals(
     delta_d_L = dzL - dmL
     delta_d_R = dzR - dmR
 
-    from stereocomplex.core.model_compact.zernike import zernike_modes, eval_real_zernike
+    from stereocomplex.core.model_compact.zernike import eval_real_zernike, zernike_modes
 
     modes = zernike_modes(int(zernike_order))
     xi = 2.0 * uf / float(W - 1) - 1.0

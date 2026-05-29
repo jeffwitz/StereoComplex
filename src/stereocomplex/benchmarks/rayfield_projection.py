@@ -31,7 +31,7 @@ def point_ray_residual(uv: Array, field, X: Array) -> Array:
     """
     u_arr = np.asarray([float(uv[0])], dtype=np.float64)
     v_arr = np.asarray([float(uv[1])], dtype=np.float64)
-    O, d = field.ray(u_arr, v_arr)  # noqa: E741
+    O, d = field.ray(u_arr, v_arr)
     O_flat = np.asarray(O, dtype=np.float64).reshape(-1, 3)
     d_flat = np.asarray(d, dtype=np.float64).reshape(-1, 3)
     O_vec = O_flat[0]

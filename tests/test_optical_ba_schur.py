@@ -5,6 +5,8 @@ Mirrors the unit-test list of CdC_BA_optique_Schur_CMO_Pycaso.md §9.1.
 
 from __future__ import annotations
 
+import itertools
+
 import numpy as np
 import pytest
 
@@ -17,7 +19,6 @@ from stereocomplex.optical_ba.schur import (
     diagnose_schur_modes,
     schur_complement_theta,
 )
-
 
 # --- Schur complement ----------------------------------------------------
 
@@ -106,7 +107,7 @@ def test_coupling_norm_increases_with_cross_block_norm() -> None:
         for alpha in (0.0, 0.1, 0.5, 1.0)
     ]
     # Strictly increasing.
-    for a, b in zip(values[:-1], values[1:], strict=True):
+    for a, b in itertools.pairwise(values):
         assert a < b
 
 

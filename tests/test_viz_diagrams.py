@@ -10,9 +10,9 @@ matplotlib.use("Agg")
 
 
 @pytest.mark.parametrize("builder,kwargs", [
-    ("pinhole", dict(O_left=(-6, 0), O_right=(6, 0), specimen=(0, 80))),
-    ("cmo_physical", dict(f_obj=80, working_distance=120, b=8, exaggerated=True)),
-    ("greenough", dict(O_left=(-5, 0), O_right=(5, 0), specimen=(0, 60))),
+    ("pinhole", {"O_left": (-6, 0), "O_right": (6, 0), "specimen": (0, 80)}),
+    ("cmo_physical", {"f_obj": 80, "working_distance": 120, "b": 8, "exaggerated": True}),
+    ("greenough", {"O_left": (-5, 0), "O_right": (5, 0), "specimen": (0, 60)}),
 ])
 def test_diagram_renders_without_error(builder, kwargs):
     from stereocomplex.viz.figures import (

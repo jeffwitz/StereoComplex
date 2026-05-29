@@ -2,11 +2,11 @@ from stereocomplex.api.calibration import (
     CameraSetup,
     CharucoBoardSpec,
     NCameraCalibrationResult,
-    StereoOpenCVCalibrationReport,
-    StereoOpenCVCalibrationResult,
     StereoCentralRayFieldFitReport,
     StereoCentralRayFieldFitResult,
     StereoImagePair,
+    StereoOpenCVCalibrationReport,
+    StereoOpenCVCalibrationResult,
     build_charuco_board,
     calibrate,
     compare_opencv_stereo_calibration,
@@ -19,7 +19,7 @@ from stereocomplex.api.calibration import (
     fit_stereo_central_rayfield_from_image_pairs,
     fit_stereo_zernike_origin_field_from_image_dirs,
 )
-from stereocomplex.api.calibration_quality import assess_calibration, CalibrationAssessment
+from stereocomplex.api.calibration_quality import CalibrationAssessment, assess_calibration
 from stereocomplex.api.corner_refinement import refine_charuco_corners
 from stereocomplex.api.model_io import load_stereo_central_rayfield, save_stereo_central_rayfield
 from stereocomplex.api.stereo_reconstruction import StereoCentralRayFieldModel
@@ -50,10 +50,19 @@ from stereocomplex.metrics.reconstruction_metrics import (
     compare_3d_reconstruction_with_without_origin_field,
     oracle_reconstruction_floor_report,
     reconstruct_points_central_stereo,
-    reconstruct_points_with_parallel_plate_oracle,
     reconstruct_points_with_origin_fields,
+    reconstruct_points_with_parallel_plate_oracle,
     reconstruction_error_report,
     triangulate_two_rays,
+)
+from stereocomplex.physics.central_models import CentralBrownConradyModel, CentralPinholeModel
+from stereocomplex.physics.model_selection import (
+    OpticalModelSelectionReport,
+    PhysicalModelFitResult,
+    PhysicalModelSpec,
+    default_physical_model_specs,
+    fit_physical_model_to_rayfield,
+    select_physical_model_from_rayfield,
 )
 from stereocomplex.physics.parallel_plate_fit import (
     ParallelPlateFromRayfieldFitResult,
@@ -64,15 +73,6 @@ from stereocomplex.physics.parallel_plate_fit import (
     intersect_ray_with_z_plane,
     pinhole_parallel_plate_ray_from_pixel,
     rayfield_two_plane_residuals,
-)
-from stereocomplex.physics.central_models import CentralBrownConradyModel, CentralPinholeModel
-from stereocomplex.physics.model_selection import (
-    OpticalModelSelectionReport,
-    PhysicalModelFitResult,
-    PhysicalModelSpec,
-    default_physical_model_specs,
-    fit_physical_model_to_rayfield,
-    select_physical_model_from_rayfield,
 )
 from stereocomplex.rayfields.zernike_origin_field import (
     ZernikeOriginField,

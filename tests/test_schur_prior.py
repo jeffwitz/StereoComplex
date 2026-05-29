@@ -18,10 +18,10 @@ def _make_toy_prior(**overrides) -> SchurPrior:
     eigvals = np.array([100.0, 10.0, 1.0, 0.01])
     eigvecs = np.eye(n)
     scales = np.array([1.0, 1.0, 1.0, 1.0])
-    kw = dict(
-        theta0=theta0, eigvals=eigvals, eigvecs=eigvecs,
-        theta_scales=scales, alpha=1.0,
-    )
+    kw = {
+        "theta0": theta0, "eigvals": eigvals, "eigvecs": eigvecs,
+        "theta_scales": scales, "alpha": 1.0,
+    }
     kw.update(overrides)
     return SchurPrior(**kw)
 

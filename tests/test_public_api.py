@@ -1,8 +1,9 @@
 from __future__ import annotations
-import pytest
 
 import json
 from pathlib import Path
+
+import pytest
 
 
 def test_public_api_exports() -> None:
@@ -79,9 +80,8 @@ def test_refine_charuco_corners_accepts_detection_dataclass() -> None:
 
 
 def test_experimental_origin_field_api_smoke() -> None:
-    from stereocomplex.physics import PhysicalModelSpec
+    from stereocomplex.physics import CentralPinholeModel, PhysicalModelSpec
     from stereocomplex.rayfields import ZernikeOriginFieldConfig
-    from stereocomplex.physics import CentralPinholeModel
 
     assert ZernikeOriginFieldConfig(image_size=(640, 480)).max_order == 4
     assert (

@@ -1,9 +1,9 @@
 from __future__ import annotations
-import pytest
 
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from stereocomplex.advanced import (
     compare_3d_reconstruction_with_without_origin_field,
@@ -18,7 +18,10 @@ from stereocomplex.physics.parallel_plate_fit import (
     PinholeParallelPlateRayField,
     rayfield_two_plane_residuals,
 )
-from stereocomplex.synthetic.parallel_plate import ParallelPlateSyntheticParams, parallel_plate_ray_from_pixel
+from stereocomplex.synthetic.parallel_plate import (
+    ParallelPlateSyntheticParams,
+    parallel_plate_ray_from_pixel,
+)
 
 
 def _camera_matrix() -> np.ndarray:

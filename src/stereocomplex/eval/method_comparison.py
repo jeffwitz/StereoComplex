@@ -6,9 +6,9 @@ from pathlib import Path
 
 from stereocomplex.eval.charuco_detection import (
     ErrorStats,
-    collect_charuco_scene_errors,
     _stats_to_dict,
     _summarize,
+    collect_charuco_scene_errors,
 )
 
 

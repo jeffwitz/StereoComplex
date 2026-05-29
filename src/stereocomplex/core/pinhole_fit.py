@@ -231,8 +231,7 @@ def fit_brown_pinhole_from_camera_points(
         xd, yd = dist.distort(xx, yy)
         u_hat = fx * xd + cx
         v_hat = fy * yd + cy
-        r = np.stack([u_hat - u, v_hat - v], axis=1).reshape(-1)
-        return r
+        return np.stack([u_hat - u, v_hat - v], axis=1).reshape(-1)
 
     sol = least_squares(
         fun,

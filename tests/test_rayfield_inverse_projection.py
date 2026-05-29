@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from stereocomplex.physics import CentralPinholeModel
 from stereocomplex.benchmarks.rayfield_projection import (
     point_ray_residual,
     project_point_by_rayfield_inverse,
     project_points_by_rayfield_inverse,
 )
+from stereocomplex.physics import CentralPinholeModel
 
 
 def _pinhole_field():

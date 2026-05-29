@@ -283,20 +283,19 @@ def compute_pipeline_condition_number(
             "p_optics": p_opt,
             "p_poses": p_pose,
         }
-    else:
-        # Pipeline B: no pose parameters
-        def opt_res(x):
-            """Optimised residual after BA convergence."""
-            return residual_function(x, None)
+    # Pipeline B: no pose parameters
+    def opt_res(x):
+        """Optimised residual after BA convergence."""
+        return residual_function(x, None)
 
-        J_opt = finite_difference_jacobian(opt_res, th, step=step)
-        s_opt = np.linalg.svd(J_opt, compute_uv=False) if p_opt > 0 else np.zeros(0)
-        return {
-            "condition_optics_only": _condition_number(s_opt) if s_opt.size > 0 else 0.0,
-            "condition_full": _condition_number(s_opt) if s_opt.size > 0 else 0.0,
-            "condition_schur": _condition_number(s_opt) if s_opt.size > 0 else 0.0,
-            "coupling_norm": 0.0,
-            "rank_full": _numerical_rank(s_opt) if s_opt.size > 0 else 0,
-            "p_optics": p_opt,
-            "p_poses": 0,
-        }
+    J_opt = finite_difference_jacobian(opt_res, th, step=step)
+    s_opt = np.linalg.svd(J_opt, compute_uv=False) if p_opt > 0 else np.zeros(0)
+    return {
+        "condition_optics_only": _condition_number(s_opt) if s_opt.size > 0 else 0.0,
+        "condition_full": _condition_number(s_opt) if s_opt.size > 0 else 0.0,
+        "condition_schur": _condition_number(s_opt) if s_opt.size > 0 else 0.0,
+        "coupling_norm": 0.0,
+        "rank_full": _numerical_rank(s_opt) if s_opt.size > 0 else 0,
+        "p_optics": p_opt,
+        "p_poses": 0,
+    }

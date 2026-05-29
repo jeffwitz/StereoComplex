@@ -8,10 +8,9 @@ because all six model families are axially symmetric in the Y-Z plane.
 from __future__ import annotations
 
 import numpy as np
+from matplotlib.patches import Arc, Rectangle
 
 from stereocomplex.viz.style import COLORS, FONT, LINEWIDTHS
-from matplotlib.patches import Arc
-from matplotlib.patches import Rectangle
 
 
 def draw_ray(ax, origin_2d, direction_2d, length, *, channel="left",

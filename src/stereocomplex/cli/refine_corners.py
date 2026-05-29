@@ -8,7 +8,6 @@ import numpy as np
 
 from stereocomplex.api.corner_refinement import CharucoDetections, refine_charuco_corners
 
-
 Side = Literal["left", "right"]
 
 
@@ -22,7 +21,7 @@ def load_frames(scene_dir: Path) -> list[dict[str, Any]]:
     frames_path = scene_dir / "frames.jsonl"
     frames: list[dict[str, Any]] = []
     for line in frames_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()  # noqa: PLW2901
+        line = line.strip()
         if not line:
             continue
         frames.append(json.loads(line))

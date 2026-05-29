@@ -1,32 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import replace
 import json
+from dataclasses import replace
 
 import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
 
-from stereocomplex.physics.cmo import (
-    BrownConrady,
-    CMOChannelRayField,
-    CMOChannelSpec,
-    CMOIntrinsics,
-    CMOPlaneTargetSpec,
-    NonCentralPolynomialChannelModel,
-    CMOStereoSpec,
-    PolynomialRayAberration,
-    SensorWarp,
-    Vignetting,
-    polynomial_channel_parameters_from_spec,
-    fit_cmo_stereo_model_and_poses_from_zernike_rayfields,
-    generate_cmo_plane_dataset,
-    pose_from_euler_xyz,
-    project_cmo_points,
-    project_cmo_target_corners,
-    rays_from_cmo_pixels,
-    render_cmo_channel_image,
-)
 import stereocomplex.physics.cmo as cmo_module
 from stereocomplex.physics import (
     CentralBrownConradyModel,
@@ -34,6 +14,26 @@ from stereocomplex.physics import (
     PhysicalModelSpec,
     PinholeParallelPlateModel,
     select_physical_model_from_rayfield,
+)
+from stereocomplex.physics.cmo import (
+    BrownConrady,
+    CMOChannelRayField,
+    CMOChannelSpec,
+    CMOIntrinsics,
+    CMOPlaneTargetSpec,
+    CMOStereoSpec,
+    NonCentralPolynomialChannelModel,
+    PolynomialRayAberration,
+    SensorWarp,
+    Vignetting,
+    fit_cmo_stereo_model_and_poses_from_zernike_rayfields,
+    generate_cmo_plane_dataset,
+    polynomial_channel_parameters_from_spec,
+    pose_from_euler_xyz,
+    project_cmo_points,
+    project_cmo_target_corners,
+    rays_from_cmo_pixels,
+    render_cmo_channel_image,
 )
 
 
@@ -390,7 +390,7 @@ def test_cmo_stereo_ba_recovers_effective_channels_and_poses_from_rayfields() ->
         pose_from_euler_xyz(0.0, 0.0, 0.0, (0.0, 0.0, 55.0)),
         pose_from_euler_xyz(0.04, -0.03, 0.02, (1.2, -0.8, 60.0)),
     ]
-    ids, xy_all = target.inner_corners_local_mm()
+    _ids, xy_all = target.inner_corners_local_mm()
     object_frames = []
     left_frames = []
     right_frames = []

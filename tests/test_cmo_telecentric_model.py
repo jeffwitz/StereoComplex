@@ -1,15 +1,16 @@
 """Tests for CMOTelecentricStereoModel."""
 
-import numpy as np
 import sys
 from pathlib import Path
+
+import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from stereocomplex.physics import (
+    CMOTelecentricChannelModel,
     CMOTelecentricNModel,
     CMOTelecentricStereoModel,
-    CMOTelecentricChannelModel,
     fit_cmo_telecentric_model_to_rayfields,
 )
 from stereocomplex.physics.cmo_physical import _ray_rms

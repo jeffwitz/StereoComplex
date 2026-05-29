@@ -81,7 +81,9 @@ class PycasoCMOObservations:
         return int(self.left_pixels.shape[1])
 
 
-def _apply_se3(O: np.ndarray, d: np.ndarray, R: np.ndarray, t: np.ndarray) -> tuple[np.ndarray, np.ndarray]:  # noqa: E741 — `O` is the canonical optical-origin symbol
+def _apply_se3(
+    O: np.ndarray, d: np.ndarray, R: np.ndarray, t: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
     """Apply a rigid SE(3) ``(R, t)`` to a stack of rays.
 
     Rotation preserves the unit norm of ``d`` analytically; the explicit
@@ -134,7 +136,7 @@ def _project_one_point(
     def _cost(uv: np.ndarray) -> float:
         u, v = uv[0], uv[1]
         O_raw, d_raw = m_tel.ray(np.atleast_1d(u), np.atleast_1d(v), sign)
-        O_se3 = (R @ O_raw.T).T + t[None, :]  # noqa: E741
+        O_se3 = (R @ O_raw.T).T + t[None, :]
         d_se3 = (R @ d_raw.T).T
         delta = X_cam[None, :] - O_se3
         perp = delta - np.sum(delta * d_se3, axis=1, keepdims=True) * d_se3
@@ -311,8 +313,8 @@ def point_to_ray_residuals_cmo_se3(
     ):
         u_all = pixels[:, :, 0].reshape(-1)
         v_all = pixels[:, :, 1].reshape(-1)
-        O, d = m_tel.ray(u_all, v_all, ch_name)  # noqa: E741
-        O, d = _apply_se3(O, d, R_ch, t_ch)  # noqa: E741
+        O, d = m_tel.ray(u_all, v_all, ch_name)
+        O, d = _apply_se3(O, d, R_ch, t_ch)
 
         delta = X_world_flat - O
         # Transverse residual: r = (I - d d^T) (X - O)

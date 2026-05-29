@@ -4,11 +4,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from stereocomplex.api.calibration import CharucoBoardSpec
+from stereocomplex.api.corner_refinement import RefineMethod
 from stereocomplex.calibration.fit_zernike_origin_field import (
     StereoZernikeOriginFieldFitResult,
     fit_stereo_zernike_origin_field,
 )
-from stereocomplex.api.corner_refinement import RefineMethod
 from stereocomplex.metrics.rayfield_metrics import (
     RayfieldComparisonReport,
     compare_rayfields_on_planes,
@@ -33,7 +34,6 @@ from stereocomplex.synthetic.parallel_plate_images import (
     detected_observations_from_rendered_parallel_plate,
     render_parallel_plate_charuco_images,
 )
-from stereocomplex.api.calibration import CharucoBoardSpec
 
 
 @dataclass(frozen=True)

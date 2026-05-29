@@ -106,10 +106,7 @@ def assess_calibration(result: Any) -> CalibrationAssessment:
         recs.append("Increase Zernike order or use more calibration poses.")
 
     # --- decision ---
-    if any("high" in m or "only" in m for m in msgs):
-        status = "warning"
-    else:
-        status = "ok"
+    status = "warning" if any("high" in m or "only" in m for m in msgs) else "ok"
 
     if not msgs:
         msgs.append("All health checks passed.")

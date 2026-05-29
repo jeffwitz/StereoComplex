@@ -58,8 +58,7 @@ def _build_rect_axes(t_lr: np.ndarray, up_hint: np.ndarray | None = None) -> np.
         u = np.array([0, 0, 1], dtype=np.float64)
     e2 = _normalize(u - np.dot(u, e1) * e1)
     e3 = np.cross(e1, e2)
-    R_rect = np.stack([e1, e2, e3], axis=0)  # rows are rect axes in left frame
-    return R_rect
+    return np.stack([e1, e2, e3], axis=0)  # rows are rect axes in left frame
 
 
 def _default_intrinsics(width: int, height: int) -> tuple[float, float, float, float]:

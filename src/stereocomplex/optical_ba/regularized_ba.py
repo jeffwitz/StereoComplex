@@ -21,6 +21,7 @@ import numpy as np
 from scipy.optimize import least_squares  # type: ignore[import-untyped]
 
 from stereocomplex.optical_ba.fisher import FisherBlocks, build_fisher_blocks
+from stereocomplex.optical_ba.priors import SchurPrior, schur_prior_residuals
 from stereocomplex.optical_ba.residuals import (
     N_POSE_PER_FRAME,
     N_THETA,
@@ -28,7 +29,6 @@ from stereocomplex.optical_ba.residuals import (
     default_parameter_scales,
     point_to_ray_residuals_cmo_se3,
 )
-from stereocomplex.optical_ba.priors import SchurPrior, schur_prior_residuals
 from stereocomplex.optical_ba.schur import diagnose_schur_modes
 
 

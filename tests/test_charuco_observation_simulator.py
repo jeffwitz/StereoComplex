@@ -12,8 +12,10 @@ from stereocomplex.benchmarks.charuco_observation_simulator import (
     simulate_charuco_observations_from_camera_fields,
     simulate_charuco_observations_from_rayfield,
 )
-from stereocomplex.benchmarks.model_selection_oracles import build_pinhole_n_camera_oracle
-from stereocomplex.benchmarks.model_selection_oracles import build_pinhole_oracle
+from stereocomplex.benchmarks.model_selection_oracles import (
+    build_pinhole_n_camera_oracle,
+    build_pinhole_oracle,
+)
 
 
 def test_make_board_points():

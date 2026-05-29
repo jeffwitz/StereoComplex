@@ -1,7 +1,7 @@
 from __future__ import annotations
-import pytest
 
 import numpy as np
+import pytest
 
 from stereocomplex.benchmarks.parallel_plate_origin_field import (
     EXTENDED_HOLDOUT_FRAMES,
@@ -18,8 +18,7 @@ from stereocomplex.metrics.reconstruction_metrics import (
     reconstruction_error_report,
     triangulate_two_rays,
 )
-from stereocomplex.rayfields.zernike_origin_field import ZernikeOriginFieldConfig
-from stereocomplex.rayfields.zernike_origin_field import ZernikeRayField
+from stereocomplex.rayfields.zernike_origin_field import ZernikeOriginFieldConfig, ZernikeRayField
 from stereocomplex.synthetic.parallel_plate import transform_points
 
 

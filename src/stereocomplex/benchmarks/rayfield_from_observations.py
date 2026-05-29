@@ -435,7 +435,10 @@ def fit_constrained_zernike_rayfield(
     opt_R : list of (3,3) ndarray — optimized rotation matrix (same for all)
     opt_t : list of (3,) ndarray — optimized translation per pose
     """
-    from stereocomplex.core.model_compact.zernike import eval_real_zernike, zernike_modes  # noqa: PLC0415
+    from stereocomplex.core.model_compact.zernike import (
+        eval_real_zernike,
+        zernike_modes,
+    )
 
     W, H = int(image_size[0]), int(image_size[1])
     K_L = np.asarray(K_left, dtype=np.float64).reshape(3, 3)

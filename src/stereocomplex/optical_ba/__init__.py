@@ -57,6 +57,7 @@ __all__ = [
     "OpticalBAResult",
     "PycasoCMOObservations",
     "SchurDiagnostic",
+    "SchurPrior",
     "SpecimenReconstruction",
     "build_fisher_blocks",
     "coupling_norm_schur",
@@ -64,6 +65,7 @@ __all__ = [
     "default_parameter_scales",
     "diagnose_schur_modes",
     "finite_difference_jacobian_scaled",
+    "isotropic_prior_residuals",
     "load_specimen_npz",
     "load_zernike_baseline",
     "magnification_ratio",
@@ -74,7 +76,5 @@ __all__ = [
     "run_optical_ba",
     "run_schur_regularized_optical_ba",
     "schur_complement_theta",
-    "SchurPrior",
     "schur_prior_residuals",
-    "isotropic_prior_residuals",
 ]

@@ -1,21 +1,23 @@
 """Tests for CMOWarpedStereoModel and image-space pre-warp."""
-import numpy as np
 import sys
 from pathlib import Path
+
+import numpy as np
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from stereocomplex.physics.cmo_physical import (
-    CMOWarpedStereoModel,
-    CMOWarpedChannelModel,
     CMOTelecentricStereoModel,
-    _poly_terms_2d,
+    CMOWarpedChannelModel,
+    CMOWarpedStereoModel,
     _n_warp_coeff_per_axis,
     _n_warp_coeff_total,
+    _poly_terms_2d,
     _polyval_2d,
-    compute_cmo_zernike_residuals,
     _ray_rms,
+    compute_cmo_zernike_residuals,
 )
-from stereocomplex.physics.model_selection import rayfield_two_plane_residuals, _grid_pixels
+from stereocomplex.physics.model_selection import _grid_pixels, rayfield_two_plane_residuals
 
 
 def test_poly_terms_2d():
@@ -46,14 +48,14 @@ def test_polyval_2d_identity():
 
 def test_warp_level0_equals_telecentric():
     """Level 0 with same parameters should produce identical rays."""
-    base_kwargs = dict(
-        f_obj_mm=62., working_distance_mm=65., b_mm=25.,
-        cx_principal_px=1024., cy_principal_px=1024.,
-        pixel_pitch_mm=0.0055, f_angular_mm=62.,
-        theta_convergence_half_rad=0.2, d_y_common=0.06,
-        s_x_L=0.3, s_y_L=-0.3, s_x_R=0.3, s_y_R=-0.3,
-        rho_x_L=1., rho_y_L=-1., image_size=(2048, 2048),
-    )
+    base_kwargs = {
+        "f_obj_mm": 62., "working_distance_mm": 65., "b_mm": 25.,
+        "cx_principal_px": 1024., "cy_principal_px": 1024.,
+        "pixel_pitch_mm": 0.0055, "f_angular_mm": 62.,
+        "theta_convergence_half_rad": 0.2, "d_y_common": 0.06,
+        "s_x_L": 0.3, "s_y_L": -0.3, "s_x_R": 0.3, "s_y_R": -0.3,
+        "rho_x_L": 1., "rho_y_L": -1., "image_size": (2048, 2048),
+    }
     tele = CMOTelecentricStereoModel(**base_kwargs)
     warped = CMOWarpedStereoModel(**base_kwargs, warp_level=0)
     u = np.array([0., 1024., 2047.])
@@ -147,8 +149,8 @@ def test_shared_warp_copies_to_right():
     assert m2.warp_eta_L == m2.warp_eta_R
     u = np.array([0., 1024., 2047.])
     v = np.array([512., 1024., 1536.])
-    OL, dL = m2.ray(u, v, "left")
-    OR, dR = m2.ray(u, v, "right")
+    OL, _dL = m2.ray(u, v, "left")
+    OR, _dR = m2.ray(u, v, "right")
     assert np.linalg.norm(OL - OR) > 0.01  # origins differ (stereo)
     # With shared warp, directions at centre pixel should be symmetric
     _, dLc = m2.ray(np.array([1024.]), np.array([1024.]), "left")

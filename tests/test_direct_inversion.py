@@ -1,9 +1,9 @@
 """Smoke tests for direct ChArUco model inversion."""
 
 from __future__ import annotations
-import pytest
 
 import numpy as np
+import pytest
 from scipy.spatial.transform import Rotation
 
 from stereocomplex.benchmarks.charuco_observation_simulator import (
@@ -153,7 +153,8 @@ def test_direct_fit_converges_on_cmo_oracle_with_three_candidates():
     """On a CMO oracle, all three candidates should converge; CMO wins RMS."""
     from stereocomplex.benchmarks.model_selection_oracles import build_cmo_oracle
     from stereocomplex.physics import (
-        CentralPinholeModel, CentralBrownConradyModel,
+        CentralBrownConradyModel,
+        CentralPinholeModel,
     )
     from stereocomplex.physics.cmo_physical import CMOPhysicalStereoModel
     W, H = 160, 120

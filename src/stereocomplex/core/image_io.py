@@ -28,7 +28,6 @@ def load_gray_u8(path: str | Path) -> np.ndarray:
         pass
 
     with Image.open(p) as im:
-        im = im.convert("L")  # noqa: PLW2901
-        arr = np.asarray(im, dtype=np.uint8)
-    return arr
+        im = im.convert("L")
+        return np.asarray(im, dtype=np.uint8)
 

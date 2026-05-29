@@ -1,16 +1,16 @@
 from __future__ import annotations
-import pytest
 
 import numpy as np
+import pytest
 
 from stereocomplex.advanced import fit_physical_model_to_rayfield
 from stereocomplex.physics import (
     CentralBrownConradyModel,
     CentralPinholeModel,
     OpticalModelSelectionReport,
+    PhysicalModelFitResult,
     PinholeParallelPlateFitParams,
     PinholeParallelPlateModel,
-    PhysicalModelFitResult,
     aggregate_model_selection_reports,
     select_physical_model_from_rayfield,
 )
@@ -167,7 +167,7 @@ def test_brown_distort_undistort_roundtrip():
 def test_brown_with_real_coefficients_recovers_oracle():
     """fit_physical_model_to_rayfield must recover Brown coefficients from a Brown oracle."""
     K = _camera_matrix()
-    truth_coeffs = dict(k1=-0.1, k2=0.05, p1=0.001, p2=-0.001, k3=0.0)
+    truth_coeffs = {"k1": -0.1, "k2": 0.05, "p1": 0.001, "p2": -0.001, "k3": 0.0}
     oracle = CentralBrownConradyModel(K, **truth_coeffs)
 
     result = fit_physical_model_to_rayfield(

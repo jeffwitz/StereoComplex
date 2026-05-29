@@ -102,7 +102,7 @@ Work these items in small commits, pushing each validated task to
      marked advanced/experimental.
 4. Put the real gates in one visible place.
    - Required preflight for code changes:
-     `rtk .venv/bin/python -m ruff check src/`
+     `rtk .venv/bin/python -m ruff check src/ tests/`
      `rtk .venv/bin/python examples/notebooks/check_docstring_params.py`
      `rtk .venv/bin/python -m pytest`
    - Slow gate before release/merge/tag:
@@ -130,7 +130,7 @@ Work these items in small commits, pushing each validated task to
 A `develop` snapshot is considered publishable only when all are true:
 
 - `git status --short --branch` is clean and aligned with `origin/develop`.
-- `ruff check src/` passes.
+- `ruff check src/ tests/` passes.
 - `check_docstring_params.py` passes over the full `src/stereocomplex` tree,
   including `api/`.
 - Fast tests pass.
@@ -140,41 +140,73 @@ A `develop` snapshot is considered publishable only when all are true:
   boundaries.
 - Heavy tracked artefacts are inventoried and their release strategy is known.
 
-## Build, lint & test status (2026-05-24)
+## Build, lint & test status (2026-05-29)
 
 Authoritative quality snapshot. Update this block whenever a gate moves.
 
 ### Lint — ruff
 
-- Enforced gate: `rtk .venv/bin/python -m ruff check src/` → **0 errors**.
-- Docstring contract gate:
+**Doctrine: progressive hardening with a hard boundary around scientific
+notation.** The enforced `select` covers import ordering, bugbear checks,
+pyupgrade, and other low-noise families — but several families are permanently
+excluded because they conflict with legitimate matrix/optics notation (see
+§ excluded rules).
+
+- **Enforced gate:** `rtk .venv/bin/python -m ruff check src/ tests/` →
+  **0 errors**.
+- **Docstring contract gate:**
   `rtk .venv/bin/python examples/notebooks/check_docstring_params.py` →
-  **0 errors across 88 files**.  This now scans `api/`, detects invented and
-  missing parameters when a `Parameters` section exists, rejects stale phrases
-  such as `"Named tuple"` / `"with x"`, and requires docstrings on public
-  `Result` / `Report` dataclasses.
-- The gate is narrow: `[tool.ruff.lint].select` is unset, so only the default
-  `E`/`F` rules gate. A broader run
-  (`ruff check src/ --select E,F,W,B,UP,SIM,RUF,PERF,PLR,PLC,C90`) still reports
-  **658 errors**.
-- A first cleanup batch is fully cleared (0 remaining): E702, E741,
-  UP006/018/035/037/045, B905, B007, B008, PERF401, RUF046, RUF059.
-- Remaining backlog, by impact:
+  **0 errors across 88 files**.  Scans `api/`, detects invented and missing
+  parameters when a `Parameters` section exists, rejects stale phrases such as
+  `"Named tuple"` / `"with x"`, and requires docstrings on public `Result` /
+  `Report` dataclasses.
+- **Active `pyproject.toml` config (Lot 1 — deployed 2026-05-29):**
 
-| Rule | Description | Remaining | Notes |
-|---|---|---|---|
-| E501 | line too long | 248 | cosmetic, fix opportunistically |
-| PLR2004 | magic value comparison | 170 | mostly false positives |
-| PLR0913 | too many arguments | 76 | needs dataclass refactors |
-| PLC0415 | import outside top-level | 60 | viz/ done; rest are deliberate lazy imports |
-| C901 / PLR0915 | complex / too many statements | 29 / 28 | complexity hot-spots |
-| PLR0912 | too many branches | 16 | complex control flow |
-| RUF005 / RUF001-3 | concat / ambiguous unicode | 9 / 11 | low risk |
-| B023 | loop variable bound in closure | 2 | **risky — needs careful fix** |
-| SIM108, PLR0911, PLC0414, RUF022 | misc | ~9 | low risk |
+  ```toml
+  [tool.ruff]
+  line-length = 100
+  target-version = "py310"
 
-- Widening `select` to `["E","F","W","B","UP","SIM","RUF"]` is only safe once the
-  `B`/`RUF` rows above are cleared.
+  [tool.ruff.lint]
+  select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "PERF", "RET", "RUF"]
+  ignore = [
+    "RUF001",  # ambiguous Unicode (string) — intentional math/French symbols
+    "RUF002",  # idem (docstring)
+    "RUF003",  # idem (comment)
+    "E741",    # ambiguous variable name — `O` = optical origin, legitimate
+  ]
+
+  [tool.ruff.lint.isort]
+  known-first-party = ["stereocomplex"]
+
+  [tool.ruff.lint.per-file-ignores]
+  "tests/*"      = ["E501"]            # long data literals, not meaningful
+  "docs/**/*.py" = ["I001", "E402"]    # pedagogical snippets, deliberate order
+  ```
+
+- **Lot 1 deployment summary:** 164 initial violations, 76 auto-fixed (imports,
+  noqa cleanup, trailing whitespace, extra parentheses), 11 manual fixes in
+  `src/` (line length, unnecessary assign, ternary simplification, pairwise),
+  15 manual fixes in `tests/` (unused unpacked variables, dict literals). Final
+  `E741` added to `ignore` — the `O` origin symbol is optical convention, not
+  an ambiguity.
+
+#### Permanently excluded rules
+
+These families are **deliberately NOT in `select`** because they conflict with
+legitimate scientific notation. Activating them would produce structural noise
+and push to mass-`noqa`. Do **not** add them without JFW approval.
+
+| Rule(s) | Why excluded |
+|---|---|
+| `N806` (non-lowercase variable) | Matrix/optics notation: `K`, `R`, `T`, `H`, `WD`, `O`, `d`. Renaming would destroy scientific readability. |
+| `N803` (non-lowercase argument) | Same as N806: signatures `(K1, d1, K2, d2, R, T)` are standard. |
+| `N815`/`N802`/`N817` | Attributes/methods carrying optics notation. |
+| `PLR2004` (magic value) | Physical/geometric constants inline (pixel thresholds, board dimensions). Forcing named constants everywhere adds bulk without clarity gain. |
+| `PLR0913` (too many arguments) | Calibration/BA functions legitimately parameterised. |
+| `PLR0915`/`PLR0912`/`PLR0911` | Complexity inherent to solvers/BA; artificial splitting would harm readability. |
+| `PLC0415` (import outside top-level) | **Deliberate pattern:** lazy imports (OpenCV, matplotlib, heavy optional modules) to isolate dependencies and speed up package import. Accepted, not to be corrected. |
+| `E741` (ambiguous `l`/`I`/`O`) | Legitimate optical uses (`l` for length, `O` for origin). Case-by-case review, not blanket activation. |
 
 ### Tests
 
@@ -692,7 +724,7 @@ stereo layout — that identity is what makes step 5 below provable.
 - `fit_zernike_rayfield_from_charuco_observations` public signature unchanged.
 - Stereo numerical output bit-exact (step 5 gate == 0.0).
 - Fast + slow suites: no new failures beyond the 4 known stale CMO tests.
-- `ruff check src/` stays at 0.
+- `ruff check src/ tests/` stays at 0.
 
 **Out of scope / do not touch.**
 
@@ -809,7 +841,7 @@ rtk .venv/bin/python -m pytest
 Targeted checks used during the refactor:
 
 ```bash
-rtk .venv/bin/python -m ruff check <changed files>
+rtk .venv/bin/python -m ruff check src/ tests/
 rtk python3 -m compileall -q <changed files>
 rtk .venv/bin/python -m pytest tests/test_public_api.py
 rtk .venv/bin/python -m pytest tests/test_rayfield_from_observations.py

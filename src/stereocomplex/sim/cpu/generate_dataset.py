@@ -834,7 +834,7 @@ def _remap_texture(
             "cubic": cv2.INTER_CUBIC,
             "lanczos4": cv2.INTER_LANCZOS4,
         }[interp]
-        out = cv2.remap(
+        return cv2.remap(
             img_u8,
             map_x,
             map_y,
@@ -842,7 +842,6 @@ def _remap_texture(
             borderMode=cv2.BORDER_CONSTANT,
             borderValue=0,
         )
-        return out
     except Exception:
         if interp == "nearest":
             xi = np.clip(np.rint(map_x).astype(np.int32), 0, img_u8.shape[1] - 1)

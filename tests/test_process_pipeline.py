@@ -13,8 +13,8 @@ def test_pipeline_generate_validate_refine(tmp_path: Path) -> None:
     if not hasattr(cv2, "aruco"):
         pytest.skip("cv2.aruco not available (need opencv-contrib-python)")
 
-    from stereocomplex.sim.cpu.generate_dataset import generate_cpu_dataset
     from stereocomplex.cli.refine_corners import refine_dataset_scene
+    from stereocomplex.sim.cpu.generate_dataset import generate_cpu_dataset
 
     out_root = tmp_path / "ds"
     generate_cpu_dataset(

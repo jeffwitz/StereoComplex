@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from stereocomplex.api.calibration_quality import assess_calibration, CalibrationAssessment
+from stereocomplex.api.calibration_quality import CalibrationAssessment, assess_calibration
 
 
 class _MockOpenCVReport:

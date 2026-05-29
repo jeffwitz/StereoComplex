@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 
@@ -18,7 +18,7 @@ def _load_frames(scene_dir: Path) -> list[dict]:
     frames_path = scene_dir / "frames.jsonl"
     frames: list[dict] = []
     for line in frames_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()  # noqa: PLW2901
+        line = line.strip()
         if not line:
             continue
         frames.append(json.loads(line))
@@ -31,10 +31,7 @@ def _ensure_gray_u8(image: str | Path | np.ndarray) -> np.ndarray:
 
     arr = np.asarray(image)
     if arr.ndim == 3:
-        if arr.shape[2] == 1:
-            arr = arr[..., 0]
-        else:
-            arr = np.mean(arr[..., :3], axis=2)
+        arr = arr[..., 0] if arr.shape[2] == 1 else np.mean(arr[..., :3], axis=2)
     if arr.dtype != np.uint8:
         arr = np.clip(arr, 0, 255).astype(np.uint8)
     return np.ascontiguousarray(arr)

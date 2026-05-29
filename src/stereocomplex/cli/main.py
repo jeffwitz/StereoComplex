@@ -3,12 +3,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from stereocomplex.sim.cpu.generate_dataset import generate_cpu_dataset
-from stereocomplex.sim.dataset_validate import validate_dataset
-from stereocomplex.eval.oracle import eval_oracle_dataset
+from stereocomplex.cli.refine_corners import run_refine_corners
 from stereocomplex.eval.charuco_detection import eval_charuco_detection
 from stereocomplex.eval.compression_sweep import SweepCase, run_compression_sweep
-from stereocomplex.cli.refine_corners import run_refine_corners
+from stereocomplex.eval.oracle import eval_oracle_dataset
+from stereocomplex.sim.cpu.generate_dataset import generate_cpu_dataset
+from stereocomplex.sim.dataset_validate import validate_dataset
 
 
 def main(argv: list[str] | None = None) -> int:

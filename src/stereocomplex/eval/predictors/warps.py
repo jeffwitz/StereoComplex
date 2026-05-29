@@ -50,7 +50,7 @@ def build_marker_correspondences(
         o = id_to_obj.get(int(mid))
         if o is None:
             continue
-        mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)  # noqa: PLW2901
+        mc = np.asarray(mc, dtype=np.float64).reshape(-1, 2)
         if mc.shape[0] != 4 or o.shape[0] != 4:
             continue
         obj_pts.append(o)

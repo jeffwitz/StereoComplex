@@ -7,15 +7,16 @@ numerical models as the fitting code, so they stay in sync automatically.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
+from matplotlib.patches import Arc as _Arc
 
 from stereocomplex.viz.primitives import (
     annotate_math,
     draw_dimension,
 )
 from stereocomplex.viz.style import COLORS
-import math
-from matplotlib.patches import Arc as _Arc
 
 
 def diagram_pinhole_stereo(
@@ -68,7 +69,7 @@ def diagram_pinhole_stereo(
             linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
 
     # ---- camera centres + sensor dots ----
-    for O, ch, name in [(OL, "left", "O_L"), (OR, "right", "O_R")]:  # noqa: E741
+    for O, ch, name in [(OL, "left", "O_L"), (OR, "right", "O_R")]:
         ax.scatter(*O, s=80, color=COLORS[ch], edgecolors="white",
                    linewidth=1.0, zorder=15)
         ox = -14 if ch == "left" else 6
@@ -86,7 +87,7 @@ def diagram_pinhole_stereo(
     annotate_math(ax, sp, "X", offset=(4, -8))
 
     # ---- chief rays ----
-    for O, ch in [(OL, "left"), (OR, "right")]:  # noqa: E741
+    for O, ch in [(OL, "left"), (OR, "right")]:
         ax.plot([O[0], sp[0]], [O[1], sp[1]], color=COLORS[ch],
                 linewidth=2.2, solid_capstyle="round", zorder=5)
 
@@ -333,7 +334,7 @@ def diagram_greenough(
     ax.plot([0, 0], [sp[1] - 10, z_top + 5], color=COLORS["axis"],
             linewidth=0.7, linestyle="--", dashes=(6, 4), zorder=0)
 
-    for ch, O, theta in [("left", OL, theta_L), ("right", OR, theta_R)]:  # noqa: E741
+    for ch, O, theta in [("left", OL, theta_L), ("right", OR, theta_R)]:
         # u_down points toward the specimen, u_up toward the sensor
         u_down = np.array([math.sin(theta), -math.cos(theta)])
         u_up = -u_down

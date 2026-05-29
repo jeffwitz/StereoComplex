@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import json
+import math
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Literal
-import json
-import math
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -1221,6 +1221,7 @@ def fit_cmo_stereo_model_and_poses_from_zernike_rayfields(
         Fitted models, poses, and incidence / rayfield diagnostics.
     """
     from scipy.optimize import least_squares  # type: ignore
+
     from stereocomplex.physics.parallel_plate_fit import rayfield_two_plane_residuals
 
     terms = tuple(aberration_terms or NonCentralPolynomialChannelModel.default_terms())

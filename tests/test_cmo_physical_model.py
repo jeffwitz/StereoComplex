@@ -1,8 +1,9 @@
 from __future__ import annotations
-import pytest
 
 import numpy as np
+import pytest
 
+from stereocomplex.physics.central_models import CentralBrownConradyModel, CentralPinholeModel
 from stereocomplex.physics.cmo import (
     CMOChannelSpec,
     CMOIntrinsics,
@@ -10,7 +11,6 @@ from stereocomplex.physics.cmo import (
     PolynomialRayAberration,
     polynomial_channel_parameters_from_spec,
 )
-from stereocomplex.physics.central_models import CentralBrownConradyModel, CentralPinholeModel
 from stereocomplex.physics.cmo_physical import (
     CMOPhysicalStereoModel,
     fit_cmo_physical_stereo_model_to_rayfields,
@@ -304,7 +304,7 @@ def test_polynomial_surrogate_structural_mismatch_at_chief_ray() -> None:
     terms = NonCentralPolynomialChannelModel.default_terms()
 
     # CMO chief ray at centre pixel has non-zero x component.
-    O_cmo, d_cmo = truth.ray(np.array([63.5]), np.array([47.5]), "left")
+    _O_cmo, d_cmo = truth.ray(np.array([63.5]), np.array([47.5]), "left")
     assert abs(float(d_cmo[0, 0])) > 0.05, "CMO chief ray must have significant x-deviation"
 
     # Polynomial model at centre pixel: x_norm=0, y_norm=0 -> d_cam=(0,0,1).
@@ -312,7 +312,7 @@ def test_polynomial_surrogate_structural_mismatch_at_chief_ray() -> None:
         K=K, image_size=image_size, origin_x_mm=-10.0, origin_y_mm=0.0,
         aberration_terms=terms,
     )
-    O_poly, d_poly = poly.ray(np.array([63.5]), np.array([47.5]))
+    _O_poly, d_poly = poly.ray(np.array([63.5]), np.array([47.5]))
     assert np.allclose(d_poly.reshape(-1, 3)[0], [0.0, 0.0, 1.0], atol=1e-12)
 
     # The two rays point in fundamentally different directions.
@@ -799,7 +799,10 @@ def test_zernike_candidate_loses_to_physical_cmo_on_cmo_oracle() -> None:
     This validates the Zernike candidate's role as a detector: when it wins
     BIC, no physical model in the catalogue is adequate.
     """
-    from stereocomplex.rayfields.zernike_origin_field import ZernikeCandidate, ZernikeOriginFieldConfig
+    from stereocomplex.rayfields.zernike_origin_field import (
+        ZernikeCandidate,
+        ZernikeOriginFieldConfig,
+    )
 
     truth = _truth_model(distortion=True)
     image_size = (128, 96)
@@ -875,7 +878,10 @@ def test_most_compact_zernike_loses_to_physical_cmo() -> None:
     This is the strongest test of the BIC framework: a model with FEWER
     params than CMO still loses because its structure is wrong.
     """
-    from stereocomplex.rayfields.zernike_origin_field import ZernikeCandidate, ZernikeOriginFieldConfig
+    from stereocomplex.rayfields.zernike_origin_field import (
+        ZernikeCandidate,
+        ZernikeOriginFieldConfig,
+    )
 
     truth = _truth_model(distortion=True)
     image_size = (128, 96)
