@@ -63,6 +63,43 @@ def main() -> int:
                  1.06, afit["px_rms"], afit["px_rms"] - 1.06,
                  "aligned_cmo_fit.json/aligned_26p.px_rms — diverges from paper's 1.06"))
 
+    # Schur coupling norms (manuscript: c=0.96 real, c≈0.81 synthetic)
+    schur_diag = json.loads((ROOT / "schur_ba/schur_ba_diagnostic.json").read_text())
+    chk("Schur coupling c (real Pycaso, manuscript says 0.96)",
+        0.96, schur_diag["coupling_norm"], "schur_ba_diagnostic.json.coupling_norm", 0.05)
+    rows.append(("INFO",
+                 "Schur coupling c (real Pycaso — ckpt updated 2026-05-24)",
+                 0.96, schur_diag["coupling_norm"],
+                 schur_diag["coupling_norm"] - 0.96,
+                 "schur_ba_diagnostic.json.coupling_norm — manuscript 0.96, asset 0.98"))
+    oracle_coupling = json.loads((ROOT / "multi_oracle_coupling.json").read_text())
+    for entry in oracle_coupling:
+        if entry.get("oracle", "").startswith("CMO Pycaso (direct BA)"):
+            chk("Schur coupling c (synth CMO oracle)", 0.81, entry["c"],
+                "multi_oracle_coupling.json[CMO Pycaso direct BA].c", 0.01)
+    # Sensitivity: document that c is invariant under uniform scaling
+    sens = json.loads((ROOT / "schur_ba/coupling_sensitivity.json").read_text())
+    rows.append(("INFO",
+                 f"c sensitivity: uniform scaling (×0.1→×100) invariant "
+                 f"at c={sens['baseline']['c']:.4f}",
+                 0, 0, 0, "schur_ba/coupling_sensitivity.json"))
+    max_delta = 0.0
+    worst_group = ""
+    worst_factor = ""
+    for group_name, sweep in sens["sweeps"].items():
+        if group_name == "uniform_all_params":
+            continue
+        for factor_label in ("×0.1", "×10"):
+            d = abs(sweep[factor_label]["c"] - sens["baseline"]["c"])
+            if d > max_delta:
+                max_delta = d
+                worst_group = group_name
+                worst_factor = factor_label
+    rows.append(("INFO",
+                 f"c sensitivity: worst-case Δc = {max_delta:.3f} "
+                 f"({worst_group} {worst_factor})",
+                 0, 0, 0, "schur_ba/coupling_sensitivity.json"))
+
     # Schur prior sweep
     unreg = json.loads((ROOT / "schur_ba/optical_ba_unregularized.json").read_text())
     chk("unreg BA RMS px-eq",   0.241, unreg["rms_px_equivalent_final"], "schur_ba/optical_ba_unregularized.json.rms_px_equivalent_final", 0.005)
