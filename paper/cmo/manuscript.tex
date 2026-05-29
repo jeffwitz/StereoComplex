@@ -1,4 +1,4 @@
-% Rayfield-Based Calibration and Physical Model Identification
+% Rayfield-Based Calibration and Effective Physical Model Identification
 % of a Common Main Objective Stereo Microscope
 \documentclass[11pt,a4paper]{article}
 
@@ -36,7 +36,7 @@
 \renewcommand{\headrulewidth}{0.4pt}
 \hyphenation{homography planar correspondences checkerboard Charuco CharucoDetector}
 
-\title{Rayfield-Based Calibration and Physical Model Identification of a Common Main Objective Stereo Microscope}
+\title{Rayfield-Based Calibration and Effective Physical Model Identification of a Common Main Objective Stereo Microscope}
 
 \author{Jean-Fran\c{c}ois Witz\thanks{ORCID: \href{https://orcid.org/0000-0002-7240-9476}{0000-0002-7240-9476}. Corresponding author: \href{mailto:jean-francois.witz@centralelille.fr}{jean-francois.witz@centralelille.fr}}\\
 Univ.\ Lille, CNRS, Centrale Lille, UMR 9013 -- LaMcube\\
@@ -91,7 +91,7 @@ This paper presents the first real-data validation of the StereoComplex rayfield
 The contributions are:
 
 \begin{enumerate}
-  \item A complete pipeline from raw ChArUco images to a compact 26-parameter physical CMO model, validated on real data.
+  \item A complete pipeline from raw ChArUco images to a compact 26-parameter physical CMO model, validated on real data. The model provides \emph{effective} identification: the shear coefficients and telecentric skeleton are data-supported, while geometric scale parameters (WD, $b$, $f_{\text{obj}}$) and most SE(3) components are absorbed by the rayfield gauge and pose coupling (see \S\ref{sec:schur_conditioning} for a per-parameter identifiability analysis).
   \item A residual analysis method---Zernike modal decomposition of direction and moment differences between a candidate physical model and the measured rayfield---that identifies missing degrees of freedom.
   \item A two-level model-selection framework: ray-space BIC is used to identify the optical family, while a separate operational reprojection guard rejects models whose pixel RMS is not usable for calibration.
     \item Demonstration that the Zernike rayfield serves a \emph{double role} in direct bundle adjustment: (i)~as an initialiser, it places the BA in the correct convergence basin, improving pixel RMS from \SI{1.06}{px} to \SI{0.88}{px} (\SI{+17}{\percent}) while leaving all 26 model parameters unchanged to within $10^{-3}$; (ii)~as an \emph{observability prior}, the Schur complement of the Fisher information matrix at the rayfield solution defines an anisotropic penalty that suppresses optics--pose compensation---the prior reduces weak-mode parameter drift by a factor of $280\times$ (from 0.93 to 0.0033) at a cost of only \SI{0.038}{px} in 2-D reprojection RMS.
@@ -437,6 +437,12 @@ By contrast, the rayfield-mediated pipeline operates with $c = 0.0$: the Zernike
 
 Figure~\ref{fig:schur} shows the normalised eigenvalue spectrum of the Schur complement $S_\theta$ on the 26-parameter CMO optical block, evaluated at the rayfield-initialised Pycaso solution. Of the 26 eigenvalues, the trailing modes (red crosses, $\lambda_i/\lambda_{\max} < 10^{-3}$) collapse after pose marginalisation---these are precisely the directions penalised by the Schur prior (Section~\ref{sec:schur_prior}). The coupling norm for the real Pycaso configuration is $c = 0.98$ (synthetic CMO-like oracles give $c \approx 0.81$), confirming that \SI{98}{\percent} of the apparent optical information is absorbed by pose coupling.
 Schur-coupling values for the other oracles (pinhole, Brown-Conrady, parallel-plate, Greenough) were not reliably computable from the current diagnostic infrastructure and are therefore not reported.
+
+To assess which individual parameters are identifiable after pose marginalisation, we project each of the 26 unit parameter directions onto the strong subspace (the span of eigenvectors with $\lambda_i/\lambda_{\max} \ge 10^{-3}$). The fraction of variance retained defines an \textbf{identifiability score} $\in[0,1]$. Parameters with score $>0.5$ are considered \emph{identified} (well-observed independently of poses); parameters with score $<0.1$ are \emph{effective} (their value is driven by the gauge and regularisation, not by the data).
+
+Only four parameters are identified: the shear coefficients $s_x^L$, $s_y^L$, $s_x^R$, $s_y^R$ (scores $0.89$--$0.92$). These encode the dominant telecentric asymmetry and are robustly determined. Two SE(3) x-rotations ($rv_L^x$, $rv_R^x$, scores $\sim$0.28) and the two y-translations ($t_L^y$, $t_R^y$, scores $\sim$0.22) are partially identifiable. All other parameters---including the focal lengths $f_{\text{obj}}$, $f_{\text{angular}}$, the working distance $WD$, the baseline $b$, the principal point $(c_x, c_y)$, and the remaining SE(3) components---fall below $0.1$: their individual values are effective rather than absolute, and only the linear combinations captured by the strong modes carry information independent of the pose gauge.
+
+This confirms that the 26-parameter model provides \emph{effective relative identification}: the compact physical skeleton (shear, telecentric structure) is data-supported, while the geometric scale (WD, $b$, $f_{\text{obj}}$) and most SE(3) components are absorbed by the rayfield gauge and pose coupling. The term ``identification'' in this work refers to the ray-space residual structure that selects the CMO family and its dominant asymmetries, not to the absolute metrological determination of every individual parameter.
 
 \begin{figure}[!htbp]
 \centering
