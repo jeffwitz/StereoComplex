@@ -62,7 +62,7 @@ ignore = [
   "RUF001",  # ambiguous Unicode (string) — intentional math/French symbols
   "RUF002",  # idem (docstring)
   "RUF003",  # idem (comment)
-  "E741",    # ambiguous variable name — `O` = optical origin, legitimate
+  "E741",    # 10/10 occurrences are `O` (optical origin) — blanket ignore
 ]
 
 [tool.ruff.lint.isort]
