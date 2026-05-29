@@ -39,11 +39,11 @@
 - [x] Code: https://github.com/jeffwitz/StereoComplex (commit 93110db)
 - [x] Dataset: Pycaso (https://github.com/LaboratoireMecaniqueLille/Pycaso)
 - [x] Pre-computed state: intermediate_state.npz (restart without raw images)
-- [x] Zenodo DOI: 10.5281/zenodo.XXXXXXX (to be filled after archival)
+- [x] Zenodo DOI: 10.5281/zenodo.20444216 (90 files, manuscript + all reproducibility assets)
 
 ## Pre-submission to-do (human)
 
-- [ ] Fill Zenodo DOI (archive repository)
+- [x] Fill Zenodo DOI (archive repository) — 10.5281/zenodo.20444216
 - [ ] Confirm contact email is active
 - [ ] Optional: contact Pycaso authors for nominal specs
 - [ ] Archive paper/cmo/ with Zenodo
