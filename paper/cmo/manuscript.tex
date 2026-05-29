@@ -49,7 +49,7 @@ Laboratoire de M\'ecanique, Multiphysique, Multi\'echelle, F-59000 Lille, France
 \begin{abstract}
 Common Main Objective (CMO) stereo microscopes violate the single-optical-centre assumption of standard camera calibration, making direct joint estimation of optical parameters and board poses poorly conditioned. A Schur-complement diagnostic of the Fisher information matrix gives a coupling norm $c=0.98$ on the real Pycaso configuration and $c\approx0.81$ on synthetic CMO-like oracles; these values are used as conditioning indicators rather than as independent metrological measurements.
 We present a two-stage approach: first, a Zernike rayfield---a per-pixel 3D line---is fitted to ChArUco corner observations, decoupling measurement from model identification (coupling norm $0.0$); second, a compact physical model is constructed by iterative residual analysis, where the Zernike decomposition of the residual between candidate model and measured rayfield reveals which physical degree of freedom is missing.
-On 10 stereo pairs from the open Pycaso dataset, the final 26-parameter model---a quasi-telecentric CMO skeleton with per-channel SE(3) arm alignment---achieves \SI{1.06}{px} reprojection error (P50=\SI{0.87}{px}, P95=\SI{1.84}{px}), compared to $>300$~px for standard OpenCV stereo calibration. All geometric descriptors (baseline, working distance, convergence angle) are reported within the chosen rayfield gauge and fixed reference focal scale ($f_x=25600$~px); their absolute metrological values require an independent external reference.
+On 10 stereo pairs from the open Pycaso dataset, the final 26-parameter model---a quasi-telecentric CMO skeleton with per-channel SE(3) arm alignment---achieves \SI{1.06}{px} reprojection error (P50=\SI{0.87}{px}, P95=\SI{1.84}{px}), compared to $>300$~px for standard OpenCV stereo calibration. All geometric descriptors (baseline, working distance, convergence angle) are reported within the chosen rayfield gauge and fixed reference focal scale ($f_x=25600$~px); their absolute metrological values require an independent external reference. An independent specimen reconstruction reveals a depth-scale ambiguity of approximately \SI{33}{\percent} between the Zernike and CMO reconstructions (\S\ref{sec:specimen}), indicating that absolute depth is not yet established.
 A ray-space BIC comparison followed by an operational reprojection guard selects this model as the best usable physical model; the guard is an engineering usability criterion, not a likelihood-derived BIC term.
 The Zernike rayfield serves not merely as a calibration model but as a diagnostic instrument: it tells the user \emph{which} physical degree of freedom is missing, guiding hypothesis refinement through residual structure rather than blind fitting.
 Furthermore, the rayfield provides an observability prior for direct bundle adjustment: the Schur complement of the Fisher information matrix at the rayfield solution identifies optical directions that are poorly observable after pose marginalisation, and a per-eigenmode penalty constructed from this spectrum suppresses optics--pose compensation while preserving the genuinely observable degrees of freedom.
@@ -627,7 +627,7 @@ Both are beyond the scope of this study and remain a limitation (Section~\ref{se
 
 We did not benchmark against Sch\"ops et al.\ \cite{schops2020} or Pan et al.\ \cite{pan2022} on this dataset because their code targets pinhole-based initialisation and central projection with high-parameter-count spline or implicit-distortion corrections.
 Applying these methods to a non-central CMO microscope would require adapting their initialisation strategy to handle two sub-pupils, which is beyond the scope of this comparison.
-We expect that a generic spline model with sufficient parameters could match the Zernike rayfield's \SI{0.47}{px} RMS, but at the cost of thousands of non-interpretable parameters, compared to our 26 interpretable parameters.
+We hypothesise, untested here, that a generic spline model with sufficient parameters could match the Zernike rayfield's \SI{0.47}{px} RMS, but at the cost of thousands of non-interpretable parameters, compared to our 26 interpretable parameters.
 
 \subsection{Internal Validation}
 \label{sec:validation}
@@ -642,9 +642,9 @@ Fold~1 shows slightly higher RMS (\SI{1.09}{px}) and a lower effective baseline 
 \textbf{Bootstrap descriptor stability.}
 100 bootstrap iterations (resampling 10 frames with replacement, refitting the full pipeline each time) give 95\,\% confidence intervals:
 \begin{itemize}
-  \item Effective baseline $b$: [$24.2$, $25.4$]~mm (mean $24.6$~mm, $\sigma = 0.4$~mm)
-  \item Effective working distance $WD$: [$64.7$, $65.1$]~mm (mean $64.9$~mm, $\sigma = 0.14$~mm)
-    \item Effective convergence angle $\theta$: [$21.4^\circ$, $23.0^\circ$] (mean $22.2^\circ$, $\sigma = 0.4^\circ$)
+  \item Effective baseline $b$: [$23.48$, $25.04$]~mm (mean $24.56$~mm, $\sigma = 0.43$~mm)
+  \item Effective working distance $WD$: [$64.64$, $65.13$]~mm (mean $64.86$~mm, $\sigma = 0.15$~mm)
+    \item Effective convergence angle $\theta$: [$21.04^\circ$, $22.72^\circ$] (mean $22.17^\circ$, $\sigma = 0.46^\circ$)
 \end{itemize}
 The effective working distance is the most stable descriptor ($\sigma < \SI{0.2}{mm}$), while the effective baseline and convergence angle show \SI{0.4}{mm} and \SI{0.4}{\degree} variation respectively---consistent with the gauge sensitivity of the Zernike origin field noted in Section~\ref{sec:limitations}.
 
@@ -660,6 +660,7 @@ The absolute physical descriptors, especially $WD$ and $\theta$, remain sensitiv
 Descriptor readout therefore requires either an independently known optical scale (pixel pitch, magnification) or external metrological validation---a known limitation of all single-view calibration methods without a known reference object.
 
 \subsection{Application Sanity Check: Specimen Reconstruction}
+\label{sec:specimen}
 
 A non-metrological sanity check validates the calibrated rayfields on an independent speckled coin specimen imaged with the same Pycaso microscope (single stereo pair, no ChArUco pattern).
 This is \textbf{not} absolute metrological validation---no ground-truth 3D data exists for the coin---but it confirms that the rayfields produce coherent dense reconstruction on data unseen during calibration.
@@ -746,7 +747,7 @@ It is fully interpretable: sub-pupils, focal length, telecentric slopes, and SE(
 
 \input{tables/bic_model_selection.tex}
 
-The ray-space BIC decisively selects the CMO telecentric family ($\Delta\text{BIC} > 40\,000$ over all non-CMO alternatives).
+The ray-space BIC provides decisive rejection of the non-CMO families ($\Delta\text{BIC} > 40\,000$), confirming that pinhole, Brown-Conrady, and parallel-plate models are grossly misspecified for this non-central system. The BIC magnitudes should be interpreted as rejection of families, not as certification of the retained model: the rayfield residuals are spatially correlated (the Zernike field is smooth), so the effective number of independent observations is lower than $N_{\text{obs}}=3300$, inflating the absolute BIC scale. The ranking across families is robust to this effect.
 The operational usability score correctly rejects the 14p base model as unusable and selects the 26p aligned model.
 
 \subsection{Geometric Descriptors}
@@ -815,6 +816,7 @@ In this case study, the $Z_0^0$-dominated residual correctly guided us to the SE
 \begin{enumerate}
   \item \textbf{Single dataset.} Results are demonstrated on 10 stereo pairs from one Pycaso CMO microscope. Generalisation to other CMO designs, manufacturers, or magnification settings has not been demonstrated and requires additional validation.
   \item \textbf{No independent 3D ground truth.} All residuals (ray-space and pixel-equivalent) are computed on the same ChArUco board points used for calibration. There is no validation against a separate certified 3D object or an independently measured reference.
+  \item \textbf{Depth-scale ambiguity.} The specimen sanity check (\S\ref{sec:specimen}) reveals a \SI{33}{\percent} depth-scale difference between the Zernike and CMO 26p reconstructions ($s_z = 0.67$), consistent with a convergence-depth ambiguity typical of uncalibrated stereo. Neither model's absolute depth is validated; resolving this requires an independent 3D reference such as profilometry of the same specimen.
   \item \textbf{Effective rayfield descriptors are gauge-sensitive.} The geometric descriptors ($b$, $WD$, $f_{\text{obj}}$, $\theta$) are read from the rayfield under the transverse gauge $O \cdot d = 0$ and a fixed pinhole reference $f_x = 25600$. The working distance is linearly proportional to the initial $f_x$ ($\pm 10\%$ fx $\to$ $\pm 10\%$ WD, Section~\ref{sec:validation}), and is \emph{not} independently identifiable without an external scale reference.
   \item \textbf{SE(3) translation parameters are not uniquely identifiable.} The rotation angles ($\sim$\SI{2.5}{\degree}, $\sim$\SI{3.7}{\degree}) are stable across optimisation runs, but the translation components trade off with the telecentric base parameters (WD, $f_{\text{obj}}$, $b$, principal point). Only the SE(3) rotation is a robust diagnostic; the translation is effective rather than absolute.
   \item \textbf{The Zernike rayfield is a training residual.} Its \SI{0.0007}{mm} ray-space RMS is a self-evaluation on the support points it was fitted to; the \SI{0.47}{px} pixel RMS is a noise-floor estimate, not an independent measurement. The pixel RMS column in all tables provides the apples-to-apples comparison.
