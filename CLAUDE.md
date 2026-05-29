@@ -173,7 +173,7 @@ excluded because they conflict with legitimate matrix/optics notation (see
     "RUF001",  # ambiguous Unicode (string) — intentional math/French symbols
     "RUF002",  # idem (docstring)
     "RUF003",  # idem (comment)
-    "E741",    # ambiguous variable name — `O` = optical origin, legitimate
+    "E741",    # 10/10 occurrences are `O` (optical origin) — blanket ignore
   ]
 
   [tool.ruff.lint.isort]
@@ -191,11 +191,15 @@ excluded because they conflict with legitimate matrix/optics notation (see
   `E741` added to `ignore` — the `O` origin symbol is optical convention, not
   an ambiguity.
 
-#### Permanently excluded rules
+#### Permanently excluded rules — never added to `select`
 
-These families are **deliberately NOT in `select`** because they conflict with
-legitimate scientific notation. Activating them would produce structural noise
-and push to mass-`noqa`. Do **not** add them without JFW approval.
+These families are **deliberately absent from `select`** because they conflict
+with legitimate scientific notation. Activating them would produce structural
+noise and push to mass-`noqa`. Do **not** add them without JFW approval.
+
+This table is distinct from the `ignore` list above: `ignore` rules ARE in
+`select` (via a family like `E` or `RUF`) but are suppressed with a specific
+justification. The table below is for families that are never even considered.
 
 | Rule(s) | Why excluded |
 |---|---|
@@ -206,7 +210,12 @@ and push to mass-`noqa`. Do **not** add them without JFW approval.
 | `PLR0913` (too many arguments) | Calibration/BA functions legitimately parameterised. |
 | `PLR0915`/`PLR0912`/`PLR0911` | Complexity inherent to solvers/BA; artificial splitting would harm readability. |
 | `PLC0415` (import outside top-level) | **Deliberate pattern:** lazy imports (OpenCV, matplotlib, heavy optional modules) to isolate dependencies and speed up package import. Accepted, not to be corrected. |
-| `E741` (ambiguous `l`/`I`/`O`) | Legitimate optical uses (`l` for length, `O` for origin). Case-by-case review, not blanket activation. |
+
+`E741` (ambiguous `O`/`l`/`I`) is handled via `ignore`, not via exclusion from
+`select` — all 10 occurrences across `src/`+`tests/` are the optical-origin
+symbol `O`, so blanket `ignore` is the right mechanism. The rule stays in
+`select` (via `E`) but is suppressed with an explicit justification rather than
+case-by-case `noqa` annotations.
 
 ### Tests
 

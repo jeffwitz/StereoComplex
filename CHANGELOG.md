@@ -13,7 +13,7 @@
 
 - **100% docstring coverage** (425/425 public functions) — all scientific core, instrumentation, CLI, and API modules documented with Parameters/Returns, units, and shapes.
 - Repository weight reduced from 234 MB to 114 MB by archiving `schur_ba/` on Zenodo.
-- **Ruff**: E/F=0, E501=0, cosmetic rules cleared.
+- **Ruff Lot 1** (2026-05-29): `select` expanded to `E,F,W,I,UP,B,C4,SIM,PERF,RET,RUF` on `src/ tests/` (0 errors). `ignore`: `RUF001/2/3` (math/French Unicode), `E741` (all 10 occurrences are optical origin `O`). `per-file-ignores`: tests (`E501`), docs (`I001`, `E402`). 84 auto-fix + 26 manual corrections.
 
 ## [0.7.0] - 2026-05-17
 
