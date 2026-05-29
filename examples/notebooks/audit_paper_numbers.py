@@ -65,13 +65,8 @@ def main() -> int:
 
     # Schur coupling norms (manuscript: c=0.96 real, c≈0.81 synthetic)
     schur_diag = json.loads((ROOT / "schur_ba/schur_ba_diagnostic.json").read_text())
-    chk("Schur coupling c (real Pycaso, manuscript says 0.96)",
-        0.96, schur_diag["coupling_norm"], "schur_ba_diagnostic.json.coupling_norm", 0.05)
-    rows.append(("INFO",
-                 "Schur coupling c (real Pycaso — ckpt updated 2026-05-24)",
-                 0.96, schur_diag["coupling_norm"],
-                 schur_diag["coupling_norm"] - 0.96,
-                 "schur_ba_diagnostic.json.coupling_norm — manuscript 0.96, asset 0.98"))
+    chk("Schur coupling c (real Pycaso, manuscript says 0.98)",
+        0.98, schur_diag["coupling_norm"], "schur_ba_diagnostic.json.coupling_norm", 0.05)
     oracle_coupling = json.loads((ROOT / "multi_oracle_coupling.json").read_text())
     for entry in oracle_coupling:
         if entry.get("oracle", "").startswith("CMO Pycaso (direct BA)"):
@@ -167,12 +162,12 @@ def main() -> int:
         "committed assets, but the paper should be explicit about which "
         "convention it cites.",
         "",
-        "- The Schur-prior 0.241 px figure (Section 3.8) is a **px-equivalent "
-        "of a point-to-ray transverse distance in mm**, not a 2-D pixel "
-        "reprojection. The 1.06 / 0.88 / 0.98 px values (Sections 3.5–3.7) "
-        "are 2-D reprojection errors. The two metrics are not directly "
-        "comparable; this is tracked separately in the CLAUDE.md audit "
-        "table.",
+        "- The Schur-prior 0.241 px figure (Section 3.8) is a **2-D pixel "
+        "reprojection RMS** computed by numerical projection (Appendix A, "
+        "see manuscript line~501). It is obtained with free per-frame 6-DOF "
+        "poses that deliberately expose the full optics--pose coupling, "
+        "hence it is a diagnostic upper bound, not the operational "
+        "calibration result (0.88 px with constrained poses).",
     ]
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text("\n".join(out) + "\n", encoding="utf-8")
