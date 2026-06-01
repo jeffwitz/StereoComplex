@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.10.8)  1 JUN 2026 10:52
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.10.8)  1 JUN 2026 13:21
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -736,12 +736,12 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `ntxtt' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
-<figures/cmo_physical.pdf, id=216, 270.6913pt x 237.04561pt>
+<figures/cmo_physical.pdf, id=220, 270.6913pt x 237.04561pt>
 File: figures/cmo_physical.pdf Graphic file (type pdf)
 <use figures/cmo_physical.pdf>
 Package pdftex.def Info: figures/cmo_physical.pdf  used on input line 71.
 (pdftex.def)             Requested size: 385.02547pt x 337.17136pt.
-<figures/pipeline.pdf, id=217, 602.73178pt x 766.06201pt>
+<figures/pipeline.pdf, id=221, 602.73178pt x 766.06201pt>
 File: figures/pipeline.pdf Graphic file (type pdf)
 <use figures/pipeline.pdf>
 Package pdftex.def Info: figures/pipeline.pdf  used on input line 78.
@@ -752,20 +752,20 @@ LaTeX Font Info:    Font shape `T1/ntxtlf/m/sl' will be
 (Font)              scaled to size 10.0pt on input line 89.
  [2{/usr/share/texlive/texmf-dist/fonts/enc/dvips/newtx/ntx-ecth-tlf.enc} <./fi
 gures/cmo_physical.pdf>] [3 <./figures/pipeline.pdf>] [4] [5]
-<figures/BIC_vs_order.pdf, id=536, 641.83661pt x 424.34836pt>
+<figures/BIC_vs_order.pdf, id=541, 641.83661pt x 424.34836pt>
 File: figures/BIC_vs_order.pdf Graphic file (type pdf)
 <use figures/BIC_vs_order.pdf>
 Package pdftex.def Info: figures/BIC_vs_order.pdf  used on input line 168.
 (pdftex.def)             Requested size: 430.31812pt x 284.51263pt.
  [6] [7 <./figures/BIC_vs_order.pdf>]
 [8]
-<figures/subpupil_3d.pdf, id=620, 535.99539pt x 566.65222pt>
+<figures/subpupil_3d.pdf, id=624, 535.99539pt x 566.65222pt>
 File: figures/subpupil_3d.pdf Graphic file (type pdf)
 <use figures/subpupil_3d.pdf>
 Package pdftex.def Info: figures/subpupil_3d.pdf  used on input line 257.
 (pdftex.def)             Requested size: 362.37569pt x 383.11357pt.
  [9 <./figures/subpupil_3d.pdf>]
-<figures/dy_profile_comparison.pdf, id=706, 566.98502pt x 351.12782pt>
+<figures/dy_profile_comparison.pdf, id=710, 566.98502pt x 351.12782pt>
 File: figures/dy_profile_comparison.pdf Graphic file (type pdf)
 <use figures/dy_profile_comparison.pdf>
 Package pdftex.def Info: figures/dy_profile_comparison.pdf  used on input line 
@@ -774,7 +774,7 @@ Package pdftex.def Info: figures/dy_profile_comparison.pdf  used on input line
  [10 <./figures/dy_profile_comparison.pdf>]
 LaTeX Font Info:    Font shape `TS1/ntxtlf/m/n' will be
 (Font)              scaled to size 10.95pt on input line 320.
-<figures/residual_evolution.pdf, id=779, 1282.19089pt x 441.3288pt>
+<figures/residual_evolution.pdf, id=783, 1282.19089pt x 441.3288pt>
 File: figures/residual_evolution.pdf Graphic file (type pdf)
 <use figures/residual_evolution.pdf>
 Package pdftex.def Info: figures/residual_evolution.pdf  used on input line 334
@@ -782,14 +782,14 @@ Package pdftex.def Info: figures/residual_evolution.pdf  used on input line 334
 (pdftex.def)             Requested size: 452.9679pt x 155.9085pt.
 
 [11] [12 <./figures/residual_evolution.pdf>]
-<figures/pareto_gauge_regularization.pdf, id=894, 1291.219pt x 386.92241pt>
+<figures/pareto_gauge_regularization.pdf, id=898, 1291.219pt x 386.92241pt>
 File: figures/pareto_gauge_regularization.pdf Graphic file (type pdf)
 <use figures/pareto_gauge_regularization.pdf>
 Package pdftex.def Info: figures/pareto_gauge_regularization.pdf  used on input
  line 387.
 (pdftex.def)             Requested size: 385.02547pt x 115.37505pt.
  [13 <./figures/pareto_gauge_regularization.pdf>] [14]
-<figures/schur_singular_values.pdf, id=971, 568.32578pt x 389.00958pt>
+<figures/schur_singular_values.pdf, id=975, 568.32578pt x 389.00958pt>
 File: figures/schur_singular_values.pdf Graphic file (type pdf)
 <use figures/schur_singular_values.pdf>
 Package pdftex.def Info: figures/schur_singular_values.pdf  used on input line 
@@ -804,55 +804,56 @@ LaTeX Font Info:    Font shape `T1/ntxtlf/m/n' will be
 LaTeX Font Info:    Font shape `T1/ntxtt/m/n' will be
 (Font)              scaled to size 10.0pt on input line 553.
 
-[18] [19] [20]
-<figures/specimen_reconstruction.pdf, id=1087, 1269.94298pt x 714.60603pt>
+[18] [19] [20] [21]
+<figures/specimen_reconstruction.pdf, id=1098, 1269.94298pt x 714.60603pt>
 File: figures/specimen_reconstruction.pdf Graphic file (type pdf)
 <use figures/specimen_reconstruction.pdf>
 Package pdftex.def Info: figures/specimen_reconstruction.pdf  used on input lin
-e 707.
+e 739.
 (pdftex.def)             Requested size: 452.9679pt x 254.8809pt.
-<figures/zernike_cmo_rigid_removed.pdf, id=1092, 1438.39445pt x 694.09668pt>
+ [22]
+<figures/zernike_cmo_rigid_removed.pdf, id=1107, 1438.39445pt x 694.09668pt>
 File: figures/zernike_cmo_rigid_removed.pdf Graphic file (type pdf)
 <use figures/zernike_cmo_rigid_removed.pdf>
 Package pdftex.def Info: figures/zernike_cmo_rigid_removed.pdf  used on input l
-ine 720.
+ine 752.
 (pdftex.def)             Requested size: 452.9679pt x 218.57806pt.
- [21] [22 <./figures/specimen_reconstruction.pdf> <./figures/zernike_cmo_rigid_
-removed.pdf>]
-<figures/specimen_schur_regularized.png, id=1301, 1046.4696pt x 1418.901pt>
+ [23 <./figures/specimen_reconstruction.pdf>]
+<figures/specimen_schur_regularized.png, id=1192, 1046.4696pt x 1418.901pt>
 File: figures/specimen_schur_regularized.png Graphic file (type png)
 <use figures/specimen_schur_regularized.png>
 Package pdftex.def Info: figures/specimen_schur_regularized.png  used on input 
-line 739.
+line 771.
 (pdftex.def)             Requested size: 443.9066pt x 601.88829pt.
 Package textcomp Info: Symbol \textmu not provided by
 (textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 746.
- (./tables/model_comparison.tex) [23{/usr/share/texmf/fonts/enc/dvips/cm-super/
-cm-super-ts1.enc}] [24 <./figures/specimen_schur_regularized.png>]
-<figures/bic_bars.pdf, id=1315, 1004.39426pt x 392.18832pt>
+(textcomp)             Default family used instead on input line 778.
+ [24{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc} <./figures/zer
+nike_cmo_rigid_removed.pdf>] [25 <./figures/specimen_schur_regularized.png>]
+(./tables/model_comparison.tex)
+<figures/bic_bars.pdf, id=1327, 1004.39426pt x 392.18832pt>
 File: figures/bic_bars.pdf Graphic file (type pdf)
 <use figures/bic_bars.pdf>
-Package pdftex.def Info: figures/bic_bars.pdf  used on input line 776.
+Package pdftex.def Info: figures/bic_bars.pdf  used on input line 808.
 (pdftex.def)             Requested size: 452.9679pt x 176.87209pt.
- (./tables/bic_model_selection.tex) [25 <./figures/bic_bars.pdf>] [26] [27] [28
-] [29] [30] (build/manuscript.bbl [31] [32]) [33]
-(build/manuscript.aux)
+ (./tables/bic_model_selection.tex) [26 <./figures/bic_bars.pdf>] [27] [28] [29
+] [30] [31] [32] (build/manuscript.bbl [33]
+[34]) [35] (build/manuscript.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2020/03/25>
  ***********
 Package rerunfilecheck Info: File `manuscript.out' has not changed.
-(rerunfilecheck)             Checksum: B51632796C68A875FB8E530EB3DB4C26;9928.
+(rerunfilecheck)             Checksum: 8B79102B324414FD1CB29783C024A076;10160.
  ) 
 Here is how much of TeX's memory you used:
- 20673 strings out of 474222
- 390155 string characters out of 5748733
+ 20677 strings out of 474222
+ 390208 string characters out of 5748733
  1941975 words of memory out of 5000000
- 42206 multiletter control sequences out of 15000+600000
- 630657 words of font info for 238 fonts, out of 8000000 for 9000
+ 42208 multiletter control sequences out of 15000+600000
+ 630568 words of font info for 237 fonts, out of 8000000 for 9000
  1147 hyphenation exceptions out of 8191
- 80i,15n,117p,1222b,1082s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 80i,15n,117p,1222b,1092s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/shar
 e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texl
@@ -872,10 +873,10 @@ c/cm-super/sfrm1095.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/txfon
 ts/t1xtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/newtx/ztmb.pfb><
 /usr/share/texlive/texmf-dist/fonts/type1/public/newtx/ztmr.pfb></usr/share/tex
 live/texmf-dist/fonts/type1/public/newtx/ztmri.pfb>
-Output written on build/manuscript.pdf (33 pages, 8216833 bytes).
+Output written on build/manuscript.pdf (35 pages, 8223339 bytes).
 PDF statistics:
- 1653 PDF objects out of 1728 (max. 8388607)
- 809 compressed objects within 9 object streams
- 173 named destinations out of 1000 (max. 500000)
- 49597 words of extra memory for PDF output out of 51595 (max. 10000000)
+ 1669 PDF objects out of 1728 (max. 8388607)
+ 823 compressed objects within 9 object streams
+ 177 named destinations out of 1000 (max. 500000)
+ 49605 words of extra memory for PDF output out of 51595 (max. 10000000)
 

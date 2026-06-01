@@ -664,6 +664,38 @@ Third, the CMO 26p model loses an additional \SI{0.65}{px} relative to the Zerni
 
 The comparison thus frames the paper's central trade-off explicitly: \SI{0.18}{px} (black-box, no geometry), \SI{0.41}{px} (geometric rayfield, no optical model), \SI{1.06}{px} (compact physical model, fully interpretable). Each step up in interpretability costs approximately \SIrange{0.2}{0.6}{px} in pixel accuracy. We consider this an acceptable price for a physically meaningful calibration.
 
+\subsubsection{Extrapolation to Held-Out Poses}
+
+The accuracy--interpretability trade-off above is measured on the full 10-frame dataset (train = test, since both models use all available data). A stricter question is: how well does each model \emph{extrapolate} to poses not seen during fitting? This tests whether the 3D geometric constraint in the Zernike rayfield provides a regularisation benefit beyond what the Soloff polynomial's ridge penalty achieves.
+
+We split the 10 frames into 7 training poses (the most central ones, closest to the centroid of the pose distribution) and 3 held-out test poses (the most extreme, at the edges of the sampled volume). Both models are fitted on the training set only and evaluated on the held-out frames. Critically, the two model families have different natural output spaces---Soloff maps 3D coordinates to pixels, Zernike maps pixels to 3D rays---so their extrapolation errors are measured in their respective native metrics and compared via the \emph{degradation ratio} (test error / train error).
+
+For Soloff, the native metric is the 2D pixel prediction error (the RMS distance between the polynomial-predicted pixel and the observed corner). For the Zernike rayfield, the native metric is the 3D triangulation accuracy: observed left and right pixels are converted to rays via the rayfield, the rays are intersected to obtain a 3D point, and this point is compared to the true corner position (known from the board model and the frame pose estimated by a Kabsch alignment of the triangulated points to the board). The Kabsch step removes the rigid gauge freedom inherent to uncalibrated stereo reconstruction (the absolute pose of the board cannot be recovered without an external reference), so the residual measures only the non-rigid rayfield quality.
+
+Table~\ref{tab:extrapolation} reports the results. Both models degrade by a factor of approximately 1.9$\times$ on held-out extreme poses, confirming that the 7-frame training set is sufficient to build a usable model in both cases. The crucial difference appears at higher model complexity: Soloff degree~3 (80~parameters) degrades by a factor of 4.65$\times$ (from \SI{0.16}{px} to \SI{0.75}{px}), exhibiting classic overfitting---the polynomial learns the training poses' noise rather than the underlying optical mapping. The Zernike rayfield (180~parameters, O(2)+d(4)), by contrast, degrades by only 1.86$\times$ despite having more than twice as many parameters. The 3D geometric consistency constraint---every pixel's ray must intersect consistently with rays from the other channel and with the board geometry---acts as a structural regulariser that prevents the rayfield from memorising individual training poses.
+
+\begin{table}[H]
+\centering
+\caption{Extrapolation to held-out extreme poses (7 train / 3 test). Each model is evaluated in its native metric: 2D pixel error for Soloff (3D$\to$2D mapping), 3D triangulation accuracy for Zernike (2D$\to$3D mapping). The degradation ratio (test / train) is the comparable quantity across model families.}
+\label{tab:extrapolation}
+\begin{tabular}{lrrrr}
+\toprule
+Model & Params & Train & Test (extreme) & Degradation \\
+\midrule
+Soloff deg.\ 1  &  16 & \SI{1.21}{px}            & \SI{2.48}{px}            & 2.05$\times$ \\
+Soloff deg.\ 2  &  40 & \SI{0.20}{px}            & \SI{0.39}{px}            & 1.97$\times$ \\
+Soloff deg.\ 3  &  80 & \SI{0.16}{px}            & \SI{0.75}{px}            & \textbf{4.65}$\times$ \\
+\midrule
+Zernike O(2)+d(4) & 180 & \SI{0.0006}{mm}      & \SI{0.0012}{mm}         & \textbf{1.86}$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two conclusions follow. First, at comparable degradation ratios ($\sim$1.9$\times$), the Soloff polynomial achieves lower absolute pixel error than the Zernike rayfield's 3D error, consistent with the in-sample comparison of Table~\ref{tab:soloff_comparison}: the 2D polynomial is a more accurate regressor, but its accuracy collapses when the model order is pushed (degree~3). Second, the Zernike rayfield's degradation stays bounded (1.86$\times$) even at 180~parameters because the 3D geometric consistency constraint prevents it from overfitting to individual poses. The rayfield does not learn ``pixel (500, 1300) corresponds to 3D point $X$ in frame~3'';
+it learns ``pixel (500, 1300) emits a ray that must intersect the corresponding ray from the other channel at a 3D point consistent with a rigid board''. This constraint is absent from the per-coordinate polynomial regression, which treats each pixel coordinate as an independent scalar function of $(X,Y,Z)$.
+
+We deliberately do not convert the Zernike 3D error to a pixel-equivalent for this comparison: the conversion factor depends on the local ray geometry (pixel pitch, working distance, ray obliquity) and would introduce an unnecessary model dependence. The degradation ratio---how much worse the model performs on unseen poses relative to seen ones---is the invariant that allows cross-model comparison without forcing incompatible metrics into a common unit.
+
 \subsection{Internal Validation}
 \label{sec:validation}
 
