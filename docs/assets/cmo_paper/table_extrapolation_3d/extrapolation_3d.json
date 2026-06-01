@@ -1,0 +1,36 @@
+{
+  "cmo_pose_ref": {
+    "soloff_deg2": {
+      "train_um": 1.2393778588992292,
+      "test_um": 2.1363434438326228,
+      "degradation": 1.723722453562343
+    },
+    "soloff_deg3": {
+      "train_um": 0.9870392010258855,
+      "test_um": 3.8116876496568564,
+      "degradation": 3.8617388708524993
+    },
+    "zernike_180p": {
+      "train_um": 1.1757602975158203,
+      "test_um": 2.3938568126648754,
+      "degradation": 2.0360075244271165
+    }
+  },
+  "zernike_pose_ref": {
+    "soloff_deg2": {
+      "train_um": 2.5750999168582624,
+      "test_um": 4.779822810996457,
+      "degradation": 1.8561698440144627
+    },
+    "soloff_deg3": {
+      "train_um": 1.9886391697491934,
+      "test_um": 3.8723381789995313,
+      "degradation": 1.947230165182711
+    },
+    "zernike_180p": {
+      "train_um": 2.626882626988462,
+      "test_um": 5.525244089414461,
+      "degradation": 2.103346389613444
+    }
+  }
+}
