@@ -128,14 +128,6 @@ R.~J. Noll.
 \newblock Open source computer vision library.
 \newblock URL: \url{https://opencv.org}.
 
-\bibitem{pan2022}
-L.~Pan, M.~Pollefeys, and V.~Larsson.
-\newblock Camera pose estimation using implicit distortion models.
-\newblock In {\em Proceedings of the IEEE/CVF Conference on Computer Vision and
-  Pattern Recognition (CVPR)}, pages 12819--12828, 2022.
-\newblock \href {https://doi.org/10.1109/CVPR52688.2022.01248}
-  {\path{doi:10.1109/CVPR52688.2022.01248}}.
-
 \bibitem{plucker1865}
 J.~Pl{\"u}cker.
 \newblock On a new geometry of space.
