@@ -1,54 +1,68 @@
 #!/usr/bin/env bash
-# Rebuild the CMO paper from the Zenodo archive + StereoComplex repo.
+# Rebuild the CMO paper from the Zenodo archive.
 #
-# Usage:
-#   1. git clone https://github.com/jeffwitz/StereoComplex
-#   2. cd StereoComplex
-#   3. bash rebuild_from_zenodo.sh
+# Two usage modes:
 #
-# Downloads the Zenodo archive (DOI 10.5281/zenodo.20444216) and restores
-# the expected directory structure so that all figure generators, the
-# numerical audit, and the LaTeX build can run.
+# A) From an extracted Zenodo archive (no git clone needed):
+#      unzip sterocomplex_cmo_paper.zip
+#      cd sterocomplex_cmo_paper/
+#      bash rebuild_from_zenodo.sh
+#
+# B) From a git clone (fetches Zenodo automatically):
+#      git clone https://github.com/jeffwitz/StereoComplex
+#      cd StereoComplex
+#      bash rebuild_from_zenodo.sh
+#
+# After running, you get the full directory structure and can:
+#   cd paper/cmo && bash build_pdflatex.sh      # rebuild the PDF
+#   python examples/notebooks/generate_fig_*.py  # regenerate figures
 
 set -euo pipefail
 
-ZENODO_URL="https://zenodo.org/api/records/20444216/files-archive"
-TMPDIR="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR"' EXIT
+# ── Detect context ────────────────────────────────────────────────────
+# If manuscript.tex is in the current directory, we're inside an already-
+# extracted Zenodo archive (mode A). Otherwise, download from Zenodo.
+if [ -f manuscript.tex ]; then
+    EXTRACTED_DIR="$(pwd)"
+    echo "=== Mode A: using already-extracted Zenodo at $EXTRACTED_DIR ==="
+else
+    ZENODO_URL="https://zenodo.org/api/records/20444786/files-archive"
+    TMPDIR="$(mktemp -d)"
+    trap 'rm -rf "$TMPDIR"' EXIT
+    echo "=== Mode B: downloading Zenodo archive ... ==="
+    curl -sL "$ZENODO_URL" -o "$TMPDIR/zenodo.zip"
+    unzip -qo "$TMPDIR/zenodo.zip" -d "$TMPDIR/extracted"
+    EXTRACTED_DIR="$TMPDIR/extracted"
+fi
 
-echo "=== Downloading Zenodo archive ..."
-curl -sL "$ZENODO_URL" -o "$TMPDIR/zenodo.zip"
-unzip -qo "$TMPDIR/zenodo.zip" -d "$TMPDIR/extracted"
-
+# ── Restore paper/cmo/ structure ─────────────────────────────────────
 echo "=== Restoring paper/cmo/ structure ..."
 mkdir -p paper/cmo/figures paper/cmo/tables paper/cmo/build
 
-# --- Core manuscript files ---
 for f in manuscript.tex references.bib build_pdflatex.sh cover_letter.txt \
          generate_tables.py check_manuscript_numbers.py number_audit_report.md \
          SUBMISSION_CHECKLIST.md; do
-  [ -f "$TMPDIR/extracted/$f" ] && cp "$TMPDIR/extracted/$f" paper/cmo/
+  [ -f "$EXTRACTED_DIR/$f" ] && cp "$EXTRACTED_DIR/$f" paper/cmo/
 done
 
-# --- Build artifacts ---
-[ -f "$TMPDIR/extracted/manuscript.pdf" ] && cp "$TMPDIR/extracted/manuscript.pdf" paper/cmo/
-[ -f "$TMPDIR/extracted/manuscript.log" ] && cp "$TMPDIR/extracted/manuscript.log" paper/cmo/build/
+[ -f "$EXTRACTED_DIR/manuscript.pdf" ] && cp "$EXTRACTED_DIR/manuscript.pdf" paper/cmo/
+[ -f "$EXTRACTED_DIR/manuscript.log" ] && cp "$EXTRACTED_DIR/manuscript.log" paper/cmo/build/
 
-# --- Figures (PDF + PNG, skip manuscript.pdf) ---
-for f in "$TMPDIR/extracted"/*.pdf "$TMPDIR/extracted"/*.png; do
+# ── Figures ──────────────────────────────────────────────────────────
+for f in "$EXTRACTED_DIR"/*.pdf "$EXTRACTED_DIR"/*.png; do
   fname=$(basename "$f")
   [ "$fname" = "manuscript.pdf" ] && continue
   cp "$f" "paper/cmo/figures/"
 done
 
-# --- Tables (tex files, skip manuscript.tex) ---
-for f in "$TMPDIR/extracted"/*.tex; do
+# ── Tables ────────────────────────────────────────────────────────────
+for f in "$EXTRACTED_DIR"/*.tex; do
   fname=$(basename "$f")
   [ "$fname" = "manuscript.tex" ] && continue
   cp "$f" "paper/cmo/tables/"
 done
 
-# --- Figure asset folders ---
+# ── Figure asset folders ─────────────────────────────────────────────
 echo "=== Restoring figure assets ..."
 FIG_DIRS=(
   figure1_cmo_physical
@@ -68,7 +82,7 @@ FIG_DIRS=(
 for fig_dir in "${FIG_DIRS[@]}"; do
   prefix="${fig_dir}_"
   mkdir -p "docs/assets/cmo_paper/$fig_dir"
-  for f in "$TMPDIR/extracted/${prefix}"*; do
+  for f in "$EXTRACTED_DIR/${prefix}"*; do
     [ -f "$f" ] || continue
     fname=$(basename "$f")
     orig_name="${fname#$prefix}"
@@ -76,18 +90,18 @@ for fig_dir in "${FIG_DIRS[@]}"; do
   done
 done
 
-# --- Reproducibility scripts ---
+# ── Reproducibility scripts ──────────────────────────────────────────
 mkdir -p examples/notebooks
-for f in "$TMPDIR/extracted"/generate_fig_*.py \
-         "$TMPDIR/extracted"/audit_paper_numbers.py \
-         "$TMPDIR/extracted"/sensitivity_coupling_norm.py \
-         "$TMPDIR/extracted"/parameter_identifiability.py \
-         "$TMPDIR/extracted"/zenodo_fetch.py \
-         "$TMPDIR/extracted"/pycaso_schur_regularized_ba.py; do
+for f in "$EXTRACTED_DIR"/generate_fig_*.py \
+         "$EXTRACTED_DIR"/audit_paper_numbers.py \
+         "$EXTRACTED_DIR"/sensitivity_coupling_norm.py \
+         "$EXTRACTED_DIR"/parameter_identifiability.py \
+         "$EXTRACTED_DIR"/zenodo_fetch.py \
+         "$EXTRACTED_DIR"/pycaso_schur_regularized_ba.py; do
   [ -f "$f" ] && cp "$f" examples/notebooks/
 done
 
-# --- Key data files ---
+# ── Key data files ────────────────────────────────────────────────────
 mkdir -p docs/assets/pycaso_real_data/schur_ba
 for f in intermediate_state.npz summary.json \
          schur_ba_diagnostic.json \
@@ -99,21 +113,20 @@ for f in intermediate_state.npz summary.json \
          specimen_reconstruction_zernike.npz \
          specimen_reconstruction_metrics.json \
          specimen_dataset_inventory.json; do
-  if [ -f "$TMPDIR/extracted/$f" ]; then
+  if [ -f "$EXTRACTED_DIR/$f" ]; then
     fname=$(basename "$f")
-    cp "$TMPDIR/extracted/$f" "docs/assets/pycaso_real_data/$fname"
+    cp "$EXTRACTED_DIR/$f" "docs/assets/pycaso_real_data/$fname"
   fi
 done
 
-# schur_ba_diagnostic also goes to schur_ba/ subdir
-[ -f "$TMPDIR/extracted/schur_ba_diagnostic.json" ] && \
-  cp "$TMPDIR/extracted/schur_ba_diagnostic.json" docs/assets/pycaso_real_data/schur_ba/
+[ -f "$EXTRACTED_DIR/schur_ba_diagnostic.json" ] && \
+  cp "$EXTRACTED_DIR/schur_ba_diagnostic.json" docs/assets/pycaso_real_data/schur_ba/
 
-# --- Audit ---
+# ── Audit ─────────────────────────────────────────────────────────────
 mkdir -p docs/assets/cmo_paper
-[ -f "$TMPDIR/extracted/AUDIT.md" ] && cp "$TMPDIR/extracted/AUDIT.md" docs/assets/cmo_paper/
+[ -f "$EXTRACTED_DIR/AUDIT.md" ] && cp "$EXTRACTED_DIR/AUDIT.md" docs/assets/cmo_paper/
 
-# --- Note about heavy Schur BA data ---
+# ── Note about heavy Schur BA data (separate Zenodo) ─────────────────
 if [ ! -f docs/assets/pycaso_real_data/schur_ba/optical_ba_unregularized.json ]; then
   echo ""
   echo "NOTE: Heavy Schur BA snapshots (~140 MB) are archived separately at"
@@ -132,6 +145,3 @@ echo "  python examples/notebooks/audit_paper_numbers.py"
 echo ""
 echo "  # Regenerate a figure (example: Figure 1)"
 echo "  python examples/notebooks/generate_fig_cmo_physical.py"
-echo ""
-echo "  # Regenerate all figures (requires heavy Schur BA data)"
-echo "  for f in examples/notebooks/generate_fig_*.py; do python \$f; done"
