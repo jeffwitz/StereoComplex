@@ -50,3 +50,16 @@ examples/notebooks/.ipynb_checkpoints/
 examples/pycaso_calib_data/
 examples/pycaso_data/
 docs/assets/pycaso_real_data/schur_ba/
+
+# LaTeX build intermediates (regenerable; build_pdflatex.sh writes to build/).
+# The compiled manuscript.pdf is kept as the submission artefact (see
+# docs/RELEASE_READINESS.md); only the intermediates are ignored.
+paper/cmo/*.aux
+paper/cmo/*.log
+paper/cmo/*.out
+paper/cmo/*.bbl
+paper/cmo/*.blg
+paper/cmo/*.toc
+paper/cmo/*.fls
+paper/cmo/*.fdb_latexmk
+paper/cmo/*.synctex.gz
