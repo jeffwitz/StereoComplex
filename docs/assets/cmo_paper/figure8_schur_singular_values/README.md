@@ -1,39 +1,24 @@
-# Figure 8 (CMO paper) — Schur singular values
+# Figure 8 — Schur complement eigenvalue spectrum (26-parameter optical block)
 
-Editable source of truth for Figure 8 of `paper/cmo/manuscript.tex`
-(line 436, `schur_singular_values.pdf`).
+Plots the normalised eigenvalue spectrum of the Schur complement S_theta of the
+Fisher matrix on the 26-parameter CMO optical block, at the rayfield-initialised
+Pycaso solution. Strong (observable) modes lie above the weak threshold
+lambda_i/lambda_max = 1e-3; the trailing modes collapse after pose
+marginalisation. The pose/optics coupling norm c = 0.98 is annotated.
 
-## Files
+## Referenced in
+`paper/cmo/manuscript.tex`, Figure `fig:schur` (§ Schur conditioning diagnostic).
 
-- `manifest.json` — path to the diagnostic JSON and figure parameters
-  (annotated-mode count, figure size).
-
-## Upstream data (consumed by the figure)
-
-- `docs/assets/pycaso_real_data/zernike_conditioning_diagnostic.json` —
-  Phase-1 design-matrix SVD (regular grid 41×41, orders 2 and 4) and
-  Phase-2 modal decomposition. Produced by
-  `examples/notebooks/diagnose_zernike_conditioning.py`.
+## Editable inputs
+- `schur_spectrum.json` — 26 Schur eigenvalues (descending), `coupling_norm`,
+  `weak_threshold`, `weak_mode_indices`, `rank_effective`, `theta_labels`.
+  Extracted from the Schur BA diagnostic (see the `source` field); that bundle
+  lives under the gitignored `docs/assets/pycaso_real_data/schur_ba/`, so the
+  values needed by the figure are copied here to keep it reproducible from
+  tracked data.
+- `manifest.json` — title, pointer to the spectrum JSON, figure size.
 
 ## Regenerate
-
 ```bash
 rtk .venv/bin/python examples/notebooks/generate_fig_schur_svd.py
 ```
-
-Outputs:
-
-- `paper/cmo/figures/schur_singular_values.pdf` — used by
-  `\includegraphics` in `manuscript.tex` (line 436).
-- `paper/cmo/figures/schur_singular_values.png` — docs/preview
-  counterpart.
-
-## Re-running upstream
-
-If the diagnostic data needs to be refreshed:
-
-```bash
-rtk .venv/bin/python examples/notebooks/diagnose_zernike_conditioning.py
-```
-
-The figure regeneration above is then a single command.

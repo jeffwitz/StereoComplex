@@ -1,6 +1,5 @@
 {
-  "title": "Design matrix singular value spectra (Figure 8 of the CMO paper)",
-  "diagnostic_json": "../../pycaso_real_data/zernike_conditioning_diagnostic.json",
-  "n_annotated_modes": 8,
+  "title": "Schur complement eigenvalue spectrum on the 26-parameter CMO optical block (Figure 8 of the CMO paper)",
+  "spectrum_json": "schur_spectrum.json",
   "figure_size": [8, 5.5]
 }
