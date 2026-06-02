@@ -1,0 +1,276 @@
+\begin{thebibliography}{10}
+
+\bibitem{akaike1974}
+H.~Akaike.
+\newblock A new look at the statistical model identification.
+\newblock {\em IEEE Transactions on Automatic Control}, 19(6):716--723, 1974.
+\newblock \href {https://doi.org/10.1109/tac.1974.1100705}
+  {\path{doi:10.1109/tac.1974.1100705}}.
+
+\bibitem{bartoli2005}
+A.~Bartoli and P.~Sturm.
+\newblock Structure-from-motion using lines: {R}epresentation, triangulation,
+  and bundle adjustment.
+\newblock {\em Computer Vision and Image Understanding}, 100(3):416--441, 2005.
+\newblock \href {https://doi.org/10.1016/j.cviu.2005.06.001}
+  {\path{doi:10.1016/j.cviu.2005.06.001}}.
+
+\bibitem{bookstein1989}
+F.~L. Bookstein.
+\newblock Principal warps: Thin-plate splines and the decomposition of
+  deformations.
+\newblock {\em IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  11(6):567--585, 1989.
+\newblock \href {https://doi.org/10.1109/34.24792}
+  {\path{doi:10.1109/34.24792}}.
+
+\bibitem{bouguet2008}
+J.-Y. Bouguet.
+\newblock Camera calibration toolbox for {MATLAB}, 2008.
+\newblock URL: \url{http://www.vision.caltech.edu/bouguetj/calib_doc/}.
+
+\bibitem{brown1966}
+D.~C. Brown.
+\newblock Decentering distortion of lenses.
+\newblock {\em Photogrammetric Engineering}, 32(3):444--462, 1966.
+\newblock \href {https://doi.org/10.14358/pers.32.3.444}
+  {\path{doi:10.14358/pers.32.3.444}}.
+
+\bibitem{byrd1995}
+R.~H. Byrd, P.~Lu, J.~Nocedal, and C.~Zhu.
+\newblock A limited memory algorithm for bound constrained optimization.
+\newblock {\em SIAM Journal on Scientific Computing}, 16(5):1190--1208, 1995.
+\newblock \href {https://doi.org/10.1137/0916069} {\path{doi:10.1137/0916069}}.
+
+\bibitem{camposeco2016}
+F.~Camposeco, T.~Sattler, and M.~Pollefeys.
+\newblock Non-parametric camera model calibration with splines.
+\newblock In {\em Proceedings of the German Conference on Pattern Recognition
+  (GCPR)}, pages 285--296, 2016.
+\newblock \href {https://doi.org/10.1007/978-3-319-45886-1_23}
+  {\path{doi:10.1007/978-3-319-45886-1_23}}.
+
+\bibitem{pycaso2023}
+E.~Caron, J.-F. Witz, C.~Cuvier, A.~Beaurain, V.~Magnier, and A.~El Bartali.
+\newblock {PYCASO}: Python module for calibration of cameras by {Soloff}'s
+  method.
+\newblock {\em SoftwareX}, 23:101440, 2023.
+\newblock \href {https://doi.org/10.1016/j.softx.2023.101440}
+  {\path{doi:10.1016/j.softx.2023.101440}}.
+
+\bibitem{garrido2014}
+S.~Garrido-Jurado, R.~Mu\ noz Salinas, F.~J. Madrid-Cuevas, and M.~J.
+  Mar\'in-Jim\'enez.
+\newblock Automatic generation and detection of highly reliable fiducial
+  markers under occlusion.
+\newblock {\em Pattern Recognition}, 47(6):2280--2292, 2014.
+\newblock \href {https://doi.org/10.1016/j.patcog.2014.01.005}
+  {\path{doi:10.1016/j.patcog.2014.01.005}}.
+
+\bibitem{grossberg2001}
+M.~D. Grossberg and S.~K. Nayar.
+\newblock A general imaging model and a method for finding its parameters.
+\newblock In {\em Proceedings of the IEEE International Conference on Computer
+  Vision (ICCV)}, pages 108--115, 2001.
+\newblock \href {https://doi.org/10.1109/iccv.2001.937611}
+  {\path{doi:10.1109/iccv.2001.937611}}.
+
+\bibitem{inoue1997}
+S.~Inou\'e and K.~R. Spring.
+\newblock {\em Video Microscopy: The Fundamentals}.
+\newblock Plenum Press, New York, 2nd edition, 1997.
+\newblock \href {https://doi.org/10.1007/978-1-4757-6925-8}
+  {\path{doi:10.1007/978-1-4757-6925-8}}.
+
+\bibitem{kannala2006}
+J.~Kannala and S.~S. Brandt.
+\newblock A generic camera model and calibration method for conventional,
+  wide-angle, and fish-eye lenses.
+\newblock {\em IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  28(8):1335--1340, 2006.
+\newblock \href {https://doi.org/10.1109/tpami.2006.153}
+  {\path{doi:10.1109/tpami.2006.153}}.
+
+\bibitem{leica_m205c}
+{Leica Microsystems}.
+\newblock {\em {M125 C, M165 C, M205 C, M205 A} Stereo Microscopes ---
+  Technical Data}.
+\newblock Leica Microsystems GmbH, 2019.
+\newblock Planapo 1.0$\times$ objective: working distance 61.5~mm.
+
+\bibitem{liu2018_generic_microscope}
+Z.~Liu, J.~Guo, W.~Shi, X.~Chen, and H.~Xie.
+\newblock Generic distortion model for metrology under optical microscopes.
+\newblock {\em Optics and Lasers in Engineering}, 103:119--126, 2018.
+\newblock \href {https://doi.org/10.1016/j.optlaseng.2017.12.006}
+  {\path{doi:10.1016/j.optlaseng.2017.12.006}}.
+
+\bibitem{mei2007}
+C.~Mei and P.~Rives.
+\newblock Single view point omnidirectional camera calibration from planar
+  grids.
+\newblock In {\em Proceedings of the IEEE International Conference on Robotics
+  and Automation (ICRA)}, pages 3945--3950, 2007.
+\newblock \href {https://doi.org/10.1109/robot.2007.364084}
+  {\path{doi:10.1109/robot.2007.364084}}.
+
+\bibitem{miraldo2013}
+P.~Miraldo and H.~Araujo.
+\newblock Calibration of smooth camera models.
+\newblock {\em IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  35(9):2091--2103, 2013.
+\newblock \href {https://doi.org/10.1109/TPAMI.2012.258}
+  {\path{doi:10.1109/TPAMI.2012.258}}.
+
+\bibitem{noll1976}
+R.~J. Noll.
+\newblock Zernike polynomials and atmospheric turbulence.
+\newblock {\em Journal of the Optical Society of America}, 66(3):207--211,
+  1976.
+\newblock \href {https://doi.org/10.1364/josa.66.000207}
+  {\path{doi:10.1364/josa.66.000207}}.
+
+\bibitem{opencv}
+{OpenCV}.
+\newblock Open source computer vision library.
+\newblock URL: \url{https://opencv.org}.
+
+\bibitem{plucker1865}
+J.~Pl{\"u}cker.
+\newblock On a new geometry of space.
+\newblock {\em Philosophical Transactions of the Royal Society of London},
+  155:725--791, 1865.
+
+\bibitem{ramalingam2017}
+S.~Ramalingam and P.~Sturm.
+\newblock A unifying model for camera calibration.
+\newblock {\em IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  39(7):1309--1319, 2017.
+\newblock \href {https://doi.org/10.1109/tpami.2016.2592904}
+  {\path{doi:10.1109/tpami.2016.2592904}}.
+
+\bibitem{ramalingam2010}
+S.~Ramalingam, P.~Sturm, and S.~K. Nayar.
+\newblock A generic structure-from-motion framework.
+\newblock In {\em Proceedings of the European Conference on Computer Vision
+  (ECCV)}, pages 218--231, 2010.
+\newblock \href {https://doi.org/10.1007/978-3-642-15552-9_16}
+  {\path{doi:10.1007/978-3-642-15552-9_16}}.
+
+\bibitem{romero2018}
+F.~J. Romero-Ramirez, R.~Mu\ noz Salinas, and R.~Medina-Carnicer.
+\newblock Speeded up detection of squared fiducial markers.
+\newblock {\em Image and Vision Computing}, 76:38--47, 2018.
+\newblock \href {https://doi.org/10.1016/j.imavis.2018.05.004}
+  {\path{doi:10.1016/j.imavis.2018.05.004}}.
+
+\bibitem{sanderson2019}
+J.~Sanderson.
+\newblock {\em Understanding Light Microscopy}.
+\newblock Wiley, 2019.
+\newblock \href {https://doi.org/10.1002/9781118696736}
+  {\path{doi:10.1002/9781118696736}}.
+
+\bibitem{scaramuzza2006}
+D.~Scaramuzza, A.~Martinelli, and R.~Siegwart.
+\newblock A toolbox for easily calibrating omnidirectional cameras.
+\newblock In {\em Proceedings of the IEEE/RSJ International Conference on
+  Intelligent Robots and Systems (IROS)}, pages 5695--5701, 2006.
+\newblock \href {https://doi.org/10.1109/iros.2006.282372}
+  {\path{doi:10.1109/iros.2006.282372}}.
+
+\bibitem{schops2020}
+T.~Sch\"ops, V.~Larsson, M.~Pollefeys, and T.~Sattler.
+\newblock Why having 10,000 parameters in your camera model is better than
+  twelve.
+\newblock In {\em Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition (CVPR)}, pages 2535--2544, 2020.
+\newblock \href {https://doi.org/10.1109/cvpr42600.2020.00261}
+  {\path{doi:10.1109/cvpr42600.2020.00261}}.
+
+\bibitem{schreier2004}
+H.~W. Schreier, D.~Garcia, and M.~A. Sutton.
+\newblock Advances in light microscope stereo vision.
+\newblock {\em Experimental Mechanics}, 44(3):278--288, 2004.
+\newblock \href {https://doi.org/10.1177/0014485104041546}
+  {\path{doi:10.1177/0014485104041546}}.
+
+\bibitem{schwarz1978}
+G.~Schwarz.
+\newblock Estimating the dimension of a model.
+\newblock {\em Annals of Statistics}, 6(2):461--464, 1978.
+\newblock \href {https://doi.org/10.1214/aos/1176344136}
+  {\path{doi:10.1214/aos/1176344136}}.
+
+\bibitem{soloff1997}
+S.~M. Soloff, R.~J. Adrian, and Z.~C. Liu.
+\newblock Distortion compensation for generalized stereoscopic particle image
+  velocimetry.
+\newblock {\em Measurement Science and Technology}, 8(12):1441--1454, 1997.
+\newblock \href {https://doi.org/10.1088/0957-0233/8/12/008}
+  {\path{doi:10.1088/0957-0233/8/12/008}}.
+
+\bibitem{strecha2008}
+C.~Strecha et~al.
+\newblock On benchmarking camera calibration and multi-view stereo for high
+  resolution imagery.
+\newblock In {\em Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition (CVPR)}, pages 1--8, 2008.
+\newblock \href {https://doi.org/10.1109/cvpr.2008.4587706}
+  {\path{doi:10.1109/cvpr.2008.4587706}}.
+
+\bibitem{sturm2004}
+P.~Sturm and S.~Ramalingam.
+\newblock A generic concept for camera calibration.
+\newblock In {\em Proceedings of the European Conference on Computer Vision
+  (ECCV)}, pages 1--13, 2004.
+\newblock \href {https://doi.org/10.1007/978-3-540-24671-8_1}
+  {\path{doi:10.1007/978-3-540-24671-8_1}}.
+
+\bibitem{triggs1999}
+B.~Triggs, P.~McLauchlan, R.~Hartley, and A.~Fitzgibbon.
+\newblock Bundle adjustment --- a modern synthesis.
+\newblock In {\em International Workshop on Vision Algorithms}, pages 298--372,
+  1999.
+\newblock \href {https://doi.org/10.1007/3-540-44480-7_21}
+  {\path{doi:10.1007/3-540-44480-7_21}}.
+
+\bibitem{weber2023_poba}
+S.~Weber, N.~Demmel, and D.~Cremers.
+\newblock Power bundle adjustment for large-scale 3{D} reconstruction.
+\newblock In {\em Proceedings of the IEEE/CVF Conference on Computer Vision and
+  Pattern Recognition (CVPR)}, pages 281--289, 2023.
+\newblock \href {https://doi.org/10.1109/CVPR52729.2023.00035}
+  {\path{doi:10.1109/CVPR52729.2023.00035}}.
+
+\bibitem{stereocomplex}
+J.-F. Witz.
+\newblock {StereoComplex}: Non-central stereo calibration framework, 2025.
+\newblock URL: \url{https://github.com/jeffwitz/StereoComplex}.
+
+\bibitem{zernike1934}
+F.~Zernike.
+\newblock Diffraction theory of the knife-edge test and its improved form, the
+  phase-contrast method.
+\newblock {\em Monthly Notices of the Royal Astronomical Society}, 94:377--384,
+  1934.
+\newblock \href {https://doi.org/10.1093/mnras/94.5.377}
+  {\path{doi:10.1093/mnras/94.5.377}}.
+
+\bibitem{zhang2006_microdic}
+D.~Zhang, M.~Luo, and D.~D. Arola.
+\newblock Displacement/strain measurements using an optical microscope and
+  digital image correlation.
+\newblock {\em Optical Engineering}, 45(3):033605, 2006.
+\newblock \href {https://doi.org/10.3788/iop57.021506}
+  {\path{doi:10.3788/iop57.021506}}.
+
+\bibitem{zhang2000}
+Z.~Zhang.
+\newblock A flexible new technique for camera calibration.
+\newblock {\em IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  22(11):1330--1334, 2000.
+\newblock \href {https://doi.org/10.1109/34.888718}
+  {\path{doi:10.1109/34.888718}}.
+
+\end{thebibliography}
