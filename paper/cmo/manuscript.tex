@@ -166,7 +166,7 @@ where $k$ is the total number of parameters (Zernike coefficients + poses), $N_{
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/BIC_vs_order.pdf}
-\caption{Zernike order selection by BIC. Pixel RMS decreases monotonically with more parameters (from \SI{0.47}{px} at 57~params to \SI{0.41}{px} at 141~params), but BIC penalises complexity. The BIC minimum is at O(1)+d(3) (93~params, BIC~= $-5093$, RMS~= \SI{0.41}{px}), though O(0)+d(2) (57~params, BIC~= $-4522$) is within $\sim$10\,\% in RMS at 40\,\% fewer parameters. The O(0)+d(2) model (57~params, \SI{0.47}{px}) is selected for physical model construction because it is internally consistent with the rigid-sub-pupil CMO assumption, achieves \SI{90}{\percent} of the noise-floor accuracy at nearly half the parameters of the BIC minimum, and the marginal improvement above d(2) falls within corner detection noise.}
+\caption{Zernike order selection by BIC. Pixel RMS falls from \SI{0.47}{px} at 57~params to \SI{0.41}{px} near the BIC minimum (93~params) and then saturates within corner-detection noise (it is not strictly monotonic beyond, varying by $<\SI{0.005}{px}$ up to 141~params), but BIC penalises complexity. The BIC minimum is at O(1)+d(3) (93~params, BIC~= $-5093$, RMS~= \SI{0.41}{px}), though O(0)+d(2) (57~params, BIC~= $-4522$) is within $\sim$10\,\% in RMS at 40\,\% fewer parameters. The O(0)+d(2) model (57~params, \SI{0.47}{px}) is selected for physical model construction because it is internally consistent with the rigid-sub-pupil CMO assumption, achieves \SI{90}{\percent} of the noise-floor accuracy at nearly half the parameters of the BIC minimum, and the marginal improvement above d(2) falls within corner detection noise.}
 \label{fig:bic_order}
 \end{figure}
 
@@ -218,7 +218,7 @@ O_c(u,v) = \sum_{m} a_{c,m}^O \, Z_m(\tilde{u},\tilde{v}), \qquad
 d_c(u,v) = \operatorname{normalize}\!\left(d_c^{\text{pinhole}}(u,v) + \sum_{m \le d_{\text{max}}} a_{c,m}^d \, Z_m(\tilde{u},\tilde{v})\right),
 \end{equation}
 where $Z_m$ are the real-valued Zernike polynomials on the unit disk, $\tilde{u},\tilde{v}$ are normalised pixel coordinates mapping the sensor to $[-1,1]^2$, $d_c^{\text{pinhole}}$ is the initial pinhole direction from a fixed central projection matrix $K$, and the direction perturbation is projected transverse to $d_c^{\text{pinhole}}$ before renormalisation.
-The expansion order for the origin field is $o_{\text{max}}$ and for the direction field is $d_{\text{max}}$; selecting $o_{\text{max}}=0$ and $d_{\text{max}}=2$ (see Section~2.1) gives 3 origin coefficients and 18 direction coefficients per channel.
+The expansion order for the origin field is $o_{\text{max}}$ and for the direction field is $d_{\text{max}}$; selecting $o_{\text{max}}=0$ and $d_{\text{max}}=2$ (see \S\ref{sec:bic_order}) gives 3 origin coefficients and 18 direction coefficients per channel.
 
 \subsection{Ray-Space Bundle Adjustment}
 
@@ -1022,7 +1022,7 @@ J.-F. Witz conceived the study, developed the StereoComplex framework, implement
 
 \section*{Acknowledgments}
 
-The author thanks Claude (Anthropic) and ChatGPT (OpenAI) for assistance with code generation, manuscript drafting, and critical review of the documentation.
+During the preparation of this work the author used AI assistants (Claude, Anthropic; ChatGPT, OpenAI) to help develop and debug the Python analysis and figure-generation code, and to edit the language of the manuscript. No part of the scientific content was generated autonomously: all code, numerical results, figures, and physical interpretations were checked against the data and are the sole responsibility of the author.
 
 \section*{Code and Data Availability}
 
