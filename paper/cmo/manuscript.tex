@@ -161,7 +161,7 @@ We sweep $o \in \{0,1,2\}$ and $d \in \{2,3,4\}$ (7 combinations) and select the
 \begin{equation}
 \text{BIC}_{\text{px}} = k \log(N_{\text{obs}}) + N_{\text{obs}} \log(\text{RSS}_{\text{px}} / N_{\text{obs}}),
 \end{equation}
-where $k$ is the total number of parameters (Zernike coefficients + poses), $N_{\text{obs}} = 3300$ corner observations, and $\text{RSS}_{\text{px}}$ is the sum of squared pixel-equivalent residuals.
+where $k$ is the total number of parameters (Zernike coefficients + poses), $N_{\text{obs}} = 3300$ corner observations, and $\text{RSS}_{\text{px}}$ is the sum of squared pixel-equivalent residuals. The BIC treats these 3300 corners as independent Gaussian observations; corners within a frame are in fact spatially correlated, so the absolute BIC magnitudes are optimistic. The \emph{family}-level selection used here is nonetheless robust: the gaps between optical families ($\Delta\text{BIC} > \num{40000}$) dwarf any plausible reduction in the effective sample size.
 
 \begin{figure}[!htbp]
 \centering
@@ -380,7 +380,7 @@ We introduce an \textbf{operational usability score} that adds a hard reprojecti
 \begin{equation}
 S_{\mathrm{usable}} = \text{BIC}_{\text{ray}} + \mathbf{1}_{e_{\text{px}} > \SI{1.5}{px}} \left[10^6 + N_{\text{px}} \log\left(\frac{e_{\text{px}}^2}{1.5^2}\right)\right].
 \end{equation}
-Figure~\ref{fig:bicbars} and Table~\ref{tab:bic} report the usability-filtered model selection: the 14p telecentric model is rejected ($S_{\mathrm{usable}} \approx +978\,890$); the 26p SE(3)-aligned model is selected as the best usable physical model ($S_{\mathrm{usable}} \approx -32\,433$).
+Figure~\ref{fig:bicbars} and Table~\ref{tab:bic} report the usability-filtered model selection: the 14p telecentric model is rejected ($S_{\mathrm{usable}} \approx +978\,890$); the 26p SE(3)-aligned model is selected as the best usable physical model ($S_{\mathrm{usable}} \approx -32\,433$). The \SI{1.5}{px} threshold is an engineering convenience, not a tuned hyperparameter: the usable model (\SI{1.06}{px}) and the rejected families ($\ge\SI{14.6}{px}$ for the 14p telecentric, $>\SI{300}{px}$ for OpenCV) are separated by more than an order of magnitude, so any guard in the range ${\sim}2$--$\SI{14}{px}$ yields the identical selection.
 
 \begin{figure}[!htbp]
 \centering
@@ -586,7 +586,7 @@ Table~\ref{tab:pose_sweep} reports pixel RMS and effective geometric descriptors
 
 \begin{table}[H]
 \centering
-\caption{Pose sweep: pixel RMS and effective-descriptor stability vs.\ number of frames (all descriptors in the rayfield gauge with $f_x=25600$~px).}
+\caption{Pose sweep: pixel RMS and effective-descriptor stability vs.\ number of frames (all descriptors in the rayfield gauge with $f_x=25600$~px). Each row is an independent refit on $N$ frames; the $N{=}10$ value (\SI{1.07}{px}) reproduces the main-text calibration (\SI{1.06}{px}, full pipeline) to within refit noise.}
 \label{tab:pose_sweep}
 \begin{tabular}{lrrrrr}
 \toprule
@@ -612,7 +612,7 @@ The rational model, with the most parameters (14 intrinsics per camera), still f
 The best OpenCV configuration achieves $>$\SI{300}{px} RMS, compared to \SI{1.06}{px} for our 26-parameter CMO+SE(3) model.
 This confirms that the failure is structural (central projection assumption), not a matter of under-parameterised distortion.
 
-\subsection{Geometric Descriptor Validation}
+\subsection{Geometric Descriptor Consistency}
 \label{sec:descriptor_validation}
 
 The manufacturer documentation identifies the instrument as a Leica~M205C common-main-objective (CMO) stereomicroscope, equipped with a Planapo 1.0$\times$ objective, an HD-V photo/video tube, a 1.0$\times$ video/photo objective and a 1.0$\times$ C-mount adapter. For the Planapo 1.0$\times$ configuration, Leica specifies a working distance of \SI{61.5}{mm}~\cite{leica_m205c}. The datasheet does \emph{not}, however, disclose the effective CMO stereo baseline, the sub-pupil positions, or the convergence angle---the internal geometry of the shared-objective design. These quantities are recovered here from the Zernike rayfield rather than read from the documentation, which is precisely where the rayfield is informative.
@@ -880,7 +880,7 @@ Convergence angle      & $\theta$           & \SI{22.6}{\degree} \\
 \toprule
 Variant & Params & Ray RMS (mm) & Px RMS (px) & P50 (px) & P95 (px) \\
 \midrule
-Telecentric baseline  & 14 & 0.048 & 14.6 & 13.2 & 22.4 \\
+Telecentric baseline  & 14 & 0.12 & 14.6 & 13.2 & 22.4 \\
 + Rotation only       & 20 & 0.014 & 3.74 & 2.68 & 7.13 \\
 + Translation only    & 20 & 0.010 & 2.44 & 2.06 & 4.15 \\
 \textbf{+ Full SE(3)} & \textbf{26} & \textbf{0.0021} & \textbf{1.06} & \textbf{0.87} & \textbf{1.84} \\
