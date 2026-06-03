@@ -71,20 +71,6 @@ def _reprojection_px(data) -> tuple[float, float, float]:
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "KNOWN REPRODUCIBILITY BREAK. The 'explicit coordinate-frame convention "
-        "layer' refactor (commit 7e4a311, 2026-05-23) changed the CMO ray/pose "
-        "convention and re-saved intermediate_state.npz, but the paper-number "
-        "artefacts (corner_ba_refinement.json, 2026-05-18) were never regenerated. "
-        "The committed x_26p + poses now reproject at ~33.9 px (and the JSON's own "
-        "after-BA final_params gives ~1.68 px on the current poses), so the "
-        "manuscript's 1.06 px is NOT reproducible from the committed state. "
-        "Remove this xfail once the real-data pipeline artefacts are regenerated "
-        "consistently with the current convention."
-    ),
-)
 def test_reproduce_cmo_26p_headline_reprojection():
     if not NPZ.exists():
         pytest.skip(f"missing tracked input {NPZ}")

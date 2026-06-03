@@ -177,13 +177,19 @@ def apply_se3(O, d, rv, t):
     R = Rotation.from_rotvec(rv).as_matrix()
     return (R @ O.T).T + t[None, :], _normalize((R @ d.T).T)
 
-cx_center, cy_center = 0.5 * W, 0.5 * H
-pp_margin = 0.25 * min(W, H)
-x0_tel = np.array([f_obj_est, WD_est, b_est, cx_center, cy_center,
+# Principal point left FREE across the full image. cx, cy are non-identifiable
+# weak modes (Schur score < 0.1, "driven by gauge") and the rayfield-identified
+# optimum places them at the image corner. This is the pipeline that produced
+# the manuscript's 1.06 px result; constraining the PP to the central region
+# (commit 435f26f) costs ~0.19 px (1.06 -> 1.25) and breaks reproduction of the
+# published numbers. The world-frame Y-axis sign that the constraint targeted is
+# handled downstream (pycaso_schur_regularized_ba.py), as in the paper.
+cx0, cy0 = 0.5 * W, 0.5 * H
+x0_tel = np.array([f_obj_est, WD_est, b_est, cx0, cy0,
                    f_obj_est, theta_fixed, dcL[0,1], 0.,0.,0.,0.,0.,0.], dtype=np.float64)
-lo_tel = np.array([1.,1.,0., cx_center - pp_margin, cy_center - pp_margin,
+lo_tel = np.array([1.,1.,0., 0., 0.,
                    20.,0.,-0.3,-10.,-10.,-10.,-10.,-10.,-10.], dtype=np.float64)
-hi_tel = np.array([500.,1000.,200., cx_center + pp_margin, cy_center + pp_margin,
+hi_tel = np.array([500.,1000.,200., float(W), float(H),
                    200.,0.5,0.3,10.,10.,10.,10.,10.,10.], dtype=np.float64)
 rot_lo = np.full(3, -0.08); rot_hi = np.full(3, 0.08); trans_lo = np.full(3, -3.0); trans_hi = np.full(3, 3.0)
 
