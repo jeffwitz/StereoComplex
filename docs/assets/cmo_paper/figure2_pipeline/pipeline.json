@@ -12,7 +12,7 @@
     "label": "OUTPUT",
     "lines": [
       "26-param CMO + SE(3)",
-      "1.06 px RMS"
+      "1.06 px init → 0.28 px (Schur BA)"
     ]
   },
   "stages": [
