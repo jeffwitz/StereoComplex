@@ -6,12 +6,19 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-# These limits are intentionally broad: they catch broken plumbing or severe numerical
-# regressions without freezing the current optimizer to an over-specific solution.
-RAW_STEREO_RMS_MAX = 5.0
-REFINED_STEREO_RMS_MAX = 5.0
-TRAIN_SKEW_P95_MAX_MM = 100.0
-TRAIN_POINT_TO_RAY_P95_MAX_MM = 100.0
+# Regression bounds anchored on the measured values for the versioned sample
+# scene (dataset/v0_png/train/scene_0000), with a margin for optimizer jitter.
+# Measured: raw OpenCV stereo RMS = 0.61 px, rayfield-refined = 0.39 px,
+# baselines ~172 mm; rayfield3d train skew P95 = 1.01 mm, point-to-ray P95 =
+# 1.32 mm. These bounds catch a real regression (~2x degradation trips them),
+# unlike the previous 5 px / 100 mm limits that let a 10-1000x regression pass.
+RAW_STEREO_RMS_MAX = 1.0
+REFINED_STEREO_RMS_MAX = 0.7
+BASELINE_MM_LO = 140.0
+BASELINE_MM_HI = 210.0
+BASELINE_AGREEMENT_MM = 10.0
+TRAIN_SKEW_P95_MAX_MM = 2.0
+TRAIN_POINT_TO_RAY_P95_MAX_MM = 2.5
 MIN_POINTS_TOTAL = 20
 
 
@@ -46,8 +53,16 @@ def test_opencv_raw_and_refined_regression_metrics() -> None:
     assert refined.report.n_stereo_frames >= 2
     assert raw.report.stereo_rms_px < RAW_STEREO_RMS_MAX
     assert refined.report.stereo_rms_px < REFINED_STEREO_RMS_MAX
-    assert np.isfinite(raw.report.baseline_mm)
-    assert np.isfinite(refined.report.baseline_mm)
+    # Refinement must actually improve the stereo RMS over the raw OpenCV fit.
+    assert refined.report.stereo_rms_px < raw.report.stereo_rms_px, (
+        f"rayfield refinement did not improve RMS: "
+        f"raw={raw.report.stereo_rms_px:.4f} px, refined={refined.report.stereo_rms_px:.4f} px"
+    )
+    # Baselines must be physically plausible and the two methods must agree.
+    for b in (raw.report.baseline_mm, refined.report.baseline_mm):
+        assert np.isfinite(b)
+        assert BASELINE_MM_LO < b < BASELINE_MM_HI, f"baseline out of range: {b:.2f} mm"
+    assert abs(raw.report.baseline_mm - refined.report.baseline_mm) < BASELINE_AGREEMENT_MM
 
 
 @pytest.mark.slow

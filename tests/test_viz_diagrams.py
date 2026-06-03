@@ -29,6 +29,8 @@ def test_diagram_renders_without_error(builder, kwargs):
 
     fig, ax = plt.subplots(figsize=(4, 3))
     builders[builder](ax=ax, **kwargs)
+    # Beyond "does not raise": the builder must actually draw something.
+    assert ax.has_data(), f"{builder} diagram drew no artists"
     plt.close(fig)
 
 
@@ -44,4 +46,5 @@ def test_cmo_diagram_from_real_model():
     )
     fig, ax = plt.subplots(figsize=(4, 3))
     diagram_cmo_physical(ax, model=model, exaggerated=False)
+    assert ax.has_data(), "CMO diagram drew no artists"
     plt.close(fig)

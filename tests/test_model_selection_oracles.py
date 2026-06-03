@@ -40,9 +40,21 @@ def test_each_oracle_has_left_right_ray_methods():
 
 
 def test_each_oracle_has_expected_winner():
-    for o in build_all_oracles():
-        assert isinstance(o.expected_winner, str)
-        assert len(o.expected_winner) > 0
+    # Pin the expected winning model family per oracle. A bare isinstance/len
+    # check would not catch a mislabelled oracle or a silently changed winner;
+    # this golden map ties each synthetic ground-truth scene to the family the
+    # model-selection pipeline is meant to recover (exercised end-to-end in
+    # test_physical_model_selection.py).
+    expected = {
+        "central pinhole": "central_pinhole",
+        "central Brown-Conrady": "central_brown_conrady",
+        "inclined parallel plate": "pinhole_parallel_plate",
+        "CMO shared-rig": "cmo_physical_shared",
+        "Greenough (Brown-Conrady x2)": "central_brown_conrady",
+        "uncatalogued Zernike": "zernike_compact",
+    }
+    winners = {o.name: o.expected_winner for o in build_all_oracles()}
+    assert winners == expected
 
 
 def test_cmo_oracle_has_identifiable_quantities():
