@@ -438,7 +438,7 @@ Schur-coupling values for the other oracles (pinhole, Brown-Conrady, parallel-pl
 
 To assess which individual parameters are identifiable after pose marginalisation, we project each of the 26 unit parameter directions onto the strong subspace (the span of eigenvectors with $\lambda_i/\lambda_{\max} \ge 10^{-3}$). The fraction of variance retained defines an \textbf{identifiability score} $\in[0,1]$. Parameters with score $>0.5$ are considered \emph{identified} (well-observed independently of poses); parameters with score $<0.1$ are \emph{effective} (their value is driven by the gauge and regularisation, not by the data).
 
-Only four parameters are identified: the shear coefficients $s_x^L$, $s_y^L$, $s_x^R$, $s_y^R$ (scores $0.89$--$0.92$). These encode the dominant telecentric asymmetry and are robustly determined. Two SE(3) x-rotations ($rv_L^x$, $rv_R^x$, scores $\sim$0.28) and the two y-translations ($t_L^y$, $t_R^y$, scores $\sim$0.22) are partially identifiable. All other parameters---including the focal lengths $f_{\text{obj}}$, $f_{\text{angular}}$, the working distance $WD$, the baseline $b$, the principal point $(c_x, c_y)$, and the remaining SE(3) components---fall below $0.1$: their individual values are effective rather than absolute, and only the linear combinations captured by the strong modes carry information independent of the pose gauge.
+Only four parameters are identified: the shear coefficients $s_x^L$, $s_y^L$, $s_x^R$, $s_y^R$ (scores $0.89$--$0.92$). These encode the dominant telecentric asymmetry and are robustly determined. Two SE(3) x-rotations ($rv_L^x$, $rv_R^x$, scores $\sim$0.28) and the two y-translations ($t_L^y$, $t_R^y$, scores $\sim$0.22) are partially identifiable. All other parameters---including the effective axial length $f_{\text{obj}}$, the angular focal length $f_{\text{angular}}$, the working distance $WD$, the baseline $b$, the principal point $(c_x, c_y)$, and the remaining SE(3) components---fall below $0.1$: their individual values are effective rather than absolute, and only the linear combinations captured by the strong modes carry information independent of the pose gauge.
 
 This confirms that the 26-parameter model provides \emph{effective relative identification}: the compact physical skeleton (shear, telecentric structure) is data-supported, while the geometric scale (WD, $b$, $f_{\text{obj}}$) and most SE(3) components are absorbed by the rayfield gauge and pose coupling. The term ``identification'' in this work refers to the ray-space residual structure that selects the CMO family and its dominant asymmetries, not to the absolute metrological determination of every individual parameter.
 
@@ -837,7 +837,7 @@ CMO 26~p --- BA + \textbf{Schur prior} ($\alpha{=}10^{-3}$) & \textbf{0.027} & 0
 \input{tables/model_comparison.tex}
 
 The 26-parameter CMO+SE(3) model achieves \SI{1.06}{px} reprojection with less than half the parameters of the Zernike reference.
-It has a physically interpretable parameterisation: sub-pupils, focal length, telecentric slopes, and SE(3) arm corrections.
+It has a physically interpretable parameterisation: sub-pupils, effective axial length, telecentric slopes, and SE(3) arm corrections.
 
 \begin{figure}[!htbp]
 \centering
@@ -866,7 +866,7 @@ Descriptor & Symbol & Value \\
 Stereo baseline        & $b$                & \SI{24.9}{mm} \\
 Sub-pupil depth        & $z_p$              & \SI{2.5}{mm}  \\
 Working distance       & $WD$               & \SI{64.7}{mm} \\
-Objective focal length & $f_{\text{obj}}$   & \SI{62.2}{mm} \\
+Effective axial length & $f_{\text{obj}}$   & \SI{62.2}{mm} \\
 Convergence angle      & $\theta$           & \SI{22.6}{\degree} \\
 \bottomrule
 \end{tabular}
