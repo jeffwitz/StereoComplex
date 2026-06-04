@@ -94,7 +94,7 @@ The contributions are:
   \item A complete pipeline from raw ChArUco images to a compact 26-parameter physical CMO model, validated on real data. The model provides \emph{effective} identification: the shear coefficients and telecentric skeleton are data-supported, while geometric scale parameters (WD, $b$, $f_{\text{obj}}$) and most SE(3) components are absorbed by the rayfield gauge and pose coupling (see \S\ref{sec:schur_conditioning} for a per-parameter identifiability analysis).
   \item A residual analysis method---Zernike modal decomposition of direction and moment differences between a candidate physical model and the measured rayfield---that identifies missing degrees of freedom.
   \item A two-level model-selection framework: ray-space BIC is used to identify the optical family, while a separate operational reprojection guard rejects models whose pixel RMS is not usable for calibration.
-    \item Demonstration that the Zernike rayfield serves a \emph{double role} in direct bundle adjustment: (i)~as an initialiser, it places the BA in the correct convergence basin, improving pixel RMS from \SI{1.06}{px} to \SI{0.88}{px} (\SI{+17}{\percent}) while leaving all 26 model parameters unchanged to within $10^{-3}$; (ii)~as an \emph{observability prior}, the Schur complement of the Fisher information matrix at the rayfield solution defines an anisotropic penalty that suppresses optics--pose compensation---the prior reduces weak-mode parameter drift by a factor of $280\times$ (from 0.93 to 0.0033) at a cost of only \SI{0.038}{px} in 2-D reprojection RMS. In the free-pose Schur-stabilised BA, the 26-parameter physical model reaches \SI{0.28}{px}---within \SI{0.1}{px} of the Soloff polynomial floor---with its optics held in the observable subspace rather than drifting into the unobservable directions that the unregularised optimum (\SI{0.24}{px}) exploits.
+    \item Demonstration that the Zernike rayfield serves a \emph{double role} in direct bundle adjustment: (i)~as an initialiser, it places the BA in the correct convergence basin, improving pixel RMS from \SI{1.06}{px} to \SI{0.88}{px} (\SI{+17}{\percent}) while leaving all 26 model parameters unchanged to within $10^{-3}$; (ii)~as an \emph{observability prior}, the Schur complement of the Fisher information matrix at the rayfield solution defines an anisotropic penalty that suppresses optics--pose compensation---the prior reduces weak-mode parameter drift by a factor of $280\times$ (from 0.93 to 0.0033) at a cost of only \SI{0.038}{px} in 2D reprojection RMS. In the free-pose Schur-stabilised BA, the 26-parameter physical model reaches \SI{0.28}{px}---within \SI{0.1}{px} of the Soloff polynomial floor---with its optics held in the observable subspace rather than drifting into the unobservable directions that the unregularised optimum (\SI{0.24}{px}) exploits.
 \end{enumerate}
 
 % ======================================================================
@@ -215,7 +215,7 @@ This eliminates one redundant degree of freedom per ray and stabilises the param
 The origin and direction fields are expanded on a Zernike polynomial basis \cite{zernike1934,noll1976}:
 \begin{equation}
 O_c(u,v) = \sum_{m} a_{c,m}^O \, Z_m(\tilde{u},\tilde{v}), \qquad
-d_c(u,v) = \operatorname{normalize}\!\left(d_c^{\text{pinhole}}(u,v) + \sum_{m \le d_{\text{max}}} a_{c,m}^d \, Z_m(\tilde{u},\tilde{v})\right),
+d_c(u,v) = \operatorname{normalise}\!\left(d_c^{\text{pinhole}}(u,v) + \sum_{m \le d_{\text{max}}} a_{c,m}^d \, Z_m(\tilde{u},\tilde{v})\right),
 \end{equation}
 where $Z_m$ are the real-valued Zernike polynomials on the unit disk, $\tilde{u},\tilde{v}$ are normalised pixel coordinates mapping the sensor to $[-1,1]^2$, $d_c^{\text{pinhole}}$ is the initial pinhole direction from a fixed central projection matrix $K$, and the direction perturbation is projected transverse to $d_c^{\text{pinhole}}$ before renormalisation.
 The expansion order for the origin field is $o_{\text{max}}$ and for the direction field is $d_{\text{max}}$; selecting $o_{\text{max}}=0$ and $d_{\text{max}}=2$ (see \S\ref{sec:bic_order}) gives 3 origin coefficients and 18 direction coefficients per channel.
@@ -288,7 +288,7 @@ O_c = S_c = (\pm b/2,\; 0,\; WD - f_{\text{obj}}),
 where the sign is $+$ for right and $-$ for left.
 The direction field is an affine function of normalised angular coordinates $\tilde{u} = (u - c_x)p/f_{\text{ang}}$, $\tilde{v} = (v - c_y)p/f_{\text{ang}}$, where $p$ is the pixel pitch, $f_{\text{ang}}$ is the angular focal length, and $(c_x, c_y)$ is the principal point:
 \begin{equation}
-d_c(u,v) = \operatorname{normalize}\!\left(d_{c,0} + s_{x,c}\,\tilde{u}\,e_x + s_{y,c}\,\tilde{v}\,e_y + s_{xy,c}\,\tilde{u}\,\tilde{v}\,e_x + s_{yx,c}\,\tilde{v}\,\tilde{u}\,e_y\right),
+d_c(u,v) = \operatorname{normalise}\!\left(d_{c,0} + s_{x,c}\,\tilde{u}\,e_x + s_{y,c}\,\tilde{v}\,e_y + s_{xy,c}\,\tilde{u}\,\tilde{v}\,e_x + s_{yx,c}\,\tilde{v}\,\tilde{u}\,e_y\right),
 \end{equation}
 where $d_{c,0} = (\pm\sin\theta,\; d_y^{\text{com}},\; \cos\theta)$ is the chief-ray direction, with $\theta$ the convergence half-angle and $d_y^{\text{com}}$ a shared vertical component.
 
@@ -385,7 +385,7 @@ Figure~\ref{fig:bicbars} and Table~\ref{tab:bic} report the usability-filtered m
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.85\textwidth]{figures/pareto_gauge_regularization.pdf}
-\caption{Pareto frontier of the gauge-regularized Zernike sweep. Pixel RMS vs.\ $Z_0$ direction drift for varying regularization strengths $\sigma_{Z_0},\sigma_{Z_1}$. The near-vertical Pareto curve confirms that after double TPS preprocessing, even the unregularized full-pose fit has negligible gauge drift ($0.023^\circ$). Regularization is unnecessary when 2D corners are sufficiently clean.}
+\caption{Pareto frontier of the gauge-regularised Zernike sweep. Pixel RMS vs.\ $Z_0$ direction drift for varying regularisation strengths $\sigma_{Z_0},\sigma_{Z_1}$. The near-vertical Pareto curve confirms that after double TPS preprocessing, even the unregularised full-pose fit has negligible gauge drift ($0.023^\circ$). Regularisation is unnecessary when 2D corners are sufficiently clean.}
 \label{fig:pareto}
 \end{figure}
 
@@ -463,7 +463,7 @@ In contrast, the direct approach---jointly estimating optics and poses from corn
 \subsection{Stabilising Direct BA with a Schur-Complement Prior}
 \label{sec:schur_prior}
 
-The corner BA of Section~\ref{sec:corner_ba} improves the 2-D pixel reprojection RMS by \SI{17}{\percent} without altering the physical model. However, the Schur-complement diagnostic of Section~\ref{sec:schur_conditioning} reveals that the Fisher information matrix at the rayfield solution $\theta_0$ has weak eigenmodes---directions in parameter space where a small change in optics can be nearly perfectly compensated by a change in board poses. An unregularised BA can drift along these modes, trading physical interpretability for marginal reprojection gains.
+The corner BA of Section~\ref{sec:corner_ba} improves the 2D pixel reprojection RMS by \SI{17}{\percent} without altering the physical model. However, the Schur-complement diagnostic of Section~\ref{sec:schur_conditioning} reveals that the Fisher information matrix at the rayfield solution $\theta_0$ has weak eigenmodes---directions in parameter space where a small change in optics can be nearly perfectly compensated by a change in board poses. An unregularised BA can drift along these modes, trading physical interpretability for marginal reprojection gains.
 
 \subsubsection{Schur-Eigenmode Prior}
 
@@ -497,7 +497,7 @@ The sweep in this section intentionally \emph{releases the pose constraint}: eac
 The resulting unregularised RMS (\SI{0.241}{px}) is lower than the constrained-pose BA precisely because the free poses can absorb residual rayfield errors---which is exactly the compensation the Schur prior is designed to prevent.
 The two RMS values should not be conflated: the \SI{0.88}{px} is the operational calibration result; the \SI{0.241}{px} is a diagnostic upper bound obtained by deliberately exposing the ill-conditioned coupling.
 
-An isotropic (Tikhonov) prior $\mathcal{L}_{\text{iso}} = \alpha \|D_\theta^{-1}(\theta - \theta_0)\|^2$ serves as a baseline. Both priors are swept over $\alpha \in \{10^{-4}, 10^{-3}, 10^{-2}, 10^{-1}, 1, 10\}$ with free per-frame poses (200~nfev, soft-L1 loss). The 2-D reprojection RMS is computed by numerical projection (Appendix~\ref{sec:reprojection_appendix}).
+An isotropic (Tikhonov) prior $\mathcal{L}_{\text{iso}} = \alpha \|D_\theta^{-1}(\theta - \theta_0)\|^2$ serves as a baseline. Both priors are swept over $\alpha \in \{10^{-4}, 10^{-3}, 10^{-2}, 10^{-1}, 1, 10\}$ with free per-frame poses (200~nfev, soft-L1 loss). The 2D reprojection RMS is computed by numerical projection (Appendix~\ref{sec:reprojection_appendix}).
 
 \begin{table}[H]
 \centering
@@ -712,11 +712,11 @@ it learns ``pixel (500, 1300) emits a ray that must intersect the corresponding 
 
 We deliberately do not convert the Zernike 3D error to a pixel-equivalent: that conversion factor depends on the local ray geometry (pixel pitch, working distance, ray obliquity) and the inverse map is, moreover, ill-conditioned at the microscope's magnification ($f_x=25600$~px gives $\partial d/\partial u \approx \SI{2.5}{\micro\metre/px}$, so a sub-millimetre ray miss displaces the inverted pixel by tens of pixels). The degradation ratio of Table~\ref{tab:extrapolation} sidesteps this by comparing each family in its native metric.
 
-A complementary and more direct comparison expresses \emph{both} models in a single physical metric---the 3-D reconstruction error in micrometres. This requires a shared board-pose reference: the absolute board pose is a gauge freedom that neither uncalibrated model fixes on its own, and comparing the Zernike reconstruction against the CMO-model poses alone would conflate the rayfield error with the sub-millimetre disagreement between the two bundle adjustments' pose estimates (an unaligned comparison inflates the Zernike error to ${\sim}\SI{500}{\micro\metre}$, almost entirely pose mismatch). We therefore freeze the poses and evaluate two symmetric protocols. \emph{(i) CMO-pose reference:} the Zernike rayfield is refitted with the board poses held fixed at the CMO-model values $\{R_i,t_i\}$---only the 180 rayfield coefficients are optimised---so both models share the exact pose set that the Soloff polynomial implicitly uses; a single global rigid (Kabsch) transform then removes the residual camera-to-world gauge of the triangulated points. \emph{(ii) Zernike-pose reference:} conversely, the per-frame poses self-consistent with the free-fit Zernike field are recovered by pose-only least squares, and the four Soloff polynomials are refitted against that geometry. Reporting both protocols brackets the reference dependence and tests whether the conclusion survives the choice of which model defines the board geometry.
+A complementary and more direct comparison expresses \emph{both} models in a single physical metric---the 3D reconstruction error in micrometres. This requires a shared board-pose reference: the absolute board pose is a gauge freedom that neither uncalibrated model fixes on its own, and comparing the Zernike reconstruction against the CMO-model poses alone would conflate the rayfield error with the sub-millimetre disagreement between the two bundle adjustments' pose estimates (an unaligned comparison inflates the Zernike error to ${\sim}\SI{500}{\micro\metre}$, almost entirely pose mismatch). We therefore freeze the poses and evaluate two symmetric protocols. \emph{(i) CMO-pose reference:} the Zernike rayfield is refitted with the board poses held fixed at the CMO-model values $\{R_i,t_i\}$---only the 180 rayfield coefficients are optimised---so both models share the exact pose set that the Soloff polynomial implicitly uses; a single global rigid (Kabsch) transform then removes the residual camera-to-world gauge of the triangulated points. \emph{(ii) Zernike-pose reference:} conversely, the per-frame poses self-consistent with the free-fit Zernike field are recovered by pose-only least squares, and the four Soloff polynomials are refitted against that geometry. Reporting both protocols brackets the reference dependence and tests whether the conclusion survives the choice of which model defines the board geometry.
 
 \begin{table}[H]
 \centering
-\caption{3-D reconstruction RMS (micrometres) on held-out extreme poses, with both models expressed against a shared board-pose reference. Two symmetric protocols bracket the reference dependence: poses frozen to the CMO model, or to the free-fit Zernike field. A single global rigid (Kabsch) transform, estimated on the training frames, removes the camera-to-world gauge. The qualitative ranking is invariant to the reference choice.}
+\caption{3D reconstruction RMS (micrometres) on held-out extreme poses, with both models expressed against a shared board-pose reference. Two symmetric protocols bracket the reference dependence: poses frozen to the CMO model, or to the free-fit Zernike field. A single global rigid (Kabsch) transform, estimated on the training frames, removes the camera-to-world gauge. The qualitative ranking is invariant to the reference choice.}
 \label{tab:extrapolation_3d}
 \begin{tabular}{lrcccc}
 \toprule
@@ -731,7 +731,7 @@ Zernike O(4)+d(4)  & 180 & 1.18 $\to$ 2.39 & 2.04$\times$        & 2.63 $\to$ 5.
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:extrapolation_3d} shows the ranking is invariant to the reference choice. In both protocols the 180-parameter Zernike rayfield \emph{matches the accuracy of the 40-parameter Soloff degree-2 fit} (\SI{1.2}{\micro\metre}/\SI{2.4}{\micro\metre} train/test under the CMO reference, \SI{2.6}{\micro\metre}/\SI{5.5}{\micro\metre} under the Zernike reference) and degrades by only ${\sim}2\times$, never collapsing. Soloff degree~3 attains the lowest training error in both references, but its degradation is reference-dependent: against the cleaner CMO geometry (the CMO model fits all ten frames jointly) it overfits sharply ($3.86\times$), consistent with its native pixel-metric collapse ($4.65\times$, Table~\ref{tab:extrapolation}); against the noisier Zernike-recovered geometry the same overfit is partly masked ($1.95\times$) because the ${\sim}\SI{2}{\micro\metre}$ pose-recovery floor inflates the training residual. The absolute micrometre values and the degree-3 overfit magnitude therefore depend on which model's poses define the reference---neither constitutes an external metrological truth, consistent with the absolute-scale caveats above---but the qualitative conclusion is robust across both: the Zernike rayfield buys 3-D geometric consistency and overfit resistance at the cost of ${\sim}\SI{0.2}{px}$, whereas a high-order Soloff polynomial maximises raw pixel accuracy at the risk of overfitting.
+Table~\ref{tab:extrapolation_3d} shows the ranking is invariant to the reference choice. In both protocols the 180-parameter Zernike rayfield \emph{matches the accuracy of the 40-parameter Soloff degree-2 fit} (\SI{1.2}{\micro\metre}/\SI{2.4}{\micro\metre} train/test under the CMO reference, \SI{2.6}{\micro\metre}/\SI{5.5}{\micro\metre} under the Zernike reference) and degrades by only ${\sim}2\times$, never collapsing. Soloff degree~3 attains the lowest training error in both references, but its degradation is reference-dependent: against the cleaner CMO geometry (the CMO model fits all ten frames jointly) it overfits sharply ($3.86\times$), consistent with its native pixel-metric collapse ($4.65\times$, Table~\ref{tab:extrapolation}); against the noisier Zernike-recovered geometry the same overfit is partly masked ($1.95\times$) because the ${\sim}\SI{2}{\micro\metre}$ pose-recovery floor inflates the training residual. The absolute micrometre values and the degree-3 overfit magnitude therefore depend on which model's poses define the reference---neither constitutes an external metrological truth, consistent with the absolute-scale caveats above---but the qualitative conclusion is robust across both: the Zernike rayfield buys 3D geometric consistency and overfit resistance at the cost of ${\sim}\SI{0.2}{px}$, whereas a high-order Soloff polynomial maximises raw pixel accuracy at the risk of overfitting.
 
 \subsection{Internal Validation}
 \label{sec:validation}
@@ -768,7 +768,7 @@ Descriptor readout therefore requires either an independently known optical scal
 
 A non-metrological sanity check validates the calibrated rayfields on an independent speckled coin specimen imaged with the same Pycaso microscope (single stereo pair, no ChArUco pattern).
 This is \textbf{not} absolute metrological validation---no ground-truth 3D data exists for the coin---but it confirms that the rayfields produce coherent dense reconstruction on data unseen during calibration.
-Dense left-to-right pixel correspondences are computed with DIS optical flow over a $1448{\times}1448$~px ROI; within the $1400{\times}1400$~px analysis window shown in Fig.~\ref{fig:specimen}, \SI{95.4}{\percent} of pixels carry a valid correspondence.
+Dense left-to-right pixel correspondences are computed with DIS optical flow over a $1448{\times}1448$~px ROI; within the $1400{\times}1400$~px analysis window shown in Figure~\ref{fig:specimen}, \SI{95.4}{\percent} of pixels carry a valid correspondence.
 For each correspondence, the two rays from the calibrated model are intersected at their closest point (ray-gap triangulation).
 
 \begin{figure}[!htbp]
@@ -787,13 +787,13 @@ OpenCV stereo reconstruction was not available because the standard OpenCV calib
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/zernike_cmo_rigid_removed.pdf}
-\caption{Rigid-gauge removal: Zernike vs CMO surface comparison. Top row: CMO and Zernike surfaces after plane-normalization (relief only). $\Delta Z$ raw and plane-normalized residuals. Bottom row: $\Delta Z$ before SE(3) alignment (dominated by an affine ramp, $R^2=0.995$), the fitted affine plane, and the residual histogram. After SE(3) alignment the two relief maps agree to a median plane-normalised $\Delta Z$ residual of \SI{0.0076}{mm} (the principal relief-comparison metric); the corresponding median 3D point-to-point residual drops from \SI{3.5}{mm} to \SI{0.019}{mm} (a \SI{99.5}{\percent} reduction). The interpretation is Case~A: the Zernike and CMO reconstructions differ by the CMO model's $v\!\to\!Y$ sign convention (a Y-axis reflection) plus a small (${\sim}\SI{8.6}{\degree}$) rigid rotation, not by a genuine non-rigid rayfield discrepancy. Once the reflection is removed the two relief maps agree in sign.}
+\caption{Rigid-gauge removal: Zernike vs CMO surface comparison. Top row: CMO and Zernike surfaces after plane-normalisation (relief only). $\Delta Z$ raw and plane-normalised residuals. Bottom row: $\Delta Z$ before SE(3) alignment (dominated by an affine ramp, $R^2=0.995$), the fitted affine plane, and the residual histogram. After SE(3) alignment the two relief maps agree to a median plane-normalised $\Delta Z$ residual of \SI{0.0076}{mm} (the principal relief-comparison metric); the corresponding median 3D point-to-point residual drops from \SI{3.5}{mm} to \SI{0.019}{mm} (a \SI{99.5}{\percent} reduction). The interpretation is Case~A: the Zernike and CMO reconstructions differ by the CMO model's $v\!\to\!Y$ sign convention (a Y-axis reflection) plus a small (${\sim}\SI{8.6}{\degree}$) rigid rotation, not by a genuine non-rigid rayfield discrepancy. Once the reflection is removed the two relief maps agree in sign.}
 \label{fig:rigid_removal}
 \end{figure}
 
 While the SE(3) alignment shows that both models reconstruct the same surface up to the CMO model's $v\!\to\!Y$ sign convention (a Y-axis reflection) and a small (${\sim}\SI{8.6}{\degree}$) rigid rotation, a residual depth-relief discrepancy remains: the Zernike reconstruction exhibits approximately \SI{43}{\percent} larger relief amplitude than the CMO 26p model (standard deviation ratio $1.43\times$, Figure~\ref{fig:rigid_removal}).
 To diagnose whether this represents a true scale difference or a depth-only effect, we fit three nested transformations from Zernike to CMO points on the matched specimen correspondences (\num{50000} subsampled points).
-An SE(3)-only fit (no scale) yields a median residual of \SI{0.009}{mm}, already confirming excellent geometric agreement. This \SI{0.009}{mm} is the SE(3)-only fit residual on the 50\,000 subsampled correspondences, distinct from the \SI{0.019}{mm} dense-map median 3D point-to-point residual reported in Fig.~\ref{fig:rigid_removal}.
+An SE(3)-only fit (no scale) yields a median residual of \SI{0.009}{mm}, already confirming excellent geometric agreement. This \SI{0.009}{mm} is the SE(3)-only fit residual on the 50\,000 subsampled correspondences, distinct from the \SI{0.019}{mm} dense-map median 3D point-to-point residual reported in Figure~\ref{fig:rigid_removal}.
 Adding a global isotropic scale (Sim(3)) produces an optimal scale factor $s = 1.00$, ruling out a uniform 3D magnification---the difference is not a simple focal-length or pixel-scale error.
 However, an anisotropic scale model with independent $(s_x, s_y, s_z)$ recovers $s_x \approx s_y \approx 1.00$ but $s_z \approx 0.70$, indicating a \textbf{depth-only scale difference} of approximately \SI{30}{\percent} (consistent with the $1.43\times$ relief-amplitude ratio above).
 The lateral dimensions $(x, y)$ are identical between the two reconstructions; only the reconstructed depth range differs.
@@ -983,8 +983,8 @@ A self-contained Zenodo archive provides the manuscript, all figures, tables, nu
 \label{sec:reprojection_appendix}
 % ======================================================================
 
-The CMO telecentric model defines a forward mapping $\texttt{ray}(u,v) \to (O, d)$ from pixel coordinates to a 3-D ray.
-Computing the 2-D reprojection error requires the inverse: given a 3-D point $X^{\text{cam}}$ in the camera frame, find the pixel $(u,v)$ whose ray passes through (or closest to) $X^{\text{cam}}$.
+The CMO telecentric model defines a forward mapping $\texttt{ray}(u,v) \to (O, d)$ from pixel coordinates to a 3D ray.
+Computing the 2D reprojection error requires the inverse: given a 3D point $X^{\text{cam}}$ in the camera frame, find the pixel $(u,v)$ whose ray passes through (or closest to) $X^{\text{cam}}$.
 For a non-central model, no closed-form inverse exists.
 We solve it numerically: for each observation, the predicted pixel is
 
@@ -1001,12 +1001,12 @@ P = O + \bigl((X^{\text{cam}} - O)\cdot d\bigr)\,d.
 \end{equation}
 
 The objective is the squared point-to-ray perpendicular distance.
-The minimization is performed with the L-BFGS-B algorithm \cite{byrd1995}, starting from the observed pixel $(u_{\text{obs}}, v_{\text{obs}})$, with bounds $[0, W{-}1] \times [0, H{-}1]$.
+The minimisation is performed with the L-BFGS-B algorithm \cite{byrd1995}, starting from the observed pixel $(u_{\text{obs}}, v_{\text{obs}})$, with bounds $[0, W{-}1] \times [0, H{-}1]$.
 Convergence tolerance is set to \texttt{ftol=}$10^{-12}$, \texttt{gtol=}$10^{-8}$.
 For the Pycaso dataset (10 frames, 165 corners, 2 channels; 3300 observations), the full reprojection computation takes approximately 35~seconds on a single CPU core.
 
-The 2-D reprojection residual for an observation is the vector $(u_{\text{pred}} - u_{\text{obs}},\; v_{\text{pred}} - v_{\text{obs}})$ in pixels.
-The 2-D RMS reported in Section~\ref{sec:schur_prior} and Table~\ref{tab:prior_sweep} is
+The 2D reprojection residual for an observation is the vector $(u_{\text{pred}} - u_{\text{obs}},\; v_{\text{pred}} - v_{\text{obs}})$ in pixels.
+The 2D RMS reported in Section~\ref{sec:schur_prior} and Table~\ref{tab:prior_sweep} is
 
 \begin{equation}
 \text{RMS}_{\text{2D}} = \sqrt{\frac{1}{N}\sum_{k=1}^{N} \bigl[(u_{\text{pred},k} - u_{\text{obs},k})^2 + (v_{\text{pred},k} - v_{\text{obs},k})^2\bigr]},
@@ -1014,9 +1014,9 @@ The 2-D RMS reported in Section~\ref{sec:schur_prior} and Table~\ref{tab:prior_s
 
 where $N = n_{\text{frames}} \times n_{\text{corners}} \times 2$ is the total number of observations.
 
-This numerical reprojection is used as a post-optimization diagnostic: the bundle adjustment itself minimizes the ray-space residual
+This numerical reprojection is used as a post-optimisation diagnostic: the bundle adjustment itself minimises the ray-space residual
 (:func:`point\_to\_ray\_residuals\_cmo\_se3` in the StereoComplex codebase), which is a forward evaluation and therefore faster and smoother.
-After convergence, the 2-D reprojection error is computed from the optimized parameters to obtain the pixel-equivalent metric reported in the paper.
+After convergence, the 2D reprojection error is computed from the optimised parameters to obtain the pixel-equivalent metric reported in the paper.
 
 
 \section*{Author Contributions}
