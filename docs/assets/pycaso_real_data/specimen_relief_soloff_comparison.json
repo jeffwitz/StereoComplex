@@ -1,0 +1,67 @@
+{
+  "description": "Plane-normalised specimen relief amplitude for Soloff (degree sweep), CMO 26p and Zernike 57p, on one common seeded sub-sample of the dense DIS correspondence field. All models share the same correspondences, so the relief amplitude ratio probes the disparity-to-depth gain.",
+  "caveat": "CIRCULARITY: this Soloff is re-fitted on calibration XYZ = obj_pts @ (opt_R, opt_t) taken from the CMO joint fit, and shares the fx=25600 gauge with the CMO model, so Soloff-vs-CMO agreement is partly inherited. The metrologically independent reference is the native profilometry-validated Pycaso Soloff applied to the same specimen.",
+  "inputs": {
+    "calibration": "intermediate_state.npz (corners + CMO-fit poses)",
+    "specimen_correspondences": "specimen_correspondences.npz",
+    "cmo_reconstruction": "specimen_reconstruction_cmo26.npz",
+    "zernike_reconstruction": "specimen_reconstruction_zernike.npz"
+  },
+  "method": {
+    "soloff_ridge": 0.001,
+    "soloff_degrees": [
+      2,
+      3,
+      4
+    ],
+    "regression_reference": "soloff_deg3",
+    "n_common_valid": 1943070,
+    "n_sample": 200000,
+    "seed": 0
+  },
+  "soloff_calibration_rms_um": {
+    "2": 1.3238835220717433,
+    "3": 1.1748831609880608,
+    "4": 1.143031200932007
+  },
+  "relief_full_set_std_mm": {
+    "cmo_26p": 0.02293124119234855,
+    "zernike_57p": 0.03313284625150643
+  },
+  "models": {
+    "soloff_deg2": {
+      "std_mm": 0.022259441993354046,
+      "mad_mm": 0.011852255425658598,
+      "std_over_ref": 0.9627798527092603,
+      "slope": 0.9457441037213322,
+      "r2": 0.9649244200158432
+    },
+    "soloff_deg3": {
+      "std_mm": 0.02311997070848131,
+      "mad_mm": 0.011965995708436594,
+      "std_over_ref": 1.0
+    },
+    "soloff_deg4": {
+      "std_mm": 0.023075712205328724,
+      "mad_mm": 0.011915582745686493,
+      "std_over_ref": 0.9980857024556545,
+      "slope": 0.9977235737458703,
+      "r2": 0.9992744851177928
+    },
+    "cmo_26p": {
+      "std_mm": 0.022867622483151093,
+      "mad_mm": 0.012000259475954067,
+      "std_over_ref": 0.9890852705432864,
+      "slope": 0.9803382945447268,
+      "r2": 0.9823912066735176
+    },
+    "zernike_57p": {
+      "std_mm": 0.03304137660380927,
+      "mad_mm": 0.01748637018062027,
+      "std_over_ref": 1.4291270962418825,
+      "slope": 1.4192970225404502,
+      "r2": 0.9862905598038758
+    }
+  },
+  "command": "PYTHONPATH=src rtk .venv/bin/python examples/notebooks/diagnose_specimen_relief_soloff.py"
+}
