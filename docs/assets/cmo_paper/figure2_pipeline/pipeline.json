@@ -1,6 +1,6 @@
 {
   "title": "Two-stage decomposition: measure rays first, identify optics second",
-  "subtitle": "Stage 1 stays in 2D (no 3D model assumption); Stage 2 identifies optics in ray space.",
+  "subtitle": "Stage 1 measures rays (Ray2D is 2D; Zernike BA imposes only generic 3D ray consistency, no physical CMO model); Stage 2 identifies optics in ray space.",
   "input": {
     "label": "INPUT",
     "lines": [
