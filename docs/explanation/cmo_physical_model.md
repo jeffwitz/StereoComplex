@@ -53,6 +53,8 @@ The shared rig parameters are:
 | $c_x,c_y$ | shared principal point in pixels |
 | $p$ | pixel pitch in mm, fixed from the sensor datasheet |
 | $\theta_y$ | small global tilt around the vertical axis |
+| $\theta_x$ | small global pitch around the horizontal axis |
+| $\Delta z_{\mathrm{tel}}$ | effective telecentric offset along the optical axis |
 
 Each channel also has Brown-Conrady coefficients
 
@@ -62,7 +64,7 @@ Each channel also has Brown-Conrady coefficients
 (k_1,k_2,p_1,p_2,k_3)_R.
 ```
 
-The default optimized vector has 17 scalars. The pixel pitch is fixed from
+The default optimized vector has 19 scalars. The pixel pitch is fixed from
 external sensor information, not optimized from ray geometry:
 
 ```{math}
@@ -75,10 +77,17 @@ f_{\mathrm{tube}},
 c_x,
 c_y,
 \theta_y,
+\theta_x,
+\Delta z_{\mathrm{tel}},
 \mathbf d_L,
 \mathbf d_R
 \right].
 ```
+
+Here $\Delta z_{\mathrm{tel}}$ is the effective telecentric offset. It is
+degenerate with $f_{\mathrm{obj}}$ through
+`z_pupil = Z_w - f_obj + telecentric_offset`, so only the combination
+$f_{\mathrm{obj}}-\Delta z_{\mathrm{tel}}$ is identifiable from ray geometry.
 
 An optional aligned-sensor mode adds two effective degrees of freedom:
 
@@ -90,7 +99,7 @@ An optional aligned-sensor mode adds two effective degrees of freedom:
 
 and analogously for `y`. This keeps the gauge centered while allowing the two
 sensor principal points to be shifted relative to each other. In that mode the
-optimized vector has 19 scalars. The horizontal relative offset can correlate
+optimized vector has 21 scalars. The horizontal relative offset can correlate
 with the fitted sub-pupil baseline, so the most robust validation remains the
 rayfield residual and recovered shared geometry.
 
