@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.10.8)  2 JUN 2026 15:07
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.10.8)  4 JUN 2026 13:23
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -736,141 +736,143 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `ntxtt' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
-<figures/cmo_physical.pdf, id=220, 270.6913pt x 237.04561pt>
+<figures/cmo_physical.pdf, id=219, 270.6913pt x 237.04561pt>
 File: figures/cmo_physical.pdf Graphic file (type pdf)
 <use figures/cmo_physical.pdf>
 Package pdftex.def Info: figures/cmo_physical.pdf  used on input line 71.
 (pdftex.def)             Requested size: 385.02547pt x 337.17136pt.
-<figures/pipeline.pdf, id=221, 602.73178pt x 766.06201pt>
+<figures/pipeline.pdf, id=220, 803.11922pt x 823.87799pt>
 File: figures/pipeline.pdf Graphic file (type pdf)
 <use figures/pipeline.pdf>
 Package pdftex.def Info: figures/pipeline.pdf  used on input line 78.
-(pdftex.def)             Requested size: 430.31812pt x 546.93532pt.
+(pdftex.def)             Requested size: 430.31812pt x 441.44293pt.
+LaTeX Font Info:    Font shape `T1/ntxtlf/m/sl' will be
+(Font)              scaled to size 10.0pt on input line 85.
+ [2{/usr/share/texlive/texmf-dist/fonts/enc/dvips/newtx/ntx-ecth-tlf.enc} <./fi
+gures/cmo_physical.pdf>] [3 <./figures/pipeline.pdf>]
 LaTeX Font Info:    Font shape `T1/ntxtlf/m/it' will be
 (Font)              scaled to size 10.95pt on input line 88.
-LaTeX Font Info:    Font shape `T1/ntxtlf/m/sl' will be
-(Font)              scaled to size 10.0pt on input line 89.
- [2{/usr/share/texlive/texmf-dist/fonts/enc/dvips/newtx/ntx-ecth-tlf.enc} <./fi
-gures/cmo_physical.pdf>] [3 <./figures/pipeline.pdf>] [4] [5]
-<figures/BIC_vs_order.pdf, id=538, 641.83661pt x 424.34836pt>
+ [4] [5] [6]
+<figures/BIC_vs_order.pdf, id=555, 641.83661pt x 424.34836pt>
 File: figures/BIC_vs_order.pdf Graphic file (type pdf)
 <use figures/BIC_vs_order.pdf>
-Package pdftex.def Info: figures/BIC_vs_order.pdf  used on input line 168.
+Package pdftex.def Info: figures/BIC_vs_order.pdf  used on input line 169.
 (pdftex.def)             Requested size: 430.31812pt x 284.51263pt.
- [6] [7 <./figures/BIC_vs_order.pdf>]
+ [7 <./figures/BIC_vs_order.pdf>]
 [8]
-<figures/subpupil_3d.pdf, id=626, 535.99539pt x 566.65222pt>
+<figures/subpupil_3d.pdf, id=637, 535.99539pt x 566.65222pt>
 File: figures/subpupil_3d.pdf Graphic file (type pdf)
 <use figures/subpupil_3d.pdf>
-Package pdftex.def Info: figures/subpupil_3d.pdf  used on input line 257.
+Package pdftex.def Info: figures/subpupil_3d.pdf  used on input line 258.
 (pdftex.def)             Requested size: 362.37569pt x 383.11357pt.
- [9] [10 <./figures/subpupil_3d.pdf>]
-<figures/dy_profile_comparison.pdf, id=719, 566.98502pt x 351.12782pt>
+<figures/dy_profile_comparison.pdf, id=638, 566.98502pt x 351.12782pt>
 File: figures/dy_profile_comparison.pdf Graphic file (type pdf)
 <use figures/dy_profile_comparison.pdf>
 Package pdftex.def Info: figures/dy_profile_comparison.pdf  used on input line 
-275.
+276.
 (pdftex.def)             Requested size: 385.02547pt x 238.44765pt.
- [11 <./figures/dy_profile_comparison.pdf>]
+ [9] [10 <./figures/subpupil_3d.pdf>] [11 <./figures/dy_profile_comparison.pdf>
+]
 LaTeX Font Info:    Font shape `TS1/ntxtlf/m/n' will be
-(Font)              scaled to size 10.95pt on input line 320.
-<figures/residual_evolution.pdf, id=793, 1282.19089pt x 441.3288pt>
+(Font)              scaled to size 10.95pt on input line 321.
+<figures/residual_evolution.pdf, id=803, 1282.19089pt x 441.3288pt>
 File: figures/residual_evolution.pdf Graphic file (type pdf)
 <use figures/residual_evolution.pdf>
-Package pdftex.def Info: figures/residual_evolution.pdf  used on input line 334
+Package pdftex.def Info: figures/residual_evolution.pdf  used on input line 335
 .
 (pdftex.def)             Requested size: 452.9679pt x 155.9085pt.
- [12] [13 <./figures/residual_evolution.pdf>]
-<figures/pareto_gauge_regularization.pdf, id=908, 1291.219pt x 386.92241pt>
+ [12 <./figures/residual_evolution.pdf>] [13]
+<figures/pareto_gauge_regularization.pdf, id=922, 1291.219pt x 386.92241pt>
 File: figures/pareto_gauge_regularization.pdf Graphic file (type pdf)
 <use figures/pareto_gauge_regularization.pdf>
 Package pdftex.def Info: figures/pareto_gauge_regularization.pdf  used on input
- line 387.
+ line 388.
 (pdftex.def)             Requested size: 385.02547pt x 115.37505pt.
  [14 <./figures/pareto_gauge_regularization.pdf>] [15]
-<figures/schur_singular_values.pdf, id=984, 565.8488pt x 386.57988pt>
+<figures/schur_singular_values.pdf, id=994, 565.8488pt x 386.57988pt>
 File: figures/schur_singular_values.pdf Graphic file (type pdf)
 <use figures/schur_singular_values.pdf>
 Package pdftex.def Info: figures/schur_singular_values.pdf  used on input line 
-447.
+448.
 (pdftex.def)             Requested size: 385.02547pt x 263.04189pt.
  [16 <./figures/schur_singular_values.pdf>] [17]
 LaTeX Font Info:    Font shape `T1/ntxtlf/m/n' will be
-(Font)              scaled to size 7.0pt on input line 503.
+(Font)              scaled to size 7.0pt on input line 505.
 LaTeX Font Info:    Font shape `T1/ntxtlf/m/n' will be
-(Font)              scaled to size 5.0pt on input line 503.
-
-[18]
+(Font)              scaled to size 5.0pt on input line 505.
 LaTeX Font Info:    Font shape `T1/ntxtt/m/n' will be
-(Font)              scaled to size 10.0pt on input line 553.
- [19] [20] [21] [22]
+(Font)              scaled to size 10.0pt on input line 555.
+
+[18] [19] [20] [21] [22] [23]
 Package textcomp Info: Symbol \textmu not provided by
 (textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 710.
- [23]
+(textcomp)             Default family used instead on input line 716.
 Package textcomp Info: Symbol \textmu not provided by
 (textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 712.
+(textcomp)             Default family used instead on input line 718.
 Package textcomp Info: Symbol \textmu not provided by
 (textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 722.
+(textcomp)             Default family used instead on input line 728.
 Package textcomp Info: Symbol \textmu not provided by
 (textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 722.
-Package textcomp Info: Symbol \textmu not provided by
-(textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 731.
-Package textcomp Info: Symbol \textmu not provided by
-(textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 731.
-Package textcomp Info: Symbol \textmu not provided by
-(textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 731.
-Package textcomp Info: Symbol \textmu not provided by
-(textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 731.
-Package textcomp Info: Symbol \textmu not provided by
-(textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 731.
+(textcomp)             Default family used instead on input line 728.
  [24{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
-<figures/specimen_reconstruction.pdf, id=1145, 1269.94298pt x 714.60603pt>
+Package textcomp Info: Symbol \textmu not provided by
+(textcomp)             font family ntxtlf in TS1 encoding.
+(textcomp)             Default family used instead on input line 737.
+Package textcomp Info: Symbol \textmu not provided by
+(textcomp)             font family ntxtlf in TS1 encoding.
+(textcomp)             Default family used instead on input line 737.
+Package textcomp Info: Symbol \textmu not provided by
+(textcomp)             font family ntxtlf in TS1 encoding.
+(textcomp)             Default family used instead on input line 737.
+Package textcomp Info: Symbol \textmu not provided by
+(textcomp)             font family ntxtlf in TS1 encoding.
+(textcomp)             Default family used instead on input line 737.
+Package textcomp Info: Symbol \textmu not provided by
+(textcomp)             font family ntxtlf in TS1 encoding.
+(textcomp)             Default family used instead on input line 737.
+ [25]
+<figures/specimen_reconstruction.pdf, id=1164, 1269.94298pt x 714.60603pt>
 File: figures/specimen_reconstruction.pdf Graphic file (type pdf)
 <use figures/specimen_reconstruction.pdf>
 Package pdftex.def Info: figures/specimen_reconstruction.pdf  used on input lin
-e 773.
+e 779.
 (pdftex.def)             Requested size: 452.9679pt x 254.8809pt.
- [25]
-<figures/zernike_cmo_rigid_removed.pdf, id=1156, 1438.39445pt x 694.09668pt>
+ [26 <./figures/specimen_reconstruction.pdf>]
+<figures/zernike_cmo_rigid_removed.pdf, id=1251, 1438.45401pt x 692.55925pt>
 File: figures/zernike_cmo_rigid_removed.pdf Graphic file (type pdf)
 <use figures/zernike_cmo_rigid_removed.pdf>
 Package pdftex.def Info: figures/zernike_cmo_rigid_removed.pdf  used on input l
-ine 786.
-(pdftex.def)             Requested size: 452.9679pt x 218.57806pt.
- [26 <./figures/specimen_reconstruction.pdf>]
-<figures/specimen_schur_regularized.png, id=1240, 1046.4696pt x 1418.901pt>
+ine 792.
+(pdftex.def)             Requested size: 452.9679pt x 218.08334pt.
+ [27 <./figures/zernike_cmo_rigid_removed.pdf>]
+Package textcomp Info: Symbol \textmu not provided by
+(textcomp)             font family ntxtlf in TS1 encoding.
+(textcomp)             Default family used instead on input line 818.
+<figures/specimen_schur_regularized.png, id=1409, 1046.4696pt x 1418.901pt>
 File: figures/specimen_schur_regularized.png Graphic file (type png)
 <use figures/specimen_schur_regularized.png>
 Package pdftex.def Info: figures/specimen_schur_regularized.png  used on input 
-line 805.
+line 836.
 (pdftex.def)             Requested size: 443.9066pt x 601.88829pt.
 
 
-LaTeX Warning: Float too large for page by 7.38142pt on input line 808.
+LaTeX Warning: Float too large for page by 31.38142pt on input line 839.
 
 Package textcomp Info: Symbol \textmu not provided by
 (textcomp)             font family ntxtlf in TS1 encoding.
-(textcomp)             Default family used instead on input line 812.
-[27 <./figures/zernike_cmo_rigid_removed.pdf>] [28 <./figures/specimen_schur_re
-gularized.png>] (./tables/model_comparison.tex)
-<figures/bic_bars.pdf, id=1374, 1004.39426pt x 392.18832pt>
+(textcomp)             Default family used instead on input line 843.
+[28] [29 <./figures/specimen_schur_regularized.png>]
+(./tables/model_comparison.tex)
+<figures/bic_bars.pdf, id=1426, 1004.39426pt x 392.18832pt>
 File: figures/bic_bars.pdf Graphic file (type pdf)
 <use figures/bic_bars.pdf>
-Package pdftex.def Info: figures/bic_bars.pdf  used on input line 842.
+Package pdftex.def Info: figures/bic_bars.pdf  used on input line 874.
 (pdftex.def)             Requested size: 452.9679pt x 176.87209pt.
-
-(./tables/bic_model_selection.tex) [29 <./figures/bic_bars.pdf>] [30] [31]
-[32] [33] [34] [35] (build/manuscript.bbl [36] [37]) [38] (build/manuscript.aux
-)
+ (./tables/bic_model_selection.tex) [30]
+[31 <./figures/bic_bars.pdf>] [32] [33] [34] [35] [36] [37]
+(build/manuscript.bbl [38] [39]) [40] (build/manuscript.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2020/03/25>
@@ -879,13 +881,13 @@ Package rerunfilecheck Info: File `manuscript.out' has not changed.
 (rerunfilecheck)             Checksum: 510AF073B9E52A02B158075784E07D7E;10165.
  ) 
 Here is how much of TeX's memory you used:
- 20704 strings out of 474222
- 390679 string characters out of 5748733
- 1941975 words of memory out of 5000000
- 42212 multiletter control sequences out of 15000+600000
- 631565 words of font info for 245 fonts, out of 8000000 for 9000
+ 20729 strings out of 474222
+ 391148 string characters out of 5748733
+ 1943975 words of memory out of 5000000
+ 42214 multiletter control sequences out of 15000+600000
+ 632746 words of font info for 255 fonts, out of 8000000 for 9000
  1147 hyphenation exceptions out of 8191
- 80i,15n,117p,1635b,1100s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 80i,15n,117p,1941b,1094s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/shar
 e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texl
@@ -905,10 +907,10 @@ c/cm-super/sfrm1095.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/txfon
 ts/t1xtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/newtx/ztmb.pfb><
 /usr/share/texlive/texmf-dist/fonts/type1/public/newtx/ztmr.pfb></usr/share/tex
 live/texmf-dist/fonts/type1/public/newtx/ztmri.pfb>
-Output written on build/manuscript.pdf (38 pages, 8244974 bytes).
+Output written on build/manuscript.pdf (40 pages, 8114729 bytes).
 PDF statistics:
- 1725 PDF objects out of 1728 (max. 8388607)
- 861 compressed objects within 9 object streams
- 184 named destinations out of 1000 (max. 500000)
+ 1781 PDF objects out of 2073 (max. 8388607)
+ 887 compressed objects within 9 object streams
+ 187 named destinations out of 1000 (max. 500000)
  49605 words of extra memory for PDF output out of 51595 (max. 10000000)
 
