@@ -45,6 +45,14 @@ corr = dict(np.load(ASSETS / 'specimen_correspondences.npz', allow_pickle=True))
 
 P_cmo = np.column_stack([cmo['X'], cmo['Y'], cmo['Z']])
 P_zer = np.column_stack([zer['X'], zer['Y'], zer['Z']])
+# The CMO model fits the Pycaso rayfield with an inverted v->Y sign (rho_y, s_y < 0),
+# so its reconstruction is Y-mirrored relative to the Zernike reference. Apply the
+# documented -Y correction (cf. pycaso_schur_regularized_ba.py) BEFORE the rigid
+# alignment: without it the CMO<->Zernike relation is a reflection that the proper-
+# rotation Kabsch (det=+1) disguises as a ~180 deg rotation, which spuriously inverts
+# the Z relief. With the correction the alignment is a genuine ~8 deg rotation and the
+# reliefs agree in sign (only the depth-scale s_z=0.67 amplitude difference remains).
+P_cmo[:, 1] *= -1.0
 valid_cmo = cmo['valid']
 valid_zer = zer['valid']
 

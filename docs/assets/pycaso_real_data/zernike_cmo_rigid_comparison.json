@@ -2,27 +2,27 @@
   "n_common_valid": 1943070,
   "n_subsample": 100000,
   "kabsch_se3": {
-    "rotation_angle_deg": 179.45841588128485,
-    "translation_norm_mm": 127.26165771484375,
+    "rotation_angle_deg": 8.597235064158081,
+    "translation_norm_mm": 9.213875770568848,
     "rotation_vec": [
-      3.092294336870228,
-      0.04641777145294196,
-      0.49584627621738314
+      0.03920128231702019,
+      0.14300181869599046,
+      -0.022994767914176605
     ],
     "translation": [
-      -20.14531707763672,
-      3.835721015930176,
-      125.59849548339844
+      -9.14482307434082,
+      -0.9142839908599854,
+      0.6571083068847656
     ],
-    "median_dP_before_mm": 3.819338798522949,
-    "median_dP_after_mm": 0.05580999329686165,
-    "reduction_pct": 98.53875248463308
+    "median_dP_before_mm": 3.54419207572937,
+    "median_dP_after_mm": 0.01849357783794403,
+    "reduction_pct": 99.47820046310164
   },
   "affine_plane": {
     "before_se3": {
       "coeffs_a_b_c": [
         0.14114883423609245,
-        0.04109642866021684,
+        -0.04109642866021684,
         -0.07522874974659943
       ],
       "r2": 0.9952682691589436,
@@ -30,56 +30,56 @@
     },
     "after_se3": {
       "coeffs_a_b_c": [
-        0.0002298654390333891,
-        -1.1768390223875456e-05,
-        0.026056995677911865
+        9.578372920130199e-05,
+        -2.283864751402402e-05,
+        0.02107219846935542
       ],
-      "r2": 1.8595684014632852e-05,
-      "mad_mm": 0.039994226728424044
+      "r2": 0.00010098150298665232,
+      "mad_mm": 0.0076308849519653305
     }
   },
   "plucker_common_se3": {
-    "rotation_angle_deg": 6.039633045024577,
-    "translation_norm_mm": 31.774874931467522,
-    "direction_residual_before": 0.11909379233331618,
-    "direction_residual_after": 0.07020245196450077,
-    "moment_residual_before_mm": 5.005599605862332,
-    "moment_residual_after_mm": 0.2963430234623935
+    "rotation_angle_deg": 6.034949113735689,
+    "translation_norm_mm": 31.78818509310111,
+    "direction_residual_before": 0.11911548303581068,
+    "direction_residual_after": 0.07022245172983116,
+    "moment_residual_before_mm": 5.008063810509137,
+    "moment_residual_after_mm": 0.29636538591289685
   },
   "plucker_per_arm_se3": {
     "left": {
-      "rotation_angle_deg": 162.11614454169856,
-      "translation_norm_mm": 40.70562854790645,
-      "direction_residual_before": 0.11776984438510388,
-      "direction_residual_after": 0.021137404562433716,
-      "moment_residual_before_mm": 5.0387335776784985,
-      "moment_residual_after_mm": 0.11135209156512436
+      "rotation_angle_deg": 162.12352242691256,
+      "translation_norm_mm": 40.70914083576577,
+      "direction_residual_before": 0.11782871251625332,
+      "direction_residual_after": 0.021140806083989473,
+      "moment_residual_before_mm": 5.044720931583655,
+      "moment_residual_after_mm": 0.11107042151321653
     },
     "right": {
-      "rotation_angle_deg": 116.786229700305,
-      "translation_norm_mm": 36.01827889662307,
-      "direction_residual_before": 0.12043253041544948,
-      "direction_residual_after": 0.019892985150296832,
-      "moment_residual_before_mm": 4.973738603320517,
-      "moment_residual_after_mm": 0.149084438954929
+      "rotation_angle_deg": 116.75261533860225,
+      "translation_norm_mm": 36.01687125195613,
+      "direction_residual_before": 0.12040708296875513,
+      "direction_residual_after": 0.01989006042482115,
+      "moment_residual_before_mm": 4.973255828046591,
+      "moment_residual_after_mm": 0.14910876131087514
     },
-    "combined_direction_residual_after": 0.020516767088485217,
-    "combined_moment_residual_after_mm": 0.12515540127376307
+    "combined_direction_residual_after": 0.020519436096617688,
+    "combined_moment_residual_after_mm": 0.124977199859331
   },
   "interpretation_metrics": {
-    "kabsch_dP_reduction_pct": 98.53875248463308,
-    "affine_r2_after_se3": 1.8595684014632852e-05,
-    "affine_mad_after_se3_mm": 0.039994226728424044,
-    "dZ_final_mad_mm": 0.039994226728424044,
-    "common_se3_moment_residual_mm": 0.2963430234623935,
-    "per_arm_vs_common_direction_ratio": 0.29225143160042216,
-    "per_arm_moment_residual_mm": 0.12515540127376307
+    "kabsch_dP_reduction_pct": 99.47820046310164,
+    "affine_r2_after_se3": 0.00010098150298665232,
+    "affine_mad_after_se3_mm": 0.0076308849519653305,
+    "dZ_final_mad_mm": 0.0076308849519653305,
+    "common_se3_moment_residual_mm": 0.29636538591289685,
+    "per_arm_vs_common_direction_ratio": 0.2922062045848627,
+    "per_arm_moment_residual_mm": 0.124977199859331
   },
   "case_scores": {
     "A_global_frame": 1.0,
-    "B_per_arm": 0.5776671243632447,
+    "B_per_arm": 0.5783002813423617,
     "C_affine_ramp": 0.9952682691589436,
-    "D_non_rigid": 1.0
+    "D_non_rigid": 0.31914337984173574
   },
   "primary_interpretation": "A_global_frame"
 }

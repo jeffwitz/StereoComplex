@@ -82,6 +82,12 @@ def render(manifest: dict, manifest_root: Path, out_dir: Path) -> None:
 
     P_cmo = np.column_stack([cmo["X"], cmo["Y"], cmo["Z"]])
     P_zer = np.column_stack([zer["X"], zer["Y"], zer["Z"]])
+    # Apply the documented -Y correction to the CMO reconstruction (the CMO model
+    # fits the rayfield with an inverted v->Y sign), matching the frame in which the
+    # rigid Kabsch was computed (11_compare_zernike_cmo_rigid_removed.py). Without it
+    # the proper-rotation alignment disguises the Y reflection as a ~180 deg rotation
+    # and inverts the Z relief between the two panels.
+    P_cmo[:, 1] *= -1.0
 
     R = Rotation.from_rotvec(rigid["kabsch_se3"]["rotation_vec"]).as_matrix()
     t = np.asarray(rigid["kabsch_se3"]["translation"], dtype=np.float64)
@@ -177,8 +183,8 @@ def render(manifest: dict, manifest_root: Path, out_dir: Path) -> None:
 
     scale_ratio = float(np.nanstd(Zz_norm[valid_subset]) / np.nanstd(Zc_norm[valid_subset]))
     summary = (
-        f"Global frame change\n"
-        f"{rigid['kabsch_se3']['rotation_angle_deg']:.1f}° rotation\n"
+        f"Frame: Y-reflection (CMO v→Y)\n"
+        f"+ {rigid['kabsch_se3']['rotation_angle_deg']:.1f}° rotation\n"
         f"Residual: {rigid['kabsch_se3']['median_dP_before_mm']:.2f} "
         f"-> {np.median(dPo):.4f} mm\n"
         f"Plane R²={rigid['affine_plane']['before_se3']['r2']:.3f}"
