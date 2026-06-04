@@ -136,9 +136,10 @@ def render(data: dict, out_pdf: Path, out_png: Path) -> None:
     _down_arrow(ax, x_center, y_cursor - 0.05,
                 y_cursor - arrow_gap + 0.05, "calibrated rays")
 
-    # OUTPUT box
+    # OUTPUT box (taller: label + 3 content lines)
+    io_h_out = io_h + 0.26
     rect_out = mpatches.FancyBboxPatch(
-        (x_io, y_cursor - arrow_gap - io_h), io_w, io_h,
+        (x_io, y_cursor - arrow_gap - io_h_out), io_w, io_h_out,
         boxstyle="round,pad=0.05",
         facecolor="#eaf6ec", edgecolor="#2a7a3b", linewidth=1.6,
     )
