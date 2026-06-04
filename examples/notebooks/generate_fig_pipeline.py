@@ -55,7 +55,7 @@ def _down_arrow(ax, x, y_from, y_to, label):
 
 
 def render(data: dict, out_pdf: Path, out_png: Path) -> None:
-    fig_w, fig_h = 8.5, 10.5
+    fig_w, fig_h = 8.5, 11.3
     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
     ax.set_xlim(0, fig_w)
     ax.set_ylim(0, fig_h)
