@@ -189,8 +189,9 @@ def render(manifest: dict, manifest_root: Path, out_dir: Path) -> None:
     summary = (
         f"Frame: Y-reflection (CMO v→Y)\n"
         f"+ {rigid['kabsch_se3']['rotation_angle_deg']:.1f}° rotation\n"
-        f"Residual: {rigid['kabsch_se3']['median_dP_before_mm']:.2f} "
-        f"-> {np.median(dPo):.4f} mm\n"
+        f"ΔZ plane-norm: {np.median(dPo):.4f} mm\n"
+        f"3D p2p: {rigid['kabsch_se3']['median_dP_before_mm']:.1f} → "
+        f"{rigid['kabsch_se3']['median_dP_after_mm']:.3f} mm\n"
         f"Plane R²={rigid['affine_plane']['before_se3']['r2']:.3f}"
     )
     axes[1, 3].text(0.5, 0.8, "CASE A", ha="center", va="center",
