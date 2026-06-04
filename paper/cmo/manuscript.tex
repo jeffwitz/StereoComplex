@@ -675,9 +675,9 @@ Second, the Zernike rayfield reaches its own floor at \SI{0.41}{px}, approximate
 
 Third, the CMO 26p model loses an additional \SI{0.65}{px} relative to the Zernike reference, but gains a physically interpretable parameterisation: its 26 parameters are the baseline, working distance, focal length, convergence angle, shear coefficients, and per-arm SE(3) poses. No Soloff coefficient can be read as a baseline or a working distance.
 
-These figures are the model \emph{floors at construction}, not the endpoint. The \SI{1.06}{px} of the CMO 26p model is its rayfield-identified \emph{initialisation}; once that initialisation seeds the free-pose Schur-stabilised direct bundle adjustment (\S\ref{sec:schur_prior}), the same 26 parameters refine to \SI{0.28}{px}, narrowing the gap to the Soloff degree-3 floor to under \SI{0.1}{px}. After refinement, then, the compact physical model is competitive in pixel accuracy with the black-box regressor while remaining fully interpretable---and it does so without the optics--pose compensation that the unregularised free-pose optimum (\SI{0.24}{px}) exploits.
+These figures are the model \emph{floors at construction}, not the endpoint. The \SI{1.06}{px} of the CMO 26p model is its rayfield-identified \emph{initialisation}; once that initialisation seeds the free-pose Schur-stabilised direct bundle adjustment (\S\ref{sec:schur_prior}), the same 26 parameters refine to \SI{0.28}{px}, narrowing the gap to the Soloff degree-3 floor to under \SI{0.1}{px}. After refinement, then, the compact physical model is competitive in pixel accuracy with the black-box regressor while retaining a physically interpretable parameterisation---and it does so without the optics--pose compensation that the unregularised free-pose optimum (\SI{0.24}{px}) exploits.
 
-The comparison thus frames the paper's central trade-off explicitly. At construction: \SI{0.18}{px} (black-box, no geometry), \SI{0.41}{px} (geometric rayfield, no optical model), \SI{1.06}{px} (compact physical model, fully interpretable). After free-pose Schur-stabilised refinement the physical model closes most of that gap, reaching \SI{0.28}{px}---so interpretability ultimately costs a fraction of a pixel rather than a category of accuracy.
+The comparison thus frames the paper's central trade-off explicitly. At construction: \SI{0.18}{px} (black-box, no geometry), \SI{0.41}{px} (geometric rayfield, no optical model), \SI{1.06}{px} (compact physical model, physically interpretable parameterisation). After free-pose Schur-stabilised refinement the physical model closes most of that gap, reaching \SI{0.28}{px}---so interpretability ultimately costs a fraction of a pixel rather than a category of accuracy.
 
 \subsubsection{Extrapolation to Held-Out Poses}
 
@@ -837,7 +837,7 @@ CMO 26~p --- BA + \textbf{Schur prior} ($\alpha{=}10^{-3}$) & \textbf{0.027} & 0
 \input{tables/model_comparison.tex}
 
 The 26-parameter CMO+SE(3) model achieves \SI{1.06}{px} reprojection with less than half the parameters of the Zernike reference.
-It is fully interpretable: sub-pupils, focal length, telecentric slopes, and SE(3) arm corrections.
+It has a physically interpretable parameterisation: sub-pupils, focal length, telecentric slopes, and SE(3) arm corrections.
 
 \begin{figure}[!htbp]
 \centering
