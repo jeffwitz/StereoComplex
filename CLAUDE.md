@@ -34,7 +34,11 @@ notebooks). Until then, share `blob/develop/` Colab URLs.
 
 ## CMO paper status
 
-Submission-ready as of commit 15a5d78 (paper-readiness pass). 41 pages, 13 figures, 5 tables, Appendix A. All story-level numbers reproducible (`docs/assets/cmo_paper/AUDIT.md`). Item 8 (external 3-D validation) is now **delivered**: §4.9 "External Profilometry Validation" + Figure 12 (`figure_external_profilo_relief/`, `generate_fig_profilo_relief_comparison.py`) resolve the depth-scale ambiguity against profilometry — CMO≈Soloff (cc=0.9997, RMS 0.57 µm), Zernike over-amplifies 1.63×. Item 7 (non-central baseline on the same dataset) remains explicit future work.
+Submission-ready as of commit 15a5d78 (paper-readiness pass). 41 pages, 13 figures, 5 tables, Appendix A. All story-level numbers reproducible (`docs/assets/cmo_paper/AUDIT.md`).
+
+**External 3-D validation — delivered.** §4.9 "External Profilometry Validation" + Figure 12 (`docs/assets/cmo_paper/figure_external_profilo_relief/`, `examples/notebooks/generate_fig_profilo_relief_comparison.py`) resolve the specimen depth-scale ambiguity against an external profilometric reference: CMO 26p ≈ Soloff (cc=0.9997, RMS 0.57 µm), both ~1.10× the profilometry, while the Zernike-based dense reconstruction over-amplifies the relief (1.63×). The wording is deliberately hedged (single specimen, lateral registration cc=0.96, profilometer-set scale): it supports the CMO/Soloff depth scale on this specimen, it does not certify absolute metrology.
+
+**Open future work (not started, optional, no reviewer is blocking on it):** an external *non-central* calibration baseline — a published third-party non-central/raxel camera model run on the same Pycaso corner set — to position CMO against an existing non-central method rather than only against OpenCV (central, fails), Soloff (black-box pixel) and the in-house Zernike rayfield. Heavy and not required by the current narrative.
 
 ## Current global status
 
