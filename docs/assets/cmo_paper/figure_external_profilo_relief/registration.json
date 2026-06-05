@@ -1,0 +1,11 @@
+{
+  "description": "Rigid (similarity, scale~1) registration of the profilometric scan coin_profilo_recale.npy onto the LEFT-camera pixel grid of the dense reconstruction. The profilometry only covers the letter 'E'. The transform maps profilo pixels -> full 2048x2048 left-image canvas: x_canvas = scale*x_profilo + tx, y_canvas = scale*y_profilo + ty.",
+  "method": "Derived once by maximising the IoU of the binary letter masks (letters are EMBOSSED = elevated on the coin, so threshold high on both the elevated CMO relief and the elevated profilo relief), brute-force over (scale, tx, ty). Flow-independent: it aligns the E geometry, identical for every model and every DIS setting.",
+  "scale": 1.03,
+  "tx": 282.0,
+  "ty": 590.0,
+  "affine_2x3": [[1.03, 0.0, 282.0], [0.0, 1.03, 590.0]],
+  "mask_iou": 0.882,
+  "canvas_size": [2048, 2048],
+  "note": "ty/tx are in full left-image pixels. The figure crops to the warped-profilo footprint and plane-fits every surface on that window (per-window plane normalisation)."
+}

@@ -932,6 +932,7 @@ session) knows what is left.
 | 10 | `zernike_cmo_rigid_removed.pdf` | `generate_fig_zernike_cmo_rigid_removed.py` | `figure10_zernike_cmo_rigid_removed/` | **DONE** (also fixed a pre-existing dimensional bug: Kabsch SE(3) now applied on 3-D mm points; "dZ after SE(3)" matches the manuscript's quoted 0.06 mm residual) |
 | 11 | `specimen_schur_regularized.png` | `generate_fig_specimen_schur_regularized.py` | `figure11_specimen_schur_regularized/` | **DONE** |
 | 12 | `bic_bars.pdf` | `generate_fig_bic_bars.py` | `figure12_bic_bars/` | **DONE** |
+| ext | `profilo_relief_comparison.pdf` | `generate_fig_profilo_relief_comparison.py` | `figure_external_profilo_relief/` | **DONE** (external profilometry validation; reproducible cache + `--recompute` from Pycaso images; manuscript figure number assigned at integration. Shows CMO≈Soloff, cc=0.9997 / RMS 0.57 µm; Zernike over-amplifies 1.63×) |
 
 **All 12 figures DONE** — every paper figure now has a manifest in
 `docs/assets/cmo_paper/figureN_<name>/` and a standalone generator in

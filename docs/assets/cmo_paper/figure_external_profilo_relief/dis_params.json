@@ -1,0 +1,23 @@
+{
+  "description": "DIS optical-flow configuration used for the dense specimen correspondence field behind the external profilometry validation figure. Tuned by a DISFlow->figure->DISFlow loop maximising the relief correlation against the profilometric ground truth (see README). Sent the FULL image to DIS (no ROI crop): the multi-scale spatial propagation benefits from the surrounding speckle texture even at the central lettering.",
+  "opencv_preset": "DISOPTICAL_FLOW_PRESET_ULTRAFAST (then overridden)",
+  "border_px": 0,
+  "finestScale": 0,
+  "patchSize": 8,
+  "patchStride": 4,
+  "gradientDescentIterations": 40,
+  "useMeanNormalization": true,
+  "useSpatialPropagation": true,
+  "variationalRefinementIterations": 50,
+  "variationalRefinementAlpha": 120.0,
+  "variationalRefinementDelta": 5.0,
+  "variationalRefinementGamma": 10.0,
+  "variationalRefinementEpsilon": 1e-4,
+  "disparity_filter_frac": 0.3,
+  "tuning_trace_cc_cmo": {
+    "baseline_VR_off_ROI300": 0.865,
+    "VR_tuned_ROI300": 0.916,
+    "VR_tuned_full_image": 0.955,
+    "final_eps1e-4_alpha120_full": 0.958
+  }
+}
