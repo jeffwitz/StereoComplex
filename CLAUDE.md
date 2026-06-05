@@ -34,7 +34,7 @@ notebooks). Until then, share `blob/develop/` Colab URLs.
 
 ## CMO paper status
 
-Submission-ready as of commit 15a5d78 (paper-readiness pass). 31 pages, 12 figures, 5 tables, Appendix A. All 18 story-level numbers reproducible (`docs/assets/cmo_paper/AUDIT.md`). Items 7 (non-central baseline on the same dataset) and 8 (external 3-D validation) are acknowledged as explicit future work in §5.2 / §5.5.
+Submission-ready as of commit 15a5d78 (paper-readiness pass). 41 pages, 13 figures, 5 tables, Appendix A. All story-level numbers reproducible (`docs/assets/cmo_paper/AUDIT.md`). Item 8 (external 3-D validation) is now **delivered**: §4.9 "External Profilometry Validation" + Figure 12 (`figure_external_profilo_relief/`, `generate_fig_profilo_relief_comparison.py`) resolve the depth-scale ambiguity against profilometry — CMO≈Soloff (cc=0.9997, RMS 0.57 µm), Zernike over-amplifies 1.63×. Item 7 (non-central baseline on the same dataset) remains explicit future work.
 
 ## Current global status
 
