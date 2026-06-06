@@ -8,10 +8,10 @@ manual** (it mints a DOI and is irreversible — keep it human).
 
 | Record | Concept DOI | Latest published version | Role |
 |---|---|---|---|
-| **Paper archive** | `10.5281/zenodo.20444215` | **v5 = `20574710`** (record id `20574710`, published 2026-06-06) | Self-contained bundle: manuscript, figures, tables, audit, scripts, key data. Rebuilds the PDF and every figure from the bundle alone. |
+| **Paper archive** | `10.5281/zenodo.20444215` | **v6 = `20575213`** (record id `20575213`, published 2026-06-07) | Self-contained bundle (ships `src/` + `pyproject.toml`): rebuilds the PDF, audit and every figure from the bundle alone. |
 | **Heavy specimen data** | `10.5281/zenodo.20369311` | `20369312` | The five `specimen_*.npz` dense reconstructions (~120 MB). |
 
-So the next paper-archive version (v6) is created with `--record 20574710`.
+So the next paper-archive version (v7) is created with `--record 20575213`.
 
 > **Heads-up (2026-06):** the *five-variant* dense figure was removed from the
 > manuscript, so **no paper artefact depends on `20369312` anymore**. Updating it
@@ -23,8 +23,9 @@ So the next paper-archive version (v6) is created with `--record 20574710`.
 The paper-archive concept is **`20444215`**; its version chain is
 `20444216` (90 files, 2026-05-29) → `20444786` (100 files, 2026-06-01) →
 `20533009` = v4 (2026-06-03) →
-**`20574710` = v5 (structured bundle + standalone PDF, 2026-06-06), the latest
-published version**. All ids except `20574710` are *superseded versions* — never
+`20574710` = v5 (structured bundle, 2026-06-06) →
+**`20575213` = v6 (self-contained: ships `src/`, 2026-06-07), the latest
+published version**. All ids except `20575213` are *superseded versions* — never
 cite them as the landing page.
 
 Convention applied in-repo: cite the **concept DOI `20444215`** for the stable
@@ -37,14 +38,14 @@ concept DOI on 2026-06-06.
 
 The manuscript must cite the *new* version DOI, so reserve the DOI **before**
 building the final bundle. `--record` is always the numeric id of the **latest
-published version** (currently `20574710`), not the concept-DOI id. The examples
-below create v6 on top of v5.
+published version** (currently `20575213`), not the concept-DOI id. The examples
+below create v7 on top of v6.
 
 ### 1. Reserve the next version DOI (no files yet)
 
 ```bash
 ZENODO_TOKEN=<prod> rtk .venv/bin/python examples/zenodo_upload.py \
-    --record 20574710 --reserve-only
+    --record 20575213 --reserve-only
 ```
 
 Prints the **reserved DOI** (e.g. `10.5281/zenodo.XXXXXXXX`) and the **draft
@@ -78,7 +79,7 @@ copy needed.
 
 ```bash
 ZENODO_TOKEN=<prod> rtk .venv/bin/python examples/zenodo_upload.py \
-    --record 20574710 --draft-id <draft_id> --replace --version v6 \
+    --record 20575213 --draft-id <draft_id> --replace --version v7 \
     --files paper/cmo/build/cmo_paper_bundle.zip paper/cmo/manuscript.pdf
 ```
 
@@ -91,7 +92,7 @@ Review the draft in the browser, then either click **Publish** on Zenodo or:
 
 ```bash
 ZENODO_TOKEN=<prod> rtk .venv/bin/python examples/zenodo_upload.py \
-    --record 20574710 --draft-id <draft_id> --publish
+    --record 20575213 --draft-id <draft_id> --publish
 ```
 
 ### 6. (Optional) refresh the heavy data record
