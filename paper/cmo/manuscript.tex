@@ -834,7 +834,7 @@ The depth-scale ambiguity of \S\ref{sec:specimen} is, by construction, unresolva
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{figures/profilo_relief_comparison.png}
+\includegraphics[width=\textwidth,height=0.86\textheight,keepaspectratio]{figures/profilo_relief_comparison.png}
 \caption{External profilometry validation of the specimen relief. Maps (a--d): plane-normalised relief of the embossed ``E'' from the profilometric ground truth, the Soloff polynomial, the CMO 26p model, and the Zernike rayfield, on a common registered window (relief standard deviation and amplitude ratio to the profilometry annotated). Panel (e): the depth profile along the vertical line---the profilometry (black), Soloff (blue) and CMO (green) coincide, while the Zernike rayfield (red) over-amplifies every plateau and valley. All three reconstructions track the ground-truth ``E'' shape equally well ($\mathrm{cc}\approx0.96$); they differ only in axial gain.}
 \label{fig:profilo_validation}
 \end{figure}
@@ -1060,8 +1060,8 @@ already given in the main text and tables.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/specimen_schur_regularized.png}
-\caption{Five-variant specimen reconstruction with Schur-regularised variants. Each row shows the Z-map (surface relief after mean-plane subtraction), the XY footprint (coloured by relief), and the ray-gap histogram (log scale, shared range). All CMO variants are aligned to the Zernike reference frame. On the dense full-image correspondence field all five variants---including the rayfield initialisation (row~2)---triangulate the specimen tightly, with a median ray gap of ${\sim}\SI{0.5}{\micro\metre}$. The Z MAD values---a raw, tilt-dominated smoothness indicator (not metrological ground truth)---are \SI{0.028}{mm} for the regularised variants (rows~4--5), \SI{0.023}{mm} for the unregularised BA, \SI{0.076}{mm} for the rayfield-initialised CMO ($2.7\times$ rougher than the BA variants) and \SI{0.202}{mm} for the Zernike map ($7.2\times$ rougher); the prior keeps the dense reconstruction comparable while preserving ray-gap and magnification consistency. All five variants converge to the same lateral magnification (${\sim}0.199$ vs.\ the nominal coin), with \emph{no} systematic CMO--Zernike lateral bias once the dense field is used---distinct from the depth-only scale difference ($s_z{\approx}0.70$) diagnosed in Figure~\ref{fig:rigid_removal}.}
+\includegraphics[width=0.9\textwidth,height=0.88\textheight,keepaspectratio]{figures/specimen_schur_regularized.png}
+\caption{Five-variant specimen reconstruction (rows: Zernike reference, rayfield-initialised CMO, unregularised BA, isotropic- and Schur-regularised BA). Each row shows the Z-map (relief after mean-plane subtraction), the XY footprint (coloured by relief), and the ray-gap histogram (log scale, shared range); all CMO variants are aligned to the Zernike frame. On the dense full-image correspondence field all five variants triangulate tightly (median ray gap ${\sim}\SI{0.5}{\micro\metre}$) and converge to the same lateral magnification (${\sim}0.199$), with \emph{no} systematic CMO--Zernike lateral bias---distinct from the depth-only scale difference ($s_z{\approx}0.70$) of Figure~\ref{fig:rigid_removal}. The raw, tilt-dominated Z~MAD values (a smoothness indicator, not metrological ground truth) are reported in Table~\ref{tab:specimen_comparison}: the Zernike map is the roughest and the regularised BA variants the smoothest, the prior keeping the dense reconstruction comparable while preserving ray-gap and magnification consistency.}
 \label{fig:specimen_schur}
 \end{figure}
 
