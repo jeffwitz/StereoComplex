@@ -106,8 +106,12 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--record", required=True,
                     help="numeric id of the latest PUBLISHED version of the record")
-    ap.add_argument("--files", nargs="+", required=True, type=Path,
+    ap.add_argument("--files", nargs="*", default=[], type=Path,
                     help="files to upload into the new version")
+    ap.add_argument("--reserve-only", action="store_true",
+                    help="create/return the draft and print its reserved DOI, then exit "
+                         "(no upload) — use it to learn the next version DOI before "
+                         "freezing it into the manuscript")
     ap.add_argument("--replace", action="store_true",
                     help="delete the files inherited from the previous version first")
     ap.add_argument("--version", help="version string for the new deposit (e.g. v5)")
@@ -122,6 +126,8 @@ def main() -> int:
                     help="print the planned actions and exit without contacting Zenodo")
     args = ap.parse_args()
 
+    if not args.reserve_only and not args.files:
+        raise SystemExit("nothing to do: pass --files or --reserve-only")
     missing = [str(p) for p in args.files if not p.is_file()]
     if missing:
         raise SystemExit(f"files not found: {', '.join(missing)}")
@@ -144,6 +150,15 @@ def main() -> int:
     draft_id = draft["id"]
     bucket = draft["links"]["bucket"]
     print(f"  draft deposition id: {draft_id}")
+
+    if args.reserve_only:
+        reserved = (draft.get("metadata", {}).get("prereserve_doi") or {}).get("doi")
+        html = draft["links"].get("html", f"{base}/deposit/{draft_id}")
+        print(f"  reserved DOI: {reserved}")
+        print(f"  draft: {html}")
+        print("  reserve-only — no files uploaded. Freeze this DOI into the manuscript, "
+              "re-bundle, then re-run with --files to upload.")
+        return 0
 
     if args.replace:
         clear_files(base, draft_id, args.token)
