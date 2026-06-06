@@ -1,0 +1,21 @@
+{
+  "description": "Label/number manifest for the SE(3) arm-alignment schematic (conceptual diagram, no measurement data). Numbers are the CMO geometry descriptors quoted in the manuscript and the fitted per-channel SE(3) rotations from intermediate_state.npz (x_26p).",
+  "baseline_mm": 24.9,
+  "working_distance_mm": 64.7,
+  "convergence_angle_deg": 22.6,
+  "left_arm_rotation_deg": 2.5,
+  "right_arm_rotation_deg": 3.7,
+  "left_rotvec_deg": [
+    -2.34,
+    -0.69,
+    0.59
+  ],
+  "right_rotvec_deg": [
+    -2.55,
+    -2.72,
+    0.17
+  ],
+  "dominant_axis": "x",
+  "exaggeration_factor": 4,
+  "notes": "Tilt is drawn exaggerated x6 for visibility; the real per-channel SE(3) rotation is a rigid rotation of the whole ray bundle (left 2.5 deg, right 3.7 deg), dominated by the x-component. Convergence half-angle = convergence_angle_deg/2."
+}

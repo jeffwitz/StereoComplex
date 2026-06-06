@@ -367,9 +367,16 @@ Each $R_c \in \text{SO}(3)$ is parameterised by a 3-element rotation vector $r_c
 The 12 additional parameters ($r_L, t_L, r_R, t_R$) bring the total to 26.
 
 Jointly fitting the 14 telecentric parameters and the 12 SE(3) parameters against the Zernike rayfield reduces pixel RMS from \SI{14.6}{px} to \textbf{\SI{1.06}{px}} (P50=\SI{0.87}{px}, P95=\SI{1.84}{px})---a $14\times$ improvement.
-The fitted rotations are $\sim$\SI{2.5}{\degree} (left) and $\sim$\SI{3.7}{\degree} (right); translations are sub-mm.
+The fitted rotations are $\sim$\SI{2.5}{\degree} (left) and $\sim$\SI{3.7}{\degree} (right); translations are sub-mm (Figure~\ref{fig:se3_arm}).
 Effective arm angles of this magnitude in a precision CMO instrument are best read not as a macroscopic mechanical flexure of the microscope head but as the cumulative assembly tolerances of the internal relay optics (prisms, field lenses) between the shared objective and the two sub-pupils, whose small decentrations and tilts the SE(3) term absorbs as an equivalent rigid rotation of each ray bundle.
 The rotation angles are stable across optimisation runs; the translation components trade off with the telecentric base parameters (a known identifiability limitation).
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.72\textwidth]{figures/se3_arm_alignment.pdf}
+\caption{Per-channel SE(3) arm alignment (schematic). The ideal telecentric CMO skeleton (dashed) places two off-axis sub-pupils $S_L,S_R$ on the baseline $b$, emitting chief rays that converge on the optical axis at the object point $O$ at working distance $WD$ with full convergence angle $\Theta$. The fitted rigid SE(3) rotation tilts each optical arm away from this ideal by $\sim$\SI{2.5}{\degree} (left) and $\sim$\SI{3.7}{\degree} (right); the tilt is drawn $\times4$ for visibility. The rotation is a rigid SE(3) of the whole ray bundle, dominated by its $x$-component (fitted per-axis values: left $(-2.3,-0.7,0.6)^\circ$, right $(-2.6,-2.7,0.2)^\circ$). Such effective angles arise from assembly tolerances of the internal relay optics between the shared objective and the sub-pupils, not from a macroscopic flexure of the microscope head.}
+\label{fig:se3_arm}
+\end{figure}
 
 \subsection{Model Selection}
 
