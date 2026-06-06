@@ -129,8 +129,8 @@ def main() -> int:
                     help="print the planned actions and exit without contacting Zenodo")
     args = ap.parse_args()
 
-    if not args.reserve_only and not args.files:
-        raise SystemExit("nothing to do: pass --files or --reserve-only")
+    if not args.reserve_only and not args.files and not args.publish:
+        raise SystemExit("nothing to do: pass --files, --reserve-only or --publish")
     missing = [str(p) for p in args.files if not p.is_file()]
     if missing:
         raise SystemExit(f"files not found: {', '.join(missing)}")
