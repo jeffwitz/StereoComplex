@@ -106,6 +106,9 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--record", required=True,
                     help="numeric id of the latest PUBLISHED version of the record")
+    ap.add_argument("--draft-id",
+                    help="work with an existing draft deposition id directly (skip "
+                         "newversion) — use when a new-version draft already exists")
     ap.add_argument("--files", nargs="*", default=[], type=Path,
                     help="files to upload into the new version")
     ap.add_argument("--reserve-only", action="store_true",
@@ -145,8 +148,12 @@ def main() -> int:
     if not args.token:
         raise SystemExit("no token — set ZENODO_TOKEN or pass --token")
 
-    print(f"==> new version of record {args.record} on {base}")
-    draft = new_version_draft(base, args.record, args.token)
+    if args.draft_id:
+        print(f"==> using existing draft {args.draft_id} on {base}")
+        draft = _api("GET", f"{base}/api/deposit/depositions/{args.draft_id}", args.token)
+    else:
+        print(f"==> new version of record {args.record} on {base}")
+        draft = new_version_draft(base, args.record, args.token)
     draft_id = draft["id"]
     bucket = draft["links"]["bucket"]
     print(f"  draft deposition id: {draft_id}")
