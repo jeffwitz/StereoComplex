@@ -19,3 +19,9 @@ pdflatex -interaction=nonstopmode -halt-on-error -output-directory=build manuscr
 
 echo "Built: ${ROOT_DIR}/build/manuscript.pdf"
 
+# Keep the standalone PDF in sync with the build. The Zenodo bundle
+# (make_zenodo_bundle.py) and the upload command reference paper/cmo/manuscript.pdf,
+# NOT build/manuscript.pdf — without this copy the archived standalone PDF can go stale.
+cp build/manuscript.pdf manuscript.pdf
+echo "Synced: ${ROOT_DIR}/manuscript.pdf"
+
