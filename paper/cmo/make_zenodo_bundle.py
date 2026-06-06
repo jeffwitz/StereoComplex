@@ -13,6 +13,13 @@ Because the zip preserves the repository structure, the companion
 This replaces the previous flat 100-file layout, which hard-coded a figure list
 that drifts every time the figure set changes.
 
+The bundle ships the package source (``src/``) and ``pyproject.toml`` so it is
+self-contained for *both* gates: ``make repro`` (PDF + audit) needs no package,
+but ``make figures`` does (e.g. ``generate_fig_cmo_physical.py`` imports
+``stereocomplex.viz`` at module level). A bundle user therefore runs
+``python -m venv .venv && .venv/bin/pip install -e ".[notebooks]"`` (the
+``notebooks`` extra pulls in matplotlib) and then ``make ... PY=.venv/bin/python``.
+
 Scope note. The heavy five-variant Schur-BA reconstructions
 (``docs/assets/pycaso_real_data/schur_ba/specimen_*.npz``, ~120 MB) are **not**
 bundled: the manuscript no longer references the five-variant figure, so no
@@ -44,6 +51,13 @@ MANIFEST_NAME = "BUNDLE_MANIFEST.json"
 # with ``*`` is expanded relative to the repo root; a plain path is a single
 # file. Everything is staged at its repo-relative path (structure preserved).
 INCLUDE = [
+    # --- package source + packaging (self-contained: several figure scripts
+    #     import stereocomplex at module level, e.g. generate_fig_cmo_physical.py;
+    #     ship src so `pip install -e .` rebuilds everything from the bundle alone) ---
+    "src/**",
+    "pyproject.toml",
+    "README.md",
+    "LICENSE",
     # --- manuscript sources + built PDF ---
     "paper/cmo/manuscript.tex",
     "paper/cmo/manuscript.pdf",

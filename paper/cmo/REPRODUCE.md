@@ -31,15 +31,34 @@ from the raw Pycaso images.
 ## Reproduce the exact submitted version
 
 The repository `develop` branch tracks the latest state. To rebuild the precise
-version archived with the submission (v5), use the version DOI:
+version archived with the submission (v5 = `10.5281/zenodo.20574710`), fetch its
+bundle into an **empty directory** (a git checkout would rebuild itself, not the
+archived version):
 
 ```bash
-ZENODO_RECORD=20574710 bash rebuild_from_zenodo.sh   # pins v5 = 10.5281/zenodo.20574710
-cd paper/cmo && make repro
+mkdir -p /tmp/cmo_v5 && cd /tmp/cmo_v5
+curl -sL "https://zenodo.org/records/20574710/files/cmo_paper_bundle.zip" -o bundle.zip
+unzip -q bundle.zip                  # extracts the v5 tree + BUNDLE_MANIFEST.json
+bash rebuild_from_zenodo.sh          # verifies every file against the manifest
+
+# environment (the bundle has no .venv / rtk; override PY):
+python -m venv .venv
+.venv/bin/pip install -e ".[notebooks]"   # core deps + matplotlib for the figures
+make -C paper/cmo repro   PY=.venv/bin/python   # PDF + audit
+make -C paper/cmo figures PY=.venv/bin/python   # regenerate every figure + table
 ```
 
-Without the override, `rebuild_from_zenodo.sh` resolves the concept DOI
-`10.5281/zenodo.20444215`, i.e. whatever the latest published version is.
+> **v5 caveat.** The published v5 bundle predates this self-containment fix and
+> does **not** ship `src/`: from it, `make repro` (PDF + audit) works standalone,
+> but `make figures` needs the codebase — `pip install stereocomplex` or clone
+> the repo at the pinned commit `42d07ef`. Bundles from v6 on ship `src/` and are
+> fully self-contained (the recipe above).
+
+From *inside* an existing clone, force the download instead of using the local
+checkout with `FORCE_ZENODO=1 ZENODO_RECORD=20574710 bash rebuild_from_zenodo.sh`.
+Without an override, `rebuild_from_zenodo.sh` in a clone rebuilds the checkout,
+and in an empty dir it resolves the concept DOI `10.5281/zenodo.20444215` (the
+latest published version).
 
 ## What is versioned vs. fetched vs. recomputed
 

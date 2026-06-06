@@ -10,11 +10,14 @@
 #
 # Usage:
 #   A) From an already-extracted bundle (BUNDLE_MANIFEST.json in CWD):
-#        unzip cmo_paper_bundle.zip
-#        bash rebuild_from_zenodo.sh
-#   B) From a git clone (downloads the bundle automatically):
-#        git clone https://github.com/jeffwitz/StereoComplex
+#        unzip cmo_paper_bundle.zip && bash rebuild_from_zenodo.sh   # verifies hashes
+#   B) From an EMPTY directory (downloads the bundle from Zenodo):
+#        bash rebuild_from_zenodo.sh                                  # concept DOI = latest
+#        ZENODO_RECORD=20574710 bash rebuild_from_zenodo.sh           # a specific version
+#   C) From a git clone (uses the local checkout, does NOT download):
 #        cd StereoComplex && bash rebuild_from_zenodo.sh
+#      To fetch the archived bundle instead of the checkout, force the download:
+#        FORCE_ZENODO=1 ZENODO_RECORD=20574710 bash rebuild_from_zenodo.sh
 #
 # After running:
 #   cd paper/cmo && make repro    # rebuild manuscript.pdf + audit every number
@@ -28,11 +31,22 @@ ZENODO_RECORD="${ZENODO_RECORD:-20444215}"
 BUNDLE="cmo_paper_bundle.zip"
 
 # ── Acquire the bundle ────────────────────────────────────────────────
-if [ -f BUNDLE_MANIFEST.json ] || [ -f paper/cmo/manuscript.tex ]; then
-    echo "=== Structure already present (extracted bundle or git clone) ==="
+# Precedence: an already-extracted bundle wins; then FORCE_ZENODO forces a
+# download even inside a git checkout (for exact-version reproduction); then a
+# local zip; then a git checkout uses its own files; otherwise download.
+if [ -f BUNDLE_MANIFEST.json ]; then
+    echo "=== Extracted bundle already present ==="
+elif [ "${FORCE_ZENODO:-0}" = "1" ]; then
+    echo "=== FORCE_ZENODO=1: downloading $BUNDLE from Zenodo record $ZENODO_RECORD ==="
+    curl -sL "https://zenodo.org/records/${ZENODO_RECORD}/files/${BUNDLE}" -o "$BUNDLE"
+    unzip -qo "$BUNDLE"
 elif [ -f "$BUNDLE" ]; then
     echo "=== Extracting local $BUNDLE ==="
     unzip -qo "$BUNDLE"
+elif [ -f paper/cmo/manuscript.tex ]; then
+    echo "=== Git checkout present; using local files ==="
+    echo "    (this rebuilds the CHECKOUT, not a Zenodo version; to fetch the"
+    echo "     archived bundle instead, run in an empty dir or set FORCE_ZENODO=1)"
 else
     echo "=== Downloading $BUNDLE from Zenodo record $ZENODO_RECORD ==="
     curl -sL "https://zenodo.org/records/${ZENODO_RECORD}/files/${BUNDLE}" -o "$BUNDLE"
