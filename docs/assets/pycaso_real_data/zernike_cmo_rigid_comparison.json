@@ -1,85 +1,85 @@
 {
-  "n_common_valid": 1943070,
+  "n_common_valid": 2096704,
   "n_subsample": 100000,
   "kabsch_se3": {
-    "rotation_angle_deg": 8.597235064158081,
-    "translation_norm_mm": 9.213875770568848,
+    "rotation_angle_deg": 8.616826481294279,
+    "translation_norm_mm": 9.222540855407715,
     "rotation_vec": [
-      0.03920128231702019,
-      0.14300181869599046,
-      -0.022994767914176605
+      0.03972889512511172,
+      0.14317233386560155,
+      -0.023260466842864876
     ],
     "translation": [
-      -9.14482307434082,
-      -0.9142839908599854,
-      0.6571083068847656
+      -9.156814575195312,
+      -0.8771469593048096,
+      0.6622772216796875
     ],
-    "median_dP_before_mm": 3.54419207572937,
-    "median_dP_after_mm": 0.01849357783794403,
-    "reduction_pct": 99.47820046310164
+    "median_dP_before_mm": 3.5392982959747314,
+    "median_dP_after_mm": 0.018065456300973892,
+    "reduction_pct": 99.48957519852112
   },
   "affine_plane": {
     "before_se3": {
       "coeffs_a_b_c": [
-        0.14114883423609245,
-        -0.04109642866021684,
-        -0.07522874974659943
+        0.1413380934952547,
+        -0.041669189761654075,
+        -0.07939376337498245
       ],
-      "r2": 0.9952682691589436,
-      "mad_mm": 0.007891861829977247
+      "r2": 0.9966801177592427,
+      "mad_mm": 0.007217155683580584
     },
     "after_se3": {
       "coeffs_a_b_c": [
-        9.578372920130199e-05,
-        -2.283864751402402e-05,
-        0.02107219846935542
+        8.668583032285037e-05,
+        -2.549234555638321e-05,
+        0.02076890447854423
       ],
-      "r2": 0.00010098150298665232,
-      "mad_mm": 0.0076308849519653305
+      "r2": 0.00012100520723090646,
+      "mad_mm": 0.006949490081304769
     }
   },
   "plucker_common_se3": {
-    "rotation_angle_deg": 6.034949113735689,
-    "translation_norm_mm": 31.78818509310111,
-    "direction_residual_before": 0.11911548303581068,
-    "direction_residual_after": 0.07022245172983116,
-    "moment_residual_before_mm": 5.008063810509137,
-    "moment_residual_after_mm": 0.29636538591289685
+    "rotation_angle_deg": 5.9527865939224895,
+    "translation_norm_mm": 31.78118499714207,
+    "direction_residual_before": 0.11798999977871803,
+    "direction_residual_after": 0.07049061077304075,
+    "moment_residual_before_mm": 5.016992654895493,
+    "moment_residual_after_mm": 0.30493117854824486
   },
   "plucker_per_arm_se3": {
     "left": {
-      "rotation_angle_deg": 162.12352242691256,
-      "translation_norm_mm": 40.70914083576577,
-      "direction_residual_before": 0.11782871251625332,
-      "direction_residual_after": 0.021140806083989473,
-      "moment_residual_before_mm": 5.044720931583655,
-      "moment_residual_after_mm": 0.11107042151321653
+      "rotation_angle_deg": 158.10882137112162,
+      "translation_norm_mm": 40.73770421850511,
+      "direction_residual_before": 0.11651836519711427,
+      "direction_residual_after": 0.02209498493780151,
+      "moment_residual_before_mm": 5.033749241481592,
+      "moment_residual_after_mm": 0.11866244751668671
     },
     "right": {
-      "rotation_angle_deg": 116.75261533860225,
-      "translation_norm_mm": 36.01687125195613,
-      "direction_residual_before": 0.12040708296875513,
-      "direction_residual_after": 0.01989006042482115,
-      "moment_residual_before_mm": 4.973255828046591,
-      "moment_residual_after_mm": 0.14910876131087514
+      "rotation_angle_deg": 25.392624859429308,
+      "translation_norm_mm": 32.34767023652241,
+      "direction_residual_before": 0.11951104734854084,
+      "direction_residual_after": 0.023132908982321312,
+      "moment_residual_before_mm": 5.001517475708014,
+      "moment_residual_after_mm": 0.2905495397840474
     },
-    "combined_direction_residual_after": 0.020519436096617688,
-    "combined_moment_residual_after_mm": 0.124977199859331
+    "combined_direction_residual_after": 0.02258943610891284,
+    "combined_moment_residual_after_mm": 0.15273692534386735
   },
   "interpretation_metrics": {
-    "kabsch_dP_reduction_pct": 99.47820046310164,
-    "affine_r2_after_se3": 0.00010098150298665232,
-    "affine_mad_after_se3_mm": 0.0076308849519653305,
-    "dZ_final_mad_mm": 0.0076308849519653305,
-    "common_se3_moment_residual_mm": 0.29636538591289685,
-    "per_arm_vs_common_direction_ratio": 0.2922062045848627,
-    "per_arm_moment_residual_mm": 0.124977199859331
+    "kabsch_dP_reduction_pct": 99.48957519852112,
+    "affine_r2_after_se3": 0.00012100520723090646,
+    "affine_mad_after_se3_mm": 0.006949490081304769,
+    "dZ_final_mad_mm": 0.006949490081304769,
+    "common_se3_moment_residual_mm": 0.30493117854824486,
+    "per_arm_vs_common_direction_ratio": 0.3204602125188594,
+    "per_arm_moment_residual_mm": 0.15273692534386735
   },
   "case_scores": {
     "A_global_frame": 1.0,
-    "B_per_arm": 0.5783002813423617,
-    "C_affine_ramp": 0.9952682691589436,
-    "D_non_rigid": 0.31914337984173574
+    "B_per_arm": 0.499110172757549,
+    "C_affine_ramp": 0.9966801177592427,
+    "D_non_rigid": 0.3299346435586709
   },
   "primary_interpretation": "A_global_frame"
 }

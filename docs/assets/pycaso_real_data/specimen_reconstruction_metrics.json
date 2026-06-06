@@ -1,22 +1,46 @@
 {
-  "cmo_26p": {
-    "valid_fraction": 1.0,
-    "median_ray_gap_mm": 0.001063539690727043,
-    "median_Z_mm": 64.37717757783848,
-    "Z_mad_mm": 0.07284647910662301,
-    "Z_range_mm": [
-      64.11774175229465,
-      64.61414329064198
-    ]
+  "dis": "improved",
+  "dis_config": {
+    "border": 0,
+    "finest": 0,
+    "gd": 40,
+    "vr": 50,
+    "alpha": 120.0,
+    "eps": 0.0001
   },
-  "zernike_57p": {
-    "valid_fraction": 1.0,
-    "median_ray_gap_mm": 0.0010590822419244772,
-    "median_Z_mm": 64.4712444912974,
-    "Z_mad_mm": 0.19414317510496915,
-    "Z_range_mm": [
-      63.96166123436976,
-      64.99041079568772
-    ]
-  }
+  "roi": [
+    300,
+    1748,
+    300,
+    1748
+  ],
+  "n_common_valid": 2096704,
+  "variants": {
+    "zernike_rayfield_57p": {
+      "z_mad_mm": 0.20196627244450838,
+      "magnification": 0.19913940346712591,
+      "median_gap_mm": 0.00045208450844444817
+    },
+    "cmo_26p_initial": {
+      "z_mad_mm": 0.0762466260897483,
+      "magnification": 0.19898689895604177,
+      "median_gap_mm": 0.00041697014636973254
+    },
+    "cmo_26p_ba_unregularized": {
+      "z_mad_mm": 0.022734978367324743,
+      "magnification": 0.19794496334555062,
+      "median_gap_mm": 0.0004837914428378758
+    },
+    "cmo_26p_ba_iso_a1e-2": {
+      "z_mad_mm": 0.027843018149773968,
+      "magnification": 0.1984718522930349,
+      "median_gap_mm": 0.0004442622077243047
+    },
+    "cmo_26p_ba_schur_a1e-3": {
+      "z_mad_mm": 0.027638340722866417,
+      "magnification": 0.19846211183973078,
+      "median_gap_mm": 0.00043840073222250483
+    }
+  },
+  "zernike_cmo_relief_ratio": 1.4368725742347455
 }

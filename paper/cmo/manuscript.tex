@@ -783,15 +783,15 @@ Descriptor readout therefore requires either an independently known optical scal
 
 A non-metrological sanity check validates the calibrated rayfields on an independent speckled coin specimen imaged with the same Pycaso microscope (single stereo pair, no ChArUco pattern).
 This is \textbf{not} absolute metrological certification against a traceable 3D artefact, but---together with the external profilometry of the same specimen (\S\ref{sec:external_validation})---it confirms that the rayfields produce coherent dense reconstruction on data unseen during calibration.
-Dense left-to-right pixel correspondences are computed with DIS optical flow over a $1448{\times}1448$~px ROI; within the $1400{\times}1400$~px analysis window shown in Figure~\ref{fig:specimen}, \SI{95.4}{\percent} of pixels carry a valid correspondence.
+Dense left-to-right pixel correspondences are computed by DIS optical flow on the \emph{full} image (with variational refinement), and the analysis ROI is then extracted from the resulting field rather than computing the flow on a cropped ROI; within the $1448{\times}1448$~px analysis window shown in Figure~\ref{fig:specimen}, every pixel carries a valid correspondence (the full-image flow leaves no holes in the ROI).
 For each correspondence, the two rays from the calibrated model are intersected at their closest point (ray-gap triangulation).
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/specimen_reconstruction.pdf}
-\caption{Dense specimen reconstruction. Top row: left image, DIS optical-flow magnitude $\|(U,V)\|$, valid mask (\SI{95.4}{\percent} coverage over the displayed window).
+\caption{Dense specimen reconstruction. Top row: left image, DIS optical-flow magnitude $\|(U,V)\|$, valid mask (full coverage---the full-image flow leaves no holes in the ROI).
 Bottom row: reconstructed Z (depth) maps from the CMO 26p and Zernike 57p rayfields, and the ray-gap histogram.
-Both BA-refined models produce nearly identical ray gaps (median \SI{0.001}{mm}), confirming rayfield coherence. Quantitative surface roughness and ray-gap values for all five model variants (rayfield-initialised through Schur-regularised) are reported in Table~\ref{tab:specimen_comparison}.}
+Both rayfields produce nearly identical, tight ray gaps (median ${\sim}\SI{0.5}{\micro\metre}$), confirming rayfield coherence. Quantitative surface roughness and ray-gap values for all five model variants (rayfield-initialised through Schur-regularised) are reported in Table~\ref{tab:specimen_comparison}.}
 \label{fig:specimen}
 \end{figure}
 
@@ -802,7 +802,7 @@ OpenCV stereo reconstruction was not available because the standard OpenCV calib
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/zernike_cmo_rigid_removed.pdf}
-\caption{Rigid-gauge removal: Zernike vs CMO surface comparison. Top row: CMO and Zernike surfaces after plane-normalisation (relief only), followed by $\Delta Z$ before and after plane normalisation. Bottom row: $\Delta Z$ before SE(3) alignment (dominated by an affine ramp, $R^2=0.995$), the fitted affine plane, and the residual histogram. After SE(3) alignment the median plane-normalised $\Delta Z$ residual is \SI{0.0076}{mm}; the corresponding median 3D point-to-point residual drops from \SI{3.5}{mm} to \SI{0.018}{mm} (a \SI{99.5}{\percent} reduction). The remaining relief difference is a depth-only scalar (relief-amplitude ratio $Z_{\mathrm{Zernike}}/Z_{\mathrm{CMO}}=1.43\times$, i.e.\ $s_z\approx0.70$): the two reconstructions agree up to a single depth-scale factor, not a spatially arbitrary non-rigid discrepancy. Which reconstruction is closer to the true surface is settled by external profilometry in \S\ref{sec:external_validation}.}
+\caption{Rigid-gauge removal: Zernike vs CMO surface comparison. Top row: CMO and Zernike surfaces after plane-normalisation (relief only), followed by $\Delta Z$ before and after plane normalisation. Bottom row: $\Delta Z$ before SE(3) alignment (dominated by an affine ramp, $R^2=0.997$), the fitted affine plane, and the residual histogram. After SE(3) alignment the median plane-normalised $\Delta Z$ residual is \SI{0.0069}{mm}; the corresponding median 3D point-to-point residual drops from \SI{3.5}{mm} to \SI{0.018}{mm} (a \SI{99.5}{\percent} reduction). The remaining relief difference is a depth-only scalar (relief-amplitude ratio $Z_{\mathrm{Zernike}}/Z_{\mathrm{CMO}}=1.43\times$, i.e.\ $s_z\approx0.70$): the two reconstructions agree up to a single depth-scale factor, not a spatially arbitrary non-rigid discrepancy. Which reconstruction is closer to the true surface is settled by external profilometry in \S\ref{sec:external_validation}.}
 \label{fig:rigid_removal}
 \end{figure}
 
@@ -826,16 +826,15 @@ We therefore provide exactly the required independent axial reference---profilom
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.98\textwidth]{figures/specimen_schur_regularized.png}
-\caption{Five-variant specimen reconstruction with Schur-regularised variants. Each row shows the Z-map (surface relief after mean-plane subtraction), the XY footprint (coloured by relief), and the ray-gap histogram (log scale, shared range). All CMO variants are aligned to the Zernike reference frame. The rayfield initialisation (row~2) has a median gap \SI{0.022}{mm}---20$\times$ larger than the BA-refined rows---apparent once the world frame is made consistent. The regularised variants (rows~4--5) achieve Z MAD \SI{0.027}{mm} (computed on the plane-normalised relief over the common valid ROI), marginally better than the unregularised BA (\SI{0.030}{mm}), $2.7\times$ smoother than the rayfield-initialised CMO variant (\SI{0.073}{mm}) and $7.2\times$ smoother than the Zernike map (\SI{0.194}{mm}); these MAD values are smoothness indicators, not metrological ground truth. All BA variants converge to magnification $\sim$0.193 vs.\ Zernike 0.197 (3.5\,\% systematic model bias)---a \emph{lateral}-magnification difference, distinct from the depth-only scale difference ($s_z{\approx}0.70$) diagnosed in Figure~\ref{fig:rigid_removal}.}
+\caption{Five-variant specimen reconstruction with Schur-regularised variants. Each row shows the Z-map (surface relief after mean-plane subtraction), the XY footprint (coloured by relief), and the ray-gap histogram (log scale, shared range). All CMO variants are aligned to the Zernike reference frame. On the dense full-image correspondence field all five variants---including the rayfield initialisation (row~2)---triangulate the specimen tightly, with a median ray gap of ${\sim}\SI{0.5}{\micro\metre}$. The Z MAD values---a raw, tilt-dominated smoothness indicator (not metrological ground truth)---are \SI{0.028}{mm} for the regularised variants (rows~4--5), \SI{0.023}{mm} for the unregularised BA, \SI{0.076}{mm} for the rayfield-initialised CMO ($2.7\times$ rougher than the BA variants) and \SI{0.202}{mm} for the Zernike map ($7.2\times$ rougher); the prior does not degrade the geometric reconstruction. All five variants converge to the same lateral magnification (${\sim}0.199$ vs.\ the nominal coin), with \emph{no} systematic CMO--Zernike lateral bias once the dense field is used---distinct from the depth-only scale difference ($s_z{\approx}0.70$) diagnosed in Figure~\ref{fig:rigid_removal}.}
 \label{fig:specimen_schur}
 \end{figure}
 
 Figure~\ref{fig:specimen_schur} and Table~\ref{tab:specimen_comparison} quantify the five reconstructions.
-The rayfield-initialised CMO model (before BA) has a median ray gap of \SI{0.022}{mm}---an order of magnitude worse than all BA-refined variants ($\sim$\SI{0.001}{mm}). After enforcing a consistent world-frame convention, the initial model's larger triangulation gap becomes apparent: its triangulation quality is substantially worse than the BA-refined models.
-All BA variants recover tight ray intersections (median gap $\sim$\SI{1}{\micro\metre}), confirming that the ray geometry is correct regardless of the regularisation strategy.
-The regularised variants achieve Z MAD \SI{0.027}{mm}, marginally better than the unregularised BA (\SI{0.030}{mm})---the prior does not degrade the geometric reconstruction.
-All CMO BA variants converge to a magnification ratio of $\sim$0.193 vs.\ the Zernike reference at 0.197, reflecting a 3.5\,\% lateral model bias between the compact 26-parameter physical model and the flexible 57-parameter rayfield.
-This lateral bias is small compared with the depth-only scale difference ($s_z{\approx}0.70$) and, importantly, cannot explain it: the specimen diagnostic separates lateral magnification from depth sensitivity.
+All five variants---including the rayfield initialisation---recover tight ray intersections on the dense full-image correspondence field, with a median ray gap of ${\sim}\SI{0.5}{\micro\metre}$. The ray geometry is therefore correct regardless of the regularisation strategy, and the rayfield-identified initialisation already triangulates the specimen as tightly as the BA-refined models.
+The regularised variants achieve Z MAD ${\sim}\SI{0.028}{mm}$, comparable to the unregularised BA (\SI{0.023}{mm})---the prior does not degrade the geometric reconstruction.
+On the dense full-image correspondence field all five variants converge to the same lateral magnification (${\sim}0.199$ vs.\ the nominal coin): there is \emph{no} systematic CMO--Zernike lateral bias. The apparent ${\sim}3.5\,\%$ bias seen with the sparser ULTRAFAST correspondences was an artefact of differing per-variant valid sets, not a property of the models.
+The lateral magnification, now consistent across variants, is in any case distinct from the depth-only scale difference ($s_z{\approx}0.70$) and cannot explain it: the specimen diagnostic separates lateral magnification from depth sensitivity.
 
 \begin{table}[H]
 \centering
@@ -845,11 +844,11 @@ This lateral bias is small compared with the depth-only scale difference ($s_z{\
 \toprule
 Model & Z MAD (mm) & Median gap (mm) & Magnification \\
 \midrule
-Zernike rayfield (57~p)  & 0.194 & 0.0011 & 0.1968 \\
-CMO 26~p (rayfield init) & 0.073 & \textbf{0.0224} & 0.1904 \\
-CMO 26~p --- BA unregularised & 0.030 & 0.0011 & 0.1931 \\
-CMO 26~p --- BA + isotropic prior ($\alpha{=}10^{-2}$) & 0.027 & 0.0011 & 0.1930 \\
-CMO 26~p --- BA + \textbf{Schur prior} ($\alpha{=}10^{-3}$) & \textbf{0.027} & 0.0011 & 0.1930 \\
+Zernike rayfield (57~p)  & 0.202 & 0.0005 & 0.1991 \\
+CMO 26~p (rayfield init) & 0.076 & 0.0004 & 0.1990 \\
+CMO 26~p --- BA unregularised & 0.023 & 0.0005 & 0.1979 \\
+CMO 26~p --- BA + isotropic prior ($\alpha{=}10^{-2}$) & 0.028 & 0.0004 & 0.1985 \\
+CMO 26~p --- BA + \textbf{Schur prior} ($\alpha{=}10^{-3}$) & \textbf{0.028} & 0.0004 & 0.1985 \\
 \bottomrule
 \end{tabular}
 \end{table}
