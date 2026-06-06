@@ -4,8 +4,16 @@
   "cmo_reconstruction": "../../pycaso_real_data/specimen_reconstruction_cmo26.npz",
   "zernike_reconstruction": "../../pycaso_real_data/specimen_reconstruction_zernike.npz",
   "rigid_comparison": "../../pycaso_real_data/zernike_cmo_rigid_comparison.json",
-  "roi_crop_px": [300, 1700, 300, 1700],
-  "z_percentile_clip": [2, 98],
+  "roi_crop_px": [
+    300,
+    1700,
+    300,
+    1700
+  ],
+  "z_percentile_clip": [
+    2,
+    98
+  ],
   "dz_percentile_clip": 99,
-  "residual_histogram_xmax_mm": 1.0
+  "residual_histogram_xmax_mm": 0.05
 }

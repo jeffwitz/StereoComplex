@@ -173,16 +173,20 @@ def render(manifest: dict, manifest_root: Path, out_dir: Path) -> None:
 
     dPr = np.abs(dZ_before[valid_subset])
     dPo = np.abs(dZ_norm[valid_subset])
-    axes[1, 2].hist(dPr, bins=100, alpha=0.6, color="red",
+    xmax = manifest["residual_histogram_xmax_mm"]
+    # Bin both distributions over the (tight) display window so the small
+    # after-alignment residual (green) is resolved; the before-alignment
+    # residual (red, median in the legend) extends past the window.
+    axes[1, 2].hist(dPr, bins=100, range=(0.0, xmax), alpha=0.6, color="red",
                     label=f"before SE(3), raw (med={np.median(dPr):.3f})")
-    axes[1, 2].hist(dPo, bins=100, alpha=0.6, color="green",
+    axes[1, 2].hist(dPo, bins=100, range=(0.0, xmax), alpha=0.6, color="green",
                     label=f"after SE(3), plane-norm (med={np.median(dPo):.4f})")
     axes[1, 2].set_xlabel(r"$\Delta Z$ residual [mm]")
     axes[1, 2].set_title(
         r"$\Delta Z$ plane-norm: 0.0070 mm; 3D p2p: 3.5 $\to$ 0.018 mm",
         fontsize=9,
     )
-    axes[1, 2].set_xlim(0, manifest["residual_histogram_xmax_mm"])
+    axes[1, 2].set_xlim(0, xmax)
     axes[1, 2].legend(fontsize=8)
 
     scale_ratio = float(np.nanstd(Zz_norm[valid_subset]) / np.nanstd(Zc_norm[valid_subset]))
