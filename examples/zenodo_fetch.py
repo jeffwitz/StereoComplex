@@ -1,18 +1,24 @@
-"""Helper to fetch the schur_ba/ archive from Zenodo when not present locally.
+"""Helper to fetch the heavy schur_ba/ specimen reconstructions from Zenodo.
 
 Usage:
     from stereocomplex_examples.zenodo_fetch import ensure_schur_ba
     ensure_schur_ba()
 
-If the directory ``docs/assets/pycaso_real_data/schur_ba/`` exists locally,
-nothing happens.  Otherwise the archive is downloaded from Zenodo DOI
-10.5281/zenodo.20369312 and extracted.
+If the five ``specimen_*.npz`` files already exist under
+``docs/assets/pycaso_real_data/schur_ba/`` nothing happens; otherwise they are
+downloaded from Zenodo DOI 10.5281/zenodo.20369312.
+
+Legacy note. These ~120 MB reconstructions backed the *five-variant* dense
+figure, which is no longer part of the manuscript — no paper figure, table or
+audited number depends on them anymore. They are kept (and refreshed with the
+current full-image reconstructions) only so the standalone analysis script
+``generate_fig_specimen_schur_regularized.py`` can still be run. ``make repro``
+and every manuscript figure work from the repository alone, without this fetch.
 """
 
-import os
 import sys
 from pathlib import Path
-from urllib.request import urlopen, Request
+from urllib.request import Request, urlopen
 
 ZENODO_DOI = "10.5281/zenodo.20369312"
 ZENODO_RECORD = ZENODO_DOI.split('.')[-1]
@@ -27,7 +33,7 @@ SCHUR_BA_FILES = [
 ]
 # Find repo root: go up until we find CLAUDE.md
 REPO_ROOT = Path(__file__).resolve().parent
-while REPO_ROOT != REPO_ROOT.parent:
+while REPO_ROOT.parent != REPO_ROOT:
     if (REPO_ROOT / "CLAUDE.md").exists():
         break
     REPO_ROOT = REPO_ROOT.parent
@@ -58,8 +64,8 @@ def ensure_schur_ba(quiet: bool = False) -> bool:
         return True
     except Exception as exc:
         print(f"Failed to download schur_ba/ from Zenodo: {exc}", file=sys.stderr)
-        print(f"Computations that depend on pre-computed schur_ba/ artefacts will not run.", file=sys.stderr)
-        print(f"You can still run the full computation with --mode ba (2 hours).", file=sys.stderr)
+        print("These reconstructions are optional (no manuscript figure needs them); "
+              "regenerate locally with regenerate_specimen_reconstructions.py.", file=sys.stderr)
         return False
 
 

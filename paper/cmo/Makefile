@@ -14,6 +14,7 @@
 #                    #   regeneration — stale for the current numbers)
 #   make schur       # re-run the corner Schur-BA (diagnostics + thetas, ~2 h)
 #   make repro-full  # schur + specimen + figures + pdf + audit (from raw)
+#   make bundle      # assemble the Zenodo archive (see ZENODO_UPDATE.md)
 #
 # See REPRODUCE.md for the data-provenance and one-command recipe.
 # ======================================================================
@@ -29,11 +30,11 @@ FIGS := bic_bars bic_vs_order cmo_physical dy_profile pipeline \
         profilo_relief_comparison residual_evolution schur_svd se3_arm_alignment \
         specimen_reconstruction zernike_cmo_rigid_removed
 
-.PHONY: repro repro-full pdf figures fetch specimen schur audit clean help
+.PHONY: repro repro-full pdf figures fetch specimen schur audit bundle clean help
 .DEFAULT_GOAL := help
 
 help:
-	@sed -n '2,18p' $(firstword $(MAKEFILE_LIST))
+	@sed -n '2,19p' $(firstword $(MAKEFILE_LIST))
 
 # --- fast reproduction: build the versioned figures into the PDF + audit ------
 repro: pdf audit
@@ -66,6 +67,11 @@ schur:
 
 audit:
 	cd $(ROOT) && $(PY) $(NB)/audit_paper_numbers.py
+
+# --- assemble the self-contained Zenodo archive (see ZENODO_UPDATE.md) --------
+bundle: pdf
+	cd $(ROOT) && $(PY) paper/cmo/make_zenodo_bundle.py
+	cd $(ROOT) && $(PY) paper/cmo/make_zenodo_bundle.py --verify
 
 clean:
 	rm -rf $(ROOT)/paper/cmo/build

@@ -17,6 +17,7 @@ the versioned assets). Minutes, offline, no raw images, no 2-hour BA.
 make pdf        # just compile the manuscript
 make audit      # cross-check every manuscript number against the assets
 make figures    # REGENERATE all manuscript figures (needs the heavy specimen .npz)
+make bundle     # assemble the self-contained Zenodo archive (see ZENODO_UPDATE.md)
 make clean      # remove build/
 ```
 
