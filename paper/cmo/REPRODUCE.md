@@ -9,16 +9,21 @@ Everything is driven by the `Makefile` in this directory. Run targets from
 make repro
 ```
 
-Regenerates **every figure** from the versioned data, compiles the manuscript
-to `build/manuscript.pdf`, and runs the numerical audit. Minutes, no network,
-no raw images.
+Compiles the manuscript to `build/manuscript.pdf` from the **versioned figures**
+and runs the numerical audit (every story-level number is cross-checked against
+the versioned assets). Minutes, offline, no raw images, no 2-hour BA.
 
 ```bash
 make pdf        # just compile the manuscript
-make figures    # regenerate all 13 figures from current data
 make audit      # cross-check every manuscript number against the assets
+make figures    # REGENERATE all 13 figures (needs the heavy specimen .npz)
 make clean      # remove build/
 ```
+
+The figures are versioned artefacts, so `make repro` builds the paper without
+any heavy data. To *regenerate* them, `make figures` needs the specimen `.npz`
+present — produce them with `make specimen` (the Zenodo copy predates the
+full-image regeneration and is stale for the current numbers).
 
 ## What is versioned vs. fetched vs. recomputed
 

@@ -1,17 +1,17 @@
 # ======================================================================
 # Reproduce the CMO paper (paper/cmo/manuscript.tex)
 # ======================================================================
-# Quick start:
-#   make repro       # fast path: build all figures + PDF + audit from the
-#                    # versioned data (minutes; no raw images, no 2 h BA)
+# Quick start (clean checkout, offline, minutes — uses the versioned figures):
+#   make repro       # compile the PDF + audit every manuscript number
 #   make pdf         # just compile the manuscript
-#   make figures     # regenerate every figure from the current data
 #   make audit       # cross-check every manuscript number against the assets
+#   make clean       # remove build/
 #
-# Heavy / from-scratch:
-#   make fetch       # download the heavy specimen .npz from Zenodo
-#   make specimen    # regenerate the full-image specimen reconstructions
-#                    #   (needs the Pycaso raw images, see REPRODUCE.md)
+# Regenerate the figures (the specimen ones need the heavy .npz present):
+#   make figures     # regenerate every figure from the current data
+#   make specimen    # rebuild the full-image specimen .npz (needs Pycaso images)
+#   make fetch       # specimen .npz from Zenodo (PREDATES the full-image
+#                    #   regeneration — stale for the current numbers)
 #   make schur       # re-run the corner Schur-BA (diagnostics + thetas, ~2 h)
 #   make repro-full  # schur + specimen + figures + pdf + audit (from raw)
 #
@@ -36,9 +36,9 @@ FIGS := bic_bars bic_vs_order cmo_physical dy_profile pareto pipeline \
 help:
 	@sed -n '2,18p' $(firstword $(MAKEFILE_LIST))
 
-# --- fast reproduction (versioned data only) --------------------------
-repro: figures pdf audit
-	@echo "==> CMO paper reproduced from versioned data (paper/cmo/build/manuscript.pdf)."
+# --- fast reproduction: build the versioned figures into the PDF + audit ------
+repro: pdf audit
+	@echo "==> CMO paper built + audited (paper/cmo/build/manuscript.pdf)."
 
 # --- full reproduction from raw inputs --------------------------------
 repro-full: schur specimen figures pdf audit
