@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Regenerate the specimen (coin) reconstructions reproducibly.
 
-This is the missing producer for the specimen artefacts behind Figures 9-11 of
-the CMO paper. The five-variant Schur-BA reconstructions were previously only
-archived on Zenodo (no local script); this driver rebuilds them from the
-*calibrations* that the repo already carries, so the figures become fully
-reproducible.
+This is the missing producer for the specimen artefacts behind the dense
+specimen-reconstruction figures of the CMO paper (specimen reconstruction and
+the Zernike-vs-CMO rigid-removal comparison). The five-variant Schur-BA
+reconstructions were previously only archived on Zenodo (no local script); this
+driver rebuilds them from the *calibrations* that the repo already carries, so
+the figures become fully reproducible.
 
 Pipeline
 --------

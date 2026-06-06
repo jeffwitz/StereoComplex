@@ -183,7 +183,9 @@ def render(manifest: dict, manifest_root: Path, out_dir: Path) -> None:
                     label=f"after SE(3), plane-norm (med={np.median(dPo):.4f})")
     axes[1, 2].set_xlabel(r"$\Delta Z$ residual [mm]")
     axes[1, 2].set_title(
-        r"$\Delta Z$ plane-norm: 0.0070 mm; 3D p2p: 3.5 $\to$ 0.018 mm",
+        rf"$\Delta Z$ plane-norm: {np.median(dPo):.4f} mm; "
+        rf"3D p2p: {rigid['kabsch_se3']['median_dP_before_mm']:.1f} "
+        rf"$\to$ {rigid['kabsch_se3']['median_dP_after_mm']:.3f} mm",
         fontsize=9,
     )
     axes[1, 2].set_xlim(0, xmax)

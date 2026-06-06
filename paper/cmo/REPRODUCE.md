@@ -16,7 +16,7 @@ the versioned assets). Minutes, offline, no raw images, no 2-hour BA.
 ```bash
 make pdf        # just compile the manuscript
 make audit      # cross-check every manuscript number against the assets
-make figures    # REGENERATE all 13 figures (needs the heavy specimen .npz)
+make figures    # REGENERATE all manuscript figures (needs the heavy specimen .npz)
 make clean      # remove build/
 ```
 
