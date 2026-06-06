@@ -34,9 +34,11 @@ notebooks). Until then, share `blob/develop/` Colab URLs.
 
 ## CMO paper status
 
-Submission-ready as of commit 15a5d78 (paper-readiness pass). 41 pages, 13 figures, 5 tables, Appendix A. All story-level numbers reproducible (`docs/assets/cmo_paper/AUDIT.md`).
+Accepted with minor revisions. 42 pages, 14 figures, 5 tables, Appendix A. All story-level numbers reproducible (`docs/assets/cmo_paper/AUDIT.md`).
 
-**External 3-D validation — delivered.** §4.9 "External Profilometry Validation" + Figure 12 (`docs/assets/cmo_paper/figure_external_profilo_relief/`, `examples/notebooks/generate_fig_profilo_relief_comparison.py`) resolve the specimen depth-scale ambiguity against an external profilometric reference: CMO 26p ≈ Soloff (cc=0.9997, RMS 0.57 µm), both ~1.10× the profilometry, while the Zernike-based dense reconstruction over-amplifies the relief (1.63×). The wording is deliberately hedged (single specimen, lateral registration cc=0.96, profilometer-set scale): it supports the CMO/Soloff depth scale on this specimen, it does not certify absolute metrology.
+**External 3-D validation — delivered.** §4.9 "External Profilometry Validation" + Figure 13 (`docs/assets/cmo_paper/figure_external_profilo_relief/`, `examples/notebooks/generate_fig_profilo_relief_comparison.py`) resolve the specimen depth-scale ambiguity against an external profilometric reference: CMO 26p ≈ Soloff (cc=0.9997, RMS 0.57 µm), both ~1.10× the profilometry, while the Zernike-based dense reconstruction over-amplifies the relief (1.63×). The wording is deliberately hedged (single specimen, lateral registration cc=0.96, profilometer-set scale): it supports the CMO/Soloff depth scale on this specimen, it does not certify absolute metrology.
+
+**Minor-revision pass — done.** Reviewer #3: SE(3) arm-alignment schematic added as Figure 7 in §3.5.6 (`figure_se3_arm_alignment/`, `generate_fig_se3_arm_alignment.py`). Reviewer #1: computational-cost mention added in §6.7 (Soloff fit ~few ms vs rayfield-to-CMO identification ~20 s on one CPU core, from the versioned pose_sweep/se3_ablation timings). Reviewer #2 (corner-noise sensitivity study) was deliberately NOT requested by JFW and is not done.
 
 **Open future work (not started, optional, no reviewer is blocking on it):** an external *non-central* calibration baseline — a published third-party non-central/raxel camera model run on the same Pycaso corner set — to position CMO against an existing non-central method rather than only against OpenCV (central, fails), Soloff (black-box pixel) and the in-house Zernike rayfield. Heavy and not required by the current narrative.
 
