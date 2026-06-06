@@ -361,7 +361,13 @@ def plot_specimen_grid(
         fig.colorbar(im, ax=ax_z, label="Z − mean plane (mm)")
 
         ratio = magnification_ratio(rec, nominal_diameter_mm)
-        ax_xy.scatter(rec.X, rec.Y, s=1, c=z_rel[row], cmap="viridis",
+        # The CMO model carries an inverted v->Y sign (rho_y, s_y < 0), so its
+        # XY footprint is Y-mirrored relative to the v-down Z-map. Flip the CMO
+        # variants' Y so every footprint shares the Z-map orientation; the
+        # Zernike reference needs no flip (cf. the documented -Y correction in
+        # examples/notebooks/generate_fig_zernike_cmo_rigid_removed.py).
+        y_sign = -1.0 if "cmo" in rec.variant.lower() else 1.0
+        ax_xy.scatter(rec.X, y_sign * rec.Y, s=1, c=z_rel[row], cmap="viridis",
                       vmin=vmin, vmax=vmax)
         ax_xy.set_aspect("equal")
         ax_xy.invert_yaxis()
