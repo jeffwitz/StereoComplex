@@ -25,10 +25,9 @@ SCHUR_OUT := docs/assets/pycaso_real_data/schur_ba
 STATE     := docs/assets/pycaso_real_data/intermediate_state.npz
 
 # one generate_fig_<name>.py per figure referenced by the manuscript
-FIGS := bic_bars bic_vs_order cmo_physical dy_profile pareto pipeline \
+FIGS := bic_bars bic_vs_order cmo_physical dy_profile pipeline \
         profilo_relief_comparison residual_evolution schur_svd se3_arm_alignment \
-        specimen_reconstruction specimen_schur_regularized subpupil_3d \
-        zernike_cmo_rigid_removed
+        specimen_reconstruction zernike_cmo_rigid_removed
 
 .PHONY: repro repro-full pdf figures fetch specimen schur audit clean help
 .DEFAULT_GOAL := help
