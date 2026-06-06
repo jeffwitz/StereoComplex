@@ -252,13 +252,6 @@ $WD = \SI{64.7}{mm}$ (effective working distance, from mean pose Z; convention: 
 $f_{\text{obj}} = WD - z_p = \SI{62.2}{mm}$ (effective axial length),
 $\theta = \arccos(d_L \cdot d_R) = \SI{22.6}{\degree}$ (effective full convergence angle at the centre pixel).
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=0.8\textwidth]{figures/subpupil_3d.pdf}
-\caption{3D reconstruction of the effective sub-pupils from the Zernike rayfield. $O_L$ and $O_R$ are read from the centre-pixel rayfield. The chief rays converge at the working plane ($WD = \SI{64.7}{mm}$). The baseline $b=\|O_R-O_L\|=\SI{24.9}{mm}$ is an effective rayfield descriptor in the selected gauge and reference scale.}
-\label{fig:subpupil}
-\end{figure}
-
 \subsection{Physical Model Construction by Residual Analysis}
 
 The core methodology is iterative: propose a candidate physical model, compute its residual against the Zernike rayfield, decompose the residual on Zernike modes, and use the dominant mode to identify the missing degree of freedom.
@@ -388,16 +381,9 @@ We introduce an \textbf{operational usability score} that adds a hard reprojecti
 \begin{equation}
 S_{\mathrm{usable}} = \text{BIC}_{\text{ray}} + \mathbf{1}_{e_{\text{px}} > \SI{1.5}{px}} \left[10^6 + N_{\text{px}} \log\left(\frac{e_{\text{px}}^2}{1.5^2}\right)\right].
 \end{equation}
-Figure~\ref{fig:bicbars} and Table~\ref{tab:bic} report the usability-filtered model selection: the 14p telecentric model is rejected ($S_{\mathrm{usable}} \approx +978\,890$); the 26p SE(3)-aligned model is selected as the best usable physical model ($S_{\mathrm{usable}} \approx -32\,433$). The \SI{1.5}{px} threshold is an engineering convenience, not a tuned hyperparameter: the usable model (\SI{1.06}{px}) and the rejected families ($\ge\SI{14.6}{px}$ for the 14p telecentric, $>\SI{300}{px}$ for OpenCV) are separated by more than an order of magnitude, so any guard in the range ${\sim}2$--$\SI{14}{px}$ yields the identical selection.
+Applying this score to every candidate rejects the 14p telecentric model ($S_{\mathrm{usable}} \approx +978\,890$) and selects the 26p SE(3)-aligned model as the best usable physical model ($S_{\mathrm{usable}} \approx -32\,433$); the full usability-filtered comparison is reported with the results in \S\ref{sec:model_perf} (Table~\ref{tab:bic} and Figure~\ref{fig:bicbars}). The \SI{1.5}{px} threshold is an engineering convenience, not a tuned hyperparameter: the usable model (\SI{1.06}{px}) and the rejected families ($\ge\SI{14.6}{px}$ for the 14p telecentric, $>\SI{300}{px}$ for OpenCV) are separated by more than an order of magnitude, so any guard in the range ${\sim}2$--$\SI{14}{px}$ yields the identical selection.
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=0.85\textwidth]{figures/pareto_gauge_regularization.pdf}
-\caption{Pareto frontier of the gauge-regularised Zernike sweep. Pixel RMS vs.\ $Z_0$ direction drift for varying regularisation strengths $\sigma_{Z_0},\sigma_{Z_1}$. The near-vertical Pareto curve confirms that after double TPS preprocessing, even the unregularised full-pose fit has negligible gauge drift ($0.023^\circ$). Regularisation is unnecessary when 2D corners are sufficiently clean.}
-\label{fig:pareto}
-\end{figure}
-
-A gauge-regularisation sweep confirms that explicit regularisation is unnecessary once the 2D corners are cleaned by double TPS preprocessing: the Pareto frontier of pixel RMS against $Z_0$-direction drift (Figure~\ref{fig:pareto}) is near-vertical, and the unregularised full-pose fit already has negligible gauge drift ($0.023^\circ$).
+A gauge-regularisation sweep confirms that explicit regularisation is unnecessary once the 2D corners are cleaned by double TPS preprocessing: the Pareto frontier of pixel RMS against $Z_0$-direction drift (Figure~\ref{fig:pareto}, Appendix~\ref{app:supp}) is near-vertical, and the unregularised full-pose fit already has negligible gauge drift ($0.023^\circ$).
 
 \subsection{Why Direct Bundle Adjustment is Ill-Conditioned for Non-Central Optics}
 \label{sec:schur_conditioning}
@@ -823,14 +809,7 @@ Crucially, this residual axial freedom is a property of the calibration \emph{po
 From the stereo data alone the depth-scale difference is a convergence-depth ambiguity inherent to uncalibrated stereo reconstruction rather than a failure of either model, and does not by itself establish which reconstruction is closer to the real coin surface.
 We therefore provide exactly the required independent axial reference---profilometry of the same specimen---in \S\ref{sec:external_validation}, which resolves the ambiguity in favour of the CMO 26p (and Soloff) reconstructions.
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=0.98\textwidth]{figures/specimen_schur_regularized.png}
-\caption{Five-variant specimen reconstruction with Schur-regularised variants. Each row shows the Z-map (surface relief after mean-plane subtraction), the XY footprint (coloured by relief), and the ray-gap histogram (log scale, shared range). All CMO variants are aligned to the Zernike reference frame. On the dense full-image correspondence field all five variants---including the rayfield initialisation (row~2)---triangulate the specimen tightly, with a median ray gap of ${\sim}\SI{0.5}{\micro\metre}$. The Z MAD values---a raw, tilt-dominated smoothness indicator (not metrological ground truth)---are \SI{0.028}{mm} for the regularised variants (rows~4--5), \SI{0.023}{mm} for the unregularised BA, \SI{0.076}{mm} for the rayfield-initialised CMO ($2.7\times$ rougher than the BA variants) and \SI{0.202}{mm} for the Zernike map ($7.2\times$ rougher); the prior keeps the dense reconstruction comparable while preserving ray-gap and magnification consistency. All five variants converge to the same lateral magnification (${\sim}0.199$ vs.\ the nominal coin), with \emph{no} systematic CMO--Zernike lateral bias once the dense field is used---distinct from the depth-only scale difference ($s_z{\approx}0.70$) diagnosed in Figure~\ref{fig:rigid_removal}.}
-\label{fig:specimen_schur}
-\end{figure}
-
-Figure~\ref{fig:specimen_schur} and Table~\ref{tab:specimen_comparison} quantify the five reconstructions.
+Table~\ref{tab:specimen_comparison} quantifies the five reconstructions (their per-variant Z-maps, XY footprints and ray-gap histograms are shown in Figure~\ref{fig:specimen_schur}, Appendix~\ref{app:supp}).
 All five variants---including the rayfield initialisation---recover tight ray intersections on the dense full-image correspondence field, with a median ray gap of ${\sim}\SI{0.5}{\micro\metre}$. The ray geometry is therefore correct regardless of the regularisation strategy, and the rayfield-identified initialisation already triangulates the specimen as tightly as the BA-refined models.
 The regularised variants achieve Z MAD ${\sim}\SI{0.028}{mm}$, comparable to the unregularised BA (\SI{0.023}{mm})---the prior keeps the dense reconstruction comparable while preserving ray-gap and magnification consistency.
 On the dense full-image correspondence field all five variants converge to the same lateral magnification (${\sim}0.199$ vs.\ the nominal coin): there is \emph{no} systematic CMO--Zernike lateral bias. The apparent ${\sim}3.5\,\%$ bias seen with the sparser ULTRAFAST correspondences was an artefact of differing per-variant valid sets, not a property of the models.
@@ -872,6 +851,7 @@ Two conclusions follow. First, the depth-only scale difference ($s_z\approx0.70$
 The Soloff polynomial is therefore used here as a strong black-box metrological baseline, not as an optical diagnostic. Even when it reconstructs the coin relief accurately, its polynomial coefficients do not define per-pixel rays, Pl\"ucker residuals, baselines, convergence angles, or Schur-observable optical modes. It validates surface reconstruction but cannot replace the rayfield-to-CMO identification step.
 
 \subsection{Model Performance}
+\label{sec:model_perf}
 
 \input{tables/model_comparison.tex}
 
@@ -1061,6 +1041,36 @@ This numerical reprojection is used as a post-optimisation diagnostic: the bundl
 After convergence, the 2D reprojection error is computed from the optimised parameters to obtain the pixel-equivalent metric reported in the paper.
 
 
+\section{Supplementary Figures}
+\label{app:supp}
+
+The following figures support, but are not central to, the main argument
+(effective sub-pupil readout, the gauge-regularisation control, and the
+per-variant dense reconstructions); the headline numbers they illustrate are
+already given in the main text and tables.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/subpupil_3d.pdf}
+\caption{3D reconstruction of the effective sub-pupils from the Zernike rayfield. $O_L$ and $O_R$ are read from the centre-pixel rayfield. The chief rays converge at the working plane ($WD = \SI{64.7}{mm}$). The baseline $b=\|O_R-O_L\|=\SI{24.9}{mm}$ is an effective rayfield descriptor in the selected gauge and reference scale.}
+\label{fig:subpupil}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/pareto_gauge_regularization.pdf}
+\caption{Pareto frontier of the gauge-regularised Zernike sweep. Pixel RMS vs.\ $Z_0$ direction drift for varying regularisation strengths $\sigma_{Z_0},\sigma_{Z_1}$. The near-vertical Pareto curve confirms that after double TPS preprocessing, even the unregularised full-pose fit has negligible gauge drift ($0.023^\circ$). Regularisation is unnecessary when 2D corners are sufficiently clean.}
+\label{fig:pareto}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/specimen_schur_regularized.png}
+\caption{Five-variant specimen reconstruction with Schur-regularised variants. Each row shows the Z-map (surface relief after mean-plane subtraction), the XY footprint (coloured by relief), and the ray-gap histogram (log scale, shared range). All CMO variants are aligned to the Zernike reference frame. On the dense full-image correspondence field all five variants---including the rayfield initialisation (row~2)---triangulate the specimen tightly, with a median ray gap of ${\sim}\SI{0.5}{\micro\metre}$. The Z MAD values---a raw, tilt-dominated smoothness indicator (not metrological ground truth)---are \SI{0.028}{mm} for the regularised variants (rows~4--5), \SI{0.023}{mm} for the unregularised BA, \SI{0.076}{mm} for the rayfield-initialised CMO ($2.7\times$ rougher than the BA variants) and \SI{0.202}{mm} for the Zernike map ($7.2\times$ rougher); the prior keeps the dense reconstruction comparable while preserving ray-gap and magnification consistency. All five variants converge to the same lateral magnification (${\sim}0.199$ vs.\ the nominal coin), with \emph{no} systematic CMO--Zernike lateral bias once the dense field is used---distinct from the depth-only scale difference ($s_z{\approx}0.70$) diagnosed in Figure~\ref{fig:rigid_removal}.}
+\label{fig:specimen_schur}
+\end{figure}
+
+\FloatBarrier
 \section*{Author Contributions}
 
 J.-F. Witz conceived the study, developed the StereoComplex framework, implemented all methods, conducted the experiments, and wrote the manuscript.
