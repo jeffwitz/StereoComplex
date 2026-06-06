@@ -235,8 +235,9 @@ def diagram_cmo_physical(
     # ---- afocal region annotation ----
     ax.text(0, (z_pupil + z_tube) / 2, "afocal (rays ∥ axis)",
             ha="center", va="center", fontsize=8, color=COLORS["annotation"],
+            zorder=20,
             bbox={"boxstyle": "round,pad=0.3", "facecolor": "white",
-                  "edgecolor": "#cccccc", "alpha": 0.85})
+                  "edgecolor": "#cccccc", "alpha": 1.0})
 
     # ---- sensor detail: pixel pitch p (left sensor) ----
     cx_mm = float(cx_px) * float(pixel_pitch)

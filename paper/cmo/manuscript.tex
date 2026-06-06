@@ -63,7 +63,7 @@ Furthermore, the rayfield provides an observability prior for direct bundle adju
 
 Stereo calibration is a mature technology when the camera obeys the pinhole model: all chief rays pass through a single optical centre, and mature toolchains (OpenCV, MATLAB, Bouguet) produce reliable results.
 This assumption breaks down for Common Main Objective (CMO) stereo microscopes, which use a single large objective shared between two off-axis sub-apertures \cite{inoue1997,sanderson2019}.
-Each channel's chief rays appear to originate from a different effective sub-pupil, separated by the stereo baseline.
+Each channel's chief rays appear to originate from a different effective sub-pupil, separated by the stereo baseline (Figure~\ref{fig:cmo}).
 OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per camera; on the CMO architecture it produces unusable results ($>300$~px reprojection error under the tested configuration).
 
 \begin{figure}[!htbp]
@@ -84,7 +84,7 @@ The broader problem is that many optical instruments---CMO and Greenough stereo 
 Generic camera models \cite{grossberg2001,sturm2004,schops2020} and recent stereo microscope calibration studies \cite{schreier2004,zhang2006_microdic,liu2018_generic_microscope} highlight the need for non-central approaches, but do not provide a systematic method for identifying the correct physical model family from observations (see Section~2 for a detailed review).
 
 StereoComplex \cite{stereocomplex} addresses this gap: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934,noll1976}.
-This two-stage decomposition---measure rays first, identify optics second---is the central insight: it decouples the severely ill-conditioned joint estimation of optical parameters and board poses into a well-conditioned rayfield fit followed by pose-free model selection \cite{schops2020}.
+This two-stage decomposition---measure rays first, identify optics second (Figure~\ref{fig:pipeline})---is the central insight: it decouples the severely ill-conditioned joint estimation of optical parameters and board poses into a well-conditioned rayfield fit followed by pose-free model selection \cite{schops2020}.
 From this \emph{measured} rayfield, physical descriptors can be read directly (Section~3), structural mismatches diagnosed by residual modal analysis (Section~3.3), and compact physical models constructed iteratively (Section~3.4--3.5).
 
 This paper presents the first real-data validation of the StereoComplex rayfield-mediated non-central calibration workflow on a CMO stereo microscope using legacy ChArUco \cite{garrido2014,romero2018} images from the open Pycaso dataset \cite{pycaso2023}.
@@ -156,7 +156,7 @@ This is distinct from generic non-parametric approaches \cite{schops2020} that f
 
 The Zernike rayfield has two hyperparameters: the origin polynomial order $o$ and the direction polynomial order $d$.
 Increasing either adds Zernike modes, reducing pixel RMS at the cost of more parameters.
-We sweep $o \in \{0,1,2\}$ and $d \in \{2,3,4\}$ (7 combinations) and select the optimal order by BIC \cite{schwarz1978}:
+We sweep $o \in \{0,1,2\}$ and $d \in \{2,3,4\}$ (7 combinations) and select the optimal order by BIC \cite{schwarz1978} (Figure~\ref{fig:bic_order}):
 
 \begin{equation}
 \text{BIC}_{\text{px}} = k \log(N_{\text{obs}}) + N_{\text{obs}} \log(\text{RSS}_{\text{px}} / N_{\text{obs}}),
@@ -245,7 +245,7 @@ This is the measurement stage of the two-stage decomposition (see Section~4.2).
 
 \subsection{The Zernike Rayfield as Observable}
 
-The fitted rayfield $\mathcal{R}_c(u,v)=(O_c(u,v),d_c(u,v))$ is used as an experimental observable. Because the Zernike rayfield is a non-central model, the BA that fits it carries a scale degeneracy: the pixel projection is invariant under simultaneous scaling of all lengths and the effective focal length $f_x$ (see~\S\ref{sec:validation} for the linear $f_x$--$WD$ relationship). Three independent constraints intersect to anchor the absolute scale. (1)~The ChArUco board has known square size (\SI{0.3}{mm}); from the observed corner spacing $\Delta u_{\text{square}}$ we obtain the ratio $f_x/WD = \Delta u_{\text{square}}/\SI{0.3}{mm} \approx \SI{395}{px/mm}$. (2)~The motorised Z-stage that acquired the Pycaso dataset displaces the board by a known physical step $\Delta Z_{\text{stage}} \approx \SI{0.07}{mm}$ per frame ($\sim$10\,\% accuracy); the measured disparity shift $\Delta d$ between successive frames gives $f_x = \Delta d \cdot WD / \Delta Z_{\text{stage}}$. (3)~the working distance documented for the Pycaso acquisition configuration is ${\approx}\SI{65}{mm}$~\cite{pycaso2023}. (The bare Planapo~1.0$\times$ objective is specified at \SI{61.5}{mm}~\cite{leica_m205c}; the mounted/effective working distance of the assembled instrument differs, and that \SI{61.5}{mm} datasheet value anchors a separate chief-ray consistency check in \S\ref{sec:descriptor_validation}.) Solving the three constraints jointly yields $f_x = \SI{25600}{px}$ and $WD = \SI{64.7}{mm}$, consistent at the $\sim$1\,\% level with the documented configuration working distance. All geometric descriptors ($b$, $WD$, $f_{\text{obj}}$) inherit this scale and are therefore reported as \emph{effective} quantities in the chosen gauge; an independent external reference would be required to convert them to traceable measurements (Section~\ref{sec:limitations}). The centre-pixel values are:
+The fitted rayfield $\mathcal{R}_c(u,v)=(O_c(u,v),d_c(u,v))$ is used as an experimental observable. Because the Zernike rayfield is a non-central model, the BA that fits it carries a scale degeneracy: the pixel projection is invariant under simultaneous scaling of all lengths and the effective focal length $f_x$ (see~\S\ref{sec:validation} for the linear $f_x$--$WD$ relationship). Three independent constraints intersect to anchor the absolute scale. (1)~The ChArUco board has known square size (\SI{0.3}{mm}); from the observed corner spacing $\Delta u_{\text{square}}$ we obtain the ratio $f_x/WD = \Delta u_{\text{square}}/\SI{0.3}{mm} \approx \SI{395}{px/mm}$. (2)~The motorised Z-stage that acquired the Pycaso dataset displaces the board by a known physical step $\Delta Z_{\text{stage}} \approx \SI{0.07}{mm}$ per frame ($\sim$10\,\% accuracy); the measured disparity shift $\Delta d$ between successive frames gives $f_x = \Delta d \cdot WD / \Delta Z_{\text{stage}}$. (3)~the working distance documented for the Pycaso acquisition configuration is ${\approx}\SI{65}{mm}$~\cite{pycaso2023}. (The bare Planapo~1.0$\times$ objective is specified at \SI{61.5}{mm}~\cite{leica_m205c}; the mounted/effective working distance of the assembled instrument differs, and that \SI{61.5}{mm} datasheet value anchors a separate chief-ray consistency check in \S\ref{sec:descriptor_validation}.) Solving the three constraints jointly yields $f_x = \SI{25600}{px}$ and $WD = \SI{64.7}{mm}$, consistent at the $\sim$1\,\% level with the documented configuration working distance. All geometric descriptors ($b$, $WD$, $f_{\text{obj}}$) inherit this scale and are therefore reported as \emph{effective} quantities in the chosen gauge; an independent external reference would be required to convert them to traceable measurements (Section~\ref{sec:limitations}). The centre-pixel values, from which the effective sub-pupils $O_L,O_R$ are reconstructed (Figure~\ref{fig:subpupil}), are:
 $b = \|O_R - O_L\| = \SI{24.9}{mm}$ (effective stereo baseline in the rayfield gauge),
 $z_p = (|O_{L,z}| + |O_{R,z}|)/2 = \SI{2.5}{mm}$ (sub-pupil depth),
 $WD = \SI{64.7}{mm}$ (effective working distance, from mean pose Z; convention: object-plane Z minus optical-axis origin),
@@ -267,7 +267,7 @@ The core methodology is iterative: propose a candidate physical model, compute i
 
 The simplest CMO model places a perspective camera behind each decentred sub-pupil $S_c = (\pm b/2, 0, WD - f_{\text{obj}})$.
 This predicts $d_y(u,v) \propto (v - c_y)$---a strong linear gradient.
-The measured $d_y$ field is nearly constant across the sensor (range $0.079$, mean $+0.059$), while the perspective model predicts a range of $0.232$---a $3\times$ discrepancy.
+The measured $d_y$ field is nearly constant across the sensor (range $0.079$, mean $+0.059$), while the perspective model predicts a range of $0.232$---a $3\times$ discrepancy (Figure~\ref{fig:dy}).
 The real system is \textbf{object-space telecentric}, not perspective.
 
 \begin{figure}[!htbp]
@@ -396,6 +396,8 @@ Figure~\ref{fig:bicbars} and Table~\ref{tab:bic} report the usability-filtered m
 \caption{Pareto frontier of the gauge-regularised Zernike sweep. Pixel RMS vs.\ $Z_0$ direction drift for varying regularisation strengths $\sigma_{Z_0},\sigma_{Z_1}$. The near-vertical Pareto curve confirms that after double TPS preprocessing, even the unregularised full-pose fit has negligible gauge drift ($0.023^\circ$). Regularisation is unnecessary when 2D corners are sufficiently clean.}
 \label{fig:pareto}
 \end{figure}
+
+A gauge-regularisation sweep confirms that explicit regularisation is unnecessary once the 2D corners are cleaned by double TPS preprocessing: the Pareto frontier of pixel RMS against $Z_0$-direction drift (Figure~\ref{fig:pareto}) is near-vertical, and the unregularised full-pose fit already has negligible gauge drift ($0.023^\circ$).
 
 \subsection{Why Direct Bundle Adjustment is Ill-Conditioned for Non-Central Optics}
 \label{sec:schur_conditioning}
@@ -828,7 +830,7 @@ We therefore provide exactly the required independent axial reference---profilom
 \label{fig:specimen_schur}
 \end{figure}
 
-Table~\ref{tab:specimen_comparison} quantifies the five reconstructions.
+Figure~\ref{fig:specimen_schur} and Table~\ref{tab:specimen_comparison} quantify the five reconstructions.
 The rayfield-initialised CMO model (before BA) has a median ray gap of \SI{0.022}{mm}---an order of magnitude worse than all BA-refined variants ($\sim$\SI{0.001}{mm}). After enforcing a consistent world-frame convention, the initial model's larger triangulation gap becomes apparent: its triangulation quality is substantially worse than the BA-refined models.
 All BA variants recover tight ray intersections (median gap $\sim$\SI{1}{\micro\metre}), confirming that the ray geometry is correct regardless of the regularisation strategy.
 The regularised variants achieve Z MAD \SI{0.027}{mm}, marginally better than the unregularised BA (\SI{0.030}{mm})---the prior does not degrade the geometric reconstruction.
@@ -893,6 +895,8 @@ The operational usability score correctly rejects the 14p base model as unusable
 
 \subsection{Geometric Descriptors}
 
+Table~\ref{tab:descriptors} collects the CMO-consistent effective geometric descriptors read directly from the centre-pixel rayfield under the chosen gauge.
+
 \begin{table}[H]
 \centering
 \caption{CMO-consistent effective geometric descriptors read directly from the Zernike rayfield at the centre pixel. All values are reported in the chosen rayfield gauge ($O \cdot d = 0$) and fixed reference focal scale ($f_x = 25600$~px); their absolute metrological interpretation requires an independent external reference (see Section~\ref{sec:limitations}).}
@@ -931,7 +935,7 @@ Telecentric baseline  & 14 & 0.12 & 14.6 & 13.2 & 22.4 \\
 \end{tabular}
 \end{table}
 
-Both rotation and translation are essential; neither alone suffices.
+Both rotation and translation are essential; neither alone suffices (Table~\ref{tab:ablation}).
 Per-arm DOFs are individually necessary---any compression degrades the fit ($+92$\,\% to $+289$\,\% ray RMS increase).
 
 % ======================================================================

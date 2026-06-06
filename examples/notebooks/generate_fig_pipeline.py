@@ -114,9 +114,11 @@ def render(data: dict, out_pdf: Path, out_png: Path) -> None:
             facecolor=stage["fill"], edgecolor=stage["edge"], linewidth=1.6,
         )
         ax.add_patch(rect)
-        ax.text(x_center, y_cursor - 0.16, stage["name"],
-                ha="center", va="top",
-                fontsize=12, fontweight="bold", color=stage["edge"])
+        ax.text(x_center, y_cursor - 0.22, stage["name"],
+                ha="center", va="center", zorder=10,
+                fontsize=11, fontweight="bold", color=stage["edge"],
+                bbox={"boxstyle": "round,pad=0.18", "facecolor": "white",
+                      "edgecolor": "none"})
 
         y_step1_top = y_cursor - stage_pad - title_band
         _step_box(ax, x_step, y_step1_top - step_h, step_w, step_h,
