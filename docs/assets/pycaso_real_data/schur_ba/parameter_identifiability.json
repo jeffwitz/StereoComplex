@@ -1,0 +1,269 @@
+{
+  "description": "Parameter identifiability via strong-subspace projection",
+  "rank_effective": 5,
+  "n_theta": 26,
+  "parameters": [
+    {
+      "index": 0,
+      "name": "f_obj_mm",
+      "value": 44.565839916168024,
+      "scale": 10.0,
+      "identifiability": 0.0006
+    },
+    {
+      "index": 1,
+      "name": "working_distance_mm",
+      "value": 94.52180306335299,
+      "scale": 10.0,
+      "identifiability": 0.0006
+    },
+    {
+      "index": 2,
+      "name": "b_mm",
+      "value": 9.835059304980488,
+      "scale": 5.0,
+      "identifiability": 0.0724
+    },
+    {
+      "index": 3,
+      "name": "cx_principal_px",
+      "value": 512.0000002238495,
+      "scale": 100.0,
+      "identifiability": 0.0
+    },
+    {
+      "index": 4,
+      "name": "cy_principal_px",
+      "value": 991.3612258044831,
+      "scale": 100.0,
+      "identifiability": 0.0
+    },
+    {
+      "index": 5,
+      "name": "f_angular_mm",
+      "value": 27.265191348103453,
+      "scale": 10.0,
+      "identifiability": 0.2557
+    },
+    {
+      "index": 6,
+      "name": "theta_convergence_half_rad",
+      "value": 0.17815708247751874,
+      "scale": 0.1,
+      "identifiability": 0.0228
+    },
+    {
+      "index": 7,
+      "name": "d_y_common",
+      "value": 0.01675829483452645,
+      "scale": 0.1,
+      "identifiability": 0.0083
+    },
+    {
+      "index": 8,
+      "name": "s_x_L",
+      "value": 0.1851296274770404,
+      "scale": 1.0,
+      "identifiability": 0.8864
+    },
+    {
+      "index": 9,
+      "name": "s_y_L",
+      "value": -0.18934925335052574,
+      "scale": 1.0,
+      "identifiability": 0.8968
+    },
+    {
+      "index": 10,
+      "name": "s_x_R",
+      "value": 0.19114874932524564,
+      "scale": 1.0,
+      "identifiability": 0.9192
+    },
+    {
+      "index": 11,
+      "name": "s_y_R",
+      "value": -0.18923112673851952,
+      "scale": 1.0,
+      "identifiability": 0.9171
+    },
+    {
+      "index": 12,
+      "name": "rho_x_shared",
+      "value": 9.781267929894799,
+      "scale": 1.0,
+      "identifiability": 0.0078
+    },
+    {
+      "index": 13,
+      "name": "rho_y_shared",
+      "value": -9.683445600131243,
+      "scale": 1.0,
+      "identifiability": 0.0077
+    },
+    {
+      "index": 14,
+      "name": "rv_L_x",
+      "value": -0.04170889599318391,
+      "scale": 0.017453292519943295,
+      "identifiability": 0.2685
+    },
+    {
+      "index": 15,
+      "name": "rv_L_y",
+      "value": 0.0073786338887288465,
+      "scale": 0.017453292519943295,
+      "identifiability": 0.0034
+    },
+    {
+      "index": 16,
+      "name": "rv_L_z",
+      "value": 0.009751402837737656,
+      "scale": 0.017453292519943295,
+      "identifiability": 0.0001
+    },
+    {
+      "index": 17,
+      "name": "t_L_x_mm",
+      "value": 0.900394697455981,
+      "scale": 1.0,
+      "identifiability": 0.0029
+    },
+    {
+      "index": 18,
+      "name": "t_L_y_mm",
+      "value": 0.8372025431532559,
+      "scale": 1.0,
+      "identifiability": 0.218
+    },
+    {
+      "index": 19,
+      "name": "t_L_z_mm",
+      "value": 1.0413113761099444,
+      "scale": 1.0,
+      "identifiability": 0.001
+    },
+    {
+      "index": 20,
+      "name": "rv_R_x",
+      "value": -0.04503116838168256,
+      "scale": 0.017453292519943295,
+      "identifiability": 0.2848
+    },
+    {
+      "index": 21,
+      "name": "rv_R_y",
+      "value": -0.02876470982217475,
+      "scale": 0.017453292519943295,
+      "identifiability": 0.0036
+    },
+    {
+      "index": 22,
+      "name": "rv_R_z",
+      "value": 0.002278113588546344,
+      "scale": 0.017453292519943295,
+      "identifiability": 0.0005
+    },
+    {
+      "index": 23,
+      "name": "t_R_x_mm",
+      "value": -1.3036411349060717,
+      "scale": 1.0,
+      "identifiability": 0.0029
+    },
+    {
+      "index": 24,
+      "name": "t_R_y_mm",
+      "value": 0.6145267787416173,
+      "scale": 1.0,
+      "identifiability": 0.218
+    },
+    {
+      "index": 25,
+      "name": "t_R_z_mm",
+      "value": -0.8668875711432142,
+      "scale": 1.0,
+      "identifiability": 0.001
+    }
+  ],
+  "groups": [
+    {
+      "group": "CMO telecentric",
+      "indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "mean_identifiability": 0.2854,
+      "min_identifiability": 0.0,
+      "identified": [
+        "s_x_L",
+        "s_y_L",
+        "s_x_R",
+        "s_y_R"
+      ],
+      "effective": [
+        "f_obj_mm",
+        "working_distance_mm",
+        "b_mm",
+        "cx_principal_px",
+        "cy_principal_px",
+        "theta_convergence_half_rad",
+        "d_y_common",
+        "rho_x_shared",
+        "rho_y_shared"
+      ]
+    },
+    {
+      "group": "SE(3) rotations",
+      "indices": [
+        14,
+        15,
+        16,
+        20,
+        21,
+        22
+      ],
+      "mean_identifiability": 0.0935,
+      "min_identifiability": 0.0001,
+      "identified": [],
+      "effective": [
+        "rv_L_y",
+        "rv_L_z",
+        "rv_R_y",
+        "rv_R_z"
+      ]
+    },
+    {
+      "group": "SE(3) translations",
+      "indices": [
+        17,
+        18,
+        19,
+        23,
+        24,
+        25
+      ],
+      "mean_identifiability": 0.0739,
+      "min_identifiability": 0.001,
+      "identified": [],
+      "effective": [
+        "t_L_x_mm",
+        "t_L_z_mm",
+        "t_R_x_mm",
+        "t_R_z_mm"
+      ]
+    }
+  ]
+}
