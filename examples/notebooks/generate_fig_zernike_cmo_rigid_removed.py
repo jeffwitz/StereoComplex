@@ -179,7 +179,7 @@ def render(manifest: dict, manifest_root: Path, out_dir: Path) -> None:
                     label=f"after SE(3), plane-norm (med={np.median(dPo):.4f})")
     axes[1, 2].set_xlabel(r"$\Delta Z$ residual [mm]")
     axes[1, 2].set_title(
-        r"$\Delta Z$ plane-norm: 0.0076 mm; 3D p2p: 3.5 $\to$ 0.018 mm",
+        r"$\Delta Z$ plane-norm: 0.0070 mm; 3D p2p: 3.5 $\to$ 0.018 mm",
         fontsize=9,
     )
     axes[1, 2].set_xlim(0, manifest["residual_histogram_xmax_mm"])

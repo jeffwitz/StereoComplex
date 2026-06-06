@@ -1,5 +1,5 @@
 {
-  "title": "Five-variant Pycaso 2-cent coin reconstruction (Figure 11 of the CMO paper)",
+  "title": "Five-variant Pycaso 2-cent coin reconstruction",
   "correspondences": "../../pycaso_real_data/specimen_correspondences.npz",
   "variants": [
     {
