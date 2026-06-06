@@ -79,5 +79,5 @@ To rebuild the underlying real-data artefacts from the raw Pycaso images:
 rtk .venv/bin/python examples/notebooks/save_intermediate_state.py   # regenerate intermediate_state.npz
 ```
 
-A self-contained Zenodo archive (concept DOI 10.5281/zenodo.20444216) bundles
+A self-contained Zenodo archive (concept DOI 10.5281/zenodo.20444215) bundles
 the manuscript, figures, tables and data needed to rebuild the paper offline.

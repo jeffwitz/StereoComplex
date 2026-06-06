@@ -6,28 +6,31 @@ manual** (it mints a DOI and is irreversible — keep it human).
 
 ## The two records
 
-| Record | Role | In-repo references |
-|---|---|---|
-| **Paper archive** — concept DOI `10.5281/zenodo.20444215` | Self-contained bundle: manuscript, figures, tables, audit, reproducibility scripts, key data. Rebuilds the PDF and every figure from the bundle alone. | `manuscript.tex` (Data availability + Reproducibility Statement), `rebuild_from_zenodo.sh` |
-| **Heavy specimen data** — `10.5281/zenodo.20369312` | The five `specimen_*.npz` dense reconstructions (~120 MB). | `examples/zenodo_fetch.py`, `CHANGELOG.md`, `docs/RELEASE_READINESS.md` |
+| Record | Concept DOI | Latest published version | Role |
+|---|---|---|---|
+| **Paper archive** | `10.5281/zenodo.20444215` | **v4 = `20533009`** (record id `20533009`) | Self-contained bundle: manuscript, figures, tables, audit, scripts, key data. Rebuilds the PDF and every figure from the bundle alone. |
+| **Heavy specimen data** | `10.5281/zenodo.20369311` | `20369312` | The five `specimen_*.npz` dense reconstructions (~120 MB). |
+
+So the next paper-archive version (v5) is created with `--record 20533009`.
 
 > **Heads-up (2026-06):** the *five-variant* dense figure was removed from the
 > manuscript, so **no paper artefact depends on `20369312` anymore**. Updating it
 > is optional — refresh it for repository consistency, or retire it. The paper
 > archive (`20444215`) is the one that matters.
 
-### DOI references to reconcile (manual, owner only)
+### Canonical DOI map (resolved 2026-06-06 from the public Zenodo API)
 
-The repo currently cites several version DOIs inconsistently — reconcile these
-against the live Zenodo account before/after publishing the new version:
+The paper-archive concept is **`20444215`**; its version chain is
+`20444216` (90 files, 2026-05-29) → `20444786` (100 files, 2026-06-01) →
+**`20533009` = v4 (2026-06-03), the latest published version**. The bare
+`20444216` / `20444786` ids are *superseded versions* — never cite them as the
+landing page.
 
-- `manuscript.tex` cites concept `20444215` + submitted **v4 `20533009`**.
-- `paper/cmo/SUBMISSION_CHECKLIST.md` and `docs/VALIDATION_STATUS.md` cite
-  `20444216`.
-- the old `rebuild_from_zenodo.sh` history referenced `20444786`.
-
-Decide the canonical concept DOI, then make every reference point to it (concept
-for landing, version DOI only where exact reproducibility is promised).
+Convention applied in-repo: cite the **concept DOI `20444215`** for the stable
+landing, and a **version DOI only** where exact reproducibility is promised
+(`manuscript.tex` pins the submitted version). Stale `20444216` references in
+`SUBMISSION_CHECKLIST.md` and `docs/VALIDATION_STATUS.md` were corrected to the
+concept DOI on 2026-06-06.
 
 ## Procedure
 
@@ -47,7 +50,7 @@ git-ignored `build/`, so it is never committed.
 
 ```bash
 # see the plan without contacting Zenodo
-rtk .venv/bin/python examples/zenodo_upload.py --record <latest_version_id> \
+rtk .venv/bin/python examples/zenodo_upload.py --record 20533009 \
     --replace --version v5 \
     --files paper/cmo/build/cmo_paper_bundle.zip paper/cmo/manuscript.pdf --dry-run
 
@@ -64,7 +67,7 @@ concept-DOI id.
 
 ```bash
 ZENODO_TOKEN=<prod> rtk .venv/bin/python examples/zenodo_upload.py \
-    --record <latest_version_id> --replace --version v5 \
+    --record 20533009 --replace --version v5 \
     --files paper/cmo/build/cmo_paper_bundle.zip paper/cmo/manuscript.pdf
 ```
 
@@ -88,7 +91,7 @@ Review the draft in the browser, then either click **Publish** on Zenodo or:
 
 ```bash
 ZENODO_TOKEN=<prod> rtk .venv/bin/python examples/zenodo_upload.py \
-    --record <latest_version_id> --files <...> --publish
+    --record 20533009 --files <...> --publish
 ```
 
 ### 6. (Optional) refresh the heavy data record
