@@ -49,6 +49,8 @@ pdf:
 figures:
 	@cd $(ROOT) && $(foreach f,$(FIGS), \
 	    echo "--- generate_fig_$(f).py" && $(PY) $(NB)/generate_fig_$(f).py &&) true
+	@cd $(ROOT) && echo "--- generate_tab_dis_robustness.py" && \
+	    $(PY) $(NB)/generate_tab_dis_robustness.py
 
 fetch:
 	cd $(ROOT) && $(PY) examples/zenodo_fetch.py

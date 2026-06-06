@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{Robustness of the relief comparison to the dense-matching front-end. Amplitude ratios are the plane-normalised relief standard deviation relative to the profilometry; the last two columns quantify the CMO--Soloff agreement. The production DIS parameters were tuned against the profilometry, but the bare OpenCV preset defaults (no manual variational refinement) reproduce the same relative result: CMO~$\approx$~Soloff and the Zernike ray-field over-amplifies. The external comparison is therefore a consistency check of the calibrated models on a fixed correspondence field, not a tuning of the DIS front-end.}
+\label{tab:dis_robustness}
+\begin{tabular}{lccccc}
+\hline
+DIS setting & Soloff & CMO 26p & Zernike & CMO--Soloff & CMO--Soloff \\
+ & ($\times$) & ($\times$) & ($\times$) & RMS (\si{\micro\metre}) & cc \\
+\hline
+Tuned (production) & 1.09 & 1.10 & 1.63 & 0.56 & 0.9997 \\
+ULTRAFAST (defaults) & 1.09 & 1.10 & 1.63 & 0.58 & 0.9997 \\
+FAST (defaults) & 1.06 & 1.07 & 1.59 & 0.56 & 0.9997 \\
+MEDIUM (defaults) & 1.12 & 1.12 & 1.67 & 0.58 & 0.9997 \\
+\hline
+\end{tabular}
+\end{table}

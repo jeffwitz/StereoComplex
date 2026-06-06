@@ -129,14 +129,91 @@ def _cut_column(relief: np.ndarray) -> int:
     return max(pool, key=lambda c: np.nanstd(relief[:, c]))
 
 
-def recompute_cache() -> None:
-    """Re-run the full DIS -> reconstruction -> registration chain, rewrite cache.
+def _dis_correspondences(imgL, imgR, p):
+    """Dense left->right correspondences from DIS optical flow.
 
-    Reads the DIS parameters and rigid registration from the asset JSONs, the
-    calibration state and per-model coefficients from ``docs/assets/
-    pycaso_real_data/``, and the raw Pycaso coin images from the (git-ignored)
-    ``examples/pycaso_data/`` tree. Writes the four windowed reliefs to
-    ``relief_comparison_data.npz``. See the module docstring for provenance.
+    Parameters
+    ----------
+    imgL, imgR : ndarray, shape (H, W)
+        Rectified coin images, intensities in [0, 1].
+    p : dict
+        DIS configuration. ``border_px`` and ``disparity_filter_frac`` are always
+        read. When ``preset_defaults`` is false (the tuned production path) every
+        variational-refinement setter is applied from ``p``; when true only the
+        OpenCV preset defaults are used (the non-tuned robustness baselines).
+        ``preset`` selects the OpenCV preset ("ultrafast" | "fast" | "medium").
+
+    Returns
+    -------
+    uL, vL, uR, vR : ndarray, shape (N,)
+        Left/right pixel coordinates of the dense correspondence field.
+    inb : ndarray of bool, shape (N,)
+        In-bounds / disparity-sane mask.
+    W : int
+        Image width (square reconstruction-canvas side), pixels.
+    """
+    import cv2
+    presets = {
+        "ultrafast": cv2.DISOPTICAL_FLOW_PRESET_ULTRAFAST,
+        "fast": cv2.DISOPTICAL_FLOW_PRESET_FAST,
+        "medium": cv2.DISOPTICAL_FLOW_PRESET_MEDIUM,
+    }
+    H, W = imgL.shape
+    b = int(p["border_px"])
+    roiL, roiR = imgL[b:H - b, b:W - b], imgR[b:H - b, b:W - b]
+    hr, wr = roiL.shape
+    dis = cv2.DISOpticalFlow_create(presets[p.get("preset", "ultrafast")])
+    if not p.get("preset_defaults", False):
+        dis.setFinestScale(p["finestScale"])
+        dis.setPatchSize(p["patchSize"])
+        dis.setPatchStride(p["patchStride"])
+        dis.setGradientDescentIterations(p["gradientDescentIterations"])
+        dis.setUseMeanNormalization(p["useMeanNormalization"])
+        dis.setUseSpatialPropagation(p["useSpatialPropagation"])
+        dis.setVariationalRefinementIterations(p["variationalRefinementIterations"])
+        dis.setVariationalRefinementAlpha(p["variationalRefinementAlpha"])
+        dis.setVariationalRefinementDelta(p["variationalRefinementDelta"])
+        dis.setVariationalRefinementGamma(p["variationalRefinementGamma"])
+        dis.setVariationalRefinementEpsilon(p["variationalRefinementEpsilon"])
+    flow = dis.calc((roiL * 255).astype(np.uint8), (roiR * 255).astype(np.uint8), None)
+
+    yy, xx = np.mgrid[0:hr, 0:wr]
+    dx, dy = flow[..., 0], flow[..., 1]
+    uL = (xx + b).ravel().astype(np.float64)
+    vL = (yy + b).ravel().astype(np.float64)
+    uR = (xx + b + dx).ravel().astype(np.float64)
+    vR = (yy + b + dy).ravel().astype(np.float64)
+    disp = np.sqrt(dx ** 2 + dy ** 2).ravel()
+    inb = (uR >= 0) & (uR < W) & (vR >= 0) & (vR < H) & (disp < wr * p["disparity_filter_frac"])
+    return uL, vL, uR, vR, inb, W
+
+
+def _reconstruct_windowed_reliefs(uL, vL, uR, vR, inb, W, reg):
+    """Reconstruct the dense relief with Soloff/CMO/Zernike and window to the profilo.
+
+    The three models all consume the *same* correspondence field
+    ``(uL, vL) -> (uR, vR)``; only the per-model 3-D depth assignment differs.
+    Each reconstructed Z is rasterised onto a square canvas, the fixed rigid
+    registration ``reg`` warps the profilometry into the same frame, and all four
+    maps (profilometry + three models) are cropped to the profilometry window and
+    plane-normalised so the residual letter relief is directly comparable.
+
+    Parameters
+    ----------
+    uL, vL, uR, vR : ndarray, shape (N,)
+        Dense correspondence field from :func:`_dis_correspondences`.
+    inb : ndarray of bool, shape (N,)
+        In-bounds mask for the correspondence field.
+    W : int
+        Square canvas side (image width), pixels.
+    reg : dict
+        Rigid registration; ``affine_2x3`` maps the profilometry onto the images.
+
+    Returns
+    -------
+    dict[str, ndarray]
+        ``{"profilometry", "soloff", "cmo26", "zernike"}`` plane-normalised
+        reliefs over the common profilometry window, micrometres.
     """
     import cv2
     from scipy.spatial.transform import Rotation
@@ -149,45 +226,6 @@ def recompute_cache() -> None:
         ZernikeRayField,
         ZernikeRayFieldCoefficients,
     )
-
-    p = json.loads((ASSET / "dis_params.json").read_text())
-    reg = json.loads((ASSET / "registration.json").read_text())
-
-    imgL = cv2.imread(str(PYCASO / "left_identification" / "coin.tif"), cv2.IMREAD_GRAYSCALE)
-    imgR = cv2.imread(str(PYCASO / "right_identification" / "coin.tif"), cv2.IMREAD_GRAYSCALE)
-    if imgL is None or imgR is None:
-        raise SystemExit(
-            f"Raw Pycaso coin images not found under {PYCASO} (git-ignored dataset). "
-            "Run without --recompute to use the versioned cache.")
-    imgL = imgL.astype(np.float32) / 255.0
-    imgR = imgR.astype(np.float32) / 255.0
-    H, W = imgL.shape
-    b = int(p["border_px"])
-    roiL, roiR = imgL[b:H - b, b:W - b], imgR[b:H - b, b:W - b]
-    hr, wr = roiL.shape
-
-    dis = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_ULTRAFAST)
-    dis.setFinestScale(p["finestScale"])
-    dis.setPatchSize(p["patchSize"])
-    dis.setPatchStride(p["patchStride"])
-    dis.setGradientDescentIterations(p["gradientDescentIterations"])
-    dis.setUseMeanNormalization(p["useMeanNormalization"])
-    dis.setUseSpatialPropagation(p["useSpatialPropagation"])
-    dis.setVariationalRefinementIterations(p["variationalRefinementIterations"])
-    dis.setVariationalRefinementAlpha(p["variationalRefinementAlpha"])
-    dis.setVariationalRefinementDelta(p["variationalRefinementDelta"])
-    dis.setVariationalRefinementGamma(p["variationalRefinementGamma"])
-    dis.setVariationalRefinementEpsilon(p["variationalRefinementEpsilon"])
-    flow = dis.calc((roiL * 255).astype(np.uint8), (roiR * 255).astype(np.uint8), None)
-
-    yy, xx = np.mgrid[0:hr, 0:wr]
-    dx, dy = flow[..., 0], flow[..., 1]
-    uL = (xx + b).ravel().astype(np.float64)
-    vL = (yy + b).ravel().astype(np.float64)
-    uR = (xx + b + dx).ravel().astype(np.float64)
-    vR = (yy + b + dy).ravel().astype(np.float64)
-    disp = np.sqrt(dx ** 2 + dy ** 2).ravel()
-    inb = (uR >= 0) & (uR < W) & (vR >= 0) & (vR < H) & (disp < wr * p["disparity_filter_frac"])
 
     state = np.load(CALIB / "intermediate_state.npz")
     img_size = tuple(state["image_size"])
@@ -236,7 +274,7 @@ def recompute_cache() -> None:
     def canvas(z, vmask):
         c = np.full((W, W), np.nan)
         good = inb & vmask & np.isfinite(z)
-        c[vi[good], ui[good]] = z[good] * 1000.0  # mm -> µm
+        c[vi[good], ui[good]] = z[good] * 1000.0  # mm -> micrometres
         return c
 
     cmo_c = canvas(p_cmo[:, 2], v_cmo)
@@ -250,12 +288,46 @@ def recompute_cache() -> None:
     y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
     win = lambda im: _plane_fit(im[y0:y1, x0:x1])  # noqa: E731
 
+    return {
+        "profilometry": win(rec_s),
+        "soloff": win(sol_c),
+        "cmo26": win(cmo_c),
+        "zernike": win(zer_c),
+    }
+
+
+def recompute_cache() -> None:
+    """Re-run the full DIS -> reconstruction -> registration chain, rewrite cache.
+
+    Reads the DIS parameters and rigid registration from the asset JSONs, the
+    calibration state and per-model coefficients from ``docs/assets/
+    pycaso_real_data/``, and the raw Pycaso coin images from the (git-ignored)
+    ``examples/pycaso_data/`` tree. Writes the four windowed reliefs to
+    ``relief_comparison_data.npz``. See the module docstring for provenance.
+    """
+    import cv2
+
+    p = json.loads((ASSET / "dis_params.json").read_text())
+    reg = json.loads((ASSET / "registration.json").read_text())
+
+    imgL = cv2.imread(str(PYCASO / "left_identification" / "coin.tif"), cv2.IMREAD_GRAYSCALE)
+    imgR = cv2.imread(str(PYCASO / "right_identification" / "coin.tif"), cv2.IMREAD_GRAYSCALE)
+    if imgL is None or imgR is None:
+        raise SystemExit(
+            f"Raw Pycaso coin images not found under {PYCASO} (git-ignored dataset). "
+            "Run without --recompute to use the versioned cache.")
+    imgL = imgL.astype(np.float32) / 255.0
+    imgR = imgR.astype(np.float32) / 255.0
+
+    uL, vL, uR, vR, inb, W = _dis_correspondences(imgL, imgR, p)
+    reliefs = _reconstruct_windowed_reliefs(uL, vL, uR, vR, inb, W, reg)
+
     np.savez_compressed(
         CACHE,
-        profilometry=win(rec_s).astype(np.float32),
-        soloff=win(sol_c).astype(np.float32),
-        cmo26=win(cmo_c).astype(np.float32),
-        zernike=win(zer_c).astype(np.float32))
+        profilometry=reliefs["profilometry"].astype(np.float32),
+        soloff=reliefs["soloff"].astype(np.float32),
+        cmo26=reliefs["cmo26"].astype(np.float32),
+        zernike=reliefs["zernike"].astype(np.float32))
     print(f"  wrote cache {CACHE.relative_to(REPO)}")
 
 

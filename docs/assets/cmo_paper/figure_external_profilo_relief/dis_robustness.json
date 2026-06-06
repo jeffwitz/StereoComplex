@@ -1,0 +1,46 @@
+{
+  "tuned": {
+    "profilo_std": 20.81260768575874,
+    "soloff_std": 22.772767102519083,
+    "soloff_ratio": 1.0941813465355235,
+    "cmo26_std": 22.958514816962893,
+    "cmo26_ratio": 1.1031061154663726,
+    "zernike_std": 34.02610566167231,
+    "zernike_ratio": 1.6348795007054815,
+    "cc_cmo_soloff": 0.9997278749427654,
+    "rms_cmo_soloff": 0.5648468005155884
+  },
+  "ultrafast_default": {
+    "profilo_std": 20.81260768575874,
+    "soloff_std": 22.773474559793677,
+    "soloff_ratio": 1.0942153383007687,
+    "cmo26_std": 22.956064870404557,
+    "cmo26_ratio": 1.1029884009254882,
+    "zernike_std": 34.01920485011248,
+    "zernike_ratio": 1.634547931895651,
+    "cc_cmo_soloff": 0.9997083380044253,
+    "rms_cmo_soloff": 0.5816311521386359
+  },
+  "fast_default": {
+    "profilo_std": 20.81260768575874,
+    "soloff_std": 22.099178545807238,
+    "soloff_ratio": 1.0618168986546002,
+    "cmo26_std": 22.28523772372076,
+    "cmo26_ratio": 1.0707566327197762,
+    "zernike_std": 33.007654286095885,
+    "zernike_ratio": 1.5859451532679274,
+    "cc_cmo_soloff": 0.9997140247995979,
+    "rms_cmo_soloff": 0.5624013395375433
+  },
+  "medium_default": {
+    "profilo_std": 20.81260768575874,
+    "soloff_std": 23.216362163140545,
+    "soloff_ratio": 1.1154951130427833,
+    "cmo26_std": 23.39645843968143,
+    "cmo26_ratio": 1.1241483428187002,
+    "zernike_std": 34.68527359667751,
+    "zernike_ratio": 1.6665510694467807,
+    "cc_cmo_soloff": 0.9997216857671358,
+    "rms_cmo_soloff": 0.5786056360096334
+  }
+}
