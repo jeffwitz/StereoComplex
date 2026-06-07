@@ -76,6 +76,7 @@ OpenCV's \texttt{stereoCalibrate} \cite{opencv} assumes one optical centre per c
 \end{figure}
 
 The broader problem is that many optical instruments---CMO and Greenough stereo microscopes, endoscopes, Scheimpflug cameras, multi-camera arrays---depart from the central projection model.
+Among these, the CMO architecture is particularly challenging: in a Greenough microscope the two independent objectives yield two well-separated optical centres that can be modelled as individual perspective cameras, whereas a CMO microscope shares a \emph{single} large objective between off-axis sub-apertures, producing decentred exit pupils whose chief rays do not converge to a common point---a subtle geometric coupling that violates the pinhole assumption far more severely than a simple dual-perspective system.
 Generic camera models \cite{grossberg2001,sturm2004,schops2020} and recent stereo microscope calibration studies \cite{schreier2004,zhang2006_microdic,liu2018_generic_microscope} highlight the need for non-central approaches, but do not provide a systematic method for identifying the correct physical model family from observations (see Section~2 for a detailed review).
 
 StereoComplex \cite{stereocomplex} addresses this gap: it fits a Zernike rayfield $\mathcal{R}(u,v) = (O(u,v), d(u,v))$---a 3D line for every pixel---to corner observations, using a Zernike polynomial basis \cite{zernike1934,noll1976}.
@@ -214,6 +215,7 @@ d_c(u,v) = \operatorname{normalise}\!\left(d_c^{\text{pinhole}}(u,v) + \sum_{m \
 \end{equation}
 where $Z_m$ are the real-valued Zernike polynomials on the unit disk, $\tilde{u},\tilde{v}$ are normalised pixel coordinates mapping the sensor to $[-1,1]^2$, $d_c^{\text{pinhole}}$ is the initial pinhole direction from a fixed central projection matrix $K$, and the direction perturbation is projected transverse to $d_c^{\text{pinhole}}$ before renormalisation.
 The expansion order for the origin field is $o_{\text{max}}$ and for the direction field is $d_{\text{max}}$; selecting $o_{\text{max}}=0$ and $d_{\text{max}}=2$ (see \S\ref{sec:bic_order}) gives 3 origin coefficients and 18 direction coefficients per channel.
+The Zernike polynomials here follow the Noll~\cite{noll1976} single-index ordering on the unit disk, with the standard OSA/ANSI normalisation $\iint_{\text{disk}} [Z_m]^2\,dA = 1$ for unit-area disk; the code uses the same convention \cite{stereocomplex}.
 
 \subsection{Ray-Space Bundle Adjustment}
 
@@ -267,7 +269,8 @@ The real system is \textbf{object-space telecentric}, not perspective.
 
 \subsubsection{Telecentric CMO}
 
-The perspective model fails because the real microscope is object-space telecentric: chief rays are nearly parallel rather than diverging from a point.
+The perspective model fails because the real microscope is object-space telecentric: chief rays in object space are nearly parallel to the optical axis rather than diverging from a single sub-pupil point.
+A perspective camera predicts $d_y \propto (v - c_y)$---a linear gradient from the sub-pupil---while a telecentric system emits a bundle of nearly parallel rays whose direction varies only weakly across the field, explaining the factor-3 discrepancy in Figure~\ref{fig:dy}.
 The telecentric model directly parameterises the ray-field without deriving it from a point projection.
 For each channel $c \in \{L,R\}$, the origin is a rigid sub-pupil:
 \begin{equation}
@@ -944,6 +947,7 @@ In this case study, the $Z_0^0$-dominated residual correctly guided us to the SE
   \item \textbf{SE(3) translation parameters are not uniquely identifiable.} The rotation angles ($\sim$\SI{2.5}{\degree}, $\sim$\SI{3.7}{\degree}) are stable across optimisation runs, but the translation components trade off with the telecentric base parameters (WD, $f_{\text{obj}}$, $b$, principal point). Only the SE(3) rotation is a robust diagnostic; the translation is effective rather than absolute.
   \item \textbf{The Zernike rayfield is a training residual.} Its \SI{0.0007}{mm} ray-space RMS is a self-evaluation on the support points it was fitted to; the \SI{0.47}{px} pixel RMS is a noise-floor estimate, not an independent measurement. The pixel RMS column in all tables provides the apples-to-apples comparison.
   \item \textbf{Fixed pinhole reference.} The Zernike BA uses a fixed $f_x = 25600$ and principal point at image centre. Errors in this reference propagate to the rayfield estimates and the derived physical descriptors.
+  \item \textbf{Monochromatic effective model.} The rayfield and all derived physical models are identified from broad-spectrum white-light images and represent an effective model at the sensor's integrated spectral band (visible, ${\sim}\SIrange{400}{700}{nm}$). CMO microscopes carry residual chromatic aberration---both lateral (magnification variation with wavelength) and longitudinal (focus shift)---that is absorbed into the effective ray directions and origins per pixel. A wavelength-resolved rayfield $\mathcal{R}(u,v,\lambda)$ is a natural extension but requires narrow-band or hyperspectral acquisitions not available in the present dataset; it would disentangle geometric misalignment from chromatic effects and is noted as a future direction.
   \item \textbf{Absolute metrological validation would require:} (a) manufacturer specifications for the actual microscope used, (b) an independent measurement of WD or baseline, or (c) a certified 3D calibration object at a known distance. Item~(a) is now partly available---the instrument is identified as a Leica~M205C with a Planapo 1.0$\times$ objective (documented $WD = \SI{61.5}{mm}$~\cite{leica_m205c}), and the reconstructed baseline agrees with it to $\approx\SI{1}{\percent}$ via the chief-ray relation~\eqref{eq:cmo_chief_ray} (\S\ref{sec:descriptor_validation})---but this is a physical \emph{consistency} check that still uses the datasheet WD as the scale anchor, not an independent measurement; items~(b) and~(c) remain unavailable for the open Pycaso dataset. The present validation thus establishes internal geometric consistency, agreement with the documented optical configuration, model interpretability, and descriptor stability on a real CMO dataset, but not absolute 3D metrological accuracy. A future validation on a calibrated 3D artefact or stepped depth standard will be required to quantify absolute depth accuracy and uncertainty propagation.
 \end{enumerate}
 
