@@ -842,7 +842,7 @@ The standard Pycaso Soloff workflow first assigns every calibration plane the ax
 The direct fit therefore corresponds to the hard-ladder limit of Equation~\eqref{eq:stage_prior_loss}.
 The optional Soloff retroprojection iteration updates the individual plane coordinates, but an unobservable common rescaling has no data gradient; its global metric is consequently inherited from the nominal initial ladder.
 The closest hierarchical analogue is a tightly anchored $s$ with looser $\varepsilon_i$.
-The two algorithms are not algebraically identical, but they receive the same physical information: the stage determines the common axial metric, while image consistency may correct relative plane placement.
+The two algorithms are not algebraically identical, but they receive the same physical information: the nominal stage ladder supplies the common axial metric, while image consistency may correct relative plane placement.
 
 We test four pose hypotheses on the field-resolved O(2)+d(2) rayfield used for the specimen reconstruction (72 rayfield coefficients plus 15 baseline pose parameters, 87 total), using the same 1,650 stereo corners, fixed reference intrinsics, dense DIS correspondence field, and profilometry registration throughout:
 \begin{enumerate}
