@@ -131,7 +131,16 @@ def recompute_cache() -> None:
     results = {}
     for key in SETTINGS_ORDER:
         uL, vL, uR, vR, inb, W = _dis_correspondences(imgL, imgR, settings[key])
-        reliefs = _reconstruct_windowed_reliefs(uL, vL, uR, vR, inb, W, reg)
+        reliefs = _reconstruct_windowed_reliefs(
+            uL,
+            vL,
+            uR,
+            vR,
+            inb,
+            W,
+            reg,
+            stage_anchored_zernike=False,
+        )
         results[key] = _measure(reliefs)
         m = results[key]
         print(f"  {SETTINGS_LABEL[key]:22s} "

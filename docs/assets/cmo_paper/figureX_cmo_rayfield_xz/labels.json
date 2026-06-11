@@ -1,0 +1,25 @@
+{
+  "figure": "cmo_rayfield_xz",
+  "description": "CMO rayfield X-Z interpretation from 26p model",
+  "z_pupil_mm": -0.461,
+  "z_obj_mm": 62.4326,
+  "baseline_mm": 25.743,
+  "WD_mm": 62.433,
+  "f_obj_mm": 62.976,
+  "convergence_angle_deg": 20.49,
+  "n_rays_per_channel": 21,
+  "pixel_samples_u": [
+    102.4,
+    409.6,
+    716.8,
+    1024.0,
+    1331.2,
+    1638.4,
+    1945.6
+  ],
+  "pixel_sample_rows_v": [
+    307.2,
+    1024.0,
+    1740.8
+  ]
+}

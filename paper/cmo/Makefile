@@ -10,10 +10,12 @@
 # Regenerate the figures (the specimen ones need the heavy .npz present):
 #   make figures     # regenerate every figure from the current data
 #   make specimen    # rebuild the full-image specimen .npz (needs Pycaso images)
+#   make stageprior  # re-run the stage-prior experiment (fig 10b JSON + near-hard
+#                    #   rayfield .npz that feeds the profilo figure; needs images)
 #   make fetch       # specimen .npz from Zenodo (PREDATES the full-image
 #                    #   regeneration — stale for the current numbers)
 #   make schur       # re-run the corner Schur-BA (diagnostics + thetas, ~2 h)
-#   make repro-full  # schur + specimen + figures + pdf + audit (from raw)
+#   make repro-full  # schur + specimen + stageprior + figures + pdf + audit (raw)
 #   make bundle      # assemble the Zenodo archive (see ZENODO_UPDATE.md)
 #
 # See REPRODUCE.md for the data-provenance and one-command recipe.
@@ -28,20 +30,20 @@ STATE     := docs/assets/pycaso_real_data/intermediate_state.npz
 # one generate_fig_<name>.py per figure referenced by the manuscript
 FIGS := bic_bars bic_vs_order cmo_physical dy_profile pipeline \
         profilo_relief_comparison residual_evolution schur_svd se3_arm_alignment \
-        specimen_reconstruction zernike_cmo_rigid_removed
+        specimen_reconstruction zernike_cmo_rigid_removed zernike_stage_prior
 
-.PHONY: repro repro-full pdf figures fetch specimen schur audit bundle clean help
+.PHONY: repro repro-full pdf figures fetch specimen stageprior schur audit bundle clean help
 .DEFAULT_GOAL := help
 
 help:
-	@sed -n '2,19p' $(firstword $(MAKEFILE_LIST))
+	@sed -n '2,21p' $(firstword $(MAKEFILE_LIST))
 
 # --- fast reproduction: build the versioned figures into the PDF + audit ------
 repro: pdf audit
 	@echo "==> CMO paper built + audited (paper/cmo/build/manuscript.pdf)."
 
 # --- full reproduction from raw inputs --------------------------------
-repro-full: schur specimen figures pdf audit
+repro-full: schur specimen stageprior figures pdf audit
 	@echo "==> CMO paper reproduced from raw inputs."
 
 pdf:
@@ -58,6 +60,9 @@ fetch:
 
 specimen:
 	cd $(ROOT) && $(PY) $(NB)/regenerate_specimen_reconstructions.py --dis improved
+
+stageprior:
+	cd $(ROOT) && $(PY) $(NB)/evaluate_zernike_stage_prior.py
 
 schur:
 	cd $(ROOT) && $(PY) examples/pycaso_schur_regularized_ba.py \

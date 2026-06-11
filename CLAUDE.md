@@ -36,7 +36,9 @@ notebooks). Until then, share `blob/develop/` Colab URLs.
 
 Accepted with minor revisions. 42 pages, 14 figures, 5 tables, Appendix A. All story-level numbers reproducible (`docs/assets/cmo_paper/AUDIT.md`).
 
-**External 3-D validation — delivered.** §4.9 "External Profilometry Validation" + Figure 13 (`docs/assets/cmo_paper/figure_external_profilo_relief/`, `examples/notebooks/generate_fig_profilo_relief_comparison.py`) resolve the specimen depth-scale ambiguity against an external profilometric reference: CMO 26p ≈ Soloff (cc=0.9997, RMS 0.57 µm), both ~1.10× the profilometry, while the Zernike-based dense reconstruction over-amplifies the relief (1.63×). The wording is deliberately hedged (single specimen, lateral registration cc=0.96, profilometer-set scale): it supports the CMO/Soloff depth scale on this specimen, it does not certify absolute metrology.
+**External 3-D validation — delivered.** §4.9 "External Profilometry Validation" resolves the specimen depth-scale ambiguity against an external profilometric reference: CMO 26p ≈ Soloff (cc=0.9997, RMS 0.57 µm), both ~1.10× the profilometry. The free-pose Zernike baseline over-amplifies the relief (1.63×), while the stage-anchored Zernike fit reaches 1.04×. The wording is deliberately hedged (single specimen, lateral registration cc=0.96, profilometer-set scale): it validates the stage-anchored solution on this specimen, not absolute metrology.
+
+**Zernike stage prior — delivered.** The hierarchical pose model transmits the nominal translation-stage ladder to the rayfield BA through a common scale and per-frame jitter prior. Figure 10 (`docs/assets/cmo_paper/figure10b_zernike_stage_prior/`, `examples/notebooks/generate_fig_zernike_stage_prior.py`) compares free, weak, strong, and near-fixed hypotheses and shows that only the near-fixed ladder removes the axial-gain error without degrading the ray-space fit.
 
 **Minor-revision pass — done.** Reviewer #3: SE(3) arm-alignment schematic added as Figure 7 in §3.5.6 (`figure_se3_arm_alignment/`, `generate_fig_se3_arm_alignment.py`). Reviewer #1: computational-cost mention added in §6.7 (Soloff fit ~few ms vs rayfield-to-CMO identification ~20 s on one CPU core, from the versioned pose_sweep/se3_ablation timings). Reviewer #2 (corner-noise sensitivity study) was deliberately NOT requested by JFW and is not done.
 
@@ -225,7 +227,9 @@ case-by-case `noqa` annotations.
 
 ### Tests
 
-- Fast: `rtk .venv/bin/python -m pytest` → **159 passed, 39 deselected**.
+- Fast: `rtk .venv/bin/python -m pytest` → **169 passed, 40 deselected**
+  (10 new tests cover the `StagePosePrior` / stage-anchored constrained Zernike
+  fit backing Figure 10b).
 - Slow: `rtk .venv/bin/python -m pytest -m slow` → **39 passed,
   159 deselected** in 382.20 s (0 failures).
 
@@ -936,11 +940,13 @@ session) knows what is left.
 | 8 | `schur_singular_values.pdf` | `generate_fig_schur_svd.py` | `figure8_schur_singular_values/` | **DONE** |
 | 9 | `specimen_reconstruction.pdf` | `generate_fig_specimen_reconstruction.py` | `figure9_specimen_reconstruction/` | **DONE** |
 | 10 | `zernike_cmo_rigid_removed.pdf` | `generate_fig_zernike_cmo_rigid_removed.py` | `figure10_zernike_cmo_rigid_removed/` | **DONE** (also fixed a pre-existing dimensional bug: Kabsch SE(3) now applied on 3-D mm points; "dZ after SE(3)" matches the manuscript's quoted 0.06 mm residual) |
+| 10b | `zernike_stage_prior.pdf` | `generate_fig_zernike_stage_prior.py` | `figure10b_zernike_stage_prior/` | **DONE** (free, weak, strong, and near-fixed stage-metric pose hypotheses; exact fit results stored as JSON) |
 | 11 | `specimen_schur_regularized.png` | `generate_fig_specimen_schur_regularized.py` | `figure11_specimen_schur_regularized/` | **DONE** |
 | 12 | `bic_bars.pdf` | `generate_fig_bic_bars.py` | `figure12_bic_bars/` | **DONE** |
-| ext | `profilo_relief_comparison.pdf` | `generate_fig_profilo_relief_comparison.py` | `figure_external_profilo_relief/` | **DONE** (external profilometry validation; reproducible cache + `--recompute` from Pycaso images; manuscript figure number assigned at integration. Shows CMO≈Soloff, cc=0.9997 / RMS 0.57 µm; Zernike over-amplifies 1.63×) |
+| ext | `profilo_relief_comparison.pdf` | `generate_fig_profilo_relief_comparison.py` | `figure_external_profilo_relief/` | **DONE** (external profilometry validation; reproducible cache + `--recompute` from Pycaso images; manuscript figure number assigned at integration. Shows CMO≈Soloff, cc=0.9997 / RMS 0.57 µm; free-pose Zernike over-amplifies 1.63×, near-fixed stage prior restores 1.04×) |
+| xz | `cmo_rayfield_xz.pdf` | `generate_fig_cmo_rayfield_xz.py` | `figureX_cmo_rayfield_xz/` | **DONE / not yet referenced** (standalone X–Z rayfield interpretation of the 26p CMO+SE(3) model; reads `intermediate_state.npz`, regenerates `labels.json`. No-orphan compliant and ready to insert; **deliberately excluded from the Makefile `FIGS` list** until cited by `manuscript.tex`) |
 
-**All 12 figures DONE** — every paper figure now has a manifest in
+**All tracked figures DONE** — every paper figure now has a manifest in
 `docs/assets/cmo_paper/figureN_<name>/` and a standalone generator in
 `examples/notebooks/generate_fig_<name>.py` that emits the PDF the
 manuscript references plus a PNG sibling for docs/preview. Heavy

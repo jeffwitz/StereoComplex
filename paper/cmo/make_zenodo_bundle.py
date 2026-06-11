@@ -79,6 +79,7 @@ INCLUDE = [
     "examples/notebooks/sensitivity_coupling_norm.py",
     "examples/notebooks/parameter_identifiability.py",
     "examples/notebooks/regenerate_specimen_reconstructions.py",
+    "examples/notebooks/evaluate_zernike_stage_prior.py",
     "examples/zenodo_fetch.py",
     "examples/zenodo_upload.py",
     "examples/pycaso_schur_regularized_ba.py",

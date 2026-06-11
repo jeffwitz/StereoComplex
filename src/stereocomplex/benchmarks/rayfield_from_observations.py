@@ -33,7 +33,35 @@ Array = np.ndarray
 
 @dataclass(frozen=True)
 class ZernikeFitDiagnostics:
-    """Diagnostics from a Zernike rayfield fit to ChArUco observations."""
+    """Diagnostics from a Zernike rayfield fit to ChArUco observations.
+
+    Attributes
+    ----------
+    max_order : int
+        Largest Zernike radial order represented by the returned rayfield.
+    n_zernike_coeffs : int
+        Number of fitted rayfield coefficients per camera channel.
+    n_poses : int
+        Number of calibration-board frames included in the fit.
+    n_observations : int
+        Total number of observed rays across all channels.
+    ray_rms_mm : float
+        RMS component of the geometric point-to-ray residual, millimetres;
+        prior and regularisation rows are excluded.
+    converged : bool
+        Whether SciPy reported successful least-squares termination.
+    nfev : int
+        Number of nonlinear residual evaluations.
+    channel_names : tuple[str, ...]
+        Camera-channel order used by the coefficient vector and observations.
+    stage_scale : float or None
+        Fitted common dimensionless stage scale when a
+        :class:`StagePosePrior` is active.
+    stage_jitter_rms_mm : float or None
+        RMS of fitted frame-specific axial offsets, millimetres.
+    stage_axis : tuple[float, float, float] or None
+        Fitted unit translation-stage axis in the rayfield camera frame.
+    """
 
     max_order: int
     n_zernike_coeffs: int
@@ -43,11 +71,51 @@ class ZernikeFitDiagnostics:
     converged: bool
     nfev: int
     channel_names: tuple[str, ...] = ("left", "right")
+    stage_scale: float | None = None
+    stage_jitter_rms_mm: float | None = None
+    stage_axis: tuple[float, float, float] | None = None
 
     @property
     def n_channels(self) -> int:
         """Number of channels in the observation dataset."""
         return len(self.channel_names)
+
+
+@dataclass(frozen=True)
+class StagePosePrior:
+    """Hierarchical axial-stage prior for the constrained Zernike BA.
+
+    The translation of frame ``i`` is parameterised as
+    ``t_i = t0 + a * (s * (z_nominal_i - mean(z_nominal)) + epsilon_i)``.
+    The shared scale ``s`` carries the systematic stage-calibration
+    uncertainty, while ``epsilon_i`` captures frame-specific positioning
+    jitter.
+
+    Parameters
+    ----------
+    nominal_positions_mm : ndarray, shape (n_frames,)
+        Nominal physical stage positions in frame order, millimetres. Their
+        sign must follow the camera-frame direction of stage travel.
+    scale_sigma : float
+        One-standard-deviation uncertainty of the dimensionless common scale
+        around one.
+    jitter_sigma_mm : float
+        One-standard-deviation prior for each frame-specific axial jitter,
+        millimetres.
+    ray_sigma_mm : float
+        Expected one-component point-to-ray residual, millimetres. This
+        converts the dimensionless Gaussian prior residuals to the same scale
+        as the geometric residuals.
+    estimate_axis : bool
+        If True, estimate two slopes for the unit stage axis
+        ``normalize([a_x, a_y, 1])``. If False, use the camera Z axis.
+    """
+
+    nominal_positions_mm: Array
+    scale_sigma: float = 0.1
+    jitter_sigma_mm: float = 0.1
+    ray_sigma_mm: float = 1e-3
+    estimate_axis: bool = False
 
 
 def fit_zernike_rayfield_from_charuco_observations(
@@ -415,18 +483,39 @@ def fit_constrained_zernike_rayfield(
     *,
     max_nfev: int = 300,
     origin_reg_weight: float = 0.0,
+    stage_prior: StagePosePrior | None = None,
 ) -> tuple[
     ZernikeRayField, ZernikeRayField, ZernikeFitDiagnostics, list[np.ndarray], list[np.ndarray]
 ]:
-    """Fit Zernike rayfield with constrained poses: shared rotation + XY, per-pose Z.
+    """Fit a Zernike rayfield with a constrained translation-stage pose model.
 
     O: order *max_order_o* (origin field; 0 = rigid sub-pupil).
     d: order *max_order_d* (direction correction).
 
-    Poses are constrained: the board is assumed perfectly vertical, mounted
-    on a Z-only translation stage.  All poses share the same rotation
-    (3 rotvec params) and X,Y translation (2 params); only Z varies
-    per pose (1 param each).
+    Without ``stage_prior``, all frames share one rotation and X,Y translation,
+    while Z is free per frame. With ``stage_prior``, translations follow a
+    nominal stage ladder with one common scale and weak frame-specific jitter.
+    The stage axis can optionally be estimated with two slope parameters.
+
+    Parameters
+    ----------
+    obs : CharucoObservationSet
+        Stereo ChArUco observations, one entry per stage frame.
+    image_size : tuple[int, int]
+        Sensor width and height, pixels.
+    K_left, K_right : ndarray, shape (3, 3)
+        Central intrinsics supplying the base ray directions.
+    max_order_o : int
+        Maximum Zernike radial order for ray origins.
+    max_order_d : int
+        Maximum Zernike radial order for direction perturbations.
+    max_nfev : int
+        Maximum number of nonlinear least-squares evaluations.
+    origin_reg_weight : float
+        L2 weight on the piston Z component of each channel origin.
+    stage_prior : StagePosePrior or None
+        Optional hierarchical stage-metrology prior. ``None`` preserves the
+        historical free-per-frame-Z parameterisation.
 
     Returns
     -------
@@ -486,6 +575,26 @@ def fit_constrained_zernike_rayfield(
     obj_pts = obs.object_points_mm
     n_obs = uL.size + uR.size
     n_poses = len(obs.left_pixels)
+    nominal_offsets: np.ndarray | None = None
+    if stage_prior is not None:
+        nominal_positions = np.asarray(
+            stage_prior.nominal_positions_mm, dtype=np.float64
+        ).reshape(-1)
+        if nominal_positions.size != n_poses:
+            raise ValueError(
+                "stage_prior.nominal_positions_mm must match the number of poses"
+            )
+        if not np.all(np.isfinite(nominal_positions)):
+            raise ValueError("stage nominal positions must be finite")
+        if float(np.ptp(nominal_positions)) <= 0.0:
+            raise ValueError("stage nominal positions must span a non-zero range")
+        if stage_prior.scale_sigma <= 0.0:
+            raise ValueError("stage_prior.scale_sigma must be positive")
+        if stage_prior.jitter_sigma_mm <= 0.0:
+            raise ValueError("stage_prior.jitter_sigma_mm must be positive")
+        if stage_prior.ray_sigma_mm <= 0.0:
+            raise ValueError("stage_prior.ray_sigma_mm must be positive")
+        nominal_offsets = nominal_positions - float(np.mean(nominal_positions))
 
     def _basis(u_arr, v_arr, modes):
         xi = 2.0 * np.asarray(u_arr, dtype=np.float64) / float(W - 1) - 1.0
@@ -573,15 +682,25 @@ def fit_constrained_zernike_rayfield(
     # d coeffs: n_modes_d * 3 per channel
     n_d = n_modes_d * 3  # = 18 for order 2
     n_field_per_ch = n_O + n_d  # = 21
-    x0 = np.concatenate(
-        [
-            np.zeros(n_field_per_ch, dtype=np.float64),  # left
-            np.zeros(n_field_per_ch, dtype=np.float64),  # right
-            shared_rotvec,
-            shared_xy,
-            z_per_pose,
-        ]
-    )
+    field_x0 = [
+        np.zeros(n_field_per_ch, dtype=np.float64),  # left
+        np.zeros(n_field_per_ch, dtype=np.float64),  # right
+    ]
+    if stage_prior is None:
+        pose_x0 = np.concatenate([shared_rotvec, shared_xy, z_per_pose])
+    else:
+        assert nominal_offsets is not None
+        t0_initial = np.array(
+            [shared_xy[0], shared_xy[1], float(np.mean(z_per_pose))],
+            dtype=np.float64,
+        )
+        epsilon_initial = z_per_pose - t0_initial[2] - nominal_offsets
+        stage_parts = [shared_rotvec, t0_initial]
+        if stage_prior.estimate_axis:
+            stage_parts.append(np.zeros(2, dtype=np.float64))
+        stage_parts.extend([np.ones(1, dtype=np.float64), epsilon_initial])
+        pose_x0 = np.concatenate(stage_parts)
+    x0 = np.concatenate([*field_x0, pose_x0])
 
     # Bounds: origin Z ±20mm, direction coeffs ±5.0, poses loose
     O_lo = np.full(n_O, -np.inf)
@@ -593,20 +712,37 @@ def fit_constrained_zernike_rayfield(
     d_hi = np.full(n_d, 5.0)
     field_lo = np.concatenate([O_lo, d_lo])
     field_hi = np.concatenate([O_hi, d_hi])
-    pose_lo = np.concatenate(
-        [
-            shared_rotvec - 0.05,  # tight rotation bound
-            shared_xy - 1.0,  # loose XY
-            z_per_pose - 1.0,  # loose Z
-        ]
-    )
-    pose_hi = np.concatenate(
-        [
-            shared_rotvec + 0.05,
-            shared_xy + 1.0,
-            z_per_pose + 1.0,
-        ]
-    )
+    if stage_prior is None:
+        pose_lo = np.concatenate(
+            [
+                shared_rotvec - 0.05,  # tight rotation bound
+                shared_xy - 1.0,  # loose XY
+                z_per_pose - 1.0,  # loose Z
+            ]
+        )
+        pose_hi = np.concatenate(
+            [
+                shared_rotvec + 0.05,
+                shared_xy + 1.0,
+                z_per_pose + 1.0,
+            ]
+        )
+    else:
+        t0_initial = pose_x0[3:6]
+        epsilon_initial = pose_x0[-n_poses:]
+        pose_lo_parts = [shared_rotvec - 0.05, t0_initial - 1.0]
+        pose_hi_parts = [shared_rotvec + 0.05, t0_initial + 1.0]
+        if stage_prior.estimate_axis:
+            pose_lo_parts.append(np.full(2, -0.25, dtype=np.float64))
+            pose_hi_parts.append(np.full(2, 0.25, dtype=np.float64))
+        pose_lo_parts.extend(
+            [np.array([0.1], dtype=np.float64), epsilon_initial - 1.0]
+        )
+        pose_hi_parts.extend(
+            [np.array([10.0], dtype=np.float64), epsilon_initial + 1.0]
+        )
+        pose_lo = np.concatenate(pose_lo_parts)
+        pose_hi = np.concatenate(pose_hi_parts)
     bounds = (
         np.concatenate([field_lo, field_lo, pose_lo]),
         np.concatenate([field_hi, field_hi, pose_hi]),
@@ -617,15 +753,14 @@ def fit_constrained_zernike_rayfield(
         O_c: np.ndarray,  # (n_modes_O, 3)  origin coeffs
         d_c: np.ndarray,  # (n_modes_d, 3)  direction coeffs
         rotvec: np.ndarray,
-        xy: np.ndarray,
-        z_vals: np.ndarray,
+        translations: np.ndarray,
         groups: list[_Group],
     ) -> np.ndarray:
         R = Rotation.from_rotvec(rotvec).as_matrix()
         blocks = []
         for g in groups:
             pi = g.pose_idx
-            t = np.array([xy[0], xy[1], z_vals[pi]], dtype=np.float64)
+            t = translations[pi]
             X_world = (R @ g.X_local.T).T + t[None, :]
 
             # Direction: d = normalize(d0 + proj_perp(A_d @ d_c, d0))
@@ -643,28 +778,91 @@ def fit_constrained_zernike_rayfield(
             blocks.append((delta - proj).reshape(-1))
         return np.concatenate(blocks) if blocks else np.zeros(0, dtype=np.float64)
 
-    def residuals(x: np.ndarray) -> np.ndarray:
-        """Compute ray-space residuals for the current BA state."""
+    def _unpack_poses(
+        pose_p: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, float | None, np.ndarray | None, np.ndarray | None]:
+        """Map constrained pose parameters to one translation per frame."""
+        rotvec = pose_p[:3]
+        if stage_prior is None:
+            xy = pose_p[3:5]
+            z_vals = pose_p[5:]
+            translations = np.column_stack(
+                [
+                    np.full(n_poses, xy[0], dtype=np.float64),
+                    np.full(n_poses, xy[1], dtype=np.float64),
+                    z_vals,
+                ]
+            )
+            return rotvec, translations, None, None, None
+
+        assert nominal_offsets is not None
+        cursor = 3
+        t0 = pose_p[cursor : cursor + 3]
+        cursor += 3
+        if stage_prior.estimate_axis:
+            slopes = pose_p[cursor : cursor + 2]
+            cursor += 2
+            axis = np.array([slopes[0], slopes[1], 1.0], dtype=np.float64)
+            axis /= np.linalg.norm(axis)
+        else:
+            axis = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+        scale = float(pose_p[cursor])
+        cursor += 1
+        epsilon = pose_p[cursor : cursor + n_poses]
+        cursor += n_poses
+        if cursor != pose_p.size:
+            raise ValueError(
+                f"unused constrained-pose parameters: {pose_p.size - cursor}"
+            )
+        axial_offsets = scale * nominal_offsets + epsilon
+        translations = t0[None, :] + axial_offsets[:, None] * axis[None, :]
+        return rotvec, translations, scale, epsilon, axis
+
+    def _geometric_residuals(x: np.ndarray) -> np.ndarray:
+        """Compute only point-to-ray residuals, excluding all priors."""
         cL = x[:n_field_per_ch]
         cR = x[n_field_per_ch : 2 * n_field_per_ch]
         pose_p = x[2 * n_field_per_ch :]
-        rotvec = pose_p[:3]
-        xy = pose_p[3:5]
-        z_vals = pose_p[5:]
+        rotvec, translations, _scale, _epsilon, _axis = _unpack_poses(pose_p)
 
         O_L = cL[:n_O].reshape(n_modes_O, 3)
         d_L = cL[n_O:].reshape(n_modes_d, 3)
         O_R = cR[:n_O].reshape(n_modes_O, 3)
         d_R = cR[n_O:].reshape(n_modes_d, 3)
 
-        rL = _chan_residuals(O_L, d_L, rotvec, xy, z_vals, groups_L)
-        rR = _chan_residuals(O_R, d_R, rotvec, xy, z_vals, groups_R)
-
-        # Regularization on origin Z
-        if origin_reg_weight > 0:
-            reg = np.sqrt(origin_reg_weight) * np.array([O_L[0, 2], O_R[0, 2]])
-            return np.concatenate([rL, rR, reg])
+        rL = _chan_residuals(O_L, d_L, rotvec, translations, groups_L)
+        rR = _chan_residuals(O_R, d_R, rotvec, translations, groups_R)
         return np.concatenate([rL, rR])
+
+    def residuals(x: np.ndarray) -> np.ndarray:
+        """Compute ray-space residuals and optional metrology priors."""
+        parts = [_geometric_residuals(x)]
+        if origin_reg_weight > 0:
+            cL = x[:n_field_per_ch]
+            cR = x[n_field_per_ch : 2 * n_field_per_ch]
+            O_L = cL[:n_O].reshape(n_modes_O, 3)
+            O_R = cR[:n_O].reshape(n_modes_O, 3)
+            reg = np.sqrt(origin_reg_weight) * np.array([O_L[0, 2], O_R[0, 2]])
+            parts.append(reg)
+        if stage_prior is not None:
+            pose_p = x[2 * n_field_per_ch :]
+            _rotvec, _translations, scale, epsilon, _axis = _unpack_poses(pose_p)
+            assert scale is not None
+            assert epsilon is not None
+            parts.append(
+                np.array(
+                    [
+                        stage_prior.ray_sigma_mm
+                        * (scale - 1.0)
+                        / stage_prior.scale_sigma
+                    ],
+                    dtype=np.float64,
+                )
+            )
+            parts.append(
+                stage_prior.ray_sigma_mm * epsilon / stage_prior.jitter_sigma_mm
+            )
+        return np.concatenate(parts)
 
     # --- solve ---
     sol = least_squares(
@@ -683,9 +881,9 @@ def fit_constrained_zernike_rayfield(
     cL_opt = sol.x[:n_field_per_ch]
     cR_opt = sol.x[n_field_per_ch : 2 * n_field_per_ch]
     pose_opt = sol.x[2 * n_field_per_ch :]
-    opt_rotvec = pose_opt[:3]
-    opt_xy = pose_opt[3:5]
-    opt_z = pose_opt[5:]
+    opt_rotvec, opt_translations, opt_scale, opt_epsilon, opt_axis = _unpack_poses(
+        pose_opt
+    )
 
     # Build the full ZernikeRayField for each channel
     # For O: use modes_O (order 0), for d: use modes_d (order 2)
@@ -720,14 +918,11 @@ def fit_constrained_zernike_rayfield(
         ),
     )
 
-    r_final = residuals(sol.x)
-    # Trim regularization terms for RMS
-    n_geo = n_obs * 3
-    r_geo = r_final[:n_geo] if origin_reg_weight > 0 else r_final
+    r_geo = _geometric_residuals(sol.x)
     rms = float(np.sqrt(np.mean(r_geo**2)))
 
     opt_R = [Rotation.from_rotvec(opt_rotvec).as_matrix() for _ in range(n_poses)]
-    opt_t = [np.array([opt_xy[0], opt_xy[1], opt_z[i]], dtype=np.float64) for i in range(n_poses)]
+    opt_t = [opt_translations[i].copy() for i in range(n_poses)]
 
     diag = ZernikeFitDiagnostics(
         max_order=max_order_full,
@@ -737,5 +932,14 @@ def fit_constrained_zernike_rayfield(
         ray_rms_mm=rms,
         converged=bool(sol.success),
         nfev=int(sol.nfev),
+        stage_scale=opt_scale,
+        stage_jitter_rms_mm=(
+            None
+            if opt_epsilon is None
+            else float(np.sqrt(np.mean(np.asarray(opt_epsilon) ** 2)))
+        ),
+        stage_axis=(
+            None if opt_axis is None else tuple(float(value) for value in opt_axis)
+        ),
     )
     return left_field, right_field, diag, opt_R, opt_t

@@ -67,6 +67,7 @@ latest published version).
 | Calibration state `intermediate_state.npz`, `zernike_pose_variants.json`, order/pose sweeps, corner-BA JSONs | git (`docs/assets/pycaso_real_data/`) | versioned input |
 | Corner Schur-BA **calibrations & diagnostics** `schur_ba/*.json` (thetas, sweeps, coupling sensitivity) | git (≈70 KB) | versioned input; `make schur` recomputes (~2 h) |
 | Manuscript-figure **reconstructions** `specimen_reconstruction_*.npz`, `specimen_correspondences.npz` (Fig. specimen + rigid-removal) | git (~62 MB) | versioned input; `make specimen` re-derives them from the raw images |
+| Stage-prior experiment `figure10b_zernike_stage_prior/{stage_prior_results.json, near_hard_zernike_rayfield.npz}` (Fig. 10b + the near-hard rayfield consumed by the profilometry figure) | git (~6 KB) | versioned input; `make stageprior` re-derives them from the raw images |
 | Orphaned five-variant `schur_ba/specimen_*.npz` (~120 MB) | **not** in git | `make fetch` (Zenodo `20369312`) — **optional**, no manuscript figure uses them |
 | Raw Pycaso coin/ChArUco images | external (git-ignored) | [Pycaso dataset](https://github.com/LaboratoireMecaniqueLille/Pycaso) |
 | Figures `figures/*.{pdf,png}` | git | `make figures` |
@@ -83,9 +84,11 @@ make repro-full
 
 Runs, in order: `schur` (corner Schur-BA: diagnostic + free-pose BA, ~2 h, needs
 `intermediate_state.npz`), `specimen` (full-image DIS optical flow + the five
-calibration reconstructions, needs the Pycaso raw images), then `figures`,
-`pdf`, `audit`. Use this only to rebuild the heavy `.npz` from scratch; the
-default `make repro` reuses the versioned/fetched data.
+calibration reconstructions, needs the Pycaso raw images), `stageprior` (the
+hierarchical translation-stage prior experiment producing the Fig. 10b JSON and
+the near-hard Zernike rayfield, needs the raw images), then `figures`, `pdf`,
+`audit`. Use this only to rebuild the heavy `.npz` from scratch; the default
+`make repro` reuses the versioned/fetched data.
 
 ## Notes
 

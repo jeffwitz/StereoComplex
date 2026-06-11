@@ -18,9 +18,9 @@ Narrative it establishes
   polynomial baseline.
 * Both Soloff and CMO track the profilometry to ~``1.10×`` amplitude with
   ``cc ≈ 0.96``.
-* The per-pixel **Zernike ray-field** *over-amplifies* the relief by ``~1.6×``
-  — a property of the high-dimensional non-central parameterisation, not of
-  the Zernike basis itself.
+* The **stage-anchored Zernike ray-field** recovers the same relief amplitude
+  as the profilometry, showing that the ``~1.6×`` free-pose result was caused
+  by the discarded translation-stage metric rather than by the rayfield basis.
 
 Reproducibility (``no orphan figures`` rule)
 --------------------------------------------
@@ -32,10 +32,12 @@ needed.
 
 ``--recompute`` re-derives the cache from scratch: it re-runs the DIS optical
 flow (parameters read from ``dis_params.json``) on the Pycaso coin images,
-re-reconstructs with the CMO 26p / Zernike / Soloff models, applies the fixed
-rigid registration (``registration.json``) and rewrites the cache. The raw
-Pycaso images live outside the repo (``examples/pycaso_data/``, git-ignored),
-exactly like the cached reconstructions behind the other specimen figures.
+re-reconstructs with the CMO 26p / stage-anchored Zernike / Soloff models,
+applies the fixed rigid registration (``registration.json``) and rewrites the
+cache. The Zernike coefficients are produced by
+``evaluate_zernike_stage_prior.py``. The raw Pycaso images live outside the
+repo (``examples/pycaso_data/``, git-ignored), exactly like the cached
+reconstructions behind the other specimen figures.
 
 Run
 ---
@@ -58,13 +60,16 @@ CALIB = REPO / "docs/assets/pycaso_real_data"
 PYCASO = REPO / "examples/pycaso_data/Exemple/Images_example"
 CACHE = ASSET / "relief_comparison_data.npz"
 PROFILO = ASSET / "coin_profilo_recale.npy"
+STAGE_PRIOR_ASSET = REPO / "docs/assets/cmo_paper/figure10b_zernike_stage_prior"
+STAGE_ANCHORED_RAYFIELD = STAGE_PRIOR_ASSET / "near_hard_zernike_rayfield.npz"
+PAPER_FIGURE = REPO / "paper/cmo/figures/profilo_relief_comparison.png"
 
 METHOD_ORDER = ["profilometry", "soloff", "cmo26", "zernike"]
 METHOD_LABEL = {
     "profilometry": "Profilometry (ground truth)",
     "soloff": "Soloff (deg 3)",
     "cmo26": "CMO 26p (this work)",
-    "zernike": "Zernike rayfield (this work)",
+    "zernike": "Zernike rayfield (stage-anchored)",
 }
 METHOD_COLOR = {"profilometry": "k", "soloff": "tab:blue",
                 "cmo26": "tab:green", "zernike": "tab:red"}
@@ -188,7 +193,17 @@ def _dis_correspondences(imgL, imgR, p):
     return uL, vL, uR, vR, inb, W
 
 
-def _reconstruct_windowed_reliefs(uL, vL, uR, vR, inb, W, reg):
+def _reconstruct_windowed_reliefs(
+    uL,
+    vL,
+    uR,
+    vR,
+    inb,
+    W,
+    reg,
+    *,
+    stage_anchored_zernike: bool = True,
+):
     """Reconstruct the dense relief with Soloff/CMO/Zernike and window to the profilo.
 
     The three models all consume the *same* correspondence field
@@ -208,6 +223,10 @@ def _reconstruct_windowed_reliefs(uL, vL, uR, vR, inb, W, reg):
         Square canvas side (image width), pixels.
     reg : dict
         Rigid registration; ``affine_2x3`` maps the profilometry onto the images.
+    stage_anchored_zernike : bool, default=True
+        Use the near-fixed-ladder Zernike calibration selected in Figure 10.
+        Set false only for the DIS-robustness diagnostic of the original
+        free-pose depth-gain discrepancy.
 
     Returns
     -------
@@ -249,16 +268,25 @@ def _reconstruct_windowed_reliefs(uL, vL, uR, vR, inb, W, reg):
     orr, dr = se3(*m_tel.ray(uR, vR, "right"), x26[20:23], x26[23:26])
     p_cmo, v_cmo = triangulate(ol, dl, orr, dr)
 
-    zv = json.loads((CALIB / "zernike_pose_variants.json").read_text())["zernike_constrained"]
-    arr = lambda x: np.asarray(x, np.float64).reshape(-1, 3)  # noqa: E731
+    if stage_anchored_zernike:
+        if not STAGE_ANCHORED_RAYFIELD.exists():
+            raise FileNotFoundError(
+                f"{STAGE_ANCHORED_RAYFIELD} is missing; run "
+                "evaluate_zernike_stage_prior.py first"
+            )
+        zv = np.load(STAGE_ANCHORED_RAYFIELD)
+    else:
+        zv = json.loads(
+            (CALIB / "zernike_pose_variants.json").read_text()
+        )["zernike_constrained"]
     cfg = ZernikeOriginFieldConfig(image_size=img_size, max_order=2)
     k = np.array([[25600, 0, 1024], [0, 25600, 1024], [0, 0, 1]], np.float64)
     lf = ZernikeRayField(K=k, config=cfg, coefficients=ZernikeRayFieldCoefficients(
-        origin_coeffs=arr(zv["left_origin_coeffs"]),
-        direction_coeffs=arr(zv["left_direction_coeffs"])))
+        origin_coeffs=np.asarray(zv["left_origin_coeffs"]).reshape(-1, 3),
+        direction_coeffs=np.asarray(zv["left_direction_coeffs"]).reshape(-1, 3)))
     rf = ZernikeRayField(K=k, config=cfg, coefficients=ZernikeRayFieldCoefficients(
-        origin_coeffs=arr(zv["right_origin_coeffs"]),
-        direction_coeffs=arr(zv["right_direction_coeffs"])))
+        origin_coeffs=np.asarray(zv["right_origin_coeffs"]).reshape(-1, 3),
+        direction_coeffs=np.asarray(zv["right_direction_coeffs"]).reshape(-1, 3)))
     p_zer, v_zer = triangulate(*lf.ray(uL, vL), *rf.ray(uR, vR))
 
     left = state["left_pixels"].reshape(-1, 2).astype(float)
@@ -386,7 +414,8 @@ def draw() -> None:
     axp.legend(fontsize=9, loc="upper right")
     axp.set_title(
         f"(e) z along the vertical line — Soloff and CMO coincide "
-        f"(cc={cc_cs:.3f}, RMS={rms_cs:.2f} µm); Zernike over-amplifies",
+        f"(cc={cc_cs:.3f}, RMS={rms_cs:.2f} µm); "
+        "stage-anchored Zernike recovers the metric relief",
         fontsize=10.5)
     fig.suptitle("External profilometry validation of the specimen relief", fontsize=13, y=0.997)
 
@@ -394,12 +423,16 @@ def draw() -> None:
     png = ASSET / "profilo_relief_comparison.png"
     fig.savefig(pdf, bbox_inches="tight")
     fig.savefig(png, dpi=150, bbox_inches="tight")
+    fig.savefig(PAPER_FIGURE, dpi=150, bbox_inches="tight")
     plt.close(fig)
     print(f"  CMO vs Soloff: cc={cc_cs:.4f}  RMS={rms_cs:.3f} µm  (marginal)")
     for name in METHOD_ORDER[1:]:
         s, cc = _stats(reliefs[name], ref)
         print(f"  {METHOD_LABEL[name]:30s} std={s:5.1f} µm  ({s / sp:.2f}×)  cc={cc:.3f}")
-    print(f"  wrote {pdf.relative_to(REPO)} + .png")
+    print(
+        f"  wrote {pdf.relative_to(REPO)} + .png and "
+        f"{PAPER_FIGURE.relative_to(REPO)}"
+    )
 
 
 def main() -> int:

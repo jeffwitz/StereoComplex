@@ -1,0 +1,125 @@
+{
+  "description": "Hierarchical stage prior experiment on dense O(2)+d(2) Zernike BA",
+  "nominal_stage_positions_mm": [
+    2.65,
+    2.72,
+    2.79,
+    2.86,
+    2.93,
+    3.0,
+    3.07,
+    3.21,
+    3.28,
+    3.35
+  ],
+  "profilometry_std_um": 20.81260768575874,
+  "soloff_std_um": 22.772768020629883,
+  "cmo26_std_um": 22.958515167236328,
+  "published_zernike_std_um": 34.02610397338867,
+  "published_zernike_ratio": 1.6348794195871676,
+  "published_zernike_z_positions_mm": [
+    64.61468287376333,
+    64.69868587842886,
+    64.8066954862467,
+    64.9205665200983,
+    65.05049647248119,
+    65.18294446381626,
+    65.26277095574956,
+    65.48543687877473,
+    65.57306339761628,
+    65.66476297045034
+  ],
+  "cases": {
+    "weak_proposal": {
+      "scale_sigma": 0.1,
+      "jitter_sigma_mm": 0.07,
+      "ray_sigma_mm": 0.00058,
+      "ray_rms_mm": 0.0005875320792162362,
+      "converged": true,
+      "nfev": 40,
+      "stage_scale": 1.4561978798097113,
+      "stage_jitter_rms_mm": 0.10516497258142078,
+      "stage_axis": [
+        0.0136394887038191,
+        -0.024957357873268596,
+        0.9995954654938587
+      ],
+      "fitted_z_positions_mm": [
+        64.51981286344937,
+        64.62401703666407,
+        64.7579636389821,
+        64.89845845557856,
+        65.05926279857715,
+        65.22305230846644,
+        65.3215908388974,
+        65.59678168687842,
+        65.70526101853862,
+        65.81849676793937
+      ],
+      "fitted_z_span_mm": 1.298683904489991,
+      "relief_std_um": 41.10484916440425,
+      "relief_ratio_to_profilometry": 1.9749975488429885
+    },
+    "tight_scale_moderate_jitter": {
+      "scale_sigma": 0.001,
+      "jitter_sigma_mm": 0.005,
+      "ray_sigma_mm": 0.00058,
+      "ray_rms_mm": 0.0005858228054038643,
+      "converged": true,
+      "nfev": 59,
+      "stage_scale": 1.0046877999737547,
+      "stage_jitter_rms_mm": 0.053597434732743955,
+      "stage_axis": [
+        -0.003571040981160378,
+        -0.046897646001436144,
+        0.9988933168591303
+      ],
+      "fitted_z_positions_mm": [
+        64.62771000871228,
+        64.69486431085839,
+        64.78126018569009,
+        64.87194084972803,
+        64.97564859066637,
+        65.08126325538838,
+        65.14493417915743,
+        65.32253004828533,
+        65.3925188608629,
+        65.46561524916018
+      ],
+      "fitted_z_span_mm": 0.8379052404478955,
+      "relief_std_um": 26.655633467352395,
+      "relief_ratio_to_profilometry": 1.2807445309023824
+    },
+    "near_hard_ladder": {
+      "scale_sigma": 0.001,
+      "jitter_sigma_mm": 0.001,
+      "ray_sigma_mm": 0.00058,
+      "ray_rms_mm": 0.0005815403134985528,
+      "converged": true,
+      "nfev": 43,
+      "stage_scale": 0.9984033593892079,
+      "stage_jitter_rms_mm": 0.010791299555155356,
+      "stage_axis": [
+        -0.0007631508551850254,
+        -0.058861459542925064,
+        0.9982658694863051
+      ],
+      "fitted_z_positions_mm": [
+        64.78565080587724,
+        64.84006142629984,
+        64.90974915663115,
+        64.98288160281548,
+        65.06627363071419,
+        65.15113610502173,
+        65.20292884141274,
+        65.34623067058858,
+        65.40295528253574,
+        65.46219189452992
+      ],
+      "fitted_z_span_mm": 0.6765410886526837,
+      "relief_std_um": 21.561351806047657,
+      "relief_ratio_to_profilometry": 1.0359755073268044
+    }
+  },
+  "interpretation": "The weak hierarchical prior does not resolve the published depth over-amplification. A near-hard per-frame ladder anchor is required."
+}
