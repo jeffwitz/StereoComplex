@@ -202,6 +202,8 @@ We nevertheless select O(0)+d(2) (57~params, \SI{0.47}{px}) as the preferred ray
 
 Selecting O(0)+d(2) achieves \SI{90}{\percent} of the noise-floor accuracy with a representation that is internally consistent with the physical model it validates.
 
+It is worth stating what the discarded origin order would mean physically. An $o=1$ origin field lets the effective sub-pupil position drift linearly across the field of view---a field-dependent \emph{pupil walk}, the optical signature of a residual pupil aberration or secondary telecentricity error. The marginal RMS gain it brings, however, stays within ChArUco corner-detection noise (Table~\ref{tab:order_sweep}), so on this data a genuine pupil walk cannot be distinguished from fit noise; we therefore retain the rigid-sub-pupil $o=0$ model and read the $o=1$ preference of the BIC sweep as, at most, a hint of higher-order pupil behaviour that lower-noise corners or an independent pupil measurement would be needed to confirm.
+
 \subsection{Per-Pixel Ray-Field and Transverse Gauge}
 
 For each pixel $(u,v)$ on the sensor, the imaging system defines a 3D line in space.
