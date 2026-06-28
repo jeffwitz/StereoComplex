@@ -34,7 +34,7 @@ Microscope*.
 - [x] all table inputs (`tables/`)
 - [x] cover letter for OLE (`cover_letter.txt`)
 - [x] highlights file (`highlights_ole.txt`)
-- [x] reproducibility archive available (Zenodo v6)
+- [x] reproducibility archive available (Zenodo v7)
 
 ## Highlights
 
@@ -54,7 +54,7 @@ Microscope*.
 - [x] GitHub repository URL present (https://github.com/jeffwitz/StereoComplex)
 - [x] Pycaso dataset URL present (https://github.com/LaboratoireMecaniqueLille/Pycaso)
 - [x] Zenodo concept DOI present (10.5281/zenodo.20444215)
-- [x] Zenodo version DOI present (10.5281/zenodo.20575213, v6)
+- [x] Zenodo version DOI present (10.5281/zenodo.21014315, v7)
 - [x] intermediate state documented (`intermediate_state.npz`)
 - [x] reproduction scripts documented (`paper/cmo/REPRODUCE.md`, figure generators)
 
