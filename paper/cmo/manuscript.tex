@@ -219,6 +219,7 @@ d_c(u,v) = \operatorname{normalise}\!\left(d_c^{\text{pinhole}}(u,v) + \sum_{m \
 \end{equation}
 where $Z_m$ are the real-valued Zernike polynomials on the unit disk, $\tilde{u},\tilde{v}$ are normalised pixel coordinates mapping the sensor to $[-1,1]^2$, $d_c^{\text{pinhole}}$ is the initial pinhole direction from a fixed central projection matrix $K$, and the direction perturbation is projected transverse to $d_c^{\text{pinhole}}$ before renormalisation.
 The expansion order for the origin field is $o_{\text{max}}$ and for the direction field is $d_{\text{max}}$; selecting $o_{\text{max}}=0$ and $d_{\text{max}}=2$ (see \S\ref{sec:bic_order}) gives 3 origin coefficients and 18 direction coefficients per channel.
+Physically, the unit direction $d_c(u,v)$ is the local normal to the optical wavefront leaving the instrument (eikonal/Hamiltonian optics), so the Zernike expansion of its perturbation $\sum_{m} a_{c,m}^d Z_m$ is a modal description of the channel's \emph{transverse ray aberration} across the field---the same Zernike machinery used in classical aberration theory and wavefront sensing, here applied to measured rays rather than to an interferometric wavefront.
 The Zernike polynomials here follow the Noll~\cite{noll1976} single-index ordering on the unit disk, with the standard OSA/ANSI normalisation $\iint_{\text{disk}} [Z_m]^2\,dA = 1$ for unit-area disk; the code uses the same convention \cite{stereocomplex}.
 
 \subsection{Ray-Space Bundle Adjustment}
@@ -237,6 +238,7 @@ The objective is the sum of squared residuals:
 \min_{\{a_{c,m}\}, \{\eta_p\}} \sum_k r_k^2,
 \end{equation}
 solved by nonlinear least-squares.
+This joint optimisation of the optical (rayfield) parameters and the target poses is a global non-linear least-squares problem---the \emph{bundle adjustment} of photogrammetry and computer vision~\cite{triggs1999}, here expressed in ray space (point-to-ray distances) rather than in reprojected pixels.
 
 For the CMO microscope, the baseline fit imposes the physically-motivated constraint that the board is mounted on a translation stage: all $P$ frames share a common rotation $R$ and XY translation $(t_x,t_y)$, with one free axial coordinate $t_{z,i}$ per frame.
 This reduces the pose parameters from $6P$ to $3+2+P=15$ (for $P=10$ frames: 60 $\to$ 15), making the 57-parameter O(0)+d(2) Zernike BA sufficiently conditioned for physical-model construction.
