@@ -375,7 +375,7 @@ Stage~3 (CMO + SE(3)): the residual drops further to \SI{0.003}{\degree} RMS, ne
 The remaining gap to the Zernike reference (\SI{0.47}{px} vs \SI{1.06}{px}) comes from distributed low-amplitude aberrations (field curvature, astigmatism) that require the flexibility of the 57-parameter Zernike model.
 
 The critical point is that \textbf{at no stage was a model added blindly}.
-The heatmap pattern at each stage dictates the next hypothesis: perspective $\to$ telecentric (because the $d_y$ gradient is wrong), telecentric $\to$ SE(3) (because the residual is $Z_0^0$ piston, not spatial).
+The heatmap pattern at each stage guides the next hypothesis: perspective $\to$ telecentric (because the $d_y$ gradient is wrong), telecentric $\to$ SE(3) (because the residual is $Z_0^0$ piston, not spatial).
 
 \subsubsection{Per-Channel SE(3) Arm Alignment}
 
@@ -1003,7 +1003,7 @@ The Zernike projection of $\Delta d$ and $\Delta m$ directly identifies whether 
 
 Figure~\ref{fig:residuals} illustrates this diagnostic value concretely.
 The residual heatmap at each model stage is a \textbf{visual hypothesis generator}: the perspective CMO's structured $d_y$ error (\SI{23.6}{\degree} RMS) sends the user to telecentric models; the telecentric model's uniform $Z_0^0$ piston (\SI{0.27}{\degree} RMS) sends the user to global arm alignment; and the SE(3)-refined model's near-zero residual (\SI{0.003}{\degree} RMS) confirms convergence.
-At no point does the user need to guess---the residual pattern at each stage dictates the next hypothesis.
+At no point does the user need to guess---the residual pattern at each stage guides the next hypothesis.
 
 In this case study, the $Z_0^0$-dominated residual correctly guided us to the SE(3) arm alignment, while alternative hypotheses (pre-warp, variable origin) were correctly rejected by the same diagnostic.
 
