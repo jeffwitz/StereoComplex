@@ -222,7 +222,7 @@ d_c(u,v) = \operatorname{normalise}\!\left(d_c^{\text{pinhole}}(u,v) + \sum_{m \
 where $Z_m$ are the real-valued Zernike polynomials on the unit disk, $\tilde{u},\tilde{v}$ are the corresponding in-disk normalised pixel coordinates (the normalisation is specified below), $d_c^{\text{pinhole}}$ is the initial pinhole direction from a fixed central projection matrix $K$, and the direction perturbation is projected transverse to $d_c^{\text{pinhole}}$ before renormalisation.
 The expansion order for the origin field is $o_{\text{max}}$ and for the direction field is $d_{\text{max}}$; selecting $o_{\text{max}}=0$ and $d_{\text{max}}=2$ (see \S\ref{sec:bic_order}) gives 3 origin coefficients and 18 direction coefficients per channel.
 In geometrical (eikonal) optics, a ray direction in a homogeneous isotropic medium such as air can be interpreted locally as the normal to an eikonal wavefront. We therefore read the fitted unit vector $d_c(u,v)$ as an \emph{effective chief-ray direction}---equivalently, a local wavefront-normal direction in back-projected object space---and \emph{not} as a direct measurement of optical phase. Consistently, the Zernike expansion of its perturbation $\sum_{m} a_{c,m}^d Z_m$ should be read as a smooth modal description of transverse ray-direction deviations, analogous to the modal language of classical wavefront aberration theory, rather than as an interferometric wavefront reconstruction; note in particular that these modes are defined here over the image/sensor domain, not over the pupil for a fixed field point, and need not derive from an integrable scalar wavefront.
-The Zernike polynomials here follow the Noll~\cite{noll1976} single-index ordering on the unit disk, with the standard OSA/ANSI normalisation $\iint_{\text{disk}} [Z_m]^2\,dA = 1$ for unit-area disk; the code uses the same convention \cite{stereocomplex}. The radial coordinate is normalised by the sensor \emph{diagonal} (a circumscribed-circle scheme): pixel $(u,v)$ maps to $r = \lVert(2u/(W{-}1){-}1,\; 2v/(H{-}1){-}1)\rVert/\sqrt{2}$, so the four image corners fall exactly on $r=1$ and every pixel satisfies $r\le 1$. All evaluations therefore stay inside the unit disk, where the polynomials are bounded, avoiding the corner growth a box ($[-1,1]^2$) normalisation would incur. Choosing a rotationally symmetric Zernike basis reflects the rotational symmetry of the optical train, the rectangular sensor being treated as a truncated observation window on that field.
+Each $Z_m$ in the sums above is a real-valued Zernike polynomial $Z_n^m(\rho,\theta) = R_n^m(\rho)\,\Theta(\theta)$, with angular factor $\Theta\in\{1,\cos m\theta,\sin m\theta\}$, taken in the \emph{unnormalised} amplitude convention $R_n^m(1)=1$---no RMS or OSA/ANSI rescaling, so each fitted coefficient is the mode's peak amplitude (mm for the origin field, dimensionless for the direction perturbation)---and ordered canonically by increasing radial order $n$, then azimuthal order $m$, cosine before sine. Appendix~\ref{app:zernike} states the radial polynomial $R_n^m$, the mode table for the orders used here, and the exact source reference \cite{stereocomplex}. The radial coordinate is normalised by the sensor \emph{diagonal} (a circumscribed-circle scheme): pixel $(u,v)$ maps to $r = \lVert(2u/(W{-}1){-}1,\; 2v/(H{-}1){-}1)\rVert/\sqrt{2}$, so the four image corners fall exactly on $r=1$ and every pixel satisfies $r\le 1$. All evaluations therefore stay inside the unit disk, where the polynomials are bounded, avoiding the corner growth a box ($[-1,1]^2$) normalisation would incur. Choosing a rotationally symmetric Zernike basis reflects the rotational symmetry of the optical train, the rectangular sensor being treated as a truncated observation window on that field.
 
 \subsection{Ray-Space Bundle Adjustment}
 
@@ -1113,6 +1113,66 @@ where $N = n_{\text{frames}} \times n_{\text{corners}} \times 2$ is the total nu
 This numerical reprojection is used as a post-optimisation diagnostic: the bundle adjustment itself minimises the ray-space residual
 (:func:`point\_to\_ray\_residuals\_cmo\_se3` in the StereoComplex codebase), which is a forward evaluation and therefore faster and smoother.
 After convergence, the 2D reprojection error is computed from the optimised parameters to obtain the pixel-equivalent metric reported in the paper.
+
+
+
+\FloatBarrier
+\section{Zernike Basis and Mode Indexing}
+\label{app:zernike}
+% ======================================================================
+
+The origin and direction fields of \S\ref{sec:bic_order}--3.2 are expanded on the real-valued Zernike basis as evaluated in the StereoComplex code. This appendix fixes the exact definition---convention, ordering, and the modes used---so that the modal language of the paper (the $Z_0^0$ piston diagnostic, second-order residuals) maps unambiguously onto basis functions and the rayfield fit is reproducible.
+
+\paragraph{Definition.} For integers $0\le m\le n$ with $n-m$ even, the mode is
+\begin{equation}
+Z_n^m(\rho,\theta) = R_n^m(\rho)\,\Theta(\theta), \qquad
+\Theta(\theta) = \begin{cases} 1 & m=0,\\ \cos m\theta & \text{cosine branch},\\ \sin m\theta & \text{sine branch},\end{cases}
+\end{equation}
+with the standard Zernike radial polynomial
+\begin{equation}
+R_n^m(\rho) = \sum_{k=0}^{(n-m)/2}
+\frac{(-1)^k\,(n-k)!}{k!\left(\tfrac{n+m}{2}-k\right)!\left(\tfrac{n-m}{2}-k\right)!}\,\rho^{\,n-2k}.
+\end{equation}
+
+\paragraph{Amplitude convention.} The basis is used \emph{unnormalised}: $R_n^m(1)=1$, with \emph{no} $\sqrt{n+1}$ / $\sqrt{2(n+1)}$ RMS (OSA/ANSI) factor. A fitted coefficient is therefore the mode's peak amplitude---in millimetres for the origin field, dimensionless for the direction perturbation. As a consequence the disk-mean square is $\langle (Z_n^m)^2\rangle_{\text{disk}} = 1/(n+1)$ for $m=0$ and $1/\bigl(2(n+1)\bigr)$ for $m\neq 0$ (not unity); the modes are an interpolation basis here, not an orthonormal frame.
+
+\paragraph{Radial coordinate.} Pixels map to polar coordinates by the diagonal (circumscribed-circle) normalisation of \S3.2:
+\begin{equation}
+\rho = \frac{1}{\sqrt2}\left\lVert\left(\tfrac{2u}{W-1}-1,\ \tfrac{2v}{H-1}-1\right)\right\rVert, \qquad
+\theta = \operatorname{atan2}\!\left(\tfrac{2v}{H-1}-1,\ \tfrac{2u}{W-1}-1\right),
+\end{equation}
+so the four image corners sit at $\rho=1$ and every pixel satisfies $\rho\le 1$.
+
+\paragraph{Ordering and modes.} Modes are enumerated by increasing radial order $n$, then increasing azimuthal order $m$, the cosine branch before the sine branch; this is the column order of the design matrix. Table~\ref{tab:zernike_modes} lists them up to $n=4$, covering the full BIC sweep of \S\ref{sec:bic_order}. An origin field of order $o$ uses the first $N(o)$ modes and a direction field of order $d$ the first $N(d)$ modes, with cumulative counts $N(0,1,2,3,4)=(1,3,6,10,15)$; each mode carries a 3-vector coefficient, so a channel has $3N(o)+3N(d)$ rayfield parameters (e.g.\ $o{=}0,d{=}2$: $3{+}18=21$ per channel). The single subscript $Z_m$ in \S3.2 indexes this list; ``$Z_0^0$'' is the piston row, and a ``second-order'' residual refers to the $n=2$ rows (defocus and astigmatism).
+
+\begin{table}[H]
+\centering
+\caption{Real Zernike modes in code order, up to radial order $n=4$. ``Branch'' is the angular factor $\Theta$; ``$j$'' is the 0-based column index of the design matrix. Classical names are given for reference only.}
+\label{tab:zernike_modes}
+\begin{tabular}{rrrll}
+\toprule
+$j$ & $n$ & $m$ & Branch & Classical name \\
+\midrule
+0  & 0 & 0 & ---          & piston \\
+1  & 1 & 1 & $\cos\theta$  & tilt ($x$) \\
+2  & 1 & 1 & $\sin\theta$  & tilt ($y$) \\
+3  & 2 & 0 & ---          & defocus \\
+4  & 2 & 2 & $\cos 2\theta$ & astigmatism ($0^\circ$) \\
+5  & 2 & 2 & $\sin 2\theta$ & astigmatism ($45^\circ$) \\
+6  & 3 & 1 & $\cos\theta$  & coma ($x$) \\
+7  & 3 & 1 & $\sin\theta$  & coma ($y$) \\
+8  & 3 & 3 & $\cos 3\theta$ & trefoil \\
+9  & 3 & 3 & $\sin 3\theta$ & trefoil \\
+10 & 4 & 0 & ---          & spherical \\
+11 & 4 & 2 & $\cos 2\theta$ & secondary astigmatism \\
+12 & 4 & 2 & $\sin 2\theta$ & secondary astigmatism \\
+13 & 4 & 4 & $\cos 4\theta$ & quadrafoil \\
+14 & 4 & 4 & $\sin 4\theta$ & quadrafoil \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Source.} The generator \texttt{zernike\_modes} and the evaluator \texttt{eval\_real\_zernike} live in \url{src/stereocomplex/core/model_compact/zernike.py}; the diagonal pixel-to-disk map is in \url{src/stereocomplex/rayfields/zernike_origin_field.py} (\texttt{ZernikeOriginFieldConfig} with \texttt{normalization="diagonal\_disk"}).
 
 
 
