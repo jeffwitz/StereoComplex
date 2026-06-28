@@ -62,7 +62,7 @@ CACHE = ASSET / "relief_comparison_data.npz"
 PROFILO = ASSET / "coin_profilo_recale.npy"
 STAGE_PRIOR_ASSET = REPO / "docs/assets/cmo_paper/figure10b_zernike_stage_prior"
 STAGE_ANCHORED_RAYFIELD = STAGE_PRIOR_ASSET / "near_hard_zernike_rayfield.npz"
-PAPER_FIGURE = REPO / "paper/cmo/figures/profilo_relief_comparison.png"
+PAPER_FIGURE = REPO / "paper/cmo/figures/profilo_relief_comparison.pdf"
 
 METHOD_ORDER = ["profilometry", "soloff", "cmo26", "zernike"]
 METHOD_LABEL = {
@@ -421,9 +421,9 @@ def draw() -> None:
 
     pdf = ASSET / "profilo_relief_comparison.pdf"
     png = ASSET / "profilo_relief_comparison.png"
-    fig.savefig(pdf, bbox_inches="tight")
-    fig.savefig(png, dpi=150, bbox_inches="tight")
-    fig.savefig(PAPER_FIGURE, dpi=150, bbox_inches="tight")
+    fig.savefig(pdf, dpi=300, bbox_inches="tight")
+    fig.savefig(png, dpi=300, bbox_inches="tight")
+    fig.savefig(PAPER_FIGURE, dpi=300, bbox_inches="tight")
     plt.close(fig)
     print(f"  CMO vs Soloff: cc={cc_cs:.4f}  RMS={rms_cs:.3f} µm  (marginal)")
     for name in METHOD_ORDER[1:]:
