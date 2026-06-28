@@ -332,6 +332,7 @@ $\Delta m = m_{\text{Zernike}} - m_{\text{CMO}}$,
 where $m = O \times d$ is the Pl\"ucker moment \cite{plucker1865}.
 
 Projecting on Zernike modes up to order~4 reveals that \textbf{both $\Delta d$ and $\Delta m$ are 97--98\,\% $Z_0^0$ (global piston)}.
+These percentages are $L^2$ energy fractions computed over the evaluation grid: the reconstructed contribution of each mode $j$, $\lVert c_j\, B_j\rVert^2 = \lVert c_j\rVert^2\,\lVert B_j\rVert^2$ (coefficient norm times the mode's actual sampled column norm $\lVert B_j\rVert$), divided by the total residual energy---\emph{not} a raw coefficient share. Because the unnormalised basis (Appendix~\ref{app:zernike}) is not orthonormal over the grid, these are diagnostic energy indicators rather than exact orthonormal fractions; the conclusion is robust here precisely because a single mode dominates.
 This is the crucial diagnostic: the residual is not a spatial field distortion (which would appear in higher Zernike modes) but a \textbf{global line-bundle offset}---the entire set of rays from each channel is slightly rotated or translated relative to the Zernike reference.
 
 \subsubsection{Testing Alternative Hypotheses}
@@ -349,7 +350,7 @@ Both negative results are consistent with the $Z_0^0$ diagnostic (they would pro
 
 The central methodological contribution is that physical model construction is guided by \emph{residual structure}, not blind fitting.
 At each stage, the direction residual $\Delta d = d_{\text{Zernike}} - d_{\text{model}}$ is computed on a $31\times31$ grid and displayed as a heatmap.
-The pattern of the residual directly reveals which physical degree of freedom is missing.
+The pattern of the residual guides the next physical hypothesis by indicating which class of degree of freedom is most likely missing, which is then confirmed or rejected by fitting the candidate model.
 
 \begin{figure}[!htbp]
 \centering
