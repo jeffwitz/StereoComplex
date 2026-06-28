@@ -1,0 +1,5 @@
+Zernike rayfields calibrate non-central CMO stereo microscopy.
+Residual modes guide compact physical model identification.
+CMO+SE(3) reaches 1.06 px where OpenCV exceeds 300 px.
+Schur observability prior refines the model to 0.28 px.
+Stage-metric prior restores relief agreement with profilometry.

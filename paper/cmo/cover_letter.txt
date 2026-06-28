@@ -1,36 +1,44 @@
 Dear Editor,
 
-We submit the manuscript "Rayfield-Based Calibration and Physical Model
-Identification of a Common Main Objective Stereo Microscope" for
-consideration in Optics Express.
+We submit the manuscript "Rayfield-Based Calibration and Effective Physical
+Model Identification of a Common Main Objective Stereo Microscope" for
+consideration in Optics and Lasers in Engineering.
 
-This paper presents the first real-data validation of a non-central
-stereo calibration pipeline on a Common Main Objective (CMO) stereo
-microscope. The key contribution is methodological: we show that a
-per-pixel Zernike rayfield, fitted to ChArUco corner observations,
-serves as a diagnostic instrument that reveals which physical degree
-of freedom a candidate model is missing. Residual-guided hypothesis
-construction leads from a naive perspective model (86 px RMS) through
-a telecentric CMO skeleton (14.6 px) to a 26-parameter CMO+SE(3)
-model achieving 1.06 px RMS on real Pycaso calibration images, where
-OpenCV stereo calibration fails (>300 px).
+Common Main Objective (CMO) stereo microscopes are widely used in optical
+microscopy and experimental mechanics, but their shared-objective architecture
+violates the single-optical-centre assumption underlying standard stereo
+calibration. This produces severe optics-pose coupling and makes conventional
+central-camera calibration unreliable on real CMO data, where OpenCV stereo
+calibration exceeds 300 px reprojection error.
 
-The work is supported by:
-- Extensive residual analysis (Zernike modal decomposition of direction
-  and moment differences),
-- Formal BIC model selection with an operational reprojection guard,
-- Internal validation (cross-validation, bootstrap, fx sensitivity),
-- Full reproducibility (code, data, and intermediate state artefacts).
+The manuscript proposes a two-stage optical calibration methodology. First, a
+per-pixel Zernike rayfield is fitted to calibration observations. Second, this
+measured rayfield is used as a diagnostic observable to identify a compact,
+physically interpretable CMO model: residual modal analysis guides the model
+construction from a naive perspective model to a quasi-telecentric CMO skeleton
+with per-channel SE(3) arm alignment. On real open Pycaso data the resulting
+26-parameter model reaches 1.06 px reprojection error, and refines to 0.28 px
+when used to initialise a Schur-stabilised free-pose bundle adjustment, within
+0.1 px of a black-box Soloff polynomial floor (0.18 px) while remaining
+physically interpretable.
 
-We believe this work will interest the Optics Express readership because
-it demonstrates a generalisable strategy---measure first, model second,
-diagnose by residual---applicable to any non-standard optical instrument.
+We believe the manuscript fits the scope of Optics and Lasers in Engineering
+because it addresses a practical optical-engineering problem in microscopy
+calibration, combines optical modelling with computational imaging, and
+provides a reproducible method for identifying interpretable physical models in
+non-central optical instruments. We compare against both OpenCV and the Soloff
+polynomial baseline. An external profilometry experiment is presented as a
+consistency check of the calibrated reconstructions; absolute traceable depth
+accuracy on a certified 3D artefact is explicitly identified as future work,
+and no absolute metrological claim is made.
 
-All authors have approved the manuscript. It is not under consideration
-elsewhere.
+Code, data links, intermediate states, figure-generation scripts, and a Zenodo
+archive are provided to support full reproducibility. The manuscript is not
+under consideration elsewhere.
 
 Sincerely,
+
 Jean-Francois Witz
-CNRS, Univ. Lille, Centrale Lille, LaMcube, F-59000 Lille, France
+CNRS, Univ. Lille, Centrale Lille, UMR 9013 -- LaMcube, F-59000 Lille, France
 jean-francois.witz@centralelille.fr
 ORCID: 0000-0002-7240-9476

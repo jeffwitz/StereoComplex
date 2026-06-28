@@ -47,7 +47,7 @@ Laboratoire de M\'ecanique, Multiphysique, Multi\'echelle, F-59000 Lille, France
 \maketitle
 
 \begin{abstract}
-Common Main Objective (CMO) stereo microscopes violate the single-optical-centre assumption of standard camera calibration, making the joint estimation of optical parameters and board poses ill-conditioned: a Schur-complement diagnostic of the Fisher information gives an optics--pose coupling norm $c=0.98$ on a real CMO configuration using standard open-access planar calibration data (Pycaso). We propose a two-stage approach. First, a Zernike rayfield---a per-pixel 3D line---is fitted to ChArUco corners, decoupling measurement from model identification. Second, a compact physical model is built by iterative residual analysis: the Zernike decomposition of the residual between candidate model and measured rayfield reveals which physical degree of freedom is missing. On a single CMO instrument, the rayfield-identified 26-parameter model---a quasi-telecentric CMO skeleton with per-channel SE(3) arm alignment---reaches \SI{1.06}{px} reprojection error, versus $>300$~px for standard OpenCV calibration; used to initialise a free-pose bundle adjustment stabilised by a Schur-spectrum observability prior, the same model refines to \SI{0.28}{px}, within \SI{0.1}{px} of an interpretation-free Soloff polynomial floor (\SI{0.18}{px}), while remaining physically interpretable---demonstrating that structural physical insights can be recovered even from legacy planar calibration datasets. External profilometry of an independent specimen shows that free-pose Zernike reconstruction over-amplifies the dense relief, but this is a missing pose-metrology prior, not a limitation of the rayfield: supplying the nominal translation-stage ladder as a stage-metric observability prior restores agreement with the profilometric ground truth, matching the Soloff and CMO references to within ${\approx}\SI{10}{\percent}$ (traceable accuracy on a certified 3D artefact remains future work). The rayfield thus acts as a diagnostic instrument---identifying missing degrees of freedom and supplying the observability prior that anchors them---not merely as a calibration model.
+Common Main Objective (CMO) stereo microscopes violate the single-optical-centre assumption of standard camera calibration, making the joint estimation of optical parameters and target poses strongly ill-conditioned. We propose a two-stage calibration strategy: a Zernike rayfield---one 3D line per pixel---is first fitted to ChArUco corner observations, then used as a diagnostic observable to identify a compact physical model by residual modal analysis. On a real CMO instrument from the open Pycaso dataset, the resulting 26-parameter model---a quasi-telecentric CMO skeleton with per-channel SE(3) arm alignment---reaches \SI{1.06}{px} reprojection error, whereas standard OpenCV stereo calibration exceeds \SI{300}{px}. Used to initialise a free-pose bundle adjustment stabilised by a Schur-spectrum observability prior, the same model refines to \SI{0.28}{px}---within \SI{0.1}{px} of an interpretation-free Soloff polynomial floor (\SI{0.18}{px})---while retaining physically interpretable parameters. Profilometry of an independent specimen shows that free-pose Zernike reconstruction over-amplifies the relief because of a missing pose-metrology prior rather than an intrinsic rayfield limitation; supplying the nominal translation-stage ladder as a stage-metric observability prior restores agreement with the profilometric reference to within ${\approx}\SI{10}{\percent}$, although traceable accuracy on a certified 3D artefact remains future work. The rayfield therefore acts not only as a calibration model but as a diagnostic observable that guides compact physical-model construction and stabilises its subsequent refinement.
 \end{abstract}
 
 \textbf{Keywords:} stereo microscope; CMO; non-central calibration; Zernike rayfield; BIC model selection; telecentricity
@@ -1182,15 +1182,24 @@ $j$ & $n$ & $m$ & Branch & Classical name \\
 
 J.-F. Witz conceived the study, developed the StereoComplex framework, implemented all methods, conducted the experiments, and wrote the manuscript.
 
+\section*{Funding}
+
+This work was carried out as part of the author's research activities at CNRS, Univ.\ Lille, Centrale Lille, UMR 9013 -- LaMcube. It did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
+
 \section*{Acknowledgments}
 
-During the preparation of this work the author used AI assistants (Claude, Anthropic; ChatGPT, OpenAI) to help develop and debug the Python analysis and figure-generation code, and to edit the language of the manuscript. No part of the scientific content was generated autonomously: all code, numerical results, figures, and physical interpretations were checked against the data and are the sole responsibility of the author.
+The author thanks the developers and maintainers of the open Pycaso dataset and the open-source scientific Python ecosystem used in this work.
+
+\section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
+
+During the preparation of this work, the author used AI-assisted tools (Claude, Anthropic; ChatGPT, OpenAI) for language editing, code debugging, and assistance with manuscript polishing. The author reviewed and edited all AI-assisted outputs and takes full responsibility for the scientific content, code, numerical results, figures, interpretations, and conclusions of the manuscript.
 
 \section*{Code and Data Availability}
 
 \begin{itemize}
   \item StereoComplex: \url{https://github.com/jeffwitz/StereoComplex} (Code: GPL-2.0-or-later. Documentation: CC BY-SA 4.0.)
   \item Pycaso dataset: \url{https://github.com/LaboratoireMecaniqueLille/Pycaso}
+  \item Zenodo archive (manuscript + reproducibility assets): concept DOI \href{https://doi.org/10.5281/zenodo.20444215}{10.5281/zenodo.20444215}; submitted version~v6 \href{https://doi.org/10.5281/zenodo.20575213}{10.5281/zenodo.20575213}
   \item All generated artefacts: \texttt{docs/assets/pycaso\_real\_data/}
   \item Intermediate state (restart without raw images): \\
         \texttt{docs/assets/\allowbreak{}pycaso\_real\_data/\allowbreak{}intermediate\_state.npz}
