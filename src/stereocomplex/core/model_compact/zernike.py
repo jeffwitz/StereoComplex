@@ -99,9 +99,14 @@ def _radial_poly(n: int, m: int, r: np.ndarray) -> np.ndarray:
 def eval_real_zernike(mode: ZernikeMode, r: np.ndarray, theta: np.ndarray) -> np.ndarray:
     """Evaluate real-valued Zernike polynomials at given polar coordinates.
 
-    Uses the Noll indexing scheme.  Returns the value of Z_n^m(rho, theta)
-    for each mode, where rho is the normalised radial coordinate (0 at centre,
-    1 at the edge of the unit disk) and theta is the azimuthal angle in radians.
+    Uses the **unnormalised** classical convention ``R_n^m(1) = 1`` (no
+    ``sqrt(n+1)`` / ``sqrt(2(n+1))`` RMS / OSA-ANSI factor), so a coefficient
+    is the mode's peak amplitude.  Returns ``Z_n^m(rho, theta) = R_n^m(rho) *
+    {1, cos(m theta), sin(m theta)}``, where rho is the normalised radial
+    coordinate (0 at centre, 1 at the edge of the unit disk) and theta is the
+    azimuthal angle in radians.  Mode enumeration order is set by
+    :func:`zernike_modes` (increasing n, then m, cosine before sine) -- this is
+    *not* the Noll single-index ordering.
 
     Parameters
     ----------
