@@ -38,6 +38,7 @@ from matplotlib.patches import Arc, Circle, FancyArrowPatch
 
 REPO = Path(__file__).resolve().parents[2]
 ASSET = REPO / "docs/assets/cmo_paper/figure_se3_arm_alignment"
+PAPER_FIGURE = REPO / "paper/cmo/figures/se3_arm_alignment.pdf"
 
 
 def _rot(v: np.ndarray, deg: float) -> np.ndarray:
@@ -135,8 +136,9 @@ def main() -> int:
     png = ASSET / "se3_arm_alignment.png"
     fig.savefig(pdf, bbox_inches="tight")
     fig.savefig(png, dpi=200, bbox_inches="tight")
+    fig.savefig(PAPER_FIGURE, bbox_inches="tight")
     plt.close(fig)
-    print(f"wrote {pdf.relative_to(REPO)} + .png")
+    print(f"wrote {pdf.relative_to(REPO)} + .png and {PAPER_FIGURE.relative_to(REPO)}")
     return 0
 
 
