@@ -8,10 +8,10 @@ manual** (it mints a DOI and is irreversible — keep it human).
 
 | Record | Concept DOI | Latest published version | Role |
 |---|---|---|---|
-| **Paper archive** | `10.5281/zenodo.20444215` | **v7 = `21014315`** (record id `21014315`, published 2026-06-28) | Self-contained bundle (ships `src/` + `pyproject.toml`): rebuilds the PDF, audit and every figure from the bundle alone. |
+| **Paper archive** | `10.5281/zenodo.20444215` | **v8 = `21025322`** (record id `21025322`, published 2026-06-29) | Self-contained bundle (ships `src/` + `pyproject.toml`): rebuilds the PDF, audit and every figure from the bundle alone. |
 | **Heavy specimen data** | `10.5281/zenodo.20369311` | `20369312` | The five `specimen_*.npz` dense reconstructions (~120 MB). |
 
-So the next paper-archive version (v8) is created with `--record 21014315`.
+So the next paper-archive version (v9) is created with `--record 21025322`.
 
 > **Heads-up (2026-06):** the *five-variant* dense figure was removed from the
 > manuscript, so **no paper artefact depends on `20369312` anymore**. Updating it
@@ -25,9 +25,10 @@ The paper-archive concept is **`20444215`**; its version chain is
 `20533009` = v4 (2026-06-03) →
 `20574710` = v5 (structured bundle, 2026-06-06) →
 `20575213` = v6 (self-contained: ships `src/`, 2026-06-06) →
-**`21014315` = v7 (OLE-conformance manuscript: Zernike Appendix B, shortened
-abstract, AI/Funding sections, vector profilometry figure; 2026-06-28), the
-latest published version**. All ids except `21014315` are *superseded versions*
+`21014315` = v7 (OLE-conformance: Zernike Appendix B, shortened abstract,
+AI/Funding sections, vector profilometry figure; 2026-06-28) →
+**`21025322` = v8 (se3 schematic also written to `figures/`; 2026-06-29), the
+latest published version**. All ids except `21025322` are *superseded versions*
 — never cite them as the landing page.
 
 Convention applied in-repo: cite the **concept DOI `20444215`** for the stable
@@ -40,14 +41,14 @@ concept DOI on 2026-06-06.
 
 The manuscript must cite the *new* version DOI, so reserve the DOI **before**
 building the final bundle. `--record` is always the numeric id of the **latest
-published version** (currently `21014315`), not the concept-DOI id. The examples
-below create v8 on top of v7.
+published version** (currently `21025322`), not the concept-DOI id. The examples
+below create v9 on top of v8.
 
 ### 1. Reserve the next version DOI (no files yet)
 
 ```bash
 ZENODO_TOKEN=<prod> rtk .venv/bin/python examples/zenodo_upload.py \
-    --record 21014315 --reserve-only
+    --record 21025322 --reserve-only
 ```
 
 Prints the **reserved DOI** (e.g. `10.5281/zenodo.XXXXXXXX`) and the **draft
@@ -57,7 +58,7 @@ deposition id** — note both. Nothing is public; the draft is discardable.
 
 In `manuscript.tex` (Data-availability §982 + Reproducibility Statement §999):
 set the new version DOI (replaces the previous version DOI) and bump the version
-label (`v6` → `v7`); on line ~996 set the **current commit hash**
+label (`v7` → `v8`); on line ~996 set the **current commit hash**
 (`git rev-parse --short HEAD`). Commit.
 
 ### 3. Build the bundle (automated, PDF auto-synced)
@@ -81,7 +82,7 @@ copy needed.
 
 ```bash
 ZENODO_TOKEN=<prod> rtk .venv/bin/python examples/zenodo_upload.py \
-    --record 21014315 --draft-id <draft_id> --replace --version v8 \
+    --record 21025322 --draft-id <draft_id> --replace --version v9 \
     --files paper/cmo/build/cmo_paper_bundle.zip paper/cmo/manuscript.pdf
 ```
 
@@ -94,7 +95,7 @@ Review the draft in the browser, then either click **Publish** on Zenodo or:
 
 ```bash
 ZENODO_TOKEN=<prod> rtk .venv/bin/python examples/zenodo_upload.py \
-    --record 21014315 --draft-id <draft_id> --publish
+    --record 21025322 --draft-id <draft_id> --publish
 ```
 
 ### 6. (Optional) refresh the heavy data record

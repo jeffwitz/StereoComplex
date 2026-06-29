@@ -31,15 +31,15 @@ from the raw Pycaso images.
 ## Reproduce the exact submitted version
 
 The repository `develop` branch tracks the latest state. To rebuild the precise
-version archived with the submission (v7 = `10.5281/zenodo.21014315`), fetch its
+version archived with the submission (v8 = `10.5281/zenodo.21025322`), fetch its
 bundle into an **empty directory** (a git checkout would rebuild itself, not the
-archived version). The v7 bundle is self-contained — it ships `src/` and
+archived version). The v8 bundle is self-contained — it ships `src/` and
 `pyproject.toml`:
 
 ```bash
-mkdir -p /tmp/cmo_v7 && cd /tmp/cmo_v7
-curl -sL "https://zenodo.org/records/21014315/files/cmo_paper_bundle.zip" -o bundle.zip
-unzip -q bundle.zip                  # extracts the v7 tree + BUNDLE_MANIFEST.json
+mkdir -p /tmp/cmo_v8 && cd /tmp/cmo_v8
+curl -sL "https://zenodo.org/records/21025322/files/cmo_paper_bundle.zip" -o bundle.zip
+unzip -q bundle.zip                  # extracts the v8 tree + BUNDLE_MANIFEST.json
 bash rebuild_from_zenodo.sh          # verifies every file against the manifest
 
 # environment (the bundle has no .venv / rtk; override PY):
@@ -55,7 +55,7 @@ make -C paper/cmo figures PY=.venv/bin/python   # regenerate every figure + tabl
 > Use v6 or later for a fully self-contained rebuild.
 
 From *inside* an existing clone, force the download instead of using the local
-checkout with `FORCE_ZENODO=1 ZENODO_RECORD=21014315 bash rebuild_from_zenodo.sh`.
+checkout with `FORCE_ZENODO=1 ZENODO_RECORD=21025322 bash rebuild_from_zenodo.sh`.
 Without an override, `rebuild_from_zenodo.sh` in a clone rebuilds the checkout,
 and in an empty dir it resolves the concept DOI `10.5281/zenodo.20444215` (the
 latest published version).

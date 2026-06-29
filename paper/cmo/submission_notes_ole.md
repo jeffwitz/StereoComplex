@@ -61,7 +61,7 @@ References.
 - GitHub: https://github.com/jeffwitz/StereoComplex
 - Pycaso dataset: https://github.com/LaboratoireMecaniqueLille/Pycaso
 - Zenodo concept DOI: 10.5281/zenodo.20444215 (consistent across manuscript + checklist)
-- Zenodo version DOI: 10.5281/zenodo.21014315 (v7, consistent across manuscript + checklist)
+- Zenodo version DOI: 10.5281/zenodo.21025322 (v8, consistent across manuscript + checklist)
 - Added a Zenodo bullet to the Code and Data Availability section.
 
 ## Sweep results
