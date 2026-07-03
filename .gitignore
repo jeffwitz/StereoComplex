@@ -49,7 +49,12 @@ CLAUDE.md
 examples/notebooks/.ipynb_checkpoints/
 examples/pycaso_calib_data/
 examples/pycaso_data/
-docs/assets/pycaso_real_data/schur_ba/
+# schur_ba/: heavy reconstructions (.npz) and previews (.png) stay out (Zenodo /
+# regenerable by examples/notebooks/regenerate_specimen_reconstructions.py);
+# the small calibration/diagnostic JSONs are versioned (≈70 KB, the reproducible
+# inputs the corner Schur-BA would otherwise take ~2 h to recompute).
+docs/assets/pycaso_real_data/schur_ba/*
+!docs/assets/pycaso_real_data/schur_ba/*.json
 
 # LaTeX build intermediates (regenerable; build_pdflatex.sh writes to build/).
 # The compiled manuscript.pdf is kept as the submission artefact (see
