@@ -4,7 +4,11 @@
   "n_frames": 10,
   "n_corners": 165,
   "n_channels": 2,
-  "n_coords_per_point": 2,
+  "n_coords_per_point": 1,
   "selected_label": "O(0)+d(2)",
-  "figure_size": [9, 6]
+  "figure_size": [
+    9,
+    6
+  ],
+  "note": "n_coords_per_point=1 so that N_obs = 10*165*2 = 3300 corner observations, matching Eq. (1) and Table 1 of the manuscript (previously 2 -> N_obs=6600, which made the figure axis inconsistent with the tabulated BIC values)."
 }
