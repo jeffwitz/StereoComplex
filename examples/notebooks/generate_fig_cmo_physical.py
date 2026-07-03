@@ -43,6 +43,7 @@ def render(manifest: dict, out_dir: Path) -> None:
         working_distance=float(manifest["working_distance_mm"]),
         b=float(manifest["b_mm"]),
         exaggerated=bool(manifest["exaggerated"]),
+        show_gamma=bool(manifest.get("show_gamma", False)),
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     for ext in ("pdf", "png"):

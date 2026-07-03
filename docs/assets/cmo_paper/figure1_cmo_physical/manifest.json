@@ -4,5 +4,9 @@
   "working_distance_mm": 120,
   "b_mm": 8,
   "exaggerated": true,
-  "figure_size": [5.5, 4.0]
+  "figure_size": [
+    5.5,
+    4.0
+  ],
+  "show_gamma": false
 }

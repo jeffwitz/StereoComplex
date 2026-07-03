@@ -120,6 +120,7 @@ def diagram_cmo_physical(
     pixel_pitch=0.05,
     cx_px=320.0,
     exaggerated=True,
+    show_gamma=True,
 ):
     """Physical CMO shared-rig — (x, z) optical cut, both channels.
 
@@ -251,16 +252,20 @@ def diagram_cmo_physical(
     ax.text((u0 + u1) / 2, z_sensor + 13, "$p$", fontsize=9, ha="center",
             color="#666666")
 
-    # ---- stereo angle gamma (right side) ----
-    gamma = math.atan2(b2, float(working_distance))
-    gamma_deg = math.degrees(gamma)
-    # Small arc at C showing gamma
-    arc_r = 18
-    ax.add_patch(_Arc(C_pt, arc_r * 2, arc_r * 2, angle=0,
-                      theta1=-gamma_deg, theta2=gamma_deg,
-                      color="#666666", linewidth=1.0, zorder=12))
-    ax.text(C_pt[0] + arc_r + 10, C_pt[1] - 2,
-            f"$\\gamma={gamma_deg:.1f}^\\circ$", fontsize=9, color="#666666")
+    # ---- stereo angle gamma (right side, optional) ----
+    # Schematic half-angle of the drawn geometry; NOT the measured
+    # convergence angle of the paper (Theta). Disabled for the paper
+    # figure to avoid clashing with the "object plane (C)" label.
+    if show_gamma:
+        gamma = math.atan2(b2, float(working_distance))
+        gamma_deg = math.degrees(gamma)
+        arc_r = 18
+        ax.add_patch(_Arc(C_pt, arc_r * 2, arc_r * 2, angle=0,
+                          theta1=-gamma_deg, theta2=gamma_deg,
+                          color="#666666", linewidth=1.0, zorder=12))
+        ax.text(C_pt[0] + arc_r + 10, C_pt[1] - 2,
+                f"$\\gamma={gamma_deg:.1f}^\\circ$", fontsize=9,
+                color="#666666")
 
     # ---- dimensions ----
     draw_dimension(ax, C_pt, (0, z_objective), "Z_w", offset=(75, 0))
