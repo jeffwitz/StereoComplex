@@ -350,7 +350,7 @@ Both negative results are consistent with the $Z_0^0$ diagnostic (they would pro
 \subsubsection{Residual-Guided Hypothesis Construction}
 
 The central methodological contribution is that physical model construction is guided by \emph{residual structure}, not blind fitting.
-At each stage, the direction residual $\Delta d = d_{\text{Zernike}} - d_{\text{model}}$ is computed on a $31\times31$ grid and displayed as a heatmap (a coarser grid than the $41\times41$ used for the Pl\"ucker modal decomposition of \S\ref{sec:residual_analysis}; the heatmap serves visual diagnosis only).
+At each stage, the direction residual $\Delta d = d_{\text{Zernike}} - d_{\text{model}}$ is computed on a $31\times31$ grid and displayed as a heatmap (Figure~\ref{fig:residuals}; a coarser grid than the $41\times41$ used for the Pl\"ucker modal decomposition of \S\ref{sec:residual_analysis}; the heatmap serves visual diagnosis only).
 The pattern of the residual guides the next physical hypothesis by indicating which class of degree of freedom is most likely missing, which is then confirmed or rejected by fitting the candidate model.
 
 \begin{figure}[!htbp]
@@ -412,7 +412,7 @@ We therefore complement the ray-space BIC with a \textbf{hard operational feasib
 \begin{equation}
 S_{\mathrm{usable}} = \text{BIC}_{\text{ray}} + \mathbf{1}_{e_{\text{px}} > \SI{1.5}{px}} \left[10^6 + N_{\text{px}} \log\left(\frac{e_{\text{px}}^2}{1.5^2}\right)\right].
 \end{equation}
-Applying this score to every candidate rejects the 14p telecentric model ($S_{\mathrm{usable}} \approx +978\,890$) and selects the 26p SE(3)-aligned model as the best usable physical model ($S_{\mathrm{usable}} \approx -32\,433$); the full usability-filtered comparison is reported with the results in \S\ref{sec:model_perf} (Table~\ref{tab:bic} and Figure~\ref{fig:bicbars}). The $10^6$ offset makes the guard effectively lexicographic: a model failing the reprojection guard can never outrank one that passes it, whatever its ray-space BIC. The selection is thus a two-stage decision---optical family by BIC, usable member by feasibility---not a weighted trade-off, which is why the 14p shear model is rejected despite having the lowest raw ray-space BIC (Table~\ref{tab:bic}). The \SI{1.5}{px} threshold is an engineering convenience, not a tuned hyperparameter: the usable model (\SI{1.06}{px}) and the rejected families ($\ge\SI{14.6}{px}$ for the 14p telecentric, $>\SI{300}{px}$ for OpenCV) are separated by more than an order of magnitude, so any guard in the range ${\sim}2$--$\SI{14}{px}$ yields the identical selection.
+Applying this score to every candidate rejects the 14p telecentric model ($S_{\mathrm{usable}} \approx +978\,890$) and selects the 26p SE(3)-aligned model as the best usable physical model ($S_{\mathrm{usable}} \approx -32\,433$); the full usability-filtered comparison is reported with the results in \S\ref{sec:model_perf}. The $10^6$ offset makes the guard effectively lexicographic: a model failing the reprojection guard can never outrank one that passes it, whatever its ray-space BIC. The selection is thus a two-stage decision---optical family by BIC, usable member by feasibility---not a weighted trade-off, which is why the 14p shear model is rejected despite having the lowest raw ray-space BIC (\S\ref{sec:model_perf}). The \SI{1.5}{px} threshold is an engineering convenience, not a tuned hyperparameter: the usable model (\SI{1.06}{px}) and the rejected families ($\ge\SI{14.6}{px}$ for the 14p telecentric, $>\SI{300}{px}$ for OpenCV) are separated by more than an order of magnitude, so any guard in the range ${\sim}2$--$\SI{14}{px}$ yields the identical selection.
 
 A gauge-regularisation sweep confirmed negligible $Z_0$-direction drift after double TPS preprocessing: even the unregularised full-pose fit already has negligible gauge drift ($0.023^\circ$), so explicit regularisation is unnecessary.
 
@@ -519,7 +519,7 @@ The prior is added to the least-squares objective as $n_\theta$ extra residual r
 \subsubsection{Prior Sweep and Comparison with Tikhonov Baseline}
 
 \textbf{Two BA configurations must be distinguished.}
-Section~\ref{sec:corner_ba} reports a \emph{constrained-pose} corner BA: the board rotation is shared across frames and only the Z translation varies, yielding \SI{1.06}{px} $\to$ \SI{0.88}{px} (Table~\ref{tab:models}) with 15 pose parameters.
+Section~\ref{sec:corner_ba} reports a \emph{constrained-pose} corner BA: the board rotation is shared across frames and only the Z translation varies, yielding \SI{1.06}{px} $\to$ \SI{0.88}{px} (Section~\ref{sec:corner_ba}) with 15 pose parameters.
 The sweep in this section intentionally \emph{releases the pose constraint}: each of the 10 frames has a free 6-DOF pose (60 pose parameters), exposing the full optics--pose coupling identified by the Schur diagnostic of Section~\ref{sec:schur_conditioning}.
 The resulting unregularised RMS (\SI{0.241}{px}) is lower than the constrained-pose BA precisely because the free poses can absorb residual rayfield errors---which is exactly the compensation the Schur prior is designed to prevent.
 The two RMS values should not be conflated: the \SI{0.88}{px} is the operational calibration result; the \SI{0.241}{px} is a diagnostic upper bound obtained by deliberately exposing the ill-conditioned coupling.
@@ -716,7 +716,7 @@ Beyond the accuracy--interpretability trade-off, the field-resolved rayfield doe
 
 The accuracy--interpretability trade-off above is measured on the full 10-frame dataset (train = test, since both models use all available data). A stricter question is: how well does each model \emph{extrapolate} to poses not seen during fitting? This tests whether the 3D geometric constraint in the Zernike rayfield provides a regularisation benefit beyond what the Soloff polynomial's ridge penalty achieves.
 
-We split the 10 frames into 7 training poses (the most central ones, closest to the centroid of the pose distribution) and 3 held-out test poses (the most extreme, at the edges of the sampled volume). Both models are fitted on the training set only and evaluated on the held-out frames. Critically, the two model families have different natural output spaces---Soloff maps 3D coordinates to pixels, Zernike maps pixels to 3D rays---so their extrapolation errors are measured in their respective native metrics and compared via the \emph{degradation ratio} (test error / train error). Because these ratios are taken in different native metrics, they are indicative rather than strictly commensurable; the shared-metric comparison of Table~\ref{tab:extrapolation_3d} below is the primary evidence.
+We split the 10 frames into 7 training poses (the most central ones, closest to the centroid of the pose distribution) and 3 held-out test poses (the most extreme, at the edges of the sampled volume). Both models are fitted on the training set only and evaluated on the held-out frames. Critically, the two model families have different natural output spaces---Soloff maps 3D coordinates to pixels, Zernike maps pixels to 3D rays---so their extrapolation errors are measured in their respective native metrics and compared via the \emph{degradation ratio} (test error / train error). Because these ratios are taken in different native metrics, they are indicative rather than strictly commensurable: Table~\ref{tab:extrapolation} reports them, and the shared-metric comparison of Table~\ref{tab:extrapolation_3d} below is the primary evidence.
 
 For Soloff, the native metric is the 2D pixel prediction error (the RMS distance between the polynomial-predicted pixel and the observed corner). For the Zernike rayfield, the native metric is the 3D triangulation accuracy: observed left and right pixels are converted to rays via the rayfield, the rays are intersected to obtain a 3D point, and this point is compared to the true corner position (known from the board model and the frame pose estimated by a Kabsch alignment of the triangulated points to the board). The Kabsch step removes the rigid gauge freedom inherent to uncalibrated stereo reconstruction (the absolute pose of the board cannot be recovered without an external reference), so the residual measures only the non-rigid rayfield quality.
 
@@ -929,7 +929,7 @@ The Soloff polynomial is therefore used here as a strong black-box metrological 
 
 \input{tables/model_comparison.tex}
 
-The 26-parameter CMO+SE(3) model achieves \SI{1.06}{px} reprojection with less than half the parameters of the Zernike reference.
+Table~\ref{tab:models} compares all model families on the Pycaso data. The 26-parameter CMO+SE(3) model achieves \SI{1.06}{px} reprojection with less than half the parameters of the Zernike reference.
 It has a physically interpretable parameterisation: sub-pupils, effective axial length, telecentric slopes, and SE(3) arm corrections.
 
 \begin{figure}[!htbp]
@@ -943,7 +943,7 @@ It has a physically interpretable parameterisation: sub-pupils, effective axial 
 
 \input{tables/bic_model_selection.tex}
 
-The ray-space BIC provides decisive rejection of the non-CMO families ($\Delta\text{BIC} > 40\,000$), confirming that pinhole, Brown-Conrady, and parallel-plate models are grossly misspecified for this non-central system. The BIC magnitudes should be interpreted as rejection of families, not as certification of the retained model: the rayfield residuals are spatially correlated (the Zernike field is smooth), so the effective number of independent observations is lower than $N_{\text{obs}}=3300$, inflating the absolute BIC scale. The ranking across families is robust to this effect.
+Table~\ref{tab:bic} and Figure~\ref{fig:bicbars} report the usability-filtered selection. The ray-space BIC provides decisive rejection of the non-CMO families ($\Delta\text{BIC} > 40\,000$), confirming that pinhole, Brown-Conrady, and parallel-plate models are grossly misspecified for this non-central system. The BIC magnitudes should be interpreted as rejection of families, not as certification of the retained model: the rayfield residuals are spatially correlated (the Zernike field is smooth), so the effective number of independent observations is lower than $N_{\text{obs}}=3300$, inflating the absolute BIC scale. The ranking across families is robust to this effect.
 The operational usability score correctly rejects the 14p base model as unusable and selects the 26p aligned model.
 
 \subsection{Geometric Descriptors}
@@ -1205,6 +1205,10 @@ The author thanks the developers and maintainers of the open Pycaso dataset and 
 % ======================================================================
 \newpage
 \bibliographystyle{plainurl}
+\section*{Declaration of competing interest}
+
+The author declares that he has no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
 \section*{Declaration of generative AI and AI-assisted technologies in the writing process}
 
 During the preparation of this work the author used AI-assisted tools (Claude, Anthropic; ChatGPT, OpenAI) in order to improve the language and readability of the manuscript. These tools were also used during development of the analysis code, as part of the research workflow documented in the Reproducibility Statement. After using these tools, the author reviewed and edited the content as needed and takes full responsibility for the scientific content, code, numerical results, figures, interpretations, and conclusions of the published article.

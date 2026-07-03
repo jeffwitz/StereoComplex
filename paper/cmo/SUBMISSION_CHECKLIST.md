@@ -8,7 +8,7 @@ Microscope*.
 ## Manuscript
 
 - [x] `manuscript.tex` compiles cleanly (0 undefined refs, 0 undefined citations, 0 overfull > 40 pt)
-- [x] abstract < 250 words (~210 words; see `submission_notes_ole.md`)
+- [x] abstract < 250 words (220 words after framing revisions; see `submission_notes_ole.md`)
 - [x] keywords present
 - [x] all `\cite{}` resolve
 - [x] all `\ref{}` / `\label{}` resolve
@@ -20,7 +20,9 @@ Microscope*.
 - [x] author contributions present
 - [x] funding statement present
 - [x] acknowledgments present (minimal, no AI text)
-- [x] generative AI declaration present (dedicated section, before references)
+- [x] generative AI declaration present (Elsevier-mandated title, immediately above references)
+- [x] declaration of competing interest present (Elsevier requirement)
+- [x] figures and tables cited in numerical order (verified programmatically)
 - [x] code/data availability present (with Zenodo concept + version DOI)
 - [x] reproducibility statement present
 - [x] no remaining mention of Optics Express in submission files
@@ -34,7 +36,7 @@ Microscope*.
 - [x] all table inputs (`tables/`)
 - [x] cover letter for OLE (`cover_letter.txt`)
 - [x] highlights file (`highlights_ole.txt`)
-- [x] reproducibility archive available (Zenodo v8)
+- [ ] reproducibility archive: publish Zenodo v9 with reserved DOI (see procedure in this file), then re-pin the version DOI in `manuscript.tex` (Conclusion + Reproducibility Statement + Code and Data Availability) and rebuild once
 
 ## Highlights
 
@@ -67,3 +69,14 @@ Microscope*.
 - [ ] confirm no confidential data in the submission
 - [ ] confirm no concurrent submission elsewhere
 - [ ] decide whether to raise `profilo_relief_comparison` raster panels above 300 dpi if the editor requests it
+
+## Final Zenodo procedure (single version, no churn)
+
+1. On Zenodo, create the new version draft of concept 10.5281/zenodo.20444215
+   and use "Reserve DOI" to obtain the v9 DOI *before* publishing.
+2. Replace the v8 DOI (10.5281/zenodo.21025322) by the reserved v9 DOI in
+   `manuscript.tex` (three places: Conclusion, Reproducibility Statement,
+   Code and Data Availability) and in this checklist.
+3. `bash build_pdflatex.sh` once; commit and push.
+4. `python3 make_zenodo_bundle.py`; upload the bundle to the draft; publish v9.
+5. Submit that exact `manuscript.pdf` to OLE.

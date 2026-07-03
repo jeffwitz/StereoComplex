@@ -33,8 +33,6 @@ J.-Y. Bouguet.
 D.~C. Brown.
 \newblock Decentering distortion of lenses.
 \newblock {\em Photogrammetric Engineering}, 32(3):444--462, 1966.
-\newblock \href {https://doi.org/10.14358/pers.32.3.444}
-  {\path{doi:10.14358/pers.32.3.444}}.
 
 \bibitem{byrd1995}
 R.~H. Byrd, P.~Lu, J.~Nocedal, and C.~Zhu.
@@ -192,8 +190,8 @@ T.~Sch\"ops, V.~Larsson, M.~Pollefeys, and T.~Sattler.
 H.~W. Schreier, D.~Garcia, and M.~A. Sutton.
 \newblock Advances in light microscope stereo vision.
 \newblock {\em Experimental Mechanics}, 44(3):278--288, 2004.
-\newblock \href {https://doi.org/10.1177/0014485104041546}
-  {\path{doi:10.1177/0014485104041546}}.
+\newblock \href {https://doi.org/10.1007/BF02427894}
+  {\path{doi:10.1007/BF02427894}}.
 
 \bibitem{schwarz1978}
 G.~Schwarz.
