@@ -68,3 +68,8 @@ paper/cmo/*.toc
 paper/cmo/*.fls
 paper/cmo/*.fdb_latexmk
 paper/cmo/*.synctex.gz
+
+# Local working data (not part of the paper — external/raw or scratch)
+DocMicroscope/
+profilo/
+Reviewer_AI_*.md
