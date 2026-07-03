@@ -59,7 +59,7 @@ E.~Caron, J.-F. Witz, C.~Cuvier, A.~Beaurain, V.~Magnier, and A.~El Bartali.
   {\path{doi:10.1016/j.softx.2023.101440}}.
 
 \bibitem{garrido2014}
-S.~Garrido-Jurado, R.~Mu\ noz Salinas, F.~J. Madrid-Cuevas, and M.~J.
+S.~Garrido-Jurado, R.~Mu{\~n}oz-Salinas, F.~J. Madrid-Cuevas, and M.~J.
   Mar\'in-Jim\'enez.
 \newblock Automatic generation and detection of highly reliable fiducial
   markers under occlusion.
@@ -158,7 +158,7 @@ S.~Ramalingam, P.~Sturm, and S.~K. Nayar.
   {\path{doi:10.1007/978-3-642-15552-9_16}}.
 
 \bibitem{romero2018}
-F.~J. Romero-Ramirez, R.~Mu\ noz Salinas, and R.~Medina-Carnicer.
+F.~J. Romero-Ramirez, R.~Mu{\~n}oz-Salinas, and R.~Medina-Carnicer.
 \newblock Speeded up detection of squared fiducial markers.
 \newblock {\em Image and Vision Computing}, 76:38--47, 2018.
 \newblock \href {https://doi.org/10.1016/j.imavis.2018.05.004}
@@ -262,8 +262,8 @@ D.~Zhang, M.~Luo, and D.~D. Arola.
 \newblock Displacement/strain measurements using an optical microscope and
   digital image correlation.
 \newblock {\em Optical Engineering}, 45(3):033605, 2006.
-\newblock \href {https://doi.org/10.3788/iop57.021506}
-  {\path{doi:10.3788/iop57.021506}}.
+\newblock \href {https://doi.org/10.1117/1.2182108}
+  {\path{doi:10.1117/1.2182108}}.
 
 \bibitem{zhang2000}
 Z.~Zhang.
