@@ -278,7 +278,7 @@ $b = \|O_R - O_L\| = \SI{24.9}{mm}$ (effective stereo baseline in the rayfield g
 $z_p = (|O_{L,z}| + |O_{R,z}|)/2 = \SI{2.5}{mm}$ (sub-pupil depth),
 $WD = \SI{64.7}{mm}$ (effective working distance, from mean pose Z; convention: object-plane Z minus optical-axis origin),
 $f_{\text{obj}} = WD - z_p = \SI{62.2}{mm}$ (effective axial length),
-$\theta = \arccos(d_L \cdot d_R) = \SI{22.6}{\degree}$ (effective full convergence angle at the centre pixel).
+$\Theta = \arccos(d_L \cdot d_R) = \SI{22.6}{\degree}$ (effective full convergence angle at the centre pixel).
 
 \subsection{Physical Model Construction by Residual Analysis}
 
@@ -312,7 +312,7 @@ The direction field is an affine function of normalised angular coordinates $\ti
 \begin{equation}
 d_c(u,v) = \operatorname{normalise}\!\left(d_{c,0} + s_{x,c}\,\tilde{u}\,e_x + s_{y,c}\,\tilde{v}\,e_y + s_{xy,c}\,\tilde{u}\,\tilde{v}\,e_x + s_{yx,c}\,\tilde{v}\,\tilde{u}\,e_y\right),
 \end{equation}
-where $d_{c,0} = (\pm\sin\theta,\; d_y^{\text{com}},\; \cos\theta)$ is the chief-ray direction, with $\theta$ the convergence half-angle and $d_y^{\text{com}}$ a shared vertical component.
+where $d_{c,0} = (\pm\sin(\Theta/2),\; d_y^{\text{com}},\; \cos(\Theta/2))$ is the chief-ray direction, with $\Theta$ the full convergence angle and $d_y^{\text{com}}$ a shared vertical component.
 
 Adding pupil shear---an affine transverse variation of the origin---completes the model:
 \begin{equation}
@@ -320,11 +320,12 @@ O_c(u,v) = S_c + P_{d_c}^\perp(\rho_{x,c}\,\tilde{u}\,e_x + \rho_{y,c}\,\tilde{v
 \end{equation}
 where $P_{d}^\perp v = v - (v\cdot d)\,d$ projects onto the plane orthogonal to $d$, ensuring $O_c \cdot d_c = 0$.
 
-The 14 parameters are: $f_{\text{obj}}$, $WD$, $b$ (skeleton), $c_x$, $c_y$ (principal point), $f_{\text{ang}}$ (angular scale), $\theta$, $d_y^{\text{com}}$ (chief-ray direction), $s_{x,L}$, $s_{y,L}$, $s_{x,R}$, $s_{y,R}$ (per-channel slopes), $\rho_x$, $\rho_y$ (shared pupil shear).
+The 14 parameters are: $f_{\text{obj}}$, $WD$, $b$ (skeleton), $c_x$, $c_y$ (principal point), $f_{\text{ang}}$ (angular scale), $\Theta$, $d_y^{\text{com}}$ (chief-ray direction), $s_{x,L}$, $s_{y,L}$, $s_{x,R}$, $s_{y,R}$ (per-channel slopes), $\rho_x$, $\rho_y$ (shared pupil shear).
 This model achieves \SI{0.12}{mm} ray-space RMS (down from \SI{3.48}{mm} for perspective) and \SI{14.6}{px} reprojection (down from \SI{86}{px}).
 The dominant geometry is captured, but \SI{14.6}{px} is far from the Zernike reference (\SI{0.47}{px}).
 
 \subsubsection{Residual Analysis}
+\label{sec:residual_analysis}
 
 The residual between the telecentric model and the Zernike rayfield is computed on a $41\times41$ grid:
 $\Delta d = d_{\text{Zernike}} - d_{\text{CMO}}$,
@@ -349,7 +350,7 @@ Both negative results are consistent with the $Z_0^0$ diagnostic (they would pro
 \subsubsection{Residual-Guided Hypothesis Construction}
 
 The central methodological contribution is that physical model construction is guided by \emph{residual structure}, not blind fitting.
-At each stage, the direction residual $\Delta d = d_{\text{Zernike}} - d_{\text{model}}$ is computed on a $31\times31$ grid and displayed as a heatmap.
+At each stage, the direction residual $\Delta d = d_{\text{Zernike}} - d_{\text{model}}$ is computed on a $31\times31$ grid and displayed as a heatmap (a coarser grid than the $41\times41$ used for the Pl\"ucker modal decomposition of \S\ref{sec:residual_analysis}; the heatmap serves visual diagnosis only).
 The pattern of the residual guides the next physical hypothesis by indicating which class of degree of freedom is most likely missing, which is then confirmed or rejected by fitting the candidate model.
 
 \begin{figure}[!htbp]
@@ -585,7 +586,7 @@ Table~\ref{tab:data_sources} clarifies which results come from real Pycaso calib
 Result category & Source & Examples \\
 \midrule
 \textbf{Real data} & Pycaso CMO images & Zernike fit (0.47~px), CMO+SE(3) (1.06~px), \\
-& (10 stereo pairs) & descriptors ($b$, $WD$, $\theta$), pose sweep, \\
+& (10 stereo pairs) & descriptors ($b$, $WD$, $\Theta$), pose sweep, \\
 & & cross-validation, bootstrap, $f_x$ sensitivity \\
 \midrule
 \textbf{Synthetic oracles} & StereoComplex simulator & Direct vs.\ rayfield inversion ($c=0.81$), \\
@@ -617,7 +618,7 @@ Table~\ref{tab:pose_sweep} reports pixel RMS and effective geometric descriptors
 \label{tab:pose_sweep}
 \begin{tabular}{lrrrrr}
 \toprule
-$N$ frames & RMS (px) & P50 (px) & $b$ (mm) & $WD$ (mm) & $\theta$ (\si{\degree}) \\
+$N$ frames & RMS (px) & P50 (px) & $b$ (mm) & $WD$ (mm) & $\Theta$ (\si{\degree}) \\
 \midrule
 3  & 1.02 & 0.84 & 24.7 & 64.6 & 22.4 \\
 5  & 1.03 & 0.84 & 24.8 & 64.6 & 22.5 \\
@@ -629,7 +630,7 @@ $N$ frames & RMS (px) & P50 (px) & $b$ (mm) & $WD$ (mm) & $\theta$ (\si{\degree}
 
 The pixel RMS is stable within \SI{0.05}{px} across frame counts---even 3 frames suffice for \SI{1.02}{px} calibration.
 Effective descriptors vary by less than \SI{0.2}{mm} (baseline) and \SI{0.1}{mm} (working distance) in the chosen gauge, confirming that the pipeline is robust to the number of calibration images.
-The effective convergence angle $\theta \approx \SI{22.5}{\degree}$ (standard deviation \SI{0.1}{\degree}).
+The effective convergence angle $\Theta \approx \SI{22.5}{\degree}$ (standard deviation \SI{0.1}{\degree}).
 
 \subsection{OpenCV Tuning Does Not Recover}
 
@@ -662,7 +663,7 @@ within \SI{0.3}{mm} ($\approx \SI{1}{\percent}$) of the reconstructed $b = \SI{2
 
 This agreement is a strong physical \emph{consistency} check, not an independent metrological validation of the Leica specifications. The convergence angle is scale-invariant, but the absolute lengths ($b$, $WD$, $f_{\text{obj}}$) inherit the chosen reference focal length $f_x = \SI{25600}{px}$, and $WD$ scales linearly with it (\S\ref{sec:validation}); reproducing the documented WD to a few percent shows only that this scale choice is compatible with the documented optics, since it still relies on the datasheet WD as the scale anchor rather than on an independent 3D measurement. What the test does establish is that the rayfield recovers internal CMO parameters absent from the manufacturer documentation, and that they are quantitatively consistent with the documented Planapo 1.0$\times$ configuration. Beyond this external check, the descriptors are also \textbf{internally consistent} by three independent tests:
 (1)~cross-validation stability: $1.07 \pm 0.02$~px RMS across 5 folds, with effective-descriptor spread $\pm 0.4$~mm (baseline), $\pm 0.15$~mm (WD);
-(2)~bootstrap 95\,\% confidence intervals: $b \in [23.48, 25.04]$~mm, $WD \in [64.64, 65.13]$~mm, $\theta \in [21.04^\circ, 22.72^\circ]$;
+(2)~bootstrap 95\,\% confidence intervals: $b \in [23.48, 25.04]$~mm, $WD \in [64.64, 65.13]$~mm, $\Theta \in [21.04^\circ, 22.72^\circ]$;
 (3)~frame-count stability: effective descriptors vary by $< 0.2$~mm (baseline) and $< 0.1$~mm (WD) from 3 to 10 frames (Table~\ref{tab:pose_sweep}).
 
 An independent \emph{absolute} validation---a certified 3D artefact at a known distance, or a direct measurement of the baseline or working distance---remains open and is listed among the limitations (Section~\ref{sec:limitations}).
@@ -779,7 +780,7 @@ Fold~1 shows slightly higher RMS (\SI{1.09}{px}) and a lower effective baseline 
 \begin{itemize}
   \item Effective baseline $b$: [$23.48$, $25.04$]~mm (mean $24.56$~mm, $\sigma = 0.43$~mm)
   \item Effective working distance $WD$: [$64.64$, $65.13$]~mm (mean $64.86$~mm, $\sigma = 0.15$~mm)
-    \item Effective convergence angle $\theta$: [$21.04^\circ$, $22.72^\circ$] (mean $22.17^\circ$, $\sigma = 0.46^\circ$)
+    \item Effective convergence angle $\Theta$: [$21.04^\circ$, $22.72^\circ$] (mean $22.17^\circ$, $\sigma = 0.46^\circ$)
 \end{itemize}
 The effective working distance is the most stable descriptor ($\sigma < \SI{0.2}{mm}$), while the effective baseline and convergence angle show \SI{0.4}{mm} and \SI{0.4}{\degree} variation respectively---consistent with the gauge sensitivity of the Zernike origin field noted in Section~\ref{sec:limitations}.
 
@@ -961,7 +962,7 @@ Stereo baseline        & $b$                & \SI{24.9}{mm} \\
 Sub-pupil depth        & $z_p$              & \SI{2.5}{mm}  \\
 Working distance       & $WD$               & \SI{64.7}{mm} \\
 Effective axial length & $f_{\text{obj}}$   & \SI{62.2}{mm} \\
-Convergence angle      & $\theta$           & \SI{22.6}{\degree} \\
+Convergence angle      & $\Theta$           & \SI{22.6}{\degree} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1190,10 +1191,6 @@ This work was carried out as part of the author's research activities at CNRS, U
 
 The author thanks the developers and maintainers of the open Pycaso dataset and the open-source scientific Python ecosystem used in this work.
 
-\section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
-
-During the preparation of this work, the author used AI-assisted tools (Claude, Anthropic; ChatGPT, OpenAI) for language editing, code debugging, and assistance with manuscript polishing. The author reviewed and edited all AI-assisted outputs and takes full responsibility for the scientific content, code, numerical results, figures, interpretations, and conclusions of the manuscript.
-
 \section*{Code and Data Availability}
 
 \begin{itemize}
@@ -1208,6 +1205,10 @@ During the preparation of this work, the author used AI-assisted tools (Claude, 
 % ======================================================================
 \newpage
 \bibliographystyle{plainurl}
+\section*{Declaration of generative AI and AI-assisted technologies in the writing process}
+
+During the preparation of this work the author used AI-assisted tools (Claude, Anthropic; ChatGPT, OpenAI) in order to improve the language and readability of the manuscript. These tools were also used during development of the analysis code, as part of the research workflow documented in the Reproducibility Statement. After using these tools, the author reviewed and edited the content as needed and takes full responsibility for the scientific content, code, numerical results, figures, interpretations, and conclusions of the published article.
+
 \bibliography{references}
 
 \end{document}
