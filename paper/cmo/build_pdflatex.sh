@@ -11,7 +11,7 @@ pdflatex -interaction=nonstopmode -halt-on-error -output-directory=build manuscr
 # When using -output-directory, BibTeX reads build/manuscript.aux but needs to find references.bib in paper/.
 # Provide a local BIBINPUTS so "references.bib" resolves.
 if command -v bibtex >/dev/null 2>&1; then
-  BIBINPUTS="${ROOT_DIR}:" bibtex build/manuscript || true
+  BIBINPUTS="${ROOT_DIR}:" BSTINPUTS="${ROOT_DIR}:" bibtex build/manuscript || true
 fi
 
 pdflatex -interaction=nonstopmode -halt-on-error -output-directory=build manuscript.tex

@@ -98,3 +98,10 @@ the near-hard Zernike rayfield, needs the raw images), then `figures`, `pdf`,
   reproduces the original ROI configuration for validation.
 - `make audit` skips a check when its heavy source JSON is absent (it prints
   `SKIP` and the command to regenerate it) instead of failing.
+
+## Bibliography style
+
+`manuscript.tex` uses `plainurl.bst` (urlbst-generated, GPL, shipped in
+TeX Live's `texlive-bibtex-extra` on Debian/Ubuntu). A copy is committed
+here (`paper/cmo/plainurl.bst`) and picked up via `BSTINPUTS` in
+`build_pdflatex.sh`, so the build is self-contained on a minimal TeX Live.
