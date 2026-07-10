@@ -73,3 +73,7 @@ paper/cmo/*.synctex.gz
 DocMicroscope/
 profilo/
 Reviewer_AI_*.md
+
+# Submission correspondence is local and must not be shared.
+paper/Cover_Letter.*
+paper/cmo/cover_letter.txt
