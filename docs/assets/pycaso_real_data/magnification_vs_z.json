@@ -13,158 +13,158 @@
     3.35
   ],
   "fitted_pose_z_mm": [
-    64.37083795423372,
-    64.42799289343363,
-    64.50159293300585,
-    64.57889400146053,
-    64.66725567942535,
-    64.75726478846977,
-    64.81157831490984,
-    64.96290319183917,
-    65.02254668227954,
-    65.08480528577584
+    64.36249596946077,
+    64.419508747689,
+    64.4929242451799,
+    64.57003055250746,
+    64.6581701183003,
+    64.74795405677573,
+    64.80213090966174,
+    64.95307343575486,
+    65.01256781493083,
+    65.07466901933903
   ],
   "nominal_z_span_mm": 0.7000000000000002,
-  "fitted_pose_z_span_mm": 0.713967331542122,
+  "fitted_pose_z_span_mm": 0.7121730498782597,
   "channels": {
     "left": {
       "Mx_px_per_mm": [
-        394.8780917290159,
-        394.5467596683405,
-        394.1029595676644,
-        393.54916239829527,
-        393.0705027732153,
-        392.5154618353355,
-        392.16337317251725,
-        391.2185768185212,
-        390.86458512089257,
-        390.67284293158815
+        394.87809172901615,
+        394.54675966834066,
+        394.1029595676645,
+        393.54916239829504,
+        393.07050277321486,
+        392.51546183533594,
+        392.1633731725174,
+        391.21857681852106,
+        390.86458512089246,
+        390.6728429315881
       ],
       "My_px_per_mm": [
-        394.81151692824824,
-        394.5341893326267,
-        394.0803188974249,
-        393.68771454855107,
-        393.1429717607348,
-        392.6195273314043,
-        392.1894246090443,
-        391.23091005739485,
-        390.9418820893412,
-        390.5643463835226
+        394.81151692824795,
+        394.5341893326264,
+        394.0803188974253,
+        393.6877145485507,
+        393.1429717607352,
+        392.61952733140413,
+        392.1894246090442,
+        391.23091005739474,
+        390.94188208934133,
+        390.5643463835228
       ],
       "nominal_z_fit": {
         "Mx": {
-          "mean_px_per_mm": 392.75823160153857,
-          "std_px_per_mm": 1.525417654205443,
-          "range_relative_percent": 1.0706965402813209,
-          "slope_px_per_mm_per_mm": -6.344302167012729,
-          "slope_relative_percent_per_mm": -1.6153199746171478,
-          "total_linear_change_percent": -1.1307239822320037,
-          "rms_linear_residual_percent": 0.027308963606583248
+          "mean_px_per_mm": 392.7582316015386,
+          "std_px_per_mm": 1.525417654205516,
+          "range_relative_percent": 1.070696540281393,
+          "slope_px_per_mm_per_mm": -6.344302167012966,
+          "slope_relative_percent_per_mm": -1.6153199746172082,
+          "total_linear_change_percent": -1.130723982232046,
+          "rms_linear_residual_percent": 0.027308963606581114
         },
         "My": {
-          "mean_px_per_mm": 392.7802801938293,
-          "std_px_per_mm": 1.5243495048657507,
-          "range_relative_percent": 1.0813095154954673,
-          "slope_px_per_mm_per_mm": -6.34763583306029,
-          "slope_relative_percent_per_mm": -1.6160780347546626,
-          "total_linear_change_percent": -1.1312546243282642,
-          "rms_linear_residual_percent": 0.020340794653784546
+          "mean_px_per_mm": 392.78028019382924,
+          "std_px_per_mm": 1.524349504865671,
+          "range_relative_percent": 1.0813095154953516,
+          "slope_px_per_mm_per_mm": -6.347635833059736,
+          "slope_relative_percent_per_mm": -1.6160780347545216,
+          "total_linear_change_percent": -1.1312546243281654,
+          "rms_linear_residual_percent": 0.02034079465379667
         }
       },
       "fitted_pose_z_fit": {
         "Mx": {
-          "mean_px_per_mm": 392.75823160153857,
-          "std_px_per_mm": 1.525417654205443,
-          "range_relative_percent": 1.0706965402813209,
-          "slope_px_per_mm_per_mm": -6.052006754910229,
-          "slope_relative_percent_per_mm": -1.5408987687494522,
-          "total_linear_change_percent": -1.1001513821005877,
-          "rms_linear_residual_percent": 0.01394458937625815
+          "mean_px_per_mm": 392.7582316015386,
+          "std_px_per_mm": 1.525417654205516,
+          "range_relative_percent": 1.070696540281393,
+          "slope_px_per_mm_per_mm": -6.067259849103625,
+          "slope_relative_percent_per_mm": -1.5447823523299142,
+          "total_linear_change_percent": -1.1001523592569074,
+          "rms_linear_residual_percent": 0.013944248373532976
         },
         "My": {
-          "mean_px_per_mm": 392.7802801938293,
-          "std_px_per_mm": 1.5243495048657507,
-          "range_relative_percent": 1.0813095154954673,
-          "slope_px_per_mm_per_mm": -6.048732760038093,
-          "slope_relative_percent_per_mm": -1.5399787273060566,
-          "total_linear_change_percent": -1.0994945025663383,
-          "rms_linear_residual_percent": 0.012288605349100054
+          "mean_px_per_mm": 392.78028019382924,
+          "std_px_per_mm": 1.524349504865671,
+          "range_relative_percent": 1.0813095154953516,
+          "slope_px_per_mm_per_mm": -6.063976982293344,
+          "slope_relative_percent_per_mm": -1.5438598341293737,
+          "total_linear_change_percent": -1.0994953666564602,
+          "rms_linear_residual_percent": 0.012289346081447468
         }
       }
     },
     "right": {
       "Mx_px_per_mm": [
         393.5262148048301,
-        393.06237846780294,
-        392.6338866334421,
-        392.27804543094453,
-        391.62202115470643,
-        391.15208442929685,
-        390.8899268630653,
-        389.90368762276165,
-        389.5268487645575,
-        389.2009460469684
+        393.06237846780317,
+        392.6338866334423,
+        392.2780454309446,
+        391.6220211547064,
+        391.15208442929696,
+        390.889926863065,
+        389.90368762276177,
+        389.52684876455737,
+        389.2009460469683
       ],
       "My_px_per_mm": [
-        393.77905919581474,
-        393.2612970409069,
-        392.95185517445685,
-        392.5060855050162,
-        391.8615302618257,
-        391.4605309298247,
-        391.1559617639207,
-        390.2593772354487,
-        389.9272902802078,
+        393.77905919581525,
+        393.26129704090675,
+        392.95185517445634,
+        392.50608550501596,
+        391.8615302618256,
+        391.4605309298246,
+        391.15596176392086,
+        390.25937723544865,
+        389.9272902802082,
         389.54551361126454
       ],
       "nominal_z_fit": {
         "Mx": {
-          "mean_px_per_mm": 391.3796040218376,
-          "std_px_per_mm": 1.5102606952314275,
-          "range_relative_percent": 1.1051339194518572,
-          "slope_px_per_mm_per_mm": -6.288966009763752,
-          "slope_relative_percent_per_mm": -1.6068711668002131,
-          "total_linear_change_percent": -1.1248098167601495,
-          "rms_linear_residual_percent": 0.02022676678080012
+          "mean_px_per_mm": 391.3796040218375,
+          "std_px_per_mm": 1.5102606952315039,
+          "range_relative_percent": 1.1051339194518865,
+          "slope_px_per_mm_per_mm": -6.288966009763989,
+          "slope_relative_percent_per_mm": -1.6068711668002735,
+          "total_linear_change_percent": -1.1248098167601916,
+          "rms_linear_residual_percent": 0.02022676678079039
         },
         "My": {
           "mean_px_per_mm": 391.6708500998687,
-          "std_px_per_mm": 1.4608853481931747,
-          "range_relative_percent": 1.0808937104894902,
-          "slope_px_per_mm_per_mm": -6.081876094529093,
-          "slope_relative_percent_per_mm": -1.5528028427385732,
-          "total_linear_change_percent": -1.0869619899170015,
-          "rms_linear_residual_percent": 0.021049851753647514
+          "std_px_per_mm": 1.4608853481931188,
+          "range_relative_percent": 1.0808937104896208,
+          "slope_px_per_mm_per_mm": -6.081876094528856,
+          "slope_relative_percent_per_mm": -1.5528028427385125,
+          "total_linear_change_percent": -1.0869619899169591,
+          "rms_linear_residual_percent": 0.02104985175365691
         }
       },
       "fitted_pose_z_fit": {
         "Mx": {
-          "mean_px_per_mm": 391.3796040218376,
-          "std_px_per_mm": 1.5102606952314275,
-          "range_relative_percent": 1.1051339194518572,
-          "slope_px_per_mm_per_mm": -5.992741314722891,
-          "slope_relative_percent_per_mm": -1.5311838565784126,
-          "total_linear_change_percent": -1.0932152521816645,
-          "rms_linear_residual_percent": 0.012374813737321627
+          "mean_px_per_mm": 391.3796040218375,
+          "std_px_per_mm": 1.5102606952315039,
+          "range_relative_percent": 1.1051339194518865,
+          "slope_px_per_mm_per_mm": -6.007844911121493,
+          "slope_relative_percent_per_mm": -1.5350429223660496,
+          "total_linear_change_percent": -1.0932161997154661,
+          "rms_linear_residual_percent": 0.012374666462536054
         },
         "My": {
           "mean_px_per_mm": 391.6708500998687,
-          "std_px_per_mm": 1.4608853481931747,
-          "range_relative_percent": 1.0808937104894902,
-          "slope_px_per_mm_per_mm": -5.795431356396566,
-          "slope_relative_percent_per_mm": -1.4796687971338287,
-          "total_linear_change_percent": -1.0564351826557812,
-          "rms_linear_residual_percent": 0.01424588299976106
+          "std_px_per_mm": 1.4608853481931188,
+          "range_relative_percent": 1.0808937104896208,
+          "slope_px_per_mm_per_mm": -5.810037761827449,
+          "slope_relative_percent_per_mm": -1.4833980523048866,
+          "total_linear_change_percent": -1.0564361150934414,
+          "rms_linear_residual_percent": 0.014245624132115737
         }
       }
     }
   },
   "aggregate_nominal_z": {
     "mean_scale_px_per_mm": 392.14724147926853,
-    "min_total_change_percent": 1.0869619899170015,
-    "max_total_change_percent": 1.1312546243282642,
-    "min_relative_slope_percent_per_mm": 1.5528028427385732,
-    "max_relative_slope_percent_per_mm": 1.6160780347546626
+    "min_total_change_percent": 1.0869619899169591,
+    "max_total_change_percent": 1.1312546243281654,
+    "min_relative_slope_percent_per_mm": 1.5528028427385125,
+    "max_relative_slope_percent_per_mm": 1.6160780347545216
   }
 }

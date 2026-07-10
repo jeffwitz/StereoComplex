@@ -10,6 +10,13 @@ import numpy as np
 from stereocomplex.core.rayfield2d import predict_points_rayfield_tps_robust
 
 
+# OpenCV's ArUco corner samples and CharucoDetector intersections for this
+# legacy board are offset by half a pixel. The CMO pipeline uses the ChArUco
+# intersection reference, so register marker-driven TPS predictions to it.
+ARUCO_TO_CHARUCO_OFFSET_PX = np.array([0.5, 0.5], dtype=np.float64)
+BINARY_MASK_TO_CHARUCO_OFFSET_PX = np.array([0.5, 0.5], dtype=np.float64)
+
+
 def abs_det_hessian(gray: np.ndarray, sigma: float = 9.0) -> np.ndarray:
     image = gray.astype(np.float32)
     if image.max() > 2:
@@ -73,11 +80,15 @@ def blob_barycentre(
     moments = cv2.moments((labels == selected).astype(np.uint8), binaryImage=True)
     if moments["m00"] < 1e-10:
         return math.nan, math.nan, math.nan
-    return (
-        moments["m10"] / moments["m00"] + x0,
-        moments["m01"] / moments["m00"] + y0,
-        float(moments["m00"]),
+    centroid = np.array(
+        [
+            moments["m10"] / moments["m00"] + x0,
+            moments["m01"] / moments["m00"] + y0,
+        ],
+        dtype=np.float64,
     )
+    centroid += BINARY_MASK_TO_CHARUCO_OFFSET_PX
+    return float(centroid[0]), float(centroid[1]), float(moments["m00"])
 
 
 def win_spot_2pass(
@@ -141,7 +152,7 @@ def marker_tps_corners(
             image_points.append(image)
     if len(object_points) < 4:
         return None
-    return predict_points_rayfield_tps_robust(
+    prediction = predict_points_rayfield_tps_robust(
         np.concatenate(object_points, axis=0),
         np.concatenate(image_points, axis=0),
         np.asarray(chessboard_xy, dtype=np.float64),
@@ -150,6 +161,7 @@ def marker_tps_corners(
         iters=3,
         ransac_reproj_px=3.0,
     )
+    return prediction + ARUCO_TO_CHARUCO_OFFSET_PX
 
 
 def second_tps_pass(chessboard_xy: np.ndarray, corners: np.ndarray) -> np.ndarray:

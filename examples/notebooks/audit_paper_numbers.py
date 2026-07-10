@@ -151,7 +151,7 @@ def main() -> int:
     chk("Double-TPS centred RMS px", 0.25,
         corner_summary["double_tps"]["centered_rms_px"],
         "corner_preprocessing_validation.json.double_tps.centered_rms_px", 0.01)
-    chk("Double-TPS raw P95 px", 1.00,
+    chk("Double-TPS raw P95 px", 0.46,
         corner_summary["double_tps"]["p95_px"],
         "corner_preprocessing_validation.json.double_tps.p95_px", 0.02)
     chk("Hessian masked centred RMS lower px", 0.31,
@@ -169,7 +169,7 @@ def main() -> int:
     chk("Corner ablation TPS dy range", 0.078,
         ablation_variants["double_tps"]["dy_range_mean"],
         "corner_preprocessing_ablation.json.double_tps.dy_range_mean", 0.002)
-    chk("Corner ablation piston fraction lower %", 96.7,
+    chk("Corner ablation piston fraction lower %", 97.1,
         100 * ablation_variants["double_tps"]["base_direction_piston_energy_fraction"],
         "corner_preprocessing_ablation.json.double_tps.piston_fraction", 0.2)
     chk("Corner ablation piston fraction upper %", 98.3,

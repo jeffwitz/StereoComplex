@@ -16,29 +16,29 @@
     },
     "marker_tps": {
       "n_stereo_corners": 1650,
-      "zernike_ray_rms_mm": 0.0006689708331223777,
-      "dy_range_mean": 0.0777895400014477,
+      "zernike_ray_rms_mm": 0.0006691839404822179,
+      "dy_range_mean": 0.07815355335381263,
       "dy_range_per_channel": [
-        0.07753781940717179,
-        0.07804126059572358
+        0.07789448839069621,
+        0.07841261831692906
       ],
-      "base_14p_ray_rms_mm": 0.049675494012555485,
-      "aligned_26p_ray_rms_mm": 0.002157069415817275,
-      "se3_improvement_factor": 23.029158750431,
-      "base_direction_piston_energy_fraction": 0.9703057372852417
+      "base_14p_ray_rms_mm": 0.049671215623720504,
+      "aligned_26p_ray_rms_mm": 0.002141136374517061,
+      "se3_improvement_factor": 23.198529628886426,
+      "base_direction_piston_energy_fraction": 0.9705915328178522
     },
     "double_tps": {
       "n_stereo_corners": 1650,
-      "zernike_ray_rms_mm": 0.0006530373293905887,
-      "dy_range_mean": 0.07780666169826303,
+      "zernike_ray_rms_mm": 0.0006531531824402949,
+      "dy_range_mean": 0.07798473872219991,
       "dy_range_per_channel": [
-        0.0775734677952977,
-        0.07803985560122835
+        0.07774145838819813,
+        0.07822801905620169
       ],
-      "base_14p_ray_rms_mm": 0.04803002994446311,
-      "aligned_26p_ray_rms_mm": 0.002141151172007147,
-      "se3_improvement_factor": 22.43187243030535,
-      "base_direction_piston_energy_fraction": 0.9674396173303648
+      "base_14p_ray_rms_mm": 0.04938277011546276,
+      "aligned_26p_ray_rms_mm": 0.0021686080344436504,
+      "se3_improvement_factor": 22.77164399058023,
+      "base_direction_piston_energy_fraction": 0.9706453195231167
     }
   }
 }

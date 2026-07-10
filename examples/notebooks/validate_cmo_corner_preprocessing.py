@@ -165,9 +165,10 @@ def main() -> int:
 
     result = {
         "method": (
-            "Direct ChArUco detections are pseudo-ground truth. Marker-TPS and "
-            "double-TPS predictions are evaluated on every directly detected corner; "
-            "Hessian completion is evaluated after deterministic random masking."
+            "Direct ChArUco detections are pseudo-ground truth. Marker-TPS uses "
+            "the explicit ArUco-to-ChArUco half-pixel registration and is evaluated "
+            "on every directly detected corner; Hessian completion is evaluated "
+            "after deterministic random masking."
         ),
         "seed": RNG_SEED,
         "views": views,
