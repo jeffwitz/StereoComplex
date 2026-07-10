@@ -1,0 +1,314 @@
+{
+  "method": "Direct ChArUco detections are pseudo-ground truth. Marker-TPS and double-TPS predictions are evaluated on every directly detected corner; Hessian completion is evaluated after deterministic random masking.",
+  "seed": 20260710,
+  "views": [
+    {
+      "channel": "left",
+      "z": 2.65,
+      "direct_charuco_corners": 70,
+      "aruco_markers": 75
+    },
+    {
+      "channel": "left",
+      "z": 2.72,
+      "direct_charuco_corners": 141,
+      "aruco_markers": 92
+    },
+    {
+      "channel": "left",
+      "z": 2.79,
+      "direct_charuco_corners": 159,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "left",
+      "z": 2.86,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "left",
+      "z": 2.93,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "left",
+      "z": 3.0,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "left",
+      "z": 3.014,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "left",
+      "z": 3.07,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "left",
+      "z": 3.21,
+      "direct_charuco_corners": 157,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "left",
+      "z": 3.28,
+      "direct_charuco_corners": 139,
+      "aruco_markers": 93
+    },
+    {
+      "channel": "left",
+      "z": 3.35,
+      "direct_charuco_corners": 40,
+      "aruco_markers": 61
+    },
+    {
+      "channel": "right",
+      "z": 2.65,
+      "direct_charuco_corners": 39,
+      "aruco_markers": 53
+    },
+    {
+      "channel": "right",
+      "z": 2.72,
+      "direct_charuco_corners": 89,
+      "aruco_markers": 79
+    },
+    {
+      "channel": "right",
+      "z": 2.79,
+      "direct_charuco_corners": 143,
+      "aruco_markers": 91
+    },
+    {
+      "channel": "right",
+      "z": 2.86,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "right",
+      "z": 2.93,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "right",
+      "z": 3.0,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 97
+    },
+    {
+      "channel": "right",
+      "z": 3.07,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "right",
+      "z": 3.14,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "right",
+      "z": 3.21,
+      "direct_charuco_corners": 161,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "right",
+      "z": 3.28,
+      "direct_charuco_corners": 157,
+      "aruco_markers": 96
+    },
+    {
+      "channel": "right",
+      "z": 3.35,
+      "direct_charuco_corners": 136,
+      "aruco_markers": 93
+    }
+  ],
+  "summary": {
+    "marker_tps": {
+      "n": 3041,
+      "bias_xy_px": [
+        -0.48469899721848203,
+        -0.5206904185307253
+      ],
+      "bias_norm_px": 0.7113730595505455,
+      "rms_px": 0.7558358753743473,
+      "centered_rms_px": 0.25541386150442463,
+      "median_px": 0.7282415641799491,
+      "p95_px": 1.0160918143195357,
+      "spatial_rms_3x3_px": [
+        [
+          0.8642386896895901,
+          0.752517044022991,
+          0.7843573306594235
+        ],
+        [
+          0.7903629265876534,
+          0.7073518910359998,
+          0.6616105679284777
+        ],
+        [
+          0.7838761130339245,
+          0.7336707452914354,
+          0.6815763987357206
+        ]
+      ]
+    },
+    "double_tps": {
+      "n": 3041,
+      "bias_xy_px": [
+        -0.4849263438713978,
+        -0.5208489454156294
+      ],
+      "bias_norm_px": 0.711644000130019,
+      "rms_px": 0.7540279634595938,
+      "centered_rms_px": 0.24924082080985102,
+      "median_px": 0.7282660111455401,
+      "p95_px": 1.0038978900995117,
+      "spatial_rms_3x3_px": [
+        [
+          0.8582639282784436,
+          0.7619007518343752,
+          0.7772376073460908
+        ],
+        [
+          0.7961972731596575,
+          0.7039674691962967,
+          0.6573835992805425
+        ],
+        [
+          0.7821849055225172,
+          0.72201386784613,
+          0.6826611289216442
+        ]
+      ]
+    },
+    "hessian_mask_10": {
+      "n": 304,
+      "bias_xy_px": [
+        -0.5646634281671375,
+        -0.49190856003256017
+      ],
+      "bias_norm_px": 0.7488783736647567,
+      "rms_px": 0.8126550105586935,
+      "centered_rms_px": 0.3155777996681314,
+      "median_px": 0.7786414991691091,
+      "p95_px": 1.1676808482933523,
+      "spatial_rms_3x3_px": [
+        [
+          0.8846837719209871,
+          0.8772867059722005,
+          0.756341131098415
+        ],
+        [
+          0.8555981918154799,
+          0.8339027349184763,
+          0.7042705795952606
+        ],
+        [
+          0.8250473333719522,
+          0.7918942055352548,
+          0.7168849761805333
+        ]
+      ]
+    },
+    "hessian_mask_20": {
+      "n": 606,
+      "bias_xy_px": [
+        -0.552489416160682,
+        -0.4936896623359515
+      ],
+      "bias_norm_px": 0.7409278221709299,
+      "rms_px": 0.8078758572237911,
+      "centered_rms_px": 0.3220083275602017,
+      "median_px": 0.7450199363600618,
+      "p95_px": 1.1960473779789764,
+      "spatial_rms_3x3_px": [
+        [
+          0.9301485777397808,
+          0.8713576310587087,
+          0.8160086640917813
+        ],
+        [
+          0.9051654616217212,
+          0.7981863017460564,
+          0.6307656513600385
+        ],
+        [
+          0.8122264314780003,
+          0.7500208565329616,
+          0.6467831873831048
+        ]
+      ]
+    },
+    "hessian_mask_30": {
+      "n": 910,
+      "bias_xy_px": [
+        -0.5548004542496882,
+        -0.4971951627368333
+      ],
+      "bias_norm_px": 0.744987633376935,
+      "rms_px": 0.8117299970347741,
+      "centered_rms_px": 0.3223337000710725,
+      "median_px": 0.757688650808309,
+      "p95_px": 1.1973137519937789,
+      "spatial_rms_3x3_px": [
+        [
+          0.9457728008475175,
+          0.8601311886851181,
+          0.7960169420714739
+        ],
+        [
+          0.8548886721909059,
+          0.8111859441544126,
+          0.6804252534422535
+        ],
+        [
+          0.8233557926679743,
+          0.7750847894850905,
+          0.6706003411837427
+        ]
+      ]
+    },
+    "hessian_mask_50": {
+      "n": 1515,
+      "bias_xy_px": [
+        -0.5485338598302326,
+        -0.4975474731540979
+      ],
+      "bias_norm_px": 0.7405692968401276,
+      "rms_px": 0.8093624407330277,
+      "centered_rms_px": 0.3265343428294233,
+      "median_px": 0.754293371728749,
+      "p95_px": 1.188364280275411,
+      "spatial_rms_3x3_px": [
+        [
+          0.9689796914818034,
+          0.8591251226415898,
+          0.7821292222045763
+        ],
+        [
+          0.8942885548324263,
+          0.7885222965171077,
+          0.6812308791479874
+        ],
+        [
+          0.826683182404992,
+          0.7362781414567062,
+          0.663945195453992
+        ]
+      ]
+    }
+  }
+}

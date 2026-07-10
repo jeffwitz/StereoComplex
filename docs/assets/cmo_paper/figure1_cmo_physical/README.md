@@ -6,7 +6,7 @@ Editable source of truth for Figure 1 of `paper/cmo/manuscript.tex`
 ## Files
 
 - `manifest.json` — pedagogical geometry parameters
-  (`f_obj_mm`, `working_distance_mm`, `b_mm`, `exaggerated` flag) and
+  (`effective_axial_length_mm`, `working_distance_mm`, `b_mm`, `exaggerated` flag) and
   figure size.
 
 ## Upstream data

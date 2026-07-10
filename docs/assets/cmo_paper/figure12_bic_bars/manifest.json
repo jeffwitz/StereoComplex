@@ -3,20 +3,15 @@
   "bic_json": "../../pycaso_real_data/bic_model_selection.json",
   "reprojection_guard_px": 1.5,
   "model_display_names": {
-    "cmo_telecentric_shear": "CMO telecentric + shear",
-    "cmo_telecentric": "CMO telecentric",
+    "cmo_telecentric_shear": "CMO quasi-telecentric + shear",
+    "cmo_telecentric": "CMO quasi-telecentric",
     "central_brown_conrady": "Brown-Conrady",
     "pinhole_parallel_plate": "Pinhole + plate",
     "central_pinhole": "Central pinhole"
   },
-  "operational_panel_models": [
-    {"key": "cmo_telecentric_shear", "label": "CMO telecentric\n14p", "color": "grey"},
-    {"key": "cmo_telecentric", "label": "CMO telecentric\n12p", "color": "grey"},
-    {"key": "central_pinhole", "label": "Central pinhole\n0p", "color": "#d98c4a"},
-    {"key": "pinhole_parallel_plate", "label": "Pinhole+plate\n6p", "color": "#d98c4a"},
-    {"key": "central_brown_conrady", "label": "Brown-Conrady\n10p", "color": "#d98c4a"}
+  "operational_models": [
+    {"label": "CMO quasi-telecentric + shear\n14p", "px_rms": 14.6, "status": "REJECTED", "color": "grey"},
+    {"label": "CMO + bundle SE(3)\n26p (passes)", "px_rms": 1.06, "status": "PASS", "color": "#2a7a3b"}
   ],
-  "model_26p_label": "CMO+SE(3)\n26p",
-  "model_26p_color": "#2a7a3b",
   "figure_size": [14, 5.5]
 }

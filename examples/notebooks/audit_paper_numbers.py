@@ -53,6 +53,18 @@ def main() -> int:
     chk("WD mm",              64.7, e0["WD"], "zernike_order_sweep.json[0].WD", 0.05)
     chk("convergence angle°", 22.6, e0["angle"], "zernike_order_sweep.json[0].angle", 0.1)
 
+    # Image-space magnification-vs-z diagnostic used to qualify quasi-telecentricity.
+    mag = json.loads((ROOT / "magnification_vs_z.json").read_text())
+    mag_agg = mag["aggregate_nominal_z"]
+    chk("Mx/My mean scale px/mm", 392.0, mag_agg["mean_scale_px_per_mm"],
+        "magnification_vs_z.json.aggregate_nominal_z.mean_scale_px_per_mm", 0.2)
+    chk("Mx/My axial change lower %", 1.10, mag_agg["min_total_change_percent"],
+        "magnification_vs_z.json.aggregate_nominal_z.min_total_change_percent", 0.02)
+    chk("Mx/My axial change upper %", 1.15, mag_agg["max_total_change_percent"],
+        "magnification_vs_z.json.aggregate_nominal_z.max_total_change_percent", 0.02)
+    chk("Mx/My slope upper %/mm", 1.64, mag_agg["max_relative_slope_percent_per_mm"],
+        "magnification_vs_z.json.aggregate_nominal_z.max_relative_slope_percent_per_mm", 0.02)
+
     # Corner BA refinement — CANONICAL source for the paper's CMO 26p numbers
     cba = json.loads((ROOT / "corner_ba_refinement.json").read_text())
     bre = cba["before_rayfield"]
@@ -141,6 +153,37 @@ def main() -> int:
     if cmo_bics and oth_bics:
         gap = min(oth_bics) - min(cmo_bics)
         chk("BIC gap (paper: > 40000)", 40000.0, gap, f"bic_model_selection.json (gap={gap:.0f})", float("inf"))
+
+    # Corner preprocessing validation against direct ChArUco detections
+    corners = json.loads((ROOT / "corner_preprocessing_validation.json").read_text())
+    corner_summary = corners["summary"]
+    chk("Double-TPS centred RMS px", 0.25,
+        corner_summary["double_tps"]["centered_rms_px"],
+        "corner_preprocessing_validation.json.double_tps.centered_rms_px", 0.01)
+    chk("Double-TPS raw P95 px", 1.00,
+        corner_summary["double_tps"]["p95_px"],
+        "corner_preprocessing_validation.json.double_tps.p95_px", 0.02)
+    chk("Hessian masked centred RMS lower px", 0.31,
+        corner_summary["hessian_mask_10"]["centered_rms_px"],
+        "corner_preprocessing_validation.json.hessian_mask_10.centered_rms_px", 0.02)
+    chk("Hessian masked centred RMS upper px", 0.33,
+        corner_summary["hessian_mask_50"]["centered_rms_px"],
+        "corner_preprocessing_validation.json.hessian_mask_50.centered_rms_px", 0.02)
+
+    ablation = json.loads((ROOT / "corner_preprocessing_ablation.json").read_text())
+    ablation_variants = ablation["variants"]
+    chk("Corner ablation direct dy range", 0.067,
+        ablation_variants["direct_common"]["dy_range_mean"],
+        "corner_preprocessing_ablation.json.direct_common.dy_range_mean", 0.002)
+    chk("Corner ablation TPS dy range", 0.078,
+        ablation_variants["double_tps"]["dy_range_mean"],
+        "corner_preprocessing_ablation.json.double_tps.dy_range_mean", 0.002)
+    chk("Corner ablation piston fraction lower %", 96.7,
+        100 * ablation_variants["double_tps"]["base_direction_piston_energy_fraction"],
+        "corner_preprocessing_ablation.json.double_tps.piston_fraction", 0.2)
+    chk("Corner ablation piston fraction upper %", 98.3,
+        100 * ablation_variants["direct_common"]["base_direction_piston_energy_fraction"],
+        "corner_preprocessing_ablation.json.direct_common.piston_fraction", 0.2)
 
     # Render report
     n_ok = sum(1 for r in rows if r[0] == "OK")

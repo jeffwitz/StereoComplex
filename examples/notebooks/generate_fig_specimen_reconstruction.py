@@ -4,7 +4,7 @@
 Two-row layout:
 
 - Row 0: annotated left image with ROI, dense disparity field, valid mask;
-- Row 1: CMO 26p Z map, Zernike 57p Z map, ray-gap histogram.
+- Row 1: CMO 26p Z map, Zernike O(2)+d(2) Z map, ray-gap histogram.
 
 All inputs are read from the manifest in
 ``docs/assets/cmo_paper/figure9_specimen_reconstruction/``. Emits both
@@ -95,7 +95,7 @@ def render(manifest: dict, manifest_root: Path, out_dir: Path) -> None:
     plt.colorbar(im, ax=axes[1, 0], fraction=0.046)
 
     im = axes[1, 1].imshow(Zz, cmap="viridis", vmin=z_lo, vmax=z_hi)
-    axes[1, 1].set_title("Zernike 57p Z [mm]")
+    axes[1, 1].set_title("Zernike O(2)+d(2) Z [mm]")
     plt.colorbar(im, ax=axes[1, 1], fraction=0.046)
 
     gap_vals = gmap[Vc]

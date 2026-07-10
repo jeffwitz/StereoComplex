@@ -25,8 +25,8 @@
         {
           "title": "Ray2D Preprocessing",
           "lines": [
-            "ChArUco detection",
-            "+ double TPS denoising"
+            "ArUco-marker TPS",
+            "+ complete-grid smoothing"
           ]
         },
         {
@@ -40,23 +40,23 @@
       ]
     },
     {
-      "name": "Stage 2 — Physical Model Identification",
+      "name": "Stage 2 — Compact Effective Model",
       "fill": "#eaf6ec",
       "edge": "#2a7a3b",
       "steps": [
         {
           "title": "Ray-space BIC",
           "lines": [
-            "Selection among",
-            "physical CMO families",
+            "Selection among effective CMO",
+            "ray-bundle families",
             "ΔBIC > 40 000"
           ]
         },
         {
           "title": "CMO + SE(3) Fit",
           "lines": [
-            "14 telecentric params",
-            "+ 12 per-arm SE(3)",
+          "14 effective directional params",
+          "+ 12 channel bundle SE(3)",
             "26 params, 1.06 px RMS"
           ]
         }

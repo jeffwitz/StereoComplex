@@ -1,17 +1,17 @@
 \begin{table}[H]
 \centering
-\caption{BIC model selection on the Zernike rayfield. Models above 1.5~px reprojection are REJECTED by the operational guard. The central and parallel-plate models have multi-millimetre ray RMS and are rejected on reprojection alone; their observability-penalised score $S_{\mathrm{usable}}$ then diverges ($\gg 0$) and is not tabulated precisely.}
+\caption{Lexicographic model selection on the Zernike rayfield. Ray-space BIC first identifies the quasi-telecentric CMO family; the operational guard then rejects the 14p family member above 1.5~px and retains the SE(3)-aligned 26p member. A dash means that pixel reprojection was not used after the family had already been rejected.}
 \label{tab:bic}
-\begin{tabular}{lrrrrr}
+\begin{tabular}{lrrrrl}
 \toprule
-Model & $p$ & RMS (mm) & BIC$_{\text{ray}}$ & $S_{\mathrm{usable}}$ & Status \\
+Model & $p$ & RMS (mm) & BIC$_{\text{ray}}$ & RMS (px) & Guard \\
 \midrule
-cmo telecentric shear & 14 & 0.111 & -36\,128 & +978\,890 & REJECTED \\
-cmo telecentric & 12 & 0.146 & -33\,201 & +986\,044 & REJECTED \\
-pinhole parallel plate & 6 & 6.337 & 5\,079 & $\gg 0$ & REJECTED \\
-central pinhole & 0 & 8.343 & 6\,500 & $\gg 0$ & REJECTED \\
-central brown conrady & 10 & 8.324 & 6\,549 & $\gg 0$ & REJECTED \\
-\textbf{CMO + SE(3) 26p} & 26 & 0.002 & $-32\,433$ & $-32\,433$ & \textbf{BEST USABLE} \\
+CMO quasi-telecentric + shear & 14 & 0.111 & -36\,128 & 14.6 & No \\
+CMO quasi-telecentric & 12 & 0.146 & -33\,201 & -- & -- \\
+pinhole parallel plate & 6 & 6.337 & 5\,079 & -- & -- \\
+central pinhole & 0 & 8.343 & 6\,500 & -- & -- \\
+central Brown--Conrady & 10 & 8.324 & 6\,549 & -- & -- \\
+\textbf{CMO + bundle SE(3) 26p} & 26 & 0.002 & $-32\,433$ & 1.06 & \textbf{Yes} \\
 \bottomrule
 \end{tabular}
 \end{table}

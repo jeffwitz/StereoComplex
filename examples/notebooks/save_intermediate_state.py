@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run pipeline once, save all intermediate state to .npz for fast reuse."""
-import json, sys, time, math
+import json, sys, time
 from pathlib import Path
 import numpy as np
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -11,10 +11,14 @@ OUT = ROOT / "docs" / "assets" / "pycaso_real_data"
 import cv2; from cv2 import aruco
 from scipy.optimize import least_squares
 from scipy.spatial.transform import Rotation
-from stereocomplex.core.rayfield2d import predict_points_rayfield_tps_robust
 from stereocomplex.benchmarks.charuco_observation_simulator import CharucoObservationSet
 from stereocomplex.benchmarks.rayfield_from_observations import fit_constrained_zernike_rayfield
 from stereocomplex.physics.cmo_physical import CMOTelecentricStereoModel, _normalize
+from cmo_corner_preprocessing import (
+    complete_corners_hessian,
+    marker_tps_corners,
+    second_tps_pass,
+)
 
 # ── Params ──
 PYCASO = ROOT / "examples" / "pycaso_data"
@@ -23,7 +27,7 @@ RIGHT_DIR = PYCASO / "Exemple" / "Images_example" / "right_calibration11"
 NCX, NCY, SQR = 16, 12, 0.3; IMG_SIZE = (2048, 2048); W, H = IMG_SIZE
 FX = 25600.0; K = np.array([[FX, 0, 1024], [0, FX, 1024], [0, 0, 1]], dtype=np.float64)
 
-# ── Detection + Hessian + TPS ── (abbreviated helpers — same as always)
+# ── Marker-TPS preprocessing with Hessian fallback ──
 dictionary = aruco.getPredefinedDictionary(getattr(aruco, "DICT_6X6_250"))
 ocv_board = aruco.CharucoBoard((NCX, NCY), SQR, SQR / 2, dictionary); ocv_board.setLegacyPattern(True)
 chess3 = ocv_board.getChessboardCorners()
@@ -38,91 +42,6 @@ params.polygonalApproxAccuracyRate, params.minCornerDistanceRate = 0.08, 0.02
 params.minDistanceToBorder = 1
 aruco_det = aruco.ArucoDetector(dictionary, params); charuco_det = aruco.CharucoDetector(ocv_board)
 
-def abs_det_hessian(gray, sigma=9.0):
-    f = gray.astype(np.float32)
-    if f.max() > 2: f /= 255.0
-    f = cv2.GaussianBlur(f, (0, 0), sigmaX=sigma, sigmaY=sigma, borderType=cv2.BORDER_REPLICATE)
-    return np.abs(cv2.Sobel(f, cv2.CV_64F, 2, 0, ksize=3)*cv2.Sobel(f, cv2.CV_64F, 0, 2, ksize=3) - cv2.Sobel(f, cv2.CV_64F, 1, 1, ksize=3)**2)
-def otsu_mask(r):
-    r8 = cv2.normalize(r, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-    _, m = cv2.threshold(r8, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU); return m
-def blob_barycentre(mask, xi, yi, d, prefer_largest=True):
-    h, w = mask.shape; x0, x1 = max(0, int(xi)-d), min(w, int(xi)+d); y0, y1 = max(0, int(yi)-d), min(h, int(yi)+d)
-    if x1 <= x0+2 or y1 <= y0+2: return math.nan, math.nan, math.nan
-    roi = (mask[y0:y1, x0:x1] > 0).astype(np.uint8)
-    nl, labels, stats, _ = cv2.connectedComponentsWithStats(roi, connectivity=8)
-    if nl <= 1: return math.nan, math.nan, math.nan
-    if prefer_largest: k = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
-    else:
-        cx_c, cy_c = xi-x0, yi-y0; best_k, best_d2 = 1, float("inf")
-        for k in range(1, nl):
-            sx, sy = stats[k, cv2.CC_STAT_LEFT], stats[k, cv2.CC_STAT_TOP]
-            sw, sh = stats[k, cv2.CC_STAT_WIDTH], stats[k, cv2.CC_STAT_HEIGHT]
-            d2 = (sx+sw/2-cx_c)**2 + (sy+sh/2-cy_c)**2
-            if d2 < best_d2: best_d2, best_k = d2, k
-        k = best_k
-    m = cv2.moments((labels == k).astype(np.uint8), binaryImage=True)
-    if m["m00"] < 1e-10: return math.nan, math.nan, math.nan
-    return (m["m10"]/m["m00"]+x0, m["m01"]/m["m00"]+y0, float(m["m00"]))
-def win_spot_2pass(mask, l_step, d_init, xi, yi, prefer_largest):
-    for d_search in [d_init, max(d_init, int(l_step*0.5))]:
-        xd, yd, area = blob_barycentre(mask, xi, yi, d_search, prefer_largest)
-        if not math.isnan(xd): return xd, yd, area
-    return math.nan, math.nan, math.nan
-def ids_to_grid(ids, ncx=16):
-    ids_arr = np.asarray(ids, dtype=np.float32).reshape(-1); nx = ncx - 1
-    return np.column_stack([ids_arr % nx, ids_arr // nx]).astype(np.float32)
-def fit_affine(img_pts, ids_arr, ncx=16):
-    img = np.asarray(img_pts, dtype=np.float32).reshape(-1, 2)
-    grid = ids_to_grid(np.asarray(ids_arr, dtype=np.int32).reshape(-1), ncx)
-    A, _ = cv2.estimateAffine2D(grid, img, method=cv2.LMEDS)
-    if A is None:
-        X = np.column_stack([grid, np.ones(len(grid), dtype=np.float32)])
-        A = np.linalg.lstsq(X, img, rcond=None)[0].T.astype(np.float32)
-    return A
-def project_affine(A, ids, ncx=16):
-    grid = ids_to_grid(np.asarray(ids, dtype=np.int32).reshape(-1), ncx)
-    return (np.column_stack([grid, np.ones(len(grid), dtype=np.float32)])) @ A.T
-def complete_corners_hessian(gray, cc, ids, ncx, ncy, marker_corners=None, marker_ids=None):
-    nx, ny = ncx-1, ncy-1; n_corners = nx * ny
-    R = abs_det_hessian(gray); mask = otsu_mask(R)
-    detected = {}
-    if ids is not None and len(ids) > 0:
-        for i in range(len(np.asarray(ids).ravel())): detected[int(np.asarray(ids).ravel()[i])] = np.asarray(cc).reshape(-1, 2)[i].astype(np.float64)
-    cids = sorted(detected.keys()); pred_xy = None
-    if marker_corners is not None and marker_ids is not None:
-        obj_xy_list, img_uv_list = [], []
-        for i in range(len(marker_ids)):
-            mid = int(marker_ids[i].ravel()[0]); o = id_to_obj.get(mid)
-            if o is None: continue
-            mc = np.asarray(marker_corners[i], dtype=np.float64).reshape(-1, 2)
-            if mc.shape[0] == 4: obj_xy_list.append(o); img_uv_list.append(mc)
-        if len(obj_xy_list) >= 4:
-            try: pred_xy = predict_points_rayfield_tps_robust(np.concatenate(obj_xy_list, axis=0), np.concatenate(img_uv_list, axis=0), chess3[:, :2].astype(np.float64), lam=10.0, huber_c=3.0, iters=3, ransac_reproj_px=3.0)
-            except Exception: pred_xy = None
-    if pred_xy is None and len(cids) >= 3:
-        A = fit_affine(np.array([detected[i] for i in cids]), np.array(cids), ncx); pred_xy = project_affine(A, np.arange(n_corners), ncx)
-    l_step = 50.0
-    if len(cids) >= 2:
-        dp = float(np.linalg.norm(detected[cids[-1]] - detected[cids[0]]))
-        g0, g1 = ids_to_grid(np.array([cids[0]]), ncx)[0], ids_to_grid(np.array([cids[-1]]), ncx)[0]; dg = float(np.linalg.norm(g1 - g0))
-        if dg > 1e-8: l_step = dp / dg
-    d_init = max(3, int(l_step * 0.3))
-    if len(cids) > 0:
-        xA, yA = float(detected[cids[0]][0]), float(detected[cids[0]][1])
-        _, _, a_test = win_spot_2pass(mask, l_step, int(l_step*2/3), xA, yA, True)
-        if not math.isnan(a_test) and float(a_test) > 0: d_init = max(3, int(math.sqrt(float(a_test))))
-    result = np.full((n_corners, 2), np.nan)
-    for idx in range(n_corners):
-        if idx in detected: result[idx] = detected[idx]
-        else:
-            xi, yi = float(pred_xy[idx, 0]), float(pred_xy[idx, 1])
-            xd, yd, _ = win_spot_2pass(mask, l_step, d_init, xi, yi, False)
-            if not math.isnan(xd): result[idx] = [float(xd), float(yd)]
-    for idx in range(n_corners):
-        if np.isnan(result[idx, 0]): result[idx] = [float(pred_xy[idx, 0]), float(pred_xy[idx, 1])]
-    return result
-
 print("Pipeline...", flush=True)
 lz = sorted([f.stem for f in LEFT_DIR.iterdir() if f.suffix == ".png"], key=float)
 rz = sorted([f.stem for f in RIGHT_DIR.iterdir() if f.suffix == ".png"], key=float)
@@ -133,19 +52,19 @@ for z_str in paired_z:
     cc_L, ids_L, _, _ = charuco_det.detectBoard(lg); cc_R, ids_R, _, _ = charuco_det.detectBoard(rg)
     nL = 0 if ids_L is None else len(ids_L); nR = 0 if ids_R is None else len(ids_R)
     mk_c_L, mk_ids_L = aruco_det.detectMarkers(lg)[:2]; mk_c_R, mk_ids_R = aruco_det.detectMarkers(rg)[:2]
-    comp_L = complete_corners_hessian(lg, cc_L, ids_L, NCX, NCY, mk_c_L, mk_ids_L)
-    comp_R = complete_corners_hessian(rg, cc_R, ids_R, NCX, NCY, mk_c_R, mk_ids_R)
+    comp_L = complete_corners_hessian(
+        lg, cc_L, ids_L, NCX, NCY, marker_object_xy=id_to_obj,
+        chessboard_xy=chess3[:, :2], marker_corners=mk_c_L, marker_ids=mk_ids_L,
+    )
+    comp_R = complete_corners_hessian(
+        rg, cc_R, ids_R, NCX, NCY, marker_object_xy=id_to_obj,
+        chessboard_xy=chess3[:, :2], marker_corners=mk_c_R, marker_ids=mk_ids_R,
+    )
     for mk_c, mk_ids, comp, out in [(mk_c_L, mk_ids_L, comp_L, denoised_L), (mk_c_R, mk_ids_R, comp_R, denoised_R)]:
-        obj_xy_list, img_uv_list = [], []
-        if mk_ids is not None:
-            for i in range(len(mk_ids)):
-                mid = int(mk_ids[i].ravel()[0]); o = id_to_obj.get(mid)
-                if o is None: continue
-                mc = np.asarray(mk_c[i], dtype=np.float64).reshape(-1, 2)
-                if mc.shape[0] == 4: obj_xy_list.append(o); img_uv_list.append(mc)
-        if len(obj_xy_list) >= 4: pred = predict_points_rayfield_tps_robust(np.concatenate(obj_xy_list, axis=0), np.concatenate(img_uv_list, axis=0), chess3[:, :2].astype(np.float64), lam=10.0, huber_c=3.0, iters=3, ransac_reproj_px=3.0)
-        else: pred = comp
-        re_denoised = predict_points_rayfield_tps_robust(chess3[:, :2].astype(np.float64), pred.astype(np.float64), chess3[:, :2].astype(np.float64), lam=3.0, huber_c=1.5, iters=2, ransac_reproj_px=2.0)
+        pred = marker_tps_corners(mk_c, mk_ids, id_to_obj, chess3[:, :2])
+        if pred is None:
+            pred = comp
+        re_denoised = second_tps_pass(chess3[:, :2], pred)
         out.append(re_denoised)
     print(f"  {z_str}: L {nL}→165  R {nR}→165", flush=True)
 

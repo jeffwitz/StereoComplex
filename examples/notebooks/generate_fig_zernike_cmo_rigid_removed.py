@@ -139,7 +139,7 @@ def render(manifest: dict, manifest_root: Path, out_dir: Path) -> None:
 
     im = axes[0, 1].imshow(Zz_norm_map, cmap="viridis", vmin=z_p_lo, vmax=z_p_hi)
     axes[0, 1].set_title(
-        f"Zernike 57p Z (SE3+plane-norm)\nstd={np.nanstd(Zz_norm[valid_subset]):.4f} mm"
+        f"Zernike O(2)+d(2) Z (87p incl. poses)\nstd={np.nanstd(Zz_norm[valid_subset]):.4f} mm"
     )
     axes[0, 1].axis("off")
     plt.colorbar(im, ax=axes[0, 1], fraction=0.046)

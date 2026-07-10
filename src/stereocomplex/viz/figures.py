@@ -114,6 +114,7 @@ def diagram_cmo_physical(
     model=None,
     *,
     f_obj=80.0,
+    effective_axial_length=None,
     working_distance=120.0,
     b=8.0,
     f_tube=50.0,
@@ -140,6 +141,10 @@ def diagram_cmo_physical(
         Pre-fitted model; overrides the individual geometry parameters.
     f_obj : float
         Objective focal length in millimetres.
+    effective_axial_length : float, optional
+        Effective sub-pupil-to-object-plane distance. When provided, the
+        diagram uses the paper's effective-ray skeleton and labels this
+        distance ``L_eff`` instead of interpreting ``f_obj`` literally.
     working_distance : float
         Distance from objective to specimen in millimetres.
     b : float
@@ -168,7 +173,10 @@ def diagram_cmo_physical(
     # ---- geometry (z = 0 at object plane, +z upward) ----
     z_object = 0.0
     z_objective = float(working_distance)               # main objective
-    z_pupil = z_objective - float(f_obj)                # sub-pupils = back focal plane
+    if effective_axial_length is None:
+        z_pupil = z_objective - float(f_obj)
+    else:
+        z_pupil = float(effective_axial_length)
     z_tube = z_objective + 55                           # tube lens (afocal gap above objective)
     z_sensor = z_tube + max(float(f_tube) * 0.5, 40)   # sensor
     b2 = float(b) / 2
@@ -178,14 +186,19 @@ def diagram_cmo_physical(
     plane_style = {"color": "#cccccc", "linewidth": 0.6, "zorder": 0}
     planes = [
         (z_object,   "object plane ($C$)"),
-        (z_objective, "main objective ($f_\\mathrm{obj}$)"),
+        (z_objective, "main objective"),
         (z_pupil,    "sub-pupils / aperture stop ($S_L, S_R$)"),
         (z_tube,     "tube lens ($f_\\mathrm{tube}$)"),
         (z_sensor,   "sensor ($p\\;=\\;\\mathrm{pixel\\,pitch}$)"),
     ]
     for z, label in planes:
         ax.plot([-x_span, x_span], [z, z], **plane_style)
-        ax.text(x_span + 2, z, label, va="center", ha="left", fontsize=8,
+        label_z = z
+        if effective_axial_length is not None and label == "main objective":
+            label_z += 4
+        if effective_axial_length is not None and label.startswith("sub-pupils"):
+            label_z -= 4
+        ax.text(x_span + 2, label_z, label, va="center", ha="left", fontsize=8,
                 color=COLORS["annotation"])
 
     # ---- optical axis ----
@@ -269,7 +282,13 @@ def diagram_cmo_physical(
 
     # ---- dimensions ----
     draw_dimension(ax, C_pt, (0, z_objective), "Z_w", offset=(75, 0))
-    draw_dimension(ax, (0, z_objective), (0, z_pupil), "f_\\mathrm{obj}", offset=(-75, 0))
+    if effective_axial_length is None:
+        draw_dimension(
+            ax, (0, z_objective), (0, z_pupil), "f_\\mathrm{obj}",
+            offset=(-75, 0),
+        )
+    else:
+        draw_dimension(ax, C_pt, (0, z_pupil), "L_\\mathrm{eff}", offset=(-75, 0))
     draw_dimension(ax, SL, SR, "b", offset=(0, 16))
     draw_dimension(ax, (0, z_tube), (0, z_sensor), "f_\\mathrm{tube}", offset=(-75, 0))
 

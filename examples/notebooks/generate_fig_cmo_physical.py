@@ -19,10 +19,10 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
 sys.path.insert(0, "src")
-from stereocomplex.viz.figures import diagram_cmo_physical  # noqa: E402
+from stereocomplex.viz.figures import diagram_cmo_physical
 
 MANIFEST = Path("docs/assets/cmo_paper/figure1_cmo_physical/manifest.json")
 OUT_DIR = Path("paper/cmo/figures")
@@ -39,7 +39,8 @@ def render(manifest: dict, out_dir: Path) -> None:
     fig, ax = plt.subplots(figsize=tuple(manifest["figure_size"]))
     diagram_cmo_physical(
         ax=ax,
-        f_obj=float(manifest["f_obj_mm"]),
+        f_obj=float(manifest["effective_axial_length_mm"]),
+        effective_axial_length=float(manifest["effective_axial_length_mm"]),
         working_distance=float(manifest["working_distance_mm"]),
         b=float(manifest["b_mm"]),
         exaggerated=bool(manifest["exaggerated"]),
