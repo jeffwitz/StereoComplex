@@ -90,6 +90,11 @@ the near-hard Zernike rayfield, needs the raw images), then `figures`, `pdf`,
 `audit`. Use this only to rebuild the heavy `.npz` from scratch; the default
 `make repro` reuses the versioned/fetched data.
 
+The calibration state uses the ten explicit stage positions
+`2.65, 2.72, 2.79, 2.86, 2.93, 3.00, 3.07, 3.21, 3.28, 3.35` mm. The auxiliary
+`3.014` mm image remains available for preprocessing validation but is not a
+calibration pair.
+
 ## Notes
 
 - The specimen reconstructions are produced by

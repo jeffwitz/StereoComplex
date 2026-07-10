@@ -23,14 +23,7 @@ import numpy as np
 
 ROOT = Path("docs/assets/pycaso_real_data")
 STATE = ROOT / "intermediate_state.npz"
-SUMMARY = ROOT / "summary.json"
 OUT = ROOT / "magnification_vs_z.json"
-
-
-def _load_nominal_z(n_frames: int) -> np.ndarray:
-    summary = json.loads(SUMMARY.read_text(encoding="utf-8"))
-    z0, z1 = summary["dataset"]["z_range_mm"]
-    return np.linspace(float(z0), float(z1), int(n_frames), dtype=np.float64)
 
 
 def _fit_scales(obj_xy: np.ndarray, pixels: np.ndarray) -> np.ndarray:
@@ -68,7 +61,11 @@ def _summarise_trace(z_mm: np.ndarray, values: np.ndarray) -> dict[str, float]:
 def main() -> int:
     data = np.load(STATE)
     obj_xy = np.asarray(data["obj_pts"], dtype=np.float64)[:, :2]
-    z_nominal = _load_nominal_z(int(data["n_frames"]))
+    if "paired_z_mm" not in data:
+        raise KeyError("intermediate_state.npz lacks paired_z_mm; rebuild it with make state")
+    z_nominal = np.asarray(data["paired_z_mm"], dtype=np.float64)
+    if z_nominal.size != int(data["n_frames"]):
+        raise ValueError("paired_z_mm length does not match n_frames")
     z_fit = np.asarray(data["opt_t"], dtype=np.float64)[:, 2]
 
     output: dict[str, object] = {

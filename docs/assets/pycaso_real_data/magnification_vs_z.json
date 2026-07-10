@@ -2,14 +2,14 @@
   "definition": "Affine fit per frame/channel: [u,v]^T = A [X,Y]^T + b; Mx=||A[:,0]||, My=||A[:,1]||.",
   "nominal_z_mm": [
     2.65,
-    2.727777777777778,
-    2.8055555555555554,
-    2.8833333333333333,
-    2.9611111111111112,
-    3.0388888888888888,
-    3.1166666666666667,
-    3.1944444444444446,
-    3.272222222222222,
+    2.72,
+    2.79,
+    2.86,
+    2.93,
+    3.0,
+    3.07,
+    3.21,
+    3.28,
     3.35
   ],
   "fitted_pose_z_mm": [
@@ -57,19 +57,19 @@
           "mean_px_per_mm": 392.75823160153857,
           "std_px_per_mm": 1.525417654205443,
           "range_relative_percent": 1.0706965402813209,
-          "slope_px_per_mm_per_mm": -6.448580522334387,
-          "slope_relative_percent_per_mm": -1.6418702406412213,
-          "total_linear_change_percent": -1.1493091684488552,
-          "rms_linear_residual_percent": 0.03495666677567215
+          "slope_px_per_mm_per_mm": -6.344302167012729,
+          "slope_relative_percent_per_mm": -1.6153199746171478,
+          "total_linear_change_percent": -1.1307239822320037,
+          "rms_linear_residual_percent": 0.027308963606583248
         },
         "My": {
           "mean_px_per_mm": 392.7802801938293,
           "std_px_per_mm": 1.5243495048657507,
           "range_relative_percent": 1.0813095154954673,
-          "slope_px_per_mm_per_mm": -6.439172263914918,
-          "slope_relative_percent_per_mm": -1.639382776736478,
-          "total_linear_change_percent": -1.1475679437155348,
-          "rms_linear_residual_percent": 0.03773636125068093
+          "slope_px_per_mm_per_mm": -6.34763583306029,
+          "slope_relative_percent_per_mm": -1.6160780347546626,
+          "total_linear_change_percent": -1.1312546243282642,
+          "rms_linear_residual_percent": 0.020340794653784546
         }
       },
       "fitted_pose_z_fit": {
@@ -123,19 +123,19 @@
           "mean_px_per_mm": 391.3796040218376,
           "std_px_per_mm": 1.5102606952314275,
           "range_relative_percent": 1.1051339194518572,
-          "slope_px_per_mm_per_mm": -6.386603705919311,
-          "slope_relative_percent_per_mm": -1.6318182246315942,
-          "total_linear_change_percent": -1.1422727572421163,
-          "rms_linear_residual_percent": 0.03345087239802589
+          "slope_px_per_mm_per_mm": -6.288966009763752,
+          "slope_relative_percent_per_mm": -1.6068711668002131,
+          "total_linear_change_percent": -1.1248098167601495,
+          "rms_linear_residual_percent": 0.02022676678080012
         },
         "My": {
           "mean_px_per_mm": 391.6708500998687,
           "std_px_per_mm": 1.4608853481931747,
           "range_relative_percent": 1.0808937104894902,
-          "slope_px_per_mm_per_mm": -6.183406584640431,
-          "slope_relative_percent_per_mm": -1.5787252441849529,
-          "total_linear_change_percent": -1.1051076709294674,
-          "rms_linear_residual_percent": 0.028638473297165918
+          "slope_px_per_mm_per_mm": -6.081876094529093,
+          "slope_relative_percent_per_mm": -1.5528028427385732,
+          "total_linear_change_percent": -1.0869619899170015,
+          "rms_linear_residual_percent": 0.021049851753647514
         }
       },
       "fitted_pose_z_fit": {
@@ -162,9 +162,9 @@
   },
   "aggregate_nominal_z": {
     "mean_scale_px_per_mm": 392.14724147926853,
-    "min_total_change_percent": 1.1051076709294674,
-    "max_total_change_percent": 1.1493091684488552,
-    "min_relative_slope_percent_per_mm": 1.5787252441849529,
-    "max_relative_slope_percent_per_mm": 1.6418702406412213
+    "min_total_change_percent": 1.0869619899170015,
+    "max_total_change_percent": 1.1312546243282642,
+    "min_relative_slope_percent_per_mm": 1.5528028427385732,
+    "max_relative_slope_percent_per_mm": 1.6160780347546626
   }
 }

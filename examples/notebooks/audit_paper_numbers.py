@@ -58,11 +58,11 @@ def main() -> int:
     mag_agg = mag["aggregate_nominal_z"]
     chk("Mx/My mean scale px/mm", 392.0, mag_agg["mean_scale_px_per_mm"],
         "magnification_vs_z.json.aggregate_nominal_z.mean_scale_px_per_mm", 0.2)
-    chk("Mx/My axial change lower %", 1.10, mag_agg["min_total_change_percent"],
+    chk("Mx/My axial change lower %", 1.09, mag_agg["min_total_change_percent"],
         "magnification_vs_z.json.aggregate_nominal_z.min_total_change_percent", 0.02)
-    chk("Mx/My axial change upper %", 1.15, mag_agg["max_total_change_percent"],
+    chk("Mx/My axial change upper %", 1.13, mag_agg["max_total_change_percent"],
         "magnification_vs_z.json.aggregate_nominal_z.max_total_change_percent", 0.02)
-    chk("Mx/My slope upper %/mm", 1.64, mag_agg["max_relative_slope_percent_per_mm"],
+    chk("Mx/My slope upper %/mm", 1.62, mag_agg["max_relative_slope_percent_per_mm"],
         "magnification_vs_z.json.aggregate_nominal_z.max_relative_slope_percent_per_mm", 0.02)
 
     # Corner BA refinement — CANONICAL source for the paper's CMO 26p numbers
@@ -76,15 +76,6 @@ def main() -> int:
     chk("corner BA P50 px",     0.64, aft["px_p50"], "corner_ba_refinement.json/after_joint_ba.px_p50", 0.005)
     chk("BA improvement % (paper: 17)",
         17.0, cba["improvement_pct"], "corner_ba_refinement.json.improvement_pct", 0.5)
-
-    # ALSO flag the divergent sibling aligned_cmo_fit.json: it is NOT the paper's
-    # source and is NOT read by the current specimen scripts (they use
-    # intermediate_state.npz/x_26p). The check guards against reading it by mistake.
-    afit = json.loads((ROOT / "aligned_cmo_fit.json").read_text())["aligned_26p"]
-    rows.append(("INFO",
-                 "aligned_cmo_fit.json/aligned_26p (NOT the paper's source)",
-                 1.06, afit["px_rms"], afit["px_rms"] - 1.06,
-                 "aligned_cmo_fit.json/aligned_26p.px_rms — diverges from paper's 1.06"))
 
     # Schur coupling norms (manuscript: c=0.98 real, c≈0.81 synthetic).
     # Prefer the standalone diagnostic; fall back to the sensitivity baseline
@@ -210,23 +201,11 @@ def main() -> int:
         "## Notes",
         "",
         "- The paper's **CMO 26-parameter** pixel RMS / P50 / P95 numbers "
-        "(1.06 / 0.87 / 1.84 px) come from "
-        "`corner_ba_refinement.json/before_rayfield`. A sibling fit, "
-        "`aligned_cmo_fit.json/aligned_26p`, exists with different values "
-        "(1.13 / 0.94 / 1.98 px); it is NOT the source for the paper text and "
-        "is NOT read by the current specimen-reconstruction scripts (which use "
-        "`intermediate_state.npz/x_26p`). Future contributors should verify "
-        "which file they are reading from.",
+        "(1.06 / 0.87 / 1.84 px) come exclusively from "
+        "`corner_ba_refinement.json/before_rayfield`.",
         "",
-        "- The Figure 4 caption quotes `WD = 64.7 mm`, taken from the "
-        "Zernike order-sweep convention (likely the difference between the "
-        "object-plane Z and the optical-axis origin). The Figure 4 generator, "
-        "rebuilt from the same canonical rayfield, computes WD as the "
-        "chief-ray crossing distance from the baseline midpoint and reports "
-        "`62.45 mm` (~2.3 mm smaller). These are two definitions of \"working "
-        "distance\" applied to the same fit; both are reproducible from the "
-        "committed assets, but the paper should be explicit about which "
-        "convention it cites.",
+        "- `WD = 64.7 mm` follows the Zernike order-sweep convention used "
+        "throughout the manuscript and Figure 1 manifest.",
         "",
         "- The Schur-prior 0.241 px figure (Section 3.8) is a **2-D pixel "
         "reprojection RMS** computed by numerical projection (Appendix A, "

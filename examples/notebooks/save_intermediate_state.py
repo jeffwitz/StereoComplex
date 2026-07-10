@@ -24,6 +24,10 @@ from cmo_corner_preprocessing import (
 PYCASO = ROOT / "examples" / "pycaso_data"
 LEFT_DIR = PYCASO / "Exemple" / "Images_example" / "left_calibration11"
 RIGHT_DIR = PYCASO / "Exemple" / "Images_example" / "right_calibration11"
+# The paper calibration stack deliberately excludes the auxiliary 3.014-mm
+# view. Keep this explicit so raw-image rebuilds reproduce the versioned 10-pair
+# state rather than silently using every filename present in Pycaso.
+CALIBRATION_Z_MM = (2.65, 2.72, 2.79, 2.86, 2.93, 3.00, 3.07, 3.21, 3.28, 3.35)
 NCX, NCY, SQR = 16, 12, 0.3; IMG_SIZE = (2048, 2048); W, H = IMG_SIZE
 FX = 25600.0; K = np.array([[FX, 0, 1024], [0, FX, 1024], [0, 0, 1]], dtype=np.float64)
 
@@ -43,12 +47,16 @@ params.minDistanceToBorder = 1
 aruco_det = aruco.ArucoDetector(dictionary, params); charuco_det = aruco.CharucoDetector(ocv_board)
 
 print("Pipeline...", flush=True)
-lz = sorted([f.stem for f in LEFT_DIR.iterdir() if f.suffix == ".png"], key=float)
-rz = sorted([f.stem for f in RIGHT_DIR.iterdir() if f.suffix == ".png"], key=float)
-paired_z = sorted(set(lz) & set(rz), key=float); n_frames = len(paired_z)
+left_stems = {float(f.stem): f.stem for f in LEFT_DIR.glob("*.png")}
+right_stems = {float(f.stem): f.stem for f in RIGHT_DIR.glob("*.png")}
+missing = [z for z in CALIBRATION_Z_MM if z not in left_stems or z not in right_stems]
+if missing:
+    raise FileNotFoundError(f"Missing canonical calibration pairs at z={missing}")
+paired_z = [(z, left_stems[z], right_stems[z]) for z in CALIBRATION_Z_MM]
+n_frames = len(paired_z)
 denoised_L, denoised_R = [], []
-for z_str in paired_z:
-    lg = cv2.imread(str(LEFT_DIR / f"{z_str}.png"), 0); rg = cv2.imread(str(RIGHT_DIR / f"{z_str}.png"), 0)
+for z_mm, left_stem, right_stem in paired_z:
+    lg = cv2.imread(str(LEFT_DIR / f"{left_stem}.png"), 0); rg = cv2.imread(str(RIGHT_DIR / f"{right_stem}.png"), 0)
     cc_L, ids_L, _, _ = charuco_det.detectBoard(lg); cc_R, ids_R, _, _ = charuco_det.detectBoard(rg)
     nL = 0 if ids_L is None else len(ids_L); nR = 0 if ids_R is None else len(ids_R)
     mk_c_L, mk_ids_L = aruco_det.detectMarkers(lg)[:2]; mk_c_R, mk_ids_R = aruco_det.detectMarkers(rg)[:2]
@@ -66,7 +74,7 @@ for z_str in paired_z:
             pred = comp
         re_denoised = second_tps_pass(chess3[:, :2], pred)
         out.append(re_denoised)
-    print(f"  {z_str}: L {nL}→165  R {nR}→165", flush=True)
+    print(f"  {z_mm:g}: L {nL}→165  R {nR}→165", flush=True)
 
 obj_pts = chess3.astype(np.float64)
 left_pixels = [dn.astype(np.float64) for dn in denoised_L]; right_pixels = [dn.astype(np.float64) for dn in denoised_R]
@@ -146,6 +154,7 @@ np.savez_compressed(fname,
     opt_R=opt_R_arr, opt_t=opt_t_arr,
     x_26p=x_rf,
     n_frames=n_frames, image_size=np.array(IMG_SIZE),
+    paired_z_mm=np.asarray(CALIBRATION_Z_MM, dtype=np.float64),
     FX=FX,
 )
 print(f"\nSaved: {fname}")
