@@ -1,0 +1,9 @@
+{
+  "ray_affine_max_mm": 1.4654943925052066e-14,
+  "soloff_affine_max_mm": 1.021405182655144e-14,
+  "direct_affine_max_mm": 3.9968028886505635e-15,
+  "ray_reference_plane_invariance_max_mm": 1.7763568394002505e-15,
+  "soloff_vector_vs_scipy_max_mm": 5.262443814046946e-10,
+  "soloff_scipy_points": 8,
+  "passed": true
+}

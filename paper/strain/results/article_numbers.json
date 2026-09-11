@@ -1,0 +1,35 @@
+{
+  "synthetic_runs": 488,
+  "images": 404,
+  "pairs": 202,
+  "real_results": {
+    "calibration": {
+      "ray": {
+        "depth_um": 11.612278817066137,
+        "gauge_microstrain": 408.99744660771563
+      },
+      "soloff": {
+        "depth_um": 11.588993097952537,
+        "gauge_microstrain": 383.1175008019281
+      },
+      "direct": {
+        "depth_um": 12.363948921834313,
+        "gauge_microstrain": 424.82162631825395
+      }
+    },
+    "calibration2": {
+      "ray": {
+        "depth_um": 9.412692651936398,
+        "gauge_microstrain": 184.62403437384563
+      },
+      "soloff": {
+        "depth_um": 5.892760167801535,
+        "gauge_microstrain": 267.9346948695736
+      },
+      "direct": {
+        "depth_um": 5.200921471582755,
+        "gauge_microstrain": 338.335115916917
+      }
+    }
+  }
+}
