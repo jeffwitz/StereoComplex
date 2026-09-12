@@ -1,36 +1,13 @@
-Dear Editor,
+Dear Editors of Strain,
 
-We submit the manuscript "Rayfield-Based Calibration and Physical Model
-Identification of a Common Main Objective Stereo Microscope" for
-consideration in Optics Express.
+Please consider the manuscript "Ray-field residuals as a diagnostic for compact stereo-microscope calibration".
 
-This paper presents the first real-data validation of a non-central
-stereo calibration pipeline on a Common Main Objective (CMO) stereo
-microscope. The key contribution is methodological: we show that a
-per-pixel Zernike rayfield, fitted to ChArUco corner observations,
-serves as a diagnostic instrument that reveals which physical degree
-of freedom a candidate model is missing. Residual-guided hypothesis
-construction leads from a naive perspective model (86 px RMS) through
-a telecentric CMO skeleton (14.6 px) to a 26-parameter CMO+SE(3)
-model achieving 1.06 px RMS on real Pycaso calibration images, where
-OpenCV stereo calibration fails (>300 px).
+Stereo microscope calibration requires a choice of geometric constraints, and a low fitting residual does not establish that optical parameters are independently identified. This manuscript uses an existing fitted ray field to examine these constraints through comparable line residuals, spatial decomposition and parameter-invariance checks.
 
-The work is supported by:
-- Extensive residual analysis (Zernike modal decomposition of direction
-  and moment differences),
-- Formal BIC model selection with an operational reprojection guard,
-- Internal validation (cross-validation, bootstrap, fx sensitivity),
-- Full reproducibility (code, data, and intermediate state artefacts).
+The case study shows that independent arm transformations remove a dominant constant directional mismatch, while a freely fitted central comparator improves further on the original shared model. Controlled numerical perturbations test when a rigid correction is sufficient and when additional spatial terms are useful. The article presents a reproducible calibration diagnostic relevant to stereo DIC; it does not claim a new experimental strain validation or unique recovery of the microscope's optical architecture.
 
-We believe this work will interest the Optics Express readership because
-it demonstrates a generalisable strategy---measure first, model second,
-diagnose by residual---applicable to any non-standard optical instrument.
+The main article is accompanied by executable analysis, numerical outputs and supplementary methodological details. All new computations use existing data or explicitly labelled synthetic rays.
 
-All authors have approved the manuscript. It is not under consideration
-elsewhere.
+Jean-François Witz
 
-Sincerely,
-Jean-Francois Witz
-CNRS, Univ. Lille, Centrale Lille, LaMcube, F-59000 Lille, France
-jean-francois.witz@centralelille.fr
-ORCID: 0000-0002-7240-9476
+Working cover-letter draft. Authorship, declarations and submission metadata must be supplied accurately in the journal's submission process; no submission has been made.

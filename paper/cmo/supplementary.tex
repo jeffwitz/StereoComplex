@@ -1,0 +1,128 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern,amsmath,amssymb,graphicx,booktabs,microtype}
+\usepackage[margin=22mm]{geometry}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\input{tables/diagnostic_numbers}
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\theequation}{S\arabic{equation}}
+\setlength{\parskip}{4pt}
+\title{Supplementary material\\\large Ray-field residuals as a diagnostic for compact stereo-microscope calibration}
+\author{Jean-Fran\c{c}ois Witz}
+\date{}
+\begin{document}
+\maketitle
+
+\section{Evidence and provenance}
+This supplement separates computations performed for the revised article from historical archive summaries. The revised comparison, centrality checks, numerical inversions, parameter-invariance checks, controlled perturbations and coin alignment are executed by \texttt{analysis/diagnostic\_audit.py}. Results are in \texttt{results/diagnostic\_audit.json}; input hashes are recorded there. The base source revision is \texttt{ed422d6581d841771fbeeb7c0f596e5d05875766}.
+
+The canonical field is loaded from \texttt{zernike\_rayfield\_canonical.npz}. The processed pixels, object points and poses are loaded from \texttt{intermediate\_state.npz}. These are distinct files: the intermediate state does not itself contain the complete canonical Zernike coefficients. Its cached 26-coefficient vector belongs to a previous fit and is not used as the result of the new comparison. The two saved coin point clouds likewise remain historical reconstructions. Their reanalysis changes only their relative frame and detrending, not the underlying calibration.
+
+\begin{table}[htbp]\centering\small
+\caption{Status of the numerical evidence.}\label{tab:evidence}
+\begin{tabular}{p{.37\linewidth}p{.54\linewidth}}\toprule
+Evidence & Status and permitted interpretation\\\midrule
+Common-objective model comparison & Newly fitted against one canonical field; compression and processed-observation consistency.\\
+Centrality and parameter gauges & Analytic identities checked through implemented rays.\\
+Controlled perturbation experiment & Forty new synthetic cases, with known generating rays and recorded seed.\\
+Coin surfaces & Two historical surfaces, newly aligned and detrended on a common mask.\\
+Order sweep & Archived summary, retained descriptively; not rerun here.\\
+Cross-validation and bootstrap & Archived aggregates; no complete generating procedure or per-bootstrap fits located in the inspected source.\\
+Schur-prior sweep & Historical manuscript values; referenced per-variant reconstruction files absent from the inspected archive. No new performance claim.\\\bottomrule
+\end{tabular}
+\end{table}
+
+The raw-image processing is outside the rerun boundary of the present analysis. In particular, neither completion nor smoothing is repeated separately inside held-out folds here. Aggregate cross-validation values are not promoted to independent validation of the revised candidates. This restricted evidence boundary allows reproduction of the reported diagnosis while keeping its limitations visible.
+
+\section{Ray and pixel residuals}
+For each camera, pixel and plane, the comparison residual contains two coordinates,
+\begin{equation}
+r_{cpz}=O_{c,xy}+\frac{z-O_{c,z}}{d_{c,z}}d_{c,xy}-q^{\rm ref}_{cpz}.
+\end{equation}
+There are $2\times221\times2\times2=1768$ scalar residuals in every training objective. The reported RMS is $\sqrt{E/(2\times221\times2)}$, since the norm at each plane is two-dimensional. This convention differs from both per-scalar RMS and the norm of a six-component stack including two zero depth coordinates.
+
+The historical shared affine fitting entry point used the full grid as its support and added the same grid again when the legacy full-grid weight was positive. That duplicated its residuals and likelihood sample count relative to independently fitted channel models. The revised source removes the duplicate block; the weight argument remains accepted for compatibility but has no additional support to weight. A regression test verifies identical counts, RSS and scores for weights zero and one. Historical AIC/BIC output elsewhere in the repository is not thereby retrospectively validated: its statistical assumptions and candidate freedoms require separate attention.
+
+To invert a ray model, each observed board point $X$ supplies a target depth. Starting from its observed pixel $p_0$, define $g(p)=q_{X_z}(\ell(p))-X_{xy}$. The local Newton iteration is
+\begin{equation}
+p_{k+1}=p_k-J_g(p_k)^{-1}g(p_k).
+\end{equation}
+The two Jacobian columns are finite differences with a step of 0.01 pixel. At most twenty iterations are taken, with a maximum pixel-update tolerance of $10^{-8}$. The solver is not clipped to the image boundary, since clipping would mix image support with inversion error. The reported maximum intersection closure is below $10^{-10}$~mm for all four mappings. The pixel RMS is the square root of the mean squared Euclidean distance from predicted to observed pixels over 3300 observations.
+
+The reference gives \RayPx~px by this inverse, whereas its archived local pixel-equivalent score is approximately 0.470~px. The two definitions must not be interchanged. Similarly, the older 26-coefficient score of approximately 1.06~px and the new \AlignedPx~px score involve different fits and metrics. The revised article uses only its explicitly stated comparison when ranking the newly fitted candidates.
+
+\section{Invariances and parameter dimension}
+In the implemented shared model, the two focal quantities have distinct roles. $WD-f$ fixes the pupil-plane coordinate, whereas $f_a$ normalises pixel displacement. Therefore
+\begin{equation}
+(f,WD)\mapsto(f+\delta,WD+\delta)
+\end{equation}
+is an exact invariance while $f_a$ is held independent. Likewise, for $\lambda>0$,
+\begin{equation}
+(f_a,a_{xL},a_{yL},a_{xR},a_{yR},\rho_x,\rho_y)
+\mapsto\lambda(f_a,a_{xL},a_{yL},a_{xR},a_{yR},\rho_x,\rho_y)
+\end{equation}
+leaves all angular and origin corrections unchanged. These identities persist after applying the arm transformations. The numerical checks use $\delta=10$~mm and $\lambda=1.2$; maximum coordinate differences are at floating-point precision.
+
+Both parameters are fixed to the stated convention in the new fits. This leaves twelve active variables for the 14-coefficient construction and twenty-four for the 26-coefficient construction. The latter has further weak or redundant directions. At a relative singular-value threshold of $10^{-6}$, the column-normalised numerical Jacobian has rank 22 in the recorded run. That numerical rank is threshold-dependent and does not establish twenty-two independently measurable physical properties. The code records the full spectrum rather than presenting the threshold as a statistical confidence statement.
+
+For the reference field, each constant raw origin is an exact common line intersection. A spatially varying transverse representative is therefore not evidence of a spatially varying projection centre. Likewise, the separation of representative origins at the image centres differs from the separation of the constant raw centres. Neither quantity can be called a measured pupil separation without specifying the line convention and the relation between effective and physical optics.
+
+\section{Historical sensitivity and uncertainty summaries}
+The archive contains one file, \texttt{validation\_experiments.json}, with five cross-validation scores, bootstrap interval aggregates and an initial-focal-scale sweep. The inconsistent duplicate intervals in the original manuscript are replaced by the single source values below. The file does not retain per-resample estimates or sufficient executable provenance to reproduce a full-pipeline bootstrap within the inspected source. Accordingly, these are historical reported intervals, not uncertainty claims for the new fits.
+
+\begin{table}[htbp]\centering
+\caption{Archived interval endpoints, transcribed from one JSON source. They do not establish independent physical accuracy.}
+\input{tables/diagnostic_bootstrap}
+\end{table}
+
+A bootstrap mean need not equal the original point estimate or the midpoint of a percentile interval. The original estimate being away from that midpoint is not itself a contradiction; the inconsistent interval endpoints were the reproducibility problem. More fundamentally, resampling cannot remove an exact invariance. These intervals depend on conventions and constraints in the original fit.
+
+\begin{table}[htbp]\centering
+\caption{Archived sensitivity to initial $f_x$. RMS is the historical score with its original pixel-equivalent convention. These are not reruns of the revised comparison.}
+\input{tables/diagnostic_fx}
+\end{table}
+
+The dependence of working distance on the initial angular scale is substantial. It prevents interpreting a nominal discrepancy with a manufacturer's specification as evidence that the dataset was acquired on another microscope. The instrument designation in the original publication is not contradicted by these fitted descriptors. An external dimensional constraint on the particular optical quantity would be needed for such an inference.
+
+\section{Schur regularisation as a separate extension}
+For a residual linearised in scaled optical and pose coordinates, write the normal matrix as
+\begin{equation}
+H=\begin{pmatrix}H_{\beta\beta}&H_{\beta\eta}\\H_{\eta\beta}&H_{\eta\eta}\end{pmatrix},\qquad
+S=H_{\beta\beta}-H_{\beta\eta}H_{\eta\eta}^{+}H_{\eta\beta}.
+\end{equation}
+The pseudoinverse handles remaining pose null directions, although known gauges should preferably be removed explicitly. The norm ratio
+$\|H_{\beta\eta}H_{\eta\eta}^{+}H_{\eta\beta}\|_F/\|H_{\beta\beta}\|_F$
+depends on parameter scaling. A historical value of 0.96 is therefore not a statement that 96\,\% of all optical information has disappeared. Zero coupling in a stage with no pose variables follows from the construction of that stage.
+
+If $S=V\Lambda V^T$, an anchored penalty can weight weak modes by adding residuals of the form
+\begin{equation}
+r_i^{\rm prior}=\sqrt{\alpha w_i}\,v_i^TD_\beta^{-1}(\beta-\beta_0),
+\qquad w_i=\frac{1}{\lambda_i/\lambda_{\max}+\varepsilon}.
+\end{equation}
+Here $D_\beta$ supplies parameter scales and $\beta_0$ is the reference fit. This can restrict drift away from the anchor, but the anchor is inferred from the same observations. Treating it as independent additional data would count the same information twice. Nor does a smaller displacement in parameter space establish smaller reconstruction error.
+
+The original manuscript's regularisation table includes an isotropic solution near 0.278~px with weak-subspace drift 0.003, and a Schur solution near 0.277~px with drift 0.0033. These numbers already show why comparing only the same numerical value of $\alpha$ cannot establish that the anisotropic prior uniquely resolves the tradeoff: differently scaled penalties require comparison along their achievable error--drift curves. At the strongest reported setting, the Schur RMS is 0.323~px versus 0.286~px for the isotropic prior, contrary to one sentence in the original draft.
+
+The original per-variant reconstruction files referenced by the five-surface figure are absent from the inspected archive. That figure and the claimed superiority of the prior are therefore removed from the main article. The available two-surface reconstruction remains an illustration. A full regularisation study would require reconstructible sweep outputs, common pose freedoms, explicit scales, equivalent stopping rules and independent reconstruction criteria. It is a separate topic from the demonstrated ray-field diagnostic.
+
+\section{Coin alignment and limits of dispersion measures}
+Let $A_i$ be points of the stored ray-field surface and $B_i$ the corresponding stored compact surface. We solve the proper rigid Procrustes problem $\min_{R,t}\sum_i\|B_iR+t-A_i\|^2$, with $\det R=1$, on the deterministic common subsample. No scale factor is fitted. After alignment, each height is regressed on the same matrix $[1,A_x,A_y]$; residual height is used for the visual comparison and MAD calculation.
+
+This protocol removes a common-frame discrepancy and an explicitly defined planar trend. It does not identify either reconstruction as truth. A standard-deviation ratio and a least-squares anisotropic scale coefficient are different estimands; they need not be exact reciprocals when residuals are nonzero. The original 1.40 and 0.67 claims lack a matching recoverable calculation in the inspected aggregate file, so they are not carried into the revised article.
+
+The previous arithmetic also mixed variants: $0.194/0.027$ is approximately 7.2, whereas $0.194/0.073$ is approximately 2.7. Neither ratio demonstrates that a surface is ``smoother'' in a metrological sense. A relief-bearing surface has dispersion even in the absence of noise. The new common-frame detrended MAD values are \CoinRayMAD~$\mu$m and \CoinCompactMAD~$\mu$m; they remain descriptive relief statistics.
+
+\section{Reproduction}
+From the repository root, the commands below recompute the new numerical experiment and figures. Python requirements are NumPy, SciPy and Matplotlib, plus the package dependencies listed in the analysis requirements file. Linear algebra thread counts are fixed for repeatability; no accelerator is required.
+\begin{verbatim}
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 \
+  python3 paper/cmo/analysis/diagnostic_audit.py
+python3 paper/cmo/analysis/build_diagnostic_assets.py
+python3 paper/cmo/check_manuscript_numbers.py
+bash paper/cmo/build_pdflatex.sh
+\end{verbatim}
+The checker recomputes the expected tables and macros from the JSON source, verifies exact equality with the generated files, checks input hashes, and fails on inconsistencies. It does not claim to verify unencoded prose or experimental accuracy. Synthetic realisations, fitted coefficients and reserved-grid maps are retained. The ray-space comparison can therefore be reproduced without external images, while the limits of the historical evidence remain explicit.
+\end{document}

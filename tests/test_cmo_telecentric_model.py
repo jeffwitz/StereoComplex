@@ -16,6 +16,23 @@ from stereocomplex.physics.cmo_physical import _ray_rms
 from stereocomplex.physics.model_selection import _grid_pixels, rayfield_two_plane_residuals
 
 
+def test_full_grid_not_counted_twice_without_distinct_support():
+    """The legacy full-grid weight must not duplicate likelihood samples."""
+    x = np.array([62.,65.,25.,1024.,1024.,62.,.2,.01,.4,-.4,.41,-.39,0.,0.])
+    target = CMOTelecentricStereoModel.from_parameter_vector(
+        x, pixel_pitch_mm=.0055, image_size=(2048,2048))
+    initial=x.copy(); initial[2]+=.1
+    results=[fit_cmo_telecentric_model_to_rayfields(
+        target.channel('left'),target.channel('right'), image_size=(2048,2048),
+        initial_parameters=initial,pixel_pitch_mm=.0055,grid_shape=(5,4),
+        full_grid_weight=w,max_nfev=1) for w in (0.,1.)]
+    assert results[0].rss > 0
+    assert results[0].n_residual_scalars == results[1].n_residual_scalars == 240
+    assert results[0].n_samples == results[1].n_samples == 40
+    np.testing.assert_allclose(results[0].rss,results[1].rss,rtol=1e-12)
+    np.testing.assert_allclose(results[0].bic,results[1].bic,rtol=1e-12)
+
+
 def test_cmo_telecentric_exports():
     """All telecentric symbols are importable from stereocomplex.physics."""
     assert CMOTelecentricStereoModel is not None
