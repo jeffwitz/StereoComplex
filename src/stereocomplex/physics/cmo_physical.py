@@ -1437,7 +1437,8 @@ def fit_cmo_telecentric_model_to_rayfields(
     grid_shape : (int, int)
         Subsampling grid (width, height) for the full-image residual.
     full_grid_weight : float
-        Relative weight of the full-grid residual term (0 = only support pixels).
+        Legacy compatibility argument. This interface uses the full grid as
+        its only support, so it is counted once regardless of this value.
     max_nfev : int
         Maximum number of function evaluations for the optimiser.
 
@@ -1455,7 +1456,11 @@ def fit_cmo_telecentric_model_to_rayfields(
     full = _grid_pixels(image_size, grid_shape)
     support_l = full
     support_r = full
-    include_full = full_grid_weight > 0
+    # This entry point has no separate support-pixel argument: support IS the
+    # full grid. Stacking it twice spuriously doubles RSS and the likelihood
+    # sample size relative to independently fitted channel models. Keep the
+    # legacy weight argument for API compatibility, without duplicate rows.
+    include_full = False
 
     def model_at(x: Array) -> CMOTelecentricStereoModel:
         """Reconstruct a :class:`CMOTelecentricStereoModel` from parameter vector *x*.

@@ -1,0 +1,595 @@
+{
+  "base_commit": "ed422d6581d841771fbeeb7c0f596e5d05875766",
+  "protocol": {
+    "planes_mm": [
+      50.0,
+      80.0
+    ],
+    "train_shape": [
+      17,
+      13
+    ],
+    "reserved_shape": [
+      32,
+      24
+    ],
+    "residual_scalars": 1768,
+    "loss": "linear",
+    "random_seed": 20260911,
+    "scope": "compression of one fixed fitted field; not independent measurement validation"
+  },
+  "sources": {
+    "docs/assets/cmo_paper/figure4_subpupil_3d/zernike_rayfield_canonical.npz": "6018b9f183d725e992fa89391cac47c9f927f665e0fb3d26bb8bc04937e2b0ae",
+    "docs/assets/pycaso_real_data/intermediate_state.npz": "d434d39722680af9669aed38f284bfc6b1052832918ae4f7ad75eea01521ec3c",
+    "src/stereocomplex/physics/cmo_physical.py": "14bb96adcc56598d800b55e273796240ab4b148af653cfa1eba5353abb65daa0",
+    "src/stereocomplex/rayfields/zernike_origin_field.py": "80e590e75aef6e9ae3961c9ec70bdf7c5b197ee3f08304a2e662ca22d2e5f884"
+  },
+  "models": {
+    "central_projective_22": {
+      "train": {
+        "plane_xy_rms_um": 2.1273526066998887,
+        "angular_rms_deg": 0.0017541723967309552,
+        "direction_energy_fraction_constant_linear_quadratic_remainder": [
+          1.2530192730047396e-08,
+          3.3963668832254357e-06,
+          0.1092336989299094,
+          0.8907628921730146
+        ]
+      },
+      "reserved": {
+        "plane_xy_rms_um": 1.8201269764727628,
+        "angular_rms_deg": 0.0015011273842625175,
+        "direction_energy_fraction_constant_linear_quadratic_remainder": [
+          0.004466315687390622,
+          0.07820507058516185,
+          0.11390242480672426,
+          0.8034261889207233
+        ]
+      },
+      "inverse_pixel_rms": 0.7705512910915354,
+      "inverse_max_closure_mm": 5.4025784115714076e-15,
+      "note": "fixed archived board poses; processed/completed corners, fitted observations"
+    },
+    "compact_14": {
+      "train": {
+        "plane_xy_rms_um": 83.79784861939636,
+        "angular_rms_deg": 0.2727923527893804,
+        "direction_energy_fraction_constant_linear_quadratic_remainder": [
+          0.9682761148269932,
+          0.03137998791802328,
+          0.0003067386357187102,
+          3.715861926486695e-05
+        ]
+      },
+      "reserved": {
+        "plane_xy_rms_um": 82.91845450675417,
+        "angular_rms_deg": 0.27260182999582433,
+        "direction_energy_fraction_constant_linear_quadratic_remainder": [
+          0.9721578620065943,
+          0.02758043882135298,
+          0.00023710647833393814,
+          2.459269371898831e-05
+        ]
+      },
+      "inverse_pixel_rms": 12.270069856173505,
+      "inverse_max_closure_mm": 5.407139474782739e-15,
+      "note": "fixed archived board poses; processed/completed corners, fitted observations"
+    },
+    "compact_26": {
+      "train": {
+        "plane_xy_rms_um": 4.031076649699414,
+        "angular_rms_deg": 0.003317667396258113,
+        "direction_energy_fraction_constant_linear_quadratic_remainder": [
+          0.0011718440431545524,
+          0.15894211691332835,
+          0.5902354701022748,
+          0.24965056894124224
+        ]
+      },
+      "reserved": {
+        "plane_xy_rms_um": 3.566874366526001,
+        "angular_rms_deg": 0.0029348600115299264,
+        "direction_energy_fraction_constant_linear_quadratic_remainder": [
+          0.009834885912411733,
+          0.19474792999571308,
+          0.5846741039335258,
+          0.2107430801583493
+        ]
+      },
+      "inverse_pixel_rms": 1.136410789485036,
+      "inverse_max_closure_mm": 6.720289191984444e-15,
+      "note": "fixed archived board poses; processed/completed corners, fitted observations"
+    },
+    "reference_field": {
+      "train": {
+        "plane_xy_rms_um": 0.0,
+        "angular_rms_deg": 0.0,
+        "direction_energy_fraction_constant_linear_quadratic_remainder": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "reserved": {
+        "plane_xy_rms_um": 0.0,
+        "angular_rms_deg": 0.0,
+        "direction_energy_fraction_constant_linear_quadratic_remainder": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "inverse_pixel_rms": 0.4517572176754175,
+      "inverse_max_closure_mm": 9.780050345373876e-15,
+      "note": "fixed archived board poses; processed/completed corners, fitted observations"
+    }
+  },
+  "centrality": {
+    "left": {
+      "raw_origin_mm": [
+        -13.38563610846866,
+        -0.26784380133437696,
+        -0.8563153165796891
+      ],
+      "max_distance_to_common_centre_mm": 1.0016071625299566e-15,
+      "nonconstant_origin_coeff_max": 0.0
+    },
+    "right": {
+      "raw_origin_mm": [
+        12.689918702812955,
+        -0.2195169759841844,
+        -0.8342995042311487
+      ],
+      "max_distance_to_common_centre_mm": 1.010032223021582e-15,
+      "nonconstant_origin_coeff_max": 0.0
+    }
+  },
+  "optimisation": {
+    "compact_14": {
+      "success": true,
+      "nfev": 21,
+      "message": "`ftol` termination condition is satisfied.",
+      "cost": 3.1037591094917563,
+      "active_coefficients": 12,
+      "trials": [
+        {
+          "cost": 3.1037591094917563,
+          "success": true,
+          "nfev": 21
+        }
+      ],
+      "scaled_jacobian_singular_values": [
+        1.9587630349549099,
+        1.6719280600941682,
+        1.415463781442074,
+        1.0000738965872065,
+        0.9851491848608009,
+        0.9792237176666642,
+        0.5593117283392239,
+        0.22184201858401376,
+        0.19095426957407555,
+        0.18950028375374983,
+        0.019847559225500966,
+        0.003017779973946521
+      ],
+      "rank_at_relative_1e_6": 12
+    },
+    "compact_26": {
+      "success": true,
+      "nfev": 82,
+      "message": "`ftol` termination condition is satisfied.",
+      "cost": 0.007182313898442318,
+      "active_coefficients": 24,
+      "trials": [
+        {
+          "cost": 0.007182313905406232,
+          "success": true,
+          "nfev": 92
+        },
+        {
+          "cost": 0.007182313900734861,
+          "success": true,
+          "nfev": 85
+        },
+        {
+          "cost": 0.007182313898442318,
+          "success": true,
+          "nfev": 82
+        },
+        {
+          "cost": 0.00718231389871918,
+          "success": true,
+          "nfev": 75
+        }
+      ],
+      "scaled_jacobian_singular_values": [
+        2.638053932225853,
+        2.440841190052152,
+        2.3487084791849995,
+        1.7213301269781,
+        0.7817636368660549,
+        0.7526295574052919,
+        0.6493028814847959,
+        0.6035927913965643,
+        0.5082621380336161,
+        0.4489511941519615,
+        0.2709943997434885,
+        0.24741402448429592,
+        0.1570966030909108,
+        0.10389831136894416,
+        0.07097901784948289,
+        0.06592688122119883,
+        0.02504110767573381,
+        0.002664783158011285,
+        0.0005934632650888548,
+        0.0005463650714434597,
+        0.0002444977158288374,
+        7.695786813966587e-06,
+        2.9697852192507717e-07,
+        6.892597977206272e-09
+      ],
+      "rank_at_relative_1e_6": 22
+    }
+  },
+  "gauges": {
+    "f_obj_WD_plus_10_mm": {
+      "max_intersection_difference_mm": 7.105427357601002e-15
+    },
+    "angular_scale_times_1p2": {
+      "max_intersection_difference_mm": 7.105427357601002e-15
+    }
+  },
+  "simulation": {
+    "angular_noise_component_sd": 2e-06,
+    "replicates_per_case": 20,
+    "quadratic_coefficients": [
+      0.0002,
+      -0.00015
+    ],
+    "records": [
+      {
+        "case": "rigid",
+        "replicate": 0,
+        "rigid_reserved_um": 0.01852872433700892,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.024454506452463623,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 1,
+        "rigid_reserved_um": 0.010324419695480173,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.01353402580833339,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 2,
+        "rigid_reserved_um": 0.014468136927222245,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.016794030052434912,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 3,
+        "rigid_reserved_um": 0.018402069427574944,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.02628718561105282,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 4,
+        "rigid_reserved_um": 0.014835483272110712,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.020991474058429563,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 5,
+        "rigid_reserved_um": 0.012958424058919834,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.014932377527951188,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 6,
+        "rigid_reserved_um": 0.011075689408973235,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.01199442717014666,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 7,
+        "rigid_reserved_um": 0.023968363017746942,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.025891919544061785,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 8,
+        "rigid_reserved_um": 0.01093657125635438,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.013983934417079702,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 9,
+        "rigid_reserved_um": 0.007932100939484061,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.01055015732561499,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 10,
+        "rigid_reserved_um": 0.022895400590076425,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.025424598123127345,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 11,
+        "rigid_reserved_um": 0.020294967593833826,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.023827169779208804,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 12,
+        "rigid_reserved_um": 0.012694520807499287,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.01664859795836896,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 13,
+        "rigid_reserved_um": 0.0329146069799003,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.0337076306270151,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 14,
+        "rigid_reserved_um": 0.02070668830827012,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.02435255752481958,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 15,
+        "rigid_reserved_um": 0.009423750871620704,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.011516923372136922,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 16,
+        "rigid_reserved_um": 0.022335123846935496,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.022441412153232275,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 17,
+        "rigid_reserved_um": 0.008627078302637939,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.012915473425279121,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 18,
+        "rigid_reserved_um": 0.013131784896700315,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.01489977837377314,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid",
+        "replicate": 19,
+        "rigid_reserved_um": 0.020257543354023275,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.023161000245568896,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 0,
+        "rigid_reserved_um": 5.191424452186073,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.03158444097871517,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 1,
+        "rigid_reserved_um": 5.199129123525757,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.01690932165998569,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 2,
+        "rigid_reserved_um": 5.211007261739509,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.028612694239343924,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 3,
+        "rigid_reserved_um": 5.208158452018562,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.022654536673254098,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 4,
+        "rigid_reserved_um": 5.191655690876999,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.027546382475615434,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 5,
+        "rigid_reserved_um": 5.2254271595546955,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.018334831928242836,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 6,
+        "rigid_reserved_um": 5.174202002024393,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.020624863702500107,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 7,
+        "rigid_reserved_um": 5.223189053292008,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.02142172653143231,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 8,
+        "rigid_reserved_um": 5.196774903172871,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.026061760279932653,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 9,
+        "rigid_reserved_um": 5.214313015659547,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.022255822746881388,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 10,
+        "rigid_reserved_um": 5.206391403524366,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.025456099945980797,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 11,
+        "rigid_reserved_um": 5.20278653394947,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.01927955333750696,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 12,
+        "rigid_reserved_um": 5.222072800485418,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.025114452009593186,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 13,
+        "rigid_reserved_um": 5.188566655577561,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.0318344246938031,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 14,
+        "rigid_reserved_um": 5.198432948155924,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.01946933099276306,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 15,
+        "rigid_reserved_um": 5.191330969506643,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.015710359842602793,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 16,
+        "rigid_reserved_um": 5.173823025897475,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.01961618680226428,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 17,
+        "rigid_reserved_um": 5.202190142284633,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.027836649299028907,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 18,
+        "rigid_reserved_um": 5.189966289167681,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.020691476916795744,
+        "rigid_quadratic_success": true
+      },
+      {
+        "case": "rigid_and_quadratic",
+        "replicate": 19,
+        "rigid_reserved_um": 5.201193103807165,
+        "rigid_success": true,
+        "rigid_quadratic_reserved_um": 0.030320581284157763,
+        "rigid_quadratic_success": true
+      }
+    ],
+    "summary": {
+      "rigid": {
+        "rigid": 0.014651810099666478,
+        "rigid_quadratic": 0.018892752055432237
+      },
+      "rigid_and_quadratic": {
+        "rigid": 5.200161113666461,
+        "rigid_quadratic": 0.022455179710067743
+      }
+    }
+  },
+  "coin": {
+    "common_points": 1943070,
+    "deterministic_subsample": 100000,
+    "median_distance_after_SE3_um": 40.889199704379976,
+    "detrended_height_MAD_um": [
+      17.51594802052381,
+      11.423384503935097
+    ],
+    "note": "stored two-model reconstructions, common mask and rigid alignment; no independent height truth"
+  },
+  "runtime_seconds": 3.9497814178466797
+}
