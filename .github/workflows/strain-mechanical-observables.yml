@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   analyse:
@@ -25,6 +25,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Repair manuscript source typo
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('paper/strain/manuscript_reframed.tex')
+          s = p.read_text()
+          bad = "For target points $i$ and $j', the exact reconstructed apparent strain is"
+          good = "For target points $i$ and $j$, the exact reconstructed apparent strain is"
+          if bad in s:
+              s = s.replace(bad, good, 1)
+              p.write_text(s)
+          elif good not in s:
+              raise SystemExit('Expected manuscript sentence not found')
+          PY
 
       - name: Install analysis dependencies
         run: python -m pip install --upgrade numpy matplotlib scipy
@@ -46,13 +61,11 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-
           mech = json.loads(Path('paper/strain/results/mechanical_observables.json').read_text())
           fine = mech['calibration2']['models']
           for model in ('ray', 'soloff', 'direct'):
               h = next(r for r in fine[model]['directions']['horizontal'] if r['step'] == 4)
               print(model, 'fine H 1.2 mm:', round(h['exact_rms_microstrain'], 1), 'ue')
-
           cmo = json.loads(Path('paper/strain/results/cmo_mechanical_observables.json').read_text())
           for direction in ('horizontal', 'vertical'):
               row = next(r for r in cmo['models']['cmo26']['directions'][direction] if r['step'] == 4)
@@ -76,6 +89,24 @@ jobs:
           pdflatex -interaction=nonstopmode -halt-on-error manuscript_reframed.tex
           pdflatex -interaction=nonstopmode -halt-on-error manuscript_reframed.tex
 
+      - name: Commit repaired source and generated analysis
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f paper/strain/manuscript_reframed.tex \
+            paper/strain/results/mechanical_observables.json \
+            paper/strain/results/gauge_scale_law.json \
+            paper/strain/results/cmo_mechanical_observables.json \
+            paper/strain/figures/gauge_length_dependence.pdf \
+            paper/strain/figures/gauge_scale_decomposition.pdf \
+            paper/strain/figures/structure_prediction.pdf \
+            paper/strain/figures/pseudo_strain_maps.pdf \
+            paper/strain/figures/cmo_wide_gauge_length.pdf
+          if ! git diff --cached --quiet; then
+            git commit -m 'Finalize generated Strain analysis and manuscript [skip ci]'
+            git push origin HEAD:codex/strain-cmo-reframed
+          fi
+
       - name: Upload manuscript and analysis outputs
         uses: actions/upload-artifact@v4
         with:
@@ -90,17 +121,5 @@ jobs:
             paper/strain/results/mechanical_observables_maps.npz
             paper/strain/results/cmo_mechanical_maps.npz
             paper/strain/results/predictions_cmo_calibration.npz
-            paper/strain/figures/gauge_length_dependence.pdf
-            paper/strain/figures/gauge_length_dependence.png
-            paper/strain/figures/gauge_scale_decomposition.pdf
-            paper/strain/figures/gauge_scale_decomposition.png
-            paper/strain/figures/structure_prediction.pdf
-            paper/strain/figures/structure_prediction.png
-            paper/strain/figures/pseudo_strain_maps.pdf
-            paper/strain/figures/pseudo_strain_maps.png
-            paper/strain/figures/rigid_residual_maps.pdf
-            paper/strain/figures/rigid_residual_maps.png
-            paper/strain/figures/cmo_wide_gauge_length.pdf
-            paper/strain/figures/cmo_wide_gauge_length.png
-            paper/strain/figures/cmo_wide_pseudo_strain.pdf
-            paper/strain/figures/cmo_wide_pseudo_strain.png
+            paper/strain/figures/*.pdf
+            paper/strain/figures/*.png
