@@ -10,11 +10,12 @@ on:
       - 'paper/strain/experiments/inspect_cmo_state.py'
       - 'paper/strain/experiments/cmo_holdout.py'
       - 'paper/strain/results/predictions_*.npz'
+      - 'paper/strain/manuscript_reframed.tex'
       - '.github/workflows/strain-mechanical-observables.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   analyse:
@@ -24,168 +25,58 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Install analysis dependencies
         run: python -m pip install --upgrade numpy matplotlib scipy
+
       - name: Inspect committed CMO state
         run: python paper/strain/experiments/inspect_cmo_state.py
+
       - name: Compute gauge-length and rigid-residual observables
         run: python paper/strain/experiments/mechanical_observables.py
+
       - name: Fit gauge-scale decomposition
         run: python paper/strain/experiments/fit_scale_law.py
+
       - name: Evaluate compact CMO on held-out wide motions
         run: PYTHONPATH=src python paper/strain/experiments/cmo_holdout.py
-      - name: Finalize manuscript with audited CMO results
-        run: |
-          python - <<'PY'
-          from pathlib import Path
 
-          p = Path('paper/strain/manuscript_reframed.tex')
-          s = p.read_text()
-
-          s = s.replace(
-              '% Working manuscript: dense Strain-oriented reframing of the CMO study.\n'
-              '% The historical 9-page manuscript.tex is intentionally kept unchanged while\n'
-              '% this version is developed and audited.\n',
-              '% Final Strain-oriented manuscript. The historical short manuscript.tex is kept unchanged.\n',
-              1,
-          )
-          s = s.replace(r'\date{Working draft -- \today}', r'\date{}', 1)
-
-          old_abs = (
-              'The short-range endpoint-increment scales remain comparable (approximately '
-              r'\SIrange{0.20}{0.27}{\micro\metre}), showing that the difference is spatial structure rather than simply smaller point noise. '
-          )
-          new_abs = old_abs + (
-              'The compact CMO model, evaluated only on the wide acquisition from which it was identified, '
-              'falls within the same mechanical-consistency band as the retrospective estimators rather than outperforming them, '
-              'showing that physical interpretability and reprojection accuracy are not substitutes for strain-space validation. '
-          )
-          assert old_abs in s
-          s = s.replace(old_abs, new_abs, 1)
-
-          old_cmo = r'''% Numerical paragraph is filled automatically/manually from
-% results/cmo_mechanical_observables.json after the workflow audit.
-\textbf{CMO held-out result placeholder.} The analysis workflow writes the full gauge-length curves, ray-gap statistics and $(A,B)$ decomposition to \texttt{results/cmo\_mechanical\_observables.json}. This paragraph will be replaced by audited numbers before submission; no claim about the CMO strain ranking is made from its calibration reprojection RMS alone.
-'''
-          new_cmo = r'''The held-out result is deliberately less spectacular than the calibration residual, and is therefore informative. At the nominal \SI{1.2}{mm} gauge the CMO model gives \SI{473.1}{\micro\strain} horizontally and \SI{356.9}{\micro\strain} vertically. Its scale-law parameters are $A_H=\SI{0.491}{\micro\metre}$, $B_H=\SI{207.1}{\micro\strain}$ and $A_V=\SI{0.355}{\micro\metre}$, $B_V=\SI{173.4}{\micro\strain}$, with $R^2=0.9947$ and $0.9957$, respectively. The median closest-ray gap over all raw wide-series correspondences is \SI{21.7}{\micro\metre}. This statistic is reported as an internal triangulation diagnostic on raw held-out corners and should not be confused with either the calibration reprojection RMS or the much denser specimen-matching gap.
-
-\begin{table}[!htbp]
-\centering
-\small
-\caption{Wide-sweep held-out mechanical consistency. The CMO row uses the compact physical calibration identified on the ten wide calibration frames; the other rows use the independently selected retrospective estimators.}
-\label{tab:cmo_wide}
-\begin{tabular}{lrrrrrr}
-\toprule
-& $\varepsilon_H(1.2)$ & $\varepsilon_V(1.2)$ & $A_H$ & $B_H$ & $A_V$ & $B_V$\\
-& (\ue) & (\ue) & (\um) & (\ue) & (\um) & (\ue)\\
-\midrule
-Ray field & 455.8 & 350.2 & 0.435 & 219.2 & 0.364 & 163.0\\
-Soloff-type & 411.6 & 347.1 & 0.449 & 112.7 & 0.364 & 163.1\\
-Direct polynomial & 477.1 & 356.5 & 0.528 & 139.1 & 0.383 & 163.8\\
-CMO 26p & 473.1 & 356.9 & 0.491 & 207.1 & 0.355 & 173.4\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The compact physical model is therefore mechanically credible on the acquisition for which it was identified, but it is not the lowest-strain-error model in that wide sweep. Its \SI{1.2}{mm} pseudo-strain and fitted floor are of the same order as the three black-box representations. This negative result is important to the paper's central claim: a physically meaningful model with a good pixel residual must still be validated at the gauge and observable of interest.
-'''
-          assert old_cmo in s
-          s = s.replace(old_cmo, new_cmo, 1)
-
-          old_conc = (
-              'The direct mapping is nevertheless the best of the three in nominal depth. '
-              'Exact gauge strain is predicted almost perfectly by the longitudinal spatial increment of the rigid-alignment residual, confirming the mechanism rather than merely observing a ranking reversal.'
-          )
-          new_conc = (
-              'The direct mapping is nevertheless the best of the three in nominal depth. '
-              'On the independent wide-series holdout, the compact CMO calibration remains in the same pseudo-strain band as the other representations '
-              '(\SI{473}{\micro\strain} horizontal and \SI{357}{\micro\strain} vertical at a nominal \SI{1.2}{mm} gauge) rather than defining a new best ranking. '
-              'Exact gauge strain is predicted almost perfectly by the longitudinal spatial increment of the rigid-alignment residual, confirming the mechanism rather than merely observing a ranking reversal.'
-          )
-          assert old_conc in s
-          s = s.replace(old_conc, new_conc, 1)
-
-          p.write_text(s)
-
-          note = Path('paper/strain/MECHANICAL_RESULTS_NOTE.md')
-          n = note.read_text()
-          marker = '## Next quantitative step'
-          if marker in n:
-              n = n.split(marker)[0].rstrip() + r'''
-
-## Compact CMO 26p: audited held-out wide-sweep result
-
-The compact CMO model was evaluated only on the 91 reserved planes of the wide acquisition from which its ten-frame calibration was identified. At a nominal 1.2 mm gauge it gives 473.1 µε horizontally and 356.9 µε vertically. The fitted scale law gives A=0.491 µm and B=207.1 µε horizontally, and A=0.355 µm and B=173.4 µε vertically (R²=0.99465 and 0.99567).
-
-This places the compact physical model in the same mechanical-consistency band as the retrospective ray, Soloff and direct representations on the wide sweep; it does not create a new best ranking. That is a useful negative result because it reinforces the paper's central methodological point: neither physical interpretability nor a low calibration reprojection RMS is a substitute for validation in the mechanical observable itself.
-'''
-              note.write_text(n + '\n')
-          PY
-      - name: Print compact numerical summary
+      - name: Audit key numerical values
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          p = Path('paper/strain/results/mechanical_observables.json')
-          d = json.loads(p.read_text())
-          for series in ('calibration','calibration2'):
-              print('\n###', series)
-              for model in ('ray','soloff','direct'):
-                  print(model)
-                  for direction in ('horizontal','vertical','diag_pos','diag_neg'):
-                      rows = d[series]['models'][model]['directions'][direction]
-                      keep = [r for r in rows if r['step'] in (1,2,4,6,8)]
-                      print(direction, [(r['step'], round(r['nominal_length_mm'],4), round(r['exact_rms_microstrain'],2), round(r['linearised_rms_microstrain'],2), round(r['exact_linear_correlation'],5)) for r in keep])
+
+          mech = json.loads(Path('paper/strain/results/mechanical_observables.json').read_text())
+          fine = mech['calibration2']['models']
+          for model in ('ray', 'soloff', 'direct'):
+              h = next(r for r in fine[model]['directions']['horizontal'] if r['step'] == 4)
+              print(model, 'fine H 1.2 mm:', round(h['exact_rms_microstrain'], 1), 'ue')
+
           cmo = json.loads(Path('paper/strain/results/cmo_mechanical_observables.json').read_text())
-          print('\n### CMO 26p wide holdout')
-          for direction in ('horizontal','vertical'):
-              rows = cmo['models']['cmo26']['directions'][direction]
-              r4 = next(r for r in rows if r['step'] == 4)
+          for direction in ('horizontal', 'vertical'):
+              row = next(r for r in cmo['models']['cmo26']['directions'][direction] if r['step'] == 4)
               fit = cmo['scale_law'][direction]
-              print(direction, '1.2mm=', round(r4['exact_rms_microstrain'],1), 'ue',
-                    'A=', round(fit['endpoint_increment_scale_A_um'],3), 'um',
-                    'B=', round(fit['coherent_strain_floor_B_microstrain'],1), 'ue')
+              print('CMO', direction,
+                    '1.2 mm=', round(row['exact_rms_microstrain'], 1), 'ue',
+                    'A=', round(fit['endpoint_increment_scale_A_um'], 3), 'um',
+                    'B=', round(fit['coherent_strain_floor_B_microstrain'], 1), 'ue')
           PY
+
       - name: Install LaTeX
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends texlive-latex-base texlive-latex-extra texlive-science texlive-fonts-recommended lmodern
-      - name: Compile final manuscript
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-extra texlive-science \
+            texlive-fonts-recommended lmodern
+
+      - name: Compile manuscript
         run: |
           cd paper/strain
           pdflatex -interaction=nonstopmode -halt-on-error manuscript_reframed.tex
-          bibtex manuscript_reframed
           pdflatex -interaction=nonstopmode -halt-on-error manuscript_reframed.tex
-          pdflatex -interaction=nonstopmode -halt-on-error manuscript_reframed.tex
-      - name: Commit audited manuscript and reproducible figures
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f \
-            paper/strain/manuscript_reframed.tex \
-            paper/strain/MECHANICAL_RESULTS_NOTE.md \
-            paper/strain/results/mechanical_observables.json \
-            paper/strain/results/gauge_scale_law.json \
-            paper/strain/results/cmo_mechanical_observables.json \
-            paper/strain/figures/gauge_length_dependence.pdf \
-            paper/strain/figures/gauge_length_dependence.png \
-            paper/strain/figures/structure_prediction.pdf \
-            paper/strain/figures/structure_prediction.png \
-            paper/strain/figures/pseudo_strain_maps.pdf \
-            paper/strain/figures/pseudo_strain_maps.png \
-            paper/strain/figures/rigid_residual_maps.pdf \
-            paper/strain/figures/rigid_residual_maps.png \
-            paper/strain/figures/gauge_scale_decomposition.pdf \
-            paper/strain/figures/gauge_scale_decomposition.png \
-            paper/strain/figures/cmo_wide_gauge_length.pdf \
-            paper/strain/figures/cmo_wide_gauge_length.png \
-            paper/strain/figures/cmo_wide_pseudo_strain.pdf \
-            paper/strain/figures/cmo_wide_pseudo_strain.png
-          if ! git diff --cached --quiet; then
-            git commit -m 'Finalize Strain manuscript with audited CMO validation [skip ci]'
-            git push origin HEAD:codex/strain-cmo-reframed
-          fi
-      - name: Upload final manuscript and analysis outputs
+
+      - name: Upload manuscript and analysis outputs
         uses: actions/upload-artifact@v4
         with:
           name: strain-final-manuscript
@@ -201,14 +92,14 @@ This places the compact physical model in the same mechanical-consistency band a
             paper/strain/results/predictions_cmo_calibration.npz
             paper/strain/figures/gauge_length_dependence.pdf
             paper/strain/figures/gauge_length_dependence.png
+            paper/strain/figures/gauge_scale_decomposition.pdf
+            paper/strain/figures/gauge_scale_decomposition.png
             paper/strain/figures/structure_prediction.pdf
             paper/strain/figures/structure_prediction.png
             paper/strain/figures/pseudo_strain_maps.pdf
             paper/strain/figures/pseudo_strain_maps.png
             paper/strain/figures/rigid_residual_maps.pdf
             paper/strain/figures/rigid_residual_maps.png
-            paper/strain/figures/gauge_scale_decomposition.pdf
-            paper/strain/figures/gauge_scale_decomposition.png
             paper/strain/figures/cmo_wide_gauge_length.pdf
             paper/strain/figures/cmo_wide_gauge_length.png
             paper/strain/figures/cmo_wide_pseudo_strain.pdf
