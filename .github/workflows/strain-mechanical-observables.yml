@@ -8,6 +8,7 @@ on:
       - 'paper/strain/experiments/mechanical_observables.py'
       - 'paper/strain/experiments/fit_scale_law.py'
       - 'paper/strain/experiments/inspect_cmo_state.py'
+      - 'paper/strain/experiments/cmo_holdout.py'
       - 'paper/strain/results/predictions_*.npz'
       - '.github/workflows/strain-mechanical-observables.yml'
   workflow_dispatch:
@@ -24,13 +25,15 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install analysis dependencies
-        run: python -m pip install --upgrade numpy matplotlib
+        run: python -m pip install --upgrade numpy matplotlib scipy
       - name: Inspect committed CMO state
         run: python paper/strain/experiments/inspect_cmo_state.py
       - name: Compute gauge-length and rigid-residual observables
         run: python paper/strain/experiments/mechanical_observables.py
       - name: Fit gauge-scale decomposition
         run: python paper/strain/experiments/fit_scale_law.py
+      - name: Evaluate compact CMO on held-out wide motions
+        run: PYTHONPATH=src python paper/strain/experiments/cmo_holdout.py
       - name: Print compact numerical summary
         run: |
           python - <<'PY'
@@ -55,6 +58,9 @@ jobs:
             paper/strain/results/mechanical_observables.json
             paper/strain/results/mechanical_observables_maps.npz
             paper/strain/results/gauge_scale_law.json
+            paper/strain/results/cmo_mechanical_observables.json
+            paper/strain/results/cmo_mechanical_maps.npz
+            paper/strain/results/predictions_cmo_calibration.npz
             paper/strain/figures/gauge_length_dependence.pdf
             paper/strain/figures/gauge_length_dependence.png
             paper/strain/figures/structure_prediction.pdf
@@ -65,3 +71,7 @@ jobs:
             paper/strain/figures/rigid_residual_maps.png
             paper/strain/figures/gauge_scale_decomposition.pdf
             paper/strain/figures/gauge_scale_decomposition.png
+            paper/strain/figures/cmo_wide_gauge_length.pdf
+            paper/strain/figures/cmo_wide_gauge_length.png
+            paper/strain/figures/cmo_wide_pseudo_strain.pdf
+            paper/strain/figures/cmo_wide_pseudo_strain.png
