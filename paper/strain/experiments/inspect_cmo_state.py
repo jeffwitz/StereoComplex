@@ -36,7 +36,6 @@ for name in (
     print(f"\nJSON {name}")
     obj = json.loads(p.read_text())
     if name == "corner_ba_refinement.json":
-        # Avoid flooding the log; show schema and small parameter-like entries.
         print("TOP_KEYS", sorted(obj.keys()))
         for k, v in obj.items():
             if any(token in k.lower() for token in ("param", "model", "arm", "rot", "trans", "initial", "final")):
@@ -44,3 +43,21 @@ for name in (
                 print(k, text[:12000])
     else:
         print(json.dumps(obj, indent=2)[:20000])
+
+print("\nTEXT OCCURRENCES OF 26P IMPLEMENTATION TOKENS")
+needles = ("x_26p", "aligned_26p", "arm_L", "rv_Lx", "full SE(3)")
+for p in ROOT.rglob("*"):
+    if p.suffix.lower() not in {".py", ".md", ".tex", ".txt"}:
+        continue
+    try:
+        lines = p.read_text(errors="ignore").splitlines()
+    except Exception:
+        continue
+    hits = []
+    for i, line in enumerate(lines, start=1):
+        if any(n in line for n in needles):
+            hits.append((i, line.strip()))
+    if hits:
+        print(f"FILE {p.relative_to(ROOT)}")
+        for i, line in hits[:80]:
+            print(f"  {i}: {line}")
