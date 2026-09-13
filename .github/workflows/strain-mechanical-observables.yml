@@ -1,0 +1,58 @@
+name: Strain mechanical-observable analysis
+
+on:
+  push:
+    branches:
+      - codex/strain-cmo-reframed
+    paths:
+      - 'paper/strain/experiments/mechanical_observables.py'
+      - 'paper/strain/results/predictions_*.npz'
+      - '.github/workflows/strain-mechanical-observables.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install analysis dependencies
+        run: python -m pip install --upgrade numpy matplotlib
+      - name: Compute gauge-length and rigid-residual observables
+        run: python paper/strain/experiments/mechanical_observables.py
+      - name: Print compact numerical summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('paper/strain/results/mechanical_observables.json')
+          d = json.loads(p.read_text())
+          for series in ('calibration','calibration2'):
+              print('\n###', series)
+              for model in ('ray','soloff','direct'):
+                  print(model)
+                  for direction in ('horizontal','vertical','diag_pos','diag_neg'):
+                      rows = d[series]['models'][model]['directions'][direction]
+                      keep = [r for r in rows if r['step'] in (1,2,4,6,8)]
+                      print(direction, [(r['step'], round(r['nominal_length_mm'],4), round(r['exact_rms_microstrain'],2), round(r['linearised_rms_microstrain'],2), round(r['exact_linear_correlation'],5)) for r in keep])
+          PY
+      - name: Upload analysis outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: strain-mechanical-observables
+          path: |
+            paper/strain/results/mechanical_observables.json
+            paper/strain/results/mechanical_observables_maps.npz
+            paper/strain/figures/gauge_length_dependence.pdf
+            paper/strain/figures/gauge_length_dependence.png
+            paper/strain/figures/structure_prediction.pdf
+            paper/strain/figures/structure_prediction.png
+            paper/strain/figures/pseudo_strain_maps.pdf
+            paper/strain/figures/pseudo_strain_maps.png
+            paper/strain/figures/rigid_residual_maps.pdf
+            paper/strain/figures/rigid_residual_maps.png
